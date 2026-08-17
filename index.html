@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>だめけー Web v0.82</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>だめけー Web v0.82</h1>
+    <p>for Pokémon Champions</p>
+  </header>
+  <main class="layout">
+    <section class="card input-card">
+      <h2>入力</h2>
+      <section class="sub-card">
+        <h3>基本</h3>
+        <div class="grid three top-inputs">
+          <label>攻撃側ポケモン<select id="attackerSelect"></select></label>
+          <label>防御側ポケモン<select id="defenderSelect"></select></label>
+          <label>技<select id="moveSelect"></select></label>
+        </div>
+      </section>
+      <div class="side-by-side">
+        <section class="sub-card side-panel">
+          <h3>攻撃側ステータス</h3>
+          <div class="grid two compact-grid">
+            <label>レベル<input id="attackerLevel" type="number" min="1" max="100" value="50" /></label>
+            <label>Z・ダイマ<select id="attackerSpecialState"></select></label>
+            <label>テラスタル<select id="attackerTeraType"></select></label>
+            <label>性別<select id="attackerGender"><option value="unknown">性別不明</option><option value="male">♂</option><option value="female">♀</option></select></label>
+          </div>
+          <div class="grid two compact-grid">
+            <label>タイプ1<select id="attackerType1"></select></label>
+            <label>タイプ2<select id="attackerType2"></select></label>
+            <label>タイプ変更<select id="attackerTypeOverride"><option value="none">なし</option><option value="soak">みずびたし</option><option value="magicPowder">まほうのこな</option></select></label>
+            <label>追加タイプ<select id="attackerAddType"><option value="none">なし</option><option value="halloween">ハロウィン</option><option value="forestCurse">もりののろい</option></select></label>
+          </div>
+          <div class="stat-grid-wrap"><div id="attackerStatsGrid" class="stat-grid"></div></div>
+          <div class="grid four hp-tools">
+            <label>現HP<input id="attackerCurrentHp" type="number" min="1" placeholder="空欄なら最大HP" /></label>
+            <button type="button" data-hp-side="attacker" data-hp-rate="4">HP 1/4</button>
+            <button type="button" data-hp-side="attacker" data-hp-rate="3">HP 1/3</button>
+            <button type="button" data-hp-side="attacker" data-hp-rate="2">HP 1/2</button>
+          </div>
+        </section>
+        <section class="sub-card side-panel">
+          <h3>防御側ステータス</h3>
+          <div class="grid two compact-grid">
+            <label>レベル<input id="defenderLevel" type="number" min="1" max="100" value="50" /></label>
+            <label>ダイマ<select id="defenderSpecialState"></select></label>
+            <label>テラスタル<select id="defenderTeraType"></select></label>
+            <label>性別<select id="defenderGender"><option value="unknown">性別不明</option><option value="male">♂</option><option value="female">♀</option></select></label>
+          </div>
+          <div class="grid two compact-grid">
+            <label>タイプ1<select id="defenderType1"></select></label>
+            <label>タイプ2<select id="defenderType2"></select></label>
+            <label>タイプ変更<select id="defenderTypeOverride"><option value="none">なし</option><option value="soak">みずびたし</option><option value="magicPowder">まほうのこな</option></select></label>
+            <label>追加タイプ<select id="defenderAddType"><option value="none">なし</option><option value="halloween">ハロウィン</option><option value="forestCurse">もりののろい</option></select></label>
+          </div>
+          <div class="stat-grid-wrap"><div id="defenderStatsGrid" class="stat-grid"></div></div>
+          <div class="grid four hp-tools">
+            <label>現HP<input id="defenderCurrentHp" type="number" min="1" placeholder="空欄なら最大HP" /></label>
+            <button type="button" data-hp-side="defender" data-hp-rate="4">HP 1/4</button>
+            <button type="button" data-hp-side="defender" data-hp-rate="3">HP 1/3</button>
+            <button type="button" data-hp-side="defender" data-hp-rate="2">HP 1/2</button>
+          </div>
+        </section>
+      </div>
+      <section class="sub-card">
+        <h3>持ち物・特性</h3>
+        <div class="grid two">
+          <label>攻撃側持ち物<select id="attackerItemSelect"></select></label>
+          <label>防御側持ち物<select id="defenderItemSelect"></select></label>
+        </div>
+        <div class="grid two">
+          <label class="check"><input id="attackerNoItem" type="checkbox" />攻撃側は持ち物なし</label>
+          <label class="check"><input id="defenderNoItem" type="checkbox" />防御側は持ち物なし</label>
+        </div>
+        <div class="grid two">
+          <label>攻撃側特性<select id="attackerAbilitySelect"></select></label>
+          <label>防御側特性<select id="defenderAbilitySelect"></select></label>
+        </div>
+        <div class="grid two">
+          <label class="check"><input id="attackerNoAbility" type="checkbox" />攻撃側は特性なし</label>
+          <label class="check"><input id="defenderNoAbility" type="checkbox" />防御側は特性なし</label>
+        </div>
+      </section>
+      <section class="sub-card">
+        <h3>場</h3>
+        <div class="grid four">
+          <label>天候<select id="weatherSelect"></select></label>
+          <label>フィールド<select id="fieldSelect"></select></label>
+          <label class="check"><input id="magicRoom" type="checkbox" />マジックルーム</label>
+          <label class="check"><input id="gravity" type="checkbox" />じゅうりょく</label>
+          <label class="check"><input id="protect" type="checkbox" />まもる</label>
+          <label class="check"><input id="plasmaShower" type="checkbox" />プラズマシャワー</label>
+          <label class="check"><input id="fairyAuraField" type="checkbox" />フェアリーオーラ</label>
+          <label class="check"><input id="vesselOfRuinField" type="checkbox" />わざわいのうつわ</label>
+          <label class="check"><input id="beadsOfRuinField" type="checkbox" />わざわいのたま</label>
+          <label class="check"><input id="swordOfRuinField" type="checkbox" />わざわいのつるぎ</label>
+          <label class="check"><input id="tabletsOfRuinField" type="checkbox" />わざわいのおふだ</label>
+          <label class="check"><input id="darkAuraField" type="checkbox" />ダークオーラ</label>
+          <label class="check"><input id="mudSport" type="checkbox" />どろあそび</label>
+          <label class="check"><input id="waterSport" type="checkbox" />みずあそび</label>
+          <label class="check"><input id="weatherSuppressField" type="checkbox" />ノーてんき・エアロック</label>
+          <label class="check"><input id="neutralizingGasField" type="checkbox" />かがくへんかガス</label>
+        </div>
+        <div class="operation-panel">
+          <div class="operation-title">実数値操作、押した順に適用</div>
+          <div class="operation-buttons">
+            <button type="button" data-op="attackerPowerTrick">攻撃側パワートリック</button>
+            <button type="button" data-op="defenderPowerTrick">防御側パワートリック</button>
+            <button type="button" data-op="powerShare">パワーシェア</button>
+            <button type="button" data-op="guardShare">ガードシェア</button>
+            <button type="button" data-op="speedSwap">スピードスワップ</button>
+            <button type="button" data-op="wonderRoom">ワンダールーム</button>
+            <button type="button" id="resetTransformOps">リセット</button>
+          </div>
+          <div id="transformOpsDisplay" class="operation-display">なし</div>
+        </div>
+      </section>
+      <section class="sub-card">
+        <h3>攻撃側条件</h3>
+        <div class="grid four">
+          <label class="check"><input id="critical" type="checkbox" />急所</label>
+          <label class="check"><input id="electrify" type="checkbox" />そうでん</label>
+          <label class="check"><input id="pledgeCombination" type="checkbox" />コンビネーション</label>
+          <label class="check"><input id="attackerEmbargo" type="checkbox" />さしおさえ</label>
+          <label>状態異常<select id="attackerStatus"><option value="なし">なし</option><option value="やけど">やけど</option><option value="まひ">まひ</option><option value="どく">どく</option><option value="ねむり">ねむり</option><option value="こおり">こおり</option></select></label>
+          <label class="check"><input id="attackerStealthRock" type="checkbox" />ステルスロック</label>
+          <label>まきびし<select id="attackerSpikes"><option value="0">なし</option><option value="1">1回</option><option value="2">2回</option><option value="3">3回</option></select></label>
+          <label class="check"><input id="attackerSteelSurge" type="checkbox" />キョダイコウジン</label>
+          <label class="check"><input id="batterySupport" type="checkbox" />バッテリー</label>
+          <label class="check"><input id="flowerGiftSupport" type="checkbox" />フラワーギフト</label>
+          <label class="check"><input id="plusMinusSupport" type="checkbox" />プラス/マイナス</label>
+          <label class="check"><input id="flashFireActivated" type="checkbox" />もらいび ほのお技被弾</label>
+          <label class="check"><input id="stakeoutSwitchIn" type="checkbox" />はりこみ 防御側繰り出し</label>
+          <label class="check"><input id="powerSpotSupport" type="checkbox" />パワースポット</label>
+          <label class="check"><input id="attackerDoubleDamage" type="checkbox" />ダブルダメージ</label>
+          <label>メトロノーム回数<select id="metronomeUseCount"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option></select></label>
+          <label>サイコウェーブ倍率<input id="psywaveMultiplier" type="number" min="0.5" max="1.5" step="0.01" value="1" /></label>
+          <label>被ダメ<input id="fixedDamageTaken" type="number" min="0" step="1" value="0" /></label>
+          <label>ステラ技回数<select id="attackerStellarMoveCount"><option value="first">1回目</option><option value="later">2回目以降</option></select></label>
+          <label>はがねのせいしん<select id="steelSpiritCount"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
+          <label>てだすけ<select id="helpingHandCount"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
+          <label class="check"><input id="meFirst" type="checkbox" />さきどり</label>
+          <label class="check"><input id="charge" type="checkbox" />じゅうでん</label>
+          <label class="check"><input id="analyzeMovedLast" type="checkbox" />アナライズ後攻</label>
+          <label class="check"><input id="attackerTailwind" type="checkbox" />おいかぜ</label>
+          <label class="check"><input id="attackerSwamp" type="checkbox" />しつげん</label>
+          <label class="check"><input id="attackerSlowStart" type="checkbox" />スロースタート発動</label>
+          <label class="check"><input id="attackerUnburden" type="checkbox" />かるわざ発動</label>
+          <label>古代/クォーク上昇<select id="attackerParadoxBoostStat"><option value="none">なし</option><option value="A">攻撃</option><option value="B">防御</option><option value="C">特攻</option><option value="D">特防</option><option value="S">素早さ</option></select></label>
+          <label class="check"><input id="attackerRootedSmacked" type="checkbox" />ねをはる・うちおとす</label>
+          <label class="check"><input id="attackerMagnetRise" type="checkbox" />でんじふゆう</label>
+          <label class="check"><input id="attackerTelekinesis" type="checkbox" />テレキネシス</label>
+          <label class="check"><input id="attackerRoost" type="checkbox" />はねやすめ</label>
+          <label class="check"><input id="attackerBurnUp" type="checkbox" />もえつきる</label>
+          <label class="check"><input id="attackerDoubleShock" type="checkbox" />でんこうそうげき</label>
+          <label>ボディパージ回数<input id="attackerBodyPurge" type="number" min="0" max="6" value="0" /></label>
+        </div>
+      </section>
+      <section class="sub-card">
+        <h3>防御側条件</h3>
+        <div class="grid four">
+          <label class="check"><input id="defenderLuckyChant" type="checkbox" />おまじない</label>
+          <label class="check"><input id="defenderForesight" type="checkbox" />みやぶる</label>
+          <label class="check"><input id="defenderMiracleEye" type="checkbox" />ミラクルアイ</label>
+          <label class="check"><input id="defenderTarShot" type="checkbox" />タールショット</label>
+          <label>壁<select id="defenderScreen"><option value="none">なし</option><option value="reflect">リフレクター</option><option value="lightScreen">ひかりのかべ</option><option value="auroraVeil">オーロラベール</option></select></label>
+          <label class="check"><input id="defenderFriendGuard" type="checkbox" />フレンドガード</label>
+          <label class="check"><input id="defenderMinimized" type="checkbox" />ちいさくなる</label>
+          <label>防御側状態まもる<select id="defenderProtectState"><option value="none">なし</option><option value="protect">まもる</option><option value="maxGuard">ダイウォール</option></select></label>
+          <label class="check"><input id="defenderEmbargo" type="checkbox" />さしおさえ</label>
+          <label>状態異常<select id="defenderStatus"><option value="なし">なし</option><option value="やけど">やけど</option><option value="まひ">まひ</option><option value="どく">どく</option><option value="ねむり">ねむり</option><option value="こおり">こおり</option></select></label>
+          <label>防御側状態<select id="defenderSemiInvulnerable"><option value="なし">なし</option><option value="そらをとぶ">そらをとぶ</option><option value="あなをほる">あなをほる</option><option value="ダイビング">ダイビング</option><option value="シャドーダイブ">シャドーダイブ</option></select></label>
+          <label class="check"><input id="defenderStealthRock" type="checkbox" />ステルスロック</label>
+          <label>まきびし<select id="defenderSpikes"><option value="0">なし</option><option value="1">1回</option><option value="2">2回</option><option value="3">3回</option></select></label>
+          <label class="check"><input id="defenderSteelSurge" type="checkbox" />キョダイコウジン</label>
+          <label class="check"><input id="defenderFlowerGiftSupport" type="checkbox" />フラワーギフト</label>
+          <label class="check"><input id="defenderGlaiveRush" type="checkbox" />きょけんとつげき</label>
+          <label class="check"><input id="defenderTailwind" type="checkbox" />おいかぜ</label>
+          <label class="check"><input id="defenderSwamp" type="checkbox" />しつげん</label>
+          <label class="check"><input id="defenderSlowStart" type="checkbox" />スロースタート発動</label>
+          <label class="check"><input id="defenderUnburden" type="checkbox" />かるわざ発動</label>
+          <label>古代/クォーク上昇<select id="defenderParadoxBoostStat"><option value="none">なし</option><option value="A">攻撃</option><option value="B">防御</option><option value="C">特攻</option><option value="D">特防</option><option value="S">素早さ</option></select></label>
+          <label class="check"><input id="defenderRootedSmacked" type="checkbox" />ねをはる・うちおとす</label>
+          <label class="check"><input id="defenderMagnetRise" type="checkbox" />でんじふゆう</label>
+          <label class="check"><input id="defenderTelekinesis" type="checkbox" />テレキネシス</label>
+          <label class="check"><input id="defenderRoost" type="checkbox" />はねやすめ</label>
+          <label class="check"><input id="defenderBurnUp" type="checkbox" />もえつきる</label>
+          <label class="check"><input id="defenderDoubleShock" type="checkbox" />でんこうそうげき</label>
+          <label>ボディパージ回数<input id="defenderBodyPurge" type="number" min="0" max="6" value="0" /></label>
+        </div>
+      </section>
+      
+      <section class="sub-card" id="moveSpecificSection">
+        <h3>技固有条件</h3>
+        <div class="grid four">
+          <label>ころがる等 回数<input id="rolloutHit" type="number" min="1" max="5" value="1" /></label>
+          <label class="check"><input id="defenseCurl" type="checkbox" />まるくなる済み</label>
+          <label>エコーボイス回数<input id="echoedVoiceCount" type="number" min="1" max="5" value="1" /></label>
+          <label>行動順<select id="moveOrder"><option value="first">先攻</option><option value="second">後攻</option></select></label>
+          <label class="check"><input id="targetSwitching" type="checkbox" />相手が交代</label>
+          <label>味方ひんし数<input id="faintedAllies" type="number" min="0" max="100" value="0" /></label>
+          <label>そうだいしょう味方ひんし数<input id="supremeOverlordFaintedAllies" type="number" min="0" max="5" value="0" /></label>
+          <label>なつき度<input id="friendship" type="number" min="0" max="255" value="255" /></label>
+          <label>残りPP<input id="remainingPP" type="number" min="0" max="8" value="4" /></label>
+          <label class="check"><input id="lastMoveFailed" type="checkbox" />前ターン技失敗</label>
+          <label class="check"><input id="userDamagedThisTurn" type="checkbox" />自分がこのターン被ダメ</label>
+          <label class="check"><input id="targetDamagedThisTurn" type="checkbox" />相手がこのターン被ダメ</label>
+          <label>たくわえる回数<select id="stockpileCount"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
+          <label>プレゼント威力<select id="presentPower"><option value="40">40</option><option value="80">80</option><option value="120">120</option></select></label>
+          <label>被ダメ回数<input id="rageFistHitCount" type="number" min="0" max="6" value="0" /></label>
+          <label>マグニチュード威力<select id="magnitudePower"><option value="10">10</option><option value="30">30</option><option value="50">50</option><option value="70">70</option><option value="90">90</option><option value="110">110</option><option value="150">150</option></select></label>
+          <label class="check"><input id="roundAllyUsed" type="checkbox" />同ターンりんしょうあり</label>
+          <label>れんぞくぎり回数<input id="furyCutterCount" type="number" min="1" max="3" value="1" /></label>
+          <label class="check"><input id="statDroppedThisTurn" type="checkbox" />自身のランク下降</label>
+          <label class="check"><input id="allyFaintedLastTurn" type="checkbox" />前ターン味方ひんし</label>
+          <label>控え1<select id="beatUpAlly1"><option value="none">なし</option></select></label>
+          <label>控え2<select id="beatUpAlly2"><option value="none">なし</option></select></label>
+          <label>控え3<select id="beatUpAlly3"><option value="none">なし</option></select></label>
+          <label>控え4<select id="beatUpAlly4"><option value="none">なし</option></select></label>
+          <label>控え5<select id="beatUpAlly5"><option value="none">なし</option></select></label>
+        </div>
+      </section>
+      <div class="actions">
+        <button id="calculateButton" type="button">計算</button>
+        <button id="copyTraceButton" type="button">計算過程をコピー</button>
+      </div>
+    </section>
+    <section class="card result-card">
+      <h2>結果</h2>
+      <div id="summary" class="summary">未計算です。</div>
+      <h3>乱数</h3>
+      <pre id="rolls" class="output"></pre>
+      <h3>計算過程</h3>
+      <pre id="trace" class="output trace"></pre>
+    </section>
+  </main>
+  <script src="data.js"></script>
+  <script src="data/data.generated.js"></script>
+<script src="data/data.fixups.v075.js"></script>
+<script src="data/data.validation.v077.js"></script>
+<script src="data/data.consolidation.v078.js"></script>
+<script src="data/data.consolidation.v079.js"></script>
+<script src="data/data.final-structure.v080.js"></script>
+<script src="data/data.consolidation.v085.js"></script>
+<script src="data/data.consolidation.v086.js"></script>
+<script src="data/data.consolidation.v087.js"></script>
+<script src="calc.js"></script>
+  <script src="runtime/calc.runtime.fix.v063.js"></script>
+<script src="app.js"></script>
+
+
+  
+  
+  
+</body>
+</html>
