@@ -530,3 +530,112 @@ button { cursor: pointer; background: #eef2ff; border-color: #c7d2fe; color: #1e
   padding-left:0!important;
   text-align:left!important;
 }
+
+/* v0.90 form change chips */
+.v090-form-panel{margin:6px 0 10px;padding:6px 7px;border:1px solid rgba(125,125,125,.22);border-radius:10px;background:rgba(127,127,127,.045)}
+.v090-form-panel-empty{display:none!important}
+.v090-form-panel-title{font-size:11px;color:#687282;margin-bottom:4px;font-weight:600}
+.v090-form-buttons{display:flex;flex-wrap:wrap;gap:4px}
+.v090-form-chip{border:1px solid rgba(89,113,164,.28);background:rgba(96,125,180,.08);border-radius:999px;padding:3px 8px;font-size:12px;line-height:1.2;cursor:pointer;color:inherit}
+.v090-form-chip:hover{background:rgba(96,125,180,.16)}
+.v090-form-chip.active{background:#285ea8;color:#fff;border-color:#285ea8;font-weight:600}
+
+/* v0.90b form change render fix */
+.v090-form-panel{display:block;margin:6px 0 10px;padding:6px 7px;border:1px solid rgba(125,125,125,.22);border-radius:10px;background:rgba(127,127,127,.045)}
+.v090-form-panel-empty{display:none!important}
+.v090-form-panel-title{font-size:11px;color:#687282;margin-bottom:4px;font-weight:600}
+.v090-form-buttons{display:flex;flex-wrap:wrap;gap:4px}
+.v090-form-chip{border:1px solid rgba(89,113,164,.28);background:rgba(96,125,180,.08);border-radius:999px;padding:3px 8px;font-size:12px;line-height:1.2;cursor:pointer;color:inherit}
+.v090-form-chip:hover{background:rgba(96,125,180,.16)}
+.v090-form-chip.active{background:#285ea8;color:#fff;border-color:#285ea8;font-weight:600}
+
+/* v0.90c form chips clickable fix */
+.v090-form-panel{position:relative;z-index:2;display:block;margin:6px 0 10px;padding:6px 7px;border:1px solid rgba(125,125,125,.22);border-radius:10px;background:rgba(127,127,127,.045)}
+.v090-form-panel-empty{display:none!important}
+.v090-form-panel-title{font-size:11px;color:#687282;margin-bottom:4px;font-weight:600}
+.v090-form-buttons{display:flex;flex-wrap:wrap;gap:4px}
+.v090-form-chip{position:relative;z-index:3;pointer-events:auto;border:1px solid rgba(89,113,164,.28);background:rgba(96,125,180,.08);border-radius:999px;padding:3px 8px;font-size:12px;line-height:1.2;cursor:pointer;color:inherit}
+.v090-form-chip:hover{background:rgba(96,125,180,.16)}
+.v090-form-chip.active{background:#285ea8;color:#fff;border-color:#285ea8;font-weight:600}
+
+/* v0.90d collapsible clickable form selector */
+.v090-form-panel{position:relative;z-index:5;display:block;margin:6px 0 10px;padding:5px 7px;border:1px solid rgba(125,125,125,.22);border-radius:10px;background:rgba(127,127,127,.045)}
+.v090-form-panel-empty{display:none!important}
+.v090-form-panel-title{font-size:11px;color:#687282;font-weight:600;cursor:pointer;list-style:none}
+.v090-form-panel-title::-webkit-details-marker{display:none}
+.v090-form-panel-title::before{content:'▾';display:inline-block;width:1.1em;color:#7b8493}
+.v090-form-panel:not([open]) .v090-form-panel-title::before{content:'▸'}
+.v090-form-body{margin-top:5px;display:flex;flex-direction:column;gap:5px}
+.v090-form-select{max-width:180px;font-size:12px;padding:2px 5px;border-radius:8px;border:1px solid rgba(125,125,125,.25);background:rgba(255,255,255,.85)}
+.v090-form-buttons{display:flex;flex-wrap:wrap;gap:4px}
+.v090-form-chip{position:relative;z-index:6;pointer-events:auto;border:1px solid rgba(89,113,164,.28);background:rgba(96,125,180,.08);border-radius:999px;padding:3px 8px;font-size:12px;line-height:1.2;cursor:pointer;color:inherit;user-select:none}
+.v090-form-chip:hover{background:rgba(96,125,180,.16)}
+.v090-form-chip.active{background:#285ea8;color:#fff;border-color:#285ea8;font-weight:600}
+
+/* v0.90e form linkage UI */
+.v090-form-select{display:none!important}
+.v090e-sex-field{margin-top:6px;display:flex;align-items:center;gap:6px;font-size:12px;color:inherit}
+.v090e-sex-select{width:78px;max-width:78px;padding:2px 5px;border-radius:8px;border:1px solid rgba(125,125,125,.25);background:rgba(255,255,255,.85);font-size:12px}
+.v090-form-panel{position:relative;z-index:5;display:block;margin:6px 0 10px;padding:5px 7px;border:1px solid rgba(125,125,125,.22);border-radius:10px;background:rgba(127,127,127,.045)}
+.v090-form-panel-empty{display:none!important}
+.v090-form-panel-title{font-size:11px;color:#687282;font-weight:600;cursor:pointer;list-style:none}
+.v090-form-panel-title::-webkit-details-marker{display:none}
+.v090-form-panel-title::before{content:'▾';display:inline-block;width:1.1em;color:#7b8493}
+.v090-form-panel:not([open]) .v090-form-panel-title::before{content:'▸'}
+.v090-form-body{margin-top:5px;display:flex;flex-direction:column;gap:5px}
+.v090-form-buttons{display:flex;flex-wrap:wrap;gap:4px}
+.v090-form-chip{position:relative;z-index:6;pointer-events:auto;border:1px solid rgba(89,113,164,.28);background:rgba(96,125,180,.08);border-radius:999px;padding:3px 8px;font-size:12px;line-height:1.2;cursor:pointer;color:inherit;user-select:none}
+.v090-form-chip:hover{background:rgba(96,125,180,.16)}
+.v090-form-chip.active{background:#285ea8;color:#fff;border-color:#285ea8;font-weight:600}
+
+/* v0.90f sex field and form linkage */
+.v090-form-select{display:none!important}
+.v090f-sex-field{margin-top:6px;display:flex;align-items:center;gap:6px;font-size:12px;color:inherit}
+.v090f-sex-select{width:98px;max-width:98px;padding:2px 5px;border-radius:8px;border:1px solid rgba(125,125,125,.25);background:rgba(255,255,255,.85);font-size:12px}
+.v090-form-panel{position:relative;z-index:5;display:block;margin:6px 0 10px;padding:5px 7px;border:1px solid rgba(125,125,125,.22);border-radius:10px;background:rgba(127,127,127,.045)}
+.v090-form-panel-empty{display:none!important}
+.v090-form-panel-title{font-size:11px;color:#687282;font-weight:600;cursor:pointer;list-style:none}
+.v090-form-panel-title::-webkit-details-marker{display:none}
+.v090-form-panel-title::before{content:'▾';display:inline-block;width:1.1em;color:#7b8493}
+.v090-form-panel:not([open]) .v090-form-panel-title::before{content:'▸'}
+.v090-form-body{margin-top:5px;display:flex;flex-direction:column;gap:5px}
+.v090-form-buttons{display:flex;flex-wrap:wrap;gap:4px}
+.v090-form-chip{position:relative;z-index:6;pointer-events:auto;border:1px solid rgba(89,113,164,.28);background:rgba(96,125,180,.08);border-radius:999px;padding:3px 8px;font-size:12px;line-height:1.2;cursor:pointer;color:inherit;user-select:none}
+.v090-form-chip:hover{background:rgba(96,125,180,.16)}
+.v090-form-chip.active{background:#285ea8;color:#fff;border-color:#285ea8;font-weight:600}
+
+/* v0.90g sex field placement */
+.v090g-sex-field{margin-top:6px;display:flex;align-items:center;gap:6px;font-size:12px;color:inherit}
+.v090g-sex-select{width:98px;max-width:98px;padding:2px 5px;border-radius:8px;border:1px solid rgba(125,125,125,.25);background:rgba(255,255,255,.85);font-size:12px}
+.v090-form-select{display:none!important}
+
+/* v0.90i unified form change runtime */
+.v090-form-select{display:none!important}
+.v090-sex-field{margin-top:6px;display:flex;align-items:center;gap:6px;font-size:12px;color:inherit}
+.v090-sex-select{width:98px;max-width:98px;padding:2px 5px;border-radius:8px;border:1px solid rgba(125,125,125,.25);background:rgba(255,255,255,.85);font-size:12px}
+.v090-form-panel{position:relative;z-index:5;display:block;margin:6px 0 10px;padding:5px 7px;border:1px solid rgba(125,125,125,.22);border-radius:10px;background:rgba(127,127,127,.045)}
+.v090-form-panel-empty{display:none!important}
+.v090-form-panel-title{font-size:11px;color:#687282;font-weight:600;cursor:pointer;list-style:none}
+.v090-form-panel-title::-webkit-details-marker{display:none}
+.v090-form-panel-title::before{content:'▾';display:inline-block;width:1.1em;color:#7b8493}
+.v090-form-panel:not([open]) .v090-form-panel-title::before{content:'▸'}
+.v090-form-body{margin-top:5px;display:flex;flex-direction:column;gap:5px}
+.v090-form-buttons{display:flex;flex-wrap:wrap;gap:4px}
+.v090-form-chip{position:relative;z-index:6;pointer-events:auto;border:1px solid rgba(89,113,164,.28);background:rgba(96,125,180,.08);border-radius:999px;padding:3px 8px;font-size:12px;line-height:1.2;cursor:pointer;color:inherit;user-select:none}
+.v090-form-chip:hover{background:rgba(96,125,180,.16)}
+.v090-form-chip.active{background:#285ea8;color:#fff;border-color:#285ea8;font-weight:600}
+
+/* v0.91 consolidated form change runtime */
+.v091-sex-field{margin-top:6px;display:flex;align-items:center;gap:6px;font-size:12px;color:inherit}
+.v091-sex-select{width:98px;max-width:98px;padding:2px 5px;border-radius:8px;border:1px solid rgba(125,125,125,.25);background:rgba(255,255,255,.85);font-size:12px}
+.v091-form-panel{position:relative;z-index:5;display:block;margin:6px 0 10px;padding:5px 7px;border:1px solid rgba(125,125,125,.22);border-radius:10px;background:rgba(127,127,127,.045)}
+.v091-form-panel-empty{display:none!important}
+.v091-form-panel-title{font-size:11px;color:#687282;font-weight:600;cursor:pointer;list-style:none}
+.v091-form-panel-title::-webkit-details-marker{display:none}
+.v091-form-panel-title::before{content:'▾';display:inline-block;width:1.1em;color:#7b8493}
+.v091-form-panel:not([open]) .v091-form-panel-title::before{content:'▸'}
+.v091-form-body{margin-top:5px;display:flex;flex-direction:column;gap:5px}
+.v091-form-buttons{display:flex;flex-wrap:wrap;gap:4px}
+.v091-form-chip{position:relative;z-index:6;pointer-events:auto;border:1px solid rgba(89,113,164,.28);background:rgba(96,125,180,.08);border-radius:999px;padding:3px 8px;font-size:12px;line-height:1.2;cursor:pointer;color:inherit;user-select:none}
+.v091-form-chip:hover{background:rgba(96,125,180,.16)}
+.v091-form-chip.active{background:#285ea8;color:#fff;border-color:#285ea8;font-weight:600}

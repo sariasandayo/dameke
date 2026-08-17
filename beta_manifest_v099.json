@@ -1,0 +1,48 @@
+{
+  "version": "v0.99",
+  "generatedAt": "2026-08-17T06:49:15.839Z",
+  "purpose": "GitHub Pages beta publish package for Dameke Web.",
+  "files": [
+    {
+      "path": "index.html",
+      "bytes": 21210,
+      "hash": "10d11d47"
+    },
+    {
+      "path": "style.css",
+      "bytes": 40718,
+      "hash": "5854db7d"
+    },
+    {
+      "path": "data.js",
+      "bytes": 2386379,
+      "hash": "6bfe8768"
+    },
+    {
+      "path": "calc.js",
+      "bytes": 191525,
+      "hash": "bbc7b25d"
+    },
+    {
+      "path": "app.js",
+      "bytes": 94731,
+      "hash": "30d35958"
+    }
+  ],
+  "expectedScripts": [
+    "data.js",
+    "calc.js",
+    "app.js"
+  ],
+  "actualScripts": [
+    "data.js",
+    "calc.js",
+    "app.js"
+  ],
+  "styles": [
+    "style.css"
+  ],
+  "missingScripts": [],
+  "orderMismatches": [],
+  "extraRuntimeScripts": []
+}
