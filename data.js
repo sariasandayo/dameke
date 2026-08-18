@@ -92033,3 +92033,165 @@ window.DAMEKE_GENERATED_DATA = {
   };
   window.DAMEKE_DATA = D;
 })();
+
+
+/* DAMEKE v0.100 five-file stability browser report */
+(function(){
+  var D = window.DAMEKE_DATA || {};
+  function norm(s){ return String(s || '').replace(/\\/g, '/'); }
+  function scripts(){ return Array.prototype.slice.call(document.querySelectorAll('script[src]')).map(function(s){ return norm(s.getAttribute('src')); }); }
+  function styles(){ return Array.prototype.slice.call(document.querySelectorAll('link[href]')).map(function(s){ return norm(s.getAttribute('href')); }); }
+  function safeCall(fn){
+    try { return typeof fn === 'function' ? fn() : null; }
+    catch(e){ return { error: String(e && e.message || e) }; }
+  }
+  D.v100FiveFileStabilityReport = function(){
+    var sc = scripts();
+    var st = styles();
+    var expectedScripts = ['data.js', 'calc.js', 'app.js'];
+    var expectedStyles = ['style.css'];
+    var missingScripts = expectedScripts.filter(function(x){ return sc.indexOf(x) < 0; });
+    var orderMismatches = [];
+    for(var i = 0; i < expectedScripts.length; i++){
+      if(sc[i] !== expectedScripts[i]) orderMismatches.push({ index: i, expected: expectedScripts[i], actual: sc[i] || null });
+    }
+    var forbiddenScripts = sc.filter(function(x){
+      return x.indexOf('data/') === 0 || x.indexOf('runtime/') === 0 || x.indexOf('app.formchange') === 0 || x.indexOf('app.integrated') === 0 || x === 'data.integrated.v095.js';
+    });
+    var missingStyles = expectedStyles.filter(function(x){ return st.indexOf(x) < 0; });
+    var v060 = safeCall(D.v060IntegrationValidationReport);
+    var v061 = safeCall(D.v061BattleDataValidationReport);
+    var v098 = safeCall(D.v098FiveFileStructureReport);
+    var calcReport = window.DAMEKE_CALC && typeof window.DAMEKE_CALC.v097CalcRuntimeIntegrationReport === 'function'
+      ? safeCall(window.DAMEKE_CALC.v097CalcRuntimeIntegrationReport)
+      : null;
+    var formReport = typeof window.DAMEKE_UI_V091_FORM_REPORT === 'function'
+      ? safeCall(window.DAMEKE_UI_V091_FORM_REPORT)
+      : null;
+    var uiOk = !formReport || (formReport.loaded === true && formReport.legacyV090Panels === 0);
+    var v060Ok = !v060 || v060.ok === true;
+    var v061Ok = !v061 || (v061.summary && v061.summary.failures === 0);
+    var v098Ok = !v098 || v098.readyForV099 === true;
+    var calcOk = !calcReport || calcReport.canProceedToV098 === true;
+    var stable = missingScripts.length === 0 && orderMismatches.length === 0 && forbiddenScripts.length === 0 && missingStyles.length === 0 && v060Ok && v061Ok && v098Ok && calcOk && uiOk;
+    return {
+      version: 'v0.100',
+      loaded: true,
+      scripts: sc,
+      styles: st,
+      expectedScripts: expectedScripts,
+      expectedStyles: expectedStyles,
+      missingScripts: missingScripts,
+      orderMismatches: orderMismatches,
+      forbiddenScripts: forbiddenScripts,
+      missingStyles: missingStyles,
+      v060Ok: v060Ok,
+      v061Ok: v061Ok,
+      v098Ok: v098Ok,
+      calcOk: calcOk,
+      uiOk: uiOk,
+      stableForFurtherDevelopment: stable,
+      nextRecommended: stable ? 'v0.101 フォルムチェンジ等細部修正' : '安定化失敗項目を修正'
+    };
+  };
+  window.DAMEKE_DATA = D;
+})();
+
+
+/* DAMEKE v0.101 form detail data fixes BEGIN */
+(function(){
+  var D = window.DAMEKE_DATA || {};
+  function norm(s){ return String(s == null ? '' : s).trim(); }
+  function arr(x){ return Array.isArray(x) ? x : (x ? [x] : []); }
+  function findPokemon(name){
+    name = norm(name);
+    return (D.pokemons || []).find(function(p){ return p && p.name === name; });
+  }
+  function clone(obj){ return JSON.parse(JSON.stringify(obj || {})); }
+  function ensureItem(name){
+    name = norm(name);
+    if(!name) return null;
+    D.items = D.items || [];
+    var found = D.items.find(function(i){ return i && i.name === name; });
+    if(found) return found;
+    var id = name;
+    found = { id:id, name:name, kind:'FormChangeItem', effectTags:['formLinkedItem'] };
+    D.items.push(found);
+    return found;
+  }
+  function compareJa(a,b){
+    var an = a && a.name === 'なし' ? '' : norm(a && a.name);
+    var bn = b && b.name === 'なし' ? '' : norm(b && b.name);
+    if((a && a.name) === 'なし') return -1;
+    if((b && b.name) === 'なし') return 1;
+    try { return an.localeCompare(bn, 'ja'); } catch(e){ return an < bn ? -1 : (an > bn ? 1 : 0); }
+  }
+  function ensurePokemon(spec){
+    D.pokemons = D.pokemons || [];
+    var existing = findPokemon(spec.name);
+    if(existing){
+      Object.keys(spec).forEach(function(k){ if(k !== 'name' && spec[k] != null) existing[k] = spec[k]; });
+      return existing;
+    }
+    var base = spec.baseFrom ? findPokemon(spec.baseFrom) : null;
+    var p = base ? clone(base) : {};
+    Object.keys(spec).forEach(function(k){ if(k !== 'baseFrom') p[k] = spec[k]; });
+    if(!p.id) p.id = p.name;
+    D.pokemons.push(p);
+    return p;
+  }
+  function setFormMeta(name, meta){
+    var p = findPokemon(name);
+    if(!p) return null;
+    Object.keys(meta).forEach(function(k){ p[k] = meta[k]; });
+    return p;
+  }
+  function register(entries){
+    if(typeof D.registerFormChangeEntries === 'function'){
+      try { D.registerFormChangeEntries(entries); return; } catch(e){}
+    }
+    entries.forEach(function(e){
+      var p = findPokemon(e.name);
+      if(p) Object.keys(e).forEach(function(k){ if(k !== 'name') p[k] = e[k]; });
+    });
+  }
+
+  ensureItem('あいいろのたま');
+  ensureItem('べにいろのたま');
+  if(Array.isArray(D.items)) D.items.sort(compareJa);
+
+  ensurePokemon({
+    name:'ゲンシカイオーガ', id:'ゲンシカイオーガ', baseFrom:'カイオーガ',
+    types:['みず'], abilities:['はじまりのうみ'], ability1:'はじまりのうみ',
+    baseStats:{H:100,A:150,B:90,C:180,D:160,S:90}, weight:430.0,
+    speciesKey:'カイオーガ', formKey:'ゲンシカイキ', formLabel:'ゲンシカイキ', formGroup:'カイオーガ', formOrder:2,
+    formChangeable:true, formChangeKind:'inbattle', formLinkedItem1:'あいいろのたま', beatUpAttackBaseSpeciesKey:'カイオーガ'
+  });
+  ensurePokemon({
+    name:'ゲンシグラードン', id:'ゲンシグラードン', baseFrom:'グラードン',
+    types:['じめん','ほのお'], abilities:['おわりのだいち'], ability1:'おわりのだいち',
+    baseStats:{H:100,A:180,B:160,C:150,D:90,S:90}, weight:999.7,
+    speciesKey:'グラードン', formKey:'ゲンシグラードン', formLabel:'ゲンシグラードン', formGroup:'グラードン', formOrder:2,
+    formChangeable:true, formChangeKind:'inbattle', formLinkedItem1:'べにいろのたま', beatUpAttackBaseSpeciesKey:'グラードン'
+  });
+  setFormMeta('カイオーガ', {speciesKey:'カイオーガ', formKey:'カイオーガ', formLabel:'カイオーガ', formGroup:'カイオーガ', formOrder:1, formChangeable:true, formChangeKind:'inbattle'});
+  setFormMeta('グラードン', {speciesKey:'グラードン', formKey:'グラードン', formLabel:'グラードン', formGroup:'グラードン', formOrder:1, formChangeable:true, formChangeKind:'inbattle'});
+  register([
+    {name:'カイオーガ', formGroup:'カイオーガ', formKey:'カイオーガ', formLabel:'カイオーガ', formOrder:1, formChangeKind:'inbattle'},
+    {name:'ゲンシカイオーガ', formGroup:'カイオーガ', formKey:'ゲンシカイキ', formLabel:'ゲンシカイキ', formOrder:2, formChangeKind:'inbattle', formLinkedItem1:'あいいろのたま', beatUpAttackBaseSpeciesKey:'カイオーガ'},
+    {name:'グラードン', formGroup:'グラードン', formKey:'グラードン', formLabel:'グラードン', formOrder:1, formChangeKind:'inbattle'},
+    {name:'ゲンシグラードン', formGroup:'グラードン', formKey:'ゲンシグラードン', formLabel:'ゲンシグラードン', formOrder:2, formChangeKind:'inbattle', formLinkedItem1:'べにいろのたま', beatUpAttackBaseSpeciesKey:'グラードン'}
+  ]);
+
+  D.v101FormDetailDataReport = function(){
+    return {
+      version:'v0.101',
+      loaded:true,
+      kyogreForms: ['カイオーガ','ゲンシカイオーガ'].map(function(n){ return !!findPokemon(n); }),
+      groudonForms: ['グラードン','ゲンシグラードン'].map(function(n){ return !!findPokemon(n); }),
+      linkedItems: ['あいいろのたま','べにいろのたま'].map(function(n){ return !!(D.items || []).find(function(i){ return i && i.name === n; }); })
+    };
+  };
+  window.DAMEKE_DATA = D;
+})();
+/* DAMEKE v0.101 form detail data fixes END */

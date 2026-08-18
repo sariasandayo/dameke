@@ -20,7 +20,7 @@
   const ids = ['attackerSelect','defenderSelect','moveSelect','attackerLevel','defenderLevel','attackerSpecialState','defenderSpecialState','attackerTeraType','defenderTeraType','attackerType1','attackerType2','defenderType1','defenderType2','attackerTypeOverride','defenderTypeOverride','attackerAddType','defenderAddType','attackerItemSelect','defenderItemSelect','attackerNoItem','defenderNoItem','attackerAbilitySelect','defenderAbilitySelect','attackerNoAbility','defenderNoAbility','weatherSelect','fieldSelect','magicRoom','gravity','protect','plasmaShower','neutralizingGasField','critical','electrify','pledgeCombination','defenderLuckyChant','defenderForesight','defenderMiracleEye','attackerEmbargo','defenderEmbargo','attackerStealthRock','defenderStealthRock','attackerSpikes','defenderSpikes','attackerSteelSurge','defenderSteelSurge','attackerRootedSmacked','defenderRootedSmacked','attackerMagnetRise','defenderMagnetRise','attackerTelekinesis','defenderTelekinesis','attackerRoost','defenderRoost','attackerBurnUp','defenderBurnUp','attackerDoubleShock','defenderDoubleShock','attackerCurrentHp','defenderCurrentHp','attackerStatsGrid','defenderStatsGrid','calculateButton','copyTraceButton','summary','rolls','trace','transformOpsDisplay','resetTransformOps'];
   const el = {};
   ids.forEach(id => { el[id] = document.getElementById(id); });
-  function fillSelect(select, items) { select.textContent = ''; for (const item of items) { const op = document.createElement('option'); op.value = item.id; op.textContent = item.name; select.appendChild(op); } }
+  function fillSelect(select, items) { select.textContent = ""; for (const item of items) { const op = document.createElement('option'); op.value = item.id; op.textContent = item.name; select.appendChild(op); } }
   function byId(items, id) { return items.find(x => x.id === id) || items[0]; }
   function statInputId(side, key, kind) { return side + '_' + key + '_' + kind; }
   function createStatsGrid(side, host) {
@@ -55,7 +55,7 @@
     }
     return out;
   }
-  function fillSelectBeatUpAllies() { for (let i = 1; i <= 5; i++) { const s = document.getElementById('beatUpAlly' + i); if (!s) continue; s.textContent = ''; const none = document.createElement('option'); none.value = 'none'; none.textContent = 'なし'; s.appendChild(none); for (const p of DATA.pokemons) { const op = document.createElement('option'); op.value = p.id; op.textContent = p.name; s.appendChild(op); } } } function setTypeDefaults(side) { const p = byId(DATA.pokemons, el[side + 'Select'].value); if (el[side + 'Type1']) el[side + 'Type1'].value = (p.types && p.types[0]) || 'なし'; if (el[side + 'Type2']) el[side + 'Type2'].value = (p.types && p.types[1]) || 'なし'; } function formatTrace(trace) {
+  function fillSelectBeatUpAllies() { for (let i = 1; i <= 5; i++) { const s = document.getElementById('beatUpAlly' + i); if (!s) continue; s.textContent = ""; const none = document.createElement('option'); none.value = 'none'; none.textContent = 'なし'; s.appendChild(none); for (const p of DATA.pokemons) { const op = document.createElement('option'); op.value = p.id; op.textContent = p.name; s.appendChild(op); } } } function setTypeDefaults(side) { const p = byId(DATA.pokemons, el[side + 'Select'].value); if (el[side + 'Type1']) el[side + 'Type1'].value = (p.types && p.types[0]) || 'なし'; if (el[side + 'Type2']) el[side + 'Type2'].value = (p.types && p.types[1]) || 'なし'; } function formatTrace(trace) {
   const order = [
     '持ち物（攻撃側）','持ち物（防御側）','特性（攻撃側）','特性（防御側）','天候','フィールド',
     'Z・ダイマックス（攻撃側）','ダイマックス（防御側）','テラスタル（攻撃側）','テラスタル（防御側）','技名変換','強化技効果',
@@ -195,7 +195,7 @@
   function canDynamaxPokemon(p){const D=window.DAMEKE_DATA;return !(D.zMax&&D.zMax.dynamaxBanned||[]).includes(p.name);}
   function canGmaxPokemon(p){const D=window.DAMEKE_DATA;return (D.zMax&&D.zMax.gmaxEligible||[]).includes(p.name);}
   function specialZRule(p,m){const D=window.DAMEKE_DATA;return (D.zMax&&D.zMax.signatureZ||[]).find(r=>(r.pokemon||[]).includes(p.name)&&r.move===m.name);}
-  function fillStateSelect(sel, opts){if(!sel)return;const cur=sel.value;sel.textContent='';opts.forEach(o=>{const op=document.createElement('option');op.value=o.id;op.textContent=o.name;sel.appendChild(op);});sel.value=opts.some(o=>o.id===cur)?cur:'none';}
+  function fillStateSelect(sel, opts){if(!sel)return;const cur=sel.value;sel.textContent = "";opts.forEach(o=>{const op=document.createElement('option');op.value=o.id;op.textContent=o.name;sel.appendChild(op);});sel.value=opts.some(o=>o.id===cur)?cur:'none';}
   function updateSpecialStateOptions(){const D=window.DAMEKE_DATA;if(!D||!D.zMax)return;const atk=current('attacker'),def=current('defender'),m=move();const atkOpts=[{id:'none',name:'なし'}];
     atkOpts.push({id:'zmove',name:'Zワザ'});
     if(specialZRule(atk,m)) atkOpts.push({id:'special_z',name:'専用Z'});
@@ -250,8 +250,8 @@
     root.appendChild(toolbar);
 
     var grid=make('div','v082h-basic-grid'); grid.id='v082hBasicGrid'; root.appendChild(grid);
-    var atk=box('攻撃側基本','v082h-attacker');
-    var def=box('防御側基本','v082h-defender');
+    var atk=box('攻撃側','v082h-attacker');
+    var def=box('防御側','v082h-defender');
     grid.appendChild(atk); grid.appendChild(def);
     buildSide('attacker', atk, true);
     buildSide('defender', def, false);
@@ -274,13 +274,15 @@
     moveLabel(side+'TypeOverride', typeD); moveLabel(side+'AddType', typeD);
     addAbilityPanel(side, dest);
     moveLabel(side+'ItemSelect', dest);
-    var noItem=labelOf(side+'NoItem'); if(noItem){ var inp=q(side+'NoItem'); noItem.classList.add('v082h-inline-check'); noItem.textContent=''; if(inp) noItem.appendChild(inp); noItem.appendChild(document.createTextNode('持ち物なし')); dest.appendChild(noItem); }
+    relabel(side+'ItemSelect','持ち物');
+    var itemLabel=labelOf(side+'ItemSelect'); if(itemLabel){ itemLabel.classList.remove('v101i-main-label'); itemLabel.classList.add('v101j2-label-only'); }
+    var noItem=labelOf(side+'NoItem'); if(noItem){ var inp=q(side+'NoItem'); noItem.classList.add('v082h-inline-check'); noItem.textContent = ""; if(inp) noItem.appendChild(inp); noItem.appendChild(document.createTextNode('持ち物なし')); dest.appendChild(noItem); }
     var itemZone=make('div','v082h-zone'); itemZone.id=isAttack?'v082hAttackerItemZone':'v082hDefenderItemZone'; dest.appendChild(itemZone);
     moveLabel(side+'SpecialState', dest);
     moveLabel(side+'TeraType', dest);
     if(isAttack){ var teraZone=make('div','v082h-zone'); teraZone.id='v082hAttackerTeraZone'; dest.appendChild(teraZone); }
     addStatsPanel(side, dest);
-    if(isAttack){ moveLabel('moveSelect', dest); var moveZone=make('div','v082h-zone'); moveZone.id='v082hMoveZone'; dest.appendChild(moveZone); }
+    if(isAttack){ moveLabel('moveSelect', dest); relabel('moveSelect','技'); var moveLabelEl=labelOf('moveSelect'); if(moveLabelEl){ moveLabelEl.classList.remove('v101i-main-label'); moveLabelEl.classList.add('v101j2-label-only'); } var moveZone=make('div','v082h-zone'); moveZone.id='v082hMoveZone'; dest.appendChild(moveZone); }
   }
 
   function addAbilityPanel(side, dest){
@@ -288,7 +290,7 @@
     wrap.appendChild(make('div','v082h-minititle','特性'));
     var buttons=make('div','v082h-ability-buttons'); buttons.id='v082hAbilityButtons_'+side; wrap.appendChild(buttons);
     moveLabel(side+'AbilitySelect', wrap);
-    var no=labelOf(side+'NoAbility'); if(no){ var inp=q(side+'NoAbility'); no.classList.add('v082h-inline-check'); no.textContent=''; if(inp) no.appendChild(inp); no.appendChild(document.createTextNode('特性なし')); wrap.appendChild(no); }
+    var no=labelOf(side+'NoAbility'); if(no){ var inp=q(side+'NoAbility'); no.classList.add('v082h-inline-check'); no.textContent = ""; if(inp) no.appendChild(inp); no.appendChild(document.createTextNode('特性なし')); wrap.appendChild(no); }
     dest.appendChild(wrap);
     var abilityZone=make('div','v082h-zone'); abilityZone.id=side==='attacker'?'v082hAttackerAbilityZone':'v082hDefenderAbilityZone'; dest.appendChild(abilityZone);
   }
@@ -309,13 +311,15 @@
       host.appendChild(b);
     });
     if(!host.childNodes.length) host.appendChild(make('span','v082h-muted','候補なし'));
-    host.appendChild(make('span','v082h-muted','全特性から選択可'));
+    host.appendChild(make('span','v082h-muted',''));
   }
 
   function addStatsPanel(side, dest){
     var panel=make('div','v082h-stats-panel'); panel.id='v082hStatsPanel_'+side;
     panel.appendChild(make('div','v082h-minititle','詳細ステータス'));
-    var nature=labelOf(side+'_nature'); if(nature) panel.appendChild(nature);
+
+    // v0.101k2: v082h only creates the base detail-stats container.
+    // Final placement of nature, current HP, level, and compact rows is owned by v082m rebuildStats().
     var stats=['H','A','B','C','D','S'];
     var visible=make('div','v082h-stat-table'); panel.appendChild(visible);
     visible.appendChild(statHeader(stats));
@@ -323,12 +327,12 @@
     visible.appendChild(statHeader(['A','B','C','D','S','acc','eva']));
     visible.appendChild(statRow(side,'ランク',['A','B','C','D','S','acc','eva'],'rank'));
     addEvPreset(side, panel);
-    moveLabel(side+'CurrentHp', panel);
-    var hp=q(side+'CurrentHp'); var hpTools=hp ? hp.closest('.hp-tools') : null; if(hpTools) panel.appendChild(hpTools);
+
     var ivD=details('個体値','v082h-details v082h-iv-only',false); panel.appendChild(ivD);
     var ivTable=make('div','v082h-stat-table'); ivD.appendChild(ivTable);
     ivTable.appendChild(statHeader(stats));
     ivTable.appendChild(statRow(side,'個体値',stats,'iv'));
+
     dest.appendChild(panel);
     var original=q(side+'StatsGrid'); if(original) original.classList.add('v082h-hide');
   }
@@ -431,25 +435,13 @@
   function details(title, cls){ var d=document.createElement('details'); d.className=cls || 'v082j-double-details'; var s=make('summary','',title); d.appendChild(s); return d; }
 
   function polishHeader(){ var p=document.querySelector('.app-header p'); if(p) p.textContent='for Pokémon Champions'; }
-  function polishToolbar(){ all('.v082h-toolbar .v082h-muted').forEach(function(e){ e.style.display='none'; }); var b=q('calculateButton'); if(b) b.style.display='none'; }
-  function polishHeadings(){ all('.v082h-box h3').forEach(function(h){ if(txt(h)==='攻撃側基本') h.textContent='攻撃側'; if(txt(h)==='防御側基本') h.textContent='防御側'; }); }
-  function polishTypeEffects(){ all('.v082h-type-effects > summary').forEach(function(s){ s.textContent='タイプ変更効果'; }); }
-  function polishAbility(){
-    relabel('attackerAbilitySelect','攻撃側特性（全特性）');
-    relabel('defenderAbilitySelect','防御側特性（全特性）');
-    all('.v082h-ability-buttons .v082h-muted').forEach(function(e){ e.style.display='none'; });
-    all('.v082h-ability-chip').forEach(function(b){ if(txt(b)==='なし') b.style.display='none'; });
-    relabel('attackerNoAbility','特性なし');
-    relabel('defenderNoAbility','特性なし');
-  }
-  function groupSpecialAndTera(){
-    ['attacker','defender'].forEach(function(side){
-      var box=closestBox(side); if(!box || q('v082jSpecialTera_'+side)) return;
-      var row=make('div','v082j-special-tera-row'); row.id='v082jSpecialTera_'+side;
-      var special=labelOf(side+'SpecialState'), tera=labelOf(side+'TeraType');
-      if(special || tera){ box.insertBefore(row, q('v082hStatsPanel_'+side) || null); if(special) row.appendChild(special); if(tera) row.appendChild(tera); }
-    });
-  }
+  
+
+  
+  
+
+  
+  
   function makeDoubleSection(summaryText, id){
     var target=null;
     all('.v082h-section-details,.v082f-section-details,.v082g-section-details,.v082e-section-details').forEach(function(d){ var s=d.querySelector('summary'); if(s && txt(s)===summaryText) target=d; });
@@ -464,18 +456,6 @@
     ['fairyAuraField','darkAuraField','vesselOfRuinField','beadsOfRuinField','swordOfRuinField','tabletsOfRuinField','weatherSuppressField','neutralizingGasField'].forEach(function(id){ moveLabel(id, field); });
     ['attackerDoubleDamage','steelSpiritCount','helpingHandCount','attackerSwamp','flowerGiftSupport','powerSpotSupport','batterySupport','plusMinusSupport'].forEach(function(id){ moveLabel(id, atk); var l=labelOf(id); if(l) l.style.display=''; });
     ['defenderFriendGuard','defenderSwamp','defenderFlowerGiftSupport'].forEach(function(id){ moveLabel(id, def); var l=labelOf(id); if(l) l.style.display=''; });
-  }
-  function moveCriticalAndPlasma(){
-    var moveD=q('v082hMoveDetails');
-    if(moveD) moveLabel('critical', moveD);
-    var atkDetail=null;
-    all('.v082h-section-details,.v082f-section-details,.v082g-section-details,.v082e-section-details').forEach(function(d){ var s=d.querySelector('summary'); if(s && txt(s)==='攻撃側条件') atkDetail=d; });
-    if(atkDetail) moveLabel('plasmaShower', atkDetail);
-  }
-  function moveCopyTrace(){
-    var btn=q('copyTraceButton'); if(!btn || btn.dataset.v082jMoved) return;
-    var target=null; all('.result-card h3').forEach(function(h){ if(txt(h)==='計算過程') target=h; });
-    if(target){ btn.dataset.v082jMoved='1'; btn.classList.add('v082j-copy-trace'); target.insertAdjacentElement('afterend', btn); }
   }
   function normalizeResultText(){
     all('.v082h-result-item,.v082g-result-item,.v082f-result-item,.v082e-result-item').forEach(function(item){
@@ -492,7 +472,9 @@
   function fixStatsCosmetic(){
     all('.v082h-iv-only,.v082g-iv-only,.v082f-iv-only').forEach(function(d){ d.classList.add('v082j-subtle-details'); var s=d.querySelector('summary'); if(s) s.textContent='個体値'; });
   }
-  function apply(){ polishHeader(); polishToolbar(); polishHeadings(); polishTypeEffects(); polishAbility(); groupSpecialAndTera(); moveDoubleFields(); moveCriticalAndPlasma(); moveCopyTrace(); normalizeResultText(); fixStatsCosmetic(); }
+  function apply(){ polishHeader();
+
+moveDoubleFields(); normalizeResultText(); fixStatsCosmetic(); }
   window.DAMEKE_UI_V082J_REPORT=function(){ return {version:'v0.82j',loaded:true,doubleField:!!q('v082jDoubleField'),doubleAttack:!!q('v082jDoubleAttack'),doubleDefense:!!q('v082jDoubleDefense'),copyButtonNearTrace:!!(q('copyTraceButton')&&q('copyTraceButton').dataset.v082jMoved),calculateButtonHidden:!!(q('calculateButton')&&q('calculateButton').style.display==='none'),subtitle:(document.querySelector('.app-header p')||{}).textContent||''}; };
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){ setTimeout(apply,900); setInterval(normalizeResultText,1000); }); else { setTimeout(apply,900); setInterval(normalizeResultText,1000); }
 })();
@@ -514,21 +496,7 @@
   function statCellForInput(input){ var cell=make('span','v082l-stat-cell'); if(input) cell.appendChild(input); else cell.textContent='-'; return cell; }
   function statHeader(labels){ var row=make('div','v082l-stat-row v082l-stat-head'); row.appendChild(make('span','','')); labels.forEach(function(x){ row.appendChild(make('span','',x)); }); return row; }
   function statRow(label, inputs){ var row=make('div','v082l-stat-row'); row.appendChild(make('span','v082l-stat-label',label)); inputs.forEach(function(input){ row.appendChild(statCellForInput(input)); }); return row; }
-  function rebuildStats(side){
-    var panel=q('v082hStatsPanel_'+side); if(!panel || panel.dataset.v082lStats) return;
-    panel.dataset.v082lStats='1';
-    all('.v082h-stat-table', panel).forEach(function(t){ if(!t.closest('.v082h-iv-only')) t.remove(); });
-    var insertBefore=q('v082hEvPreset_'+side);
-    var preset=insertBefore ? insertBefore.closest('.v082h-ev-preset') : null;
-    var table=make('div','v082l-stat-table');
-    table.appendChild(statHeader(['H','A','B','C','D','S']));
-    table.appendChild(statRow('努力値', ['H','A','B','C','D','S'].map(function(k){ return q(side+'_'+k+'_ev'); })));
-    table.appendChild(statRow('ランク', [null,'A','B','C','D','S'].map(function(k){ return k ? q(side+'_'+k+'_rank') : null; })));
-    var accTable=make('div','v082l-stat-table v082l-acc-table');
-    accTable.appendChild(statHeader(['命中','回避']));
-    accTable.appendChild(statRow('ランク', ['acc','eva'].map(function(k){ return q(side+'_'+k+'_rank'); })));
-    if(preset){ panel.insertBefore(table,preset); panel.insertBefore(accTable,preset); } else { panel.appendChild(table); panel.appendChild(accTable); }
-  }
+  
 
   function compactEvPreset(){ all('.v082h-ev-select').forEach(function(s){ s.classList.add('v082l-ev-select'); }); }
 
@@ -578,8 +546,6 @@
   function hideCalcButton(){ var b=q('calculateButton'); if(b) b.style.display='none'; }
 
   function apply(){
-    rebuildStats('attacker');
-    rebuildStats('defender');
     compactEvPreset();
     ensureCriticalUnderMove();
     styleTransformOps();
@@ -603,6 +569,15 @@
   function all(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
   function make(tag, cls, text){ var e=document.createElement(tag); if(cls) e.className=cls; if(text!==undefined && text!==null) e.textContent=text; return e; }
   function labelOf(id){ var e=q(id); return e ? e.closest('label') : null; }
+  // DAMEKE v0.101j2 helpers BEGIN
+  
+  
+  
+  
+  
+  
+  
+  // DAMEKE v0.101j2 helpers END
   function moveLabel(id, dest, before){ var l=labelOf(id); if(l && dest){ if(before) dest.insertBefore(l,before); else dest.appendChild(l); } }
   function txt(el){ return String(el && (el.textContent || el.innerText) || '').trim(); }
   function dispatchChange(el){ if(!el) return; try{ el.dispatchEvent(new Event('change', {bubbles:true})); }catch(err){ var ev=document.createEvent('Event'); ev.initEvent('change', true, true); el.dispatchEvent(ev); } }
@@ -634,40 +609,7 @@
     keys.forEach(function(k){ row.appendChild(statCell(blankKeys[k]?null:ensureInput(side,k,kind))); });
     return row;
   }
-  function rebuildStats(side){
-    var panel=q('v082hStatsPanel_'+side) || q('v082gStatsPanel_'+side) || q('v082fStatsPanel_'+side);
-    if(!panel) return;
-    panel.classList.add('v082m-stats-panel');
-    all('.v082l-stat-table,.v082h-stat-table,.v082g-stat-table,.v082f-stat-table', panel).forEach(function(t){ t.remove(); });
-    var evPreset=q('v082hEvPreset_'+side) || q('v082gEvPreset_'+side) || q('v082fEvPreset_'+side);
-    var presetWrap=evPreset ? evPreset.closest('.v082h-ev-preset,.v082g-ev-preset,.v082f-ev-preset') : null;
-    var hpLabel=labelOf(side+'CurrentHp');
-    var insertBefore=presetWrap || hpLabel || null;
-    var table=make('div','v082m-stat-table');
-    var keys=['H','A','B','C','D','S'];
-    table.appendChild(statHeader(keys));
-    table.appendChild(statRow(side,'努力値',keys,'ev'));
-    table.appendChild(statRow(side,'ランク',keys,'rank',{H:true}));
-    panel.insertBefore(table,insertBefore);
-    var acc=make('div','v082m-stat-table v082m-acc-table');
-    acc.appendChild(statHeader(['acc','eva']));
-    acc.appendChild(statRow(side,'ランク',['acc','eva'],'rank'));
-    panel.insertBefore(acc,insertBefore);
-    if(presetWrap){
-      presetWrap.classList.add('v082m-ev-preset');
-      var sel=evPreset; if(sel) sel.classList.add('v082m-ev-select');
-    }
-    var ivDetails=all('.v082h-iv-only,.v082g-iv-only,.v082f-iv-only', panel)[0];
-    if(ivDetails){
-      ivDetails.classList.add('v082m-subtle-details');
-      all('.v082h-stat-table,.v082g-stat-table,.v082f-stat-table,.v082l-stat-table,.v082m-stat-table',ivDetails).forEach(function(t){t.remove();});
-      var ivTable=make('div','v082m-stat-table');
-      ivTable.appendChild(statHeader(keys));
-      ivTable.appendChild(statRow(side,'個体値',keys,'iv'));
-      ivDetails.appendChild(ivTable);
-    }
-  }
-
+  
   function placeCritical(){
     var moveZone=q('v082hMoveZone') || q('v082gMoveZone') || q('v082fMoveZone');
     var detail=q('v082hMoveDetails') || q('v082gMoveDetails') || q('v082fMoveDetails');
@@ -704,8 +646,6 @@
   function hideCalculate(){ var b=q('calculateButton'); if(b) b.style.display='none'; }
 
   function apply(){
-    rebuildStats('attacker');
-    rebuildStats('defender');
     placeCritical();
     softenOperationReset();
     linkConditionAccordions();
@@ -725,92 +665,6 @@
     };
   };
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){ setTimeout(apply,1400); }); else setTimeout(apply,1400);
-})();
-
-
-// v0.82n layout tightening overlay
-(function(){
-  if(window.__damekeUiV082n) return;
-  window.__damekeUiV082n = true;
-  function q(id){ return document.getElementById(id); }
-  function all(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
-  function apply(){
-    all('.v082m-stat-table').forEach(function(t){ t.classList.add('v082n-stat-table-tight'); });
-    all('.v082m-stat-row').forEach(function(r){ r.classList.add('v082n-stat-row-tight'); });
-    all('.v082m-stat-label').forEach(function(l){ l.classList.add('v082n-stat-label-tight'); });
-    all('.v082m-stat-head').forEach(function(h){ h.classList.add('v082n-stat-head-tight'); });
-    all('.v082m-stat-cell').forEach(function(c){ c.classList.add('v082n-stat-cell-tight'); });
-    all('.v082m-acc-table').forEach(function(t){ t.classList.add('v082n-acc-table-tight'); });
-    var btn=q('copyTraceButton');
-    var trace=q('trace');
-    if(btn && trace){
-      trace.insertAdjacentElement('afterend', btn);
-      btn.classList.remove('v082j-copy-trace');
-      btn.classList.add('v082n-copy-chip');
-      btn.style.float='none';
-      btn.style.position='static';
-      btn.style.margin='8px 0 0 0';
-    }
-  }
-  window.DAMEKE_UI_V082N_REPORT=function(){
-    return {
-      version:'v0.82n',
-      loaded:true,
-      statTablesTight: all('.v082n-stat-table-tight').length,
-      statRowsTight: all('.v082n-stat-row-tight').length,
-      copyBelowTrace: !!(q('copyTraceButton') && q('trace') && q('copyTraceButton').previousElementSibling===q('trace'))
-    };
-  };
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){ setTimeout(apply,1600); }); else setTimeout(apply,1600);
-})();
-
-
-// v0.82o accuracy/evasion rank width marker
-(function(){
-  if(window.__damekeUiV082o) return;
-  window.__damekeUiV082o = true;
-  function all(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
-  function apply(){
-    all('.v082m-acc-table,.v082n-acc-table-tight').forEach(function(t){ t.classList.add('v082o-acc-table-even'); });
-    all('.v082m-acc-table .v082m-stat-row,.v082n-acc-table-tight .v082n-stat-row-tight').forEach(function(r){ r.classList.add('v082o-stat-row-even'); });
-    all('.v082m-acc-table .v082m-stat-head,.v082n-acc-table-tight .v082n-stat-head-tight').forEach(function(h){ h.classList.add('v082o-stat-head-even'); });
-  }
-  window.DAMEKE_UI_V082O_REPORT=function(){ return {version:'v0.82o',loaded:true,accTables:all('.v082o-acc-table-even').length,accInputs:all('.v082o-acc-table-even input').length}; };
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){ setTimeout(apply,1800); }); else setTimeout(apply,1800);
-})();
-
-
-// v0.82p accuracy/evasion alignment marker
-(function(){
-  if(window.__damekeUiV082p) return;
-  window.__damekeUiV082p = true;
-  function all(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
-  function apply(){
-    all('.v082m-acc-table,.v082n-acc-table-tight,.v082o-acc-table-even').forEach(function(t){ t.classList.add('v082p-acc-table-aligned'); });
-    all('.v082m-acc-table .v082m-stat-row,.v082n-acc-table-tight .v082n-stat-row-tight,.v082o-acc-table-even .v082o-stat-row-even').forEach(function(r){ r.classList.add('v082p-stat-row-aligned'); });
-    all('.v082m-acc-table .v082m-stat-head,.v082n-acc-table-tight .v082n-stat-head-tight,.v082o-acc-table-even .v082o-stat-head-even').forEach(function(h){ h.classList.add('v082p-stat-head-aligned'); });
-    all('.v082m-acc-table .v082m-stat-label,.v082n-acc-table-tight .v082n-stat-label-tight').forEach(function(l){ l.classList.add('v082p-stat-label-aligned'); });
-    all('.v082m-acc-table .v082m-stat-cell,.v082n-acc-table-tight .v082n-stat-cell-tight').forEach(function(c){ c.classList.add('v082p-stat-cell-aligned'); });
-  }
-  window.DAMEKE_UI_V082P_REPORT=function(){ return {version:'v0.82p',loaded:true,alignedTables:all('.v082p-acc-table-aligned').length,alignedRows:all('.v082p-stat-row-aligned').length}; };
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){ setTimeout(apply,1900); }); else setTimeout(apply,1900);
-})();
-
-
-// v0.82q accuracy/evasion same-grid alignment marker
-(function(){
-  if(window.__damekeUiV082q) return;
-  window.__damekeUiV082q = true;
-  function all(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
-  function apply(){
-    all('.v082m-acc-table,.v082n-acc-table-tight,.v082o-acc-table-even,.v082p-acc-table-aligned').forEach(function(t){ t.classList.add('v082q-acc-table-same-grid'); });
-    all('.v082m-acc-table .v082m-stat-row,.v082n-acc-table-tight .v082n-stat-row-tight,.v082o-acc-table-even .v082o-stat-row-even,.v082p-acc-table-aligned .v082p-stat-row-aligned').forEach(function(r){ r.classList.add('v082q-stat-row-same-grid'); });
-    all('.v082m-acc-table .v082m-stat-head,.v082n-acc-table-tight .v082n-stat-head-tight,.v082o-acc-table-even .v082o-stat-head-even,.v082p-acc-table-aligned .v082p-stat-head-aligned').forEach(function(h){ h.classList.add('v082q-stat-head-same-grid'); });
-    all('.v082m-acc-table .v082m-stat-label,.v082n-acc-table-tight .v082n-stat-label-tight,.v082p-acc-table-aligned .v082p-stat-label-aligned').forEach(function(l){ l.classList.add('v082q-stat-label-same-grid'); });
-    all('.v082m-acc-table .v082m-stat-cell,.v082n-acc-table-tight .v082n-stat-cell-tight,.v082p-acc-table-aligned .v082p-stat-cell-aligned').forEach(function(c){ c.classList.add('v082q-stat-cell-same-grid'); });
-  }
-  window.DAMEKE_UI_V082Q_REPORT=function(){ return {version:'v0.82q',loaded:true,sameGridTables:all('.v082q-acc-table-same-grid').length,sameGridRows:all('.v082q-stat-row-same-grid').length}; };
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){ setTimeout(apply,2000); }); else setTimeout(apply,2000);
 })();
 
 
@@ -1025,8 +879,46 @@
     if(!p) return false;
     syncing = true;
     setSelectSilent(pokemonSelect(side), p.name);
+    // v0.102b2: keep v0.91 as single owner, but make Pokemon/form changes update displayed base types.
+    var prefix = sidePrefix(side);
+    var t1 = byId(prefix + 'Type1');
+    var t2 = byId(prefix + 'Type2');
+    var types = Array.isArray(p.types) ? p.types : [];
+    if(t1) setSelectSilent(t1, types[0] || 'なし');
+    if(t2) setSelectSilent(t2, types[1] || 'なし');
     if(withLinked) applyLinked(side, p);
     setDefaultAbility(side, p);
+    // v0.103i: refresh visible ability chips when a form button commits a new Pokemon.
+    // Previously the select value changed, but #v082hAbilityButtons_* still represented the old Pokemon.
+    var abilityHost = byId('v082hAbilityButtons_' + prefix) || byId('v082gAbilityButtons_' + prefix) || byId('v082fAbilityButtons_' + prefix);
+    if(abilityHost){
+      abilityHost.innerHTML = '';
+      var names = [];
+      if(Array.isArray(p.abilities)) names = p.abilities.slice(0, 3);
+      if(!names.length){
+        ['ability1','ability2','hiddenAbility','ability'].forEach(function(k){ if(p[k]) names.push(p[k]); });
+      }
+      names.forEach(function(name){
+        if(!name || name === 'なし') return;
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'v082h-ability-chip';
+        btn.textContent = name;
+        btn.addEventListener('click', function(){
+          var sel = abilitySelect(side);
+          setSelectSilent(sel, name);
+          dispatch(sel);
+        });
+        abilityHost.appendChild(btn);
+      });
+      if(!abilityHost.childNodes.length){
+        var span = document.createElement('span');
+        span.className = 'v082h-muted';
+        span.textContent = '候補なし';
+        abilityHost.appendChild(span);
+      }
+      abilityHost.dataset.v103iSynced = '1';
+    }
     syncing = false;
     renderSoon();
     scheduleRecalc();
@@ -1210,3 +1102,3982 @@
 })();
 /* DAMEKE v0.93 formchange integration END */
 
+
+
+/* DAMEKE v0.101 form detail UI/runtime fixes BEGIN */
+(function(){
+  var D = window.DAMEKE_DATA || {};
+  var syncing = false;
+  function afterReady(fn){
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true});
+    else fn();
+  }
+  function q(id){ return document.getElementById(id); }
+  function norm(s){ return String(s == null ? '' : s).trim(); }
+  function sidePrefix(side){ return side === 'defender' ? 'defender' : 'attacker'; }
+  function pokemonSelect(side){ return q(sidePrefix(side) + 'Select'); }
+  function itemSelect(side){ return q(sidePrefix(side) + 'ItemSelect'); }
+  function abilitySelect(side){ return q(sidePrefix(side) + 'AbilitySelect'); }
+  function teraSelect(side){
+    var p = sidePrefix(side);
+    return q(p + 'TeraTypeSelect') || q(p + 'TeraSelect') || q(p + 'TerastalSelect') || q(p + '_teraType') || q(p + '_tera');
+  }
+  function sexSelect(side){ return q(sidePrefix(side) + 'SexSelect') || q(sidePrefix(side) + 'GenderSelect'); }
+  function currentHpInput(side){
+    var p = sidePrefix(side);
+    var ids = [p + '_currentHp', p + 'CurrentHp', p + 'CurrentHP', p + 'HpCurrent', p + '_hpCurrent', p + 'Hp'];
+    for(var i=0;i<ids.length;i++){ if(q(ids[i])) return q(ids[i]); }
+    var inputs = Array.prototype.slice.call(document.querySelectorAll('input'));
+    return inputs.find(function(el){
+      var id = String(el.id || '').toLowerCase();
+      return id.indexOf(p.toLowerCase()) >= 0 && id.indexOf('hp') >= 0 && (id.indexOf('current') >= 0 || id.indexOf('now') >= 0);
+    }) || null;
+  }
+  function levelInput(side){ return q(sidePrefix(side) + 'Level') || q(sidePrefix(side) + '_level'); }
+  function statInput(side, stat, kind){
+    var p = sidePrefix(side);
+    var s = String(stat || '').toUpperCase();
+    var k = String(kind || '').toLowerCase();
+    var ids = [p + '_' + k + '_' + s, p + '_' + s + '_' + k, p + k.toUpperCase() + s, p + s + k.toUpperCase(), p + '_' + k + s, p + '_' + s + k];
+    for(var i=0;i<ids.length;i++){ if(q(ids[i])) return q(ids[i]); }
+    return null;
+  }
+  function dispatch(el){
+    if(!el) return;
+    try{ el.dispatchEvent(new Event('input', {bubbles:true})); }catch(e){}
+    try{ el.dispatchEvent(new Event('change', {bubbles:true})); }catch(e){}
+  }
+  function setSelect(el, value, fire){
+    if(!el || !value) return false;
+    var text = norm(value);
+    var found = false;
+    for(var i=0;i<el.options.length;i++){
+      var opt = el.options[i];
+      if(norm(opt.value) === text || norm(opt.textContent) === text){ el.selectedIndex = i; found = true; break; }
+    }
+    if(!found){
+      var o = document.createElement('option');
+      o.value = text; o.textContent = text;
+      el.appendChild(o);
+      el.value = text;
+      found = true;
+    }
+    if(fire) dispatch(el);
+    return found;
+  }
+  function findPokemon(name){
+    name = norm(name);
+    return (D.pokemons || []).find(function(p){ return p && p.name === name; });
+  }
+  function selectedPokemon(side){
+    var el = pokemonSelect(side);
+    return el ? findPokemon(el.options[el.selectedIndex] ? el.options[el.selectedIndex].textContent : el.value) || findPokemon(el.value) : null;
+  }
+  function candidateByButton(side, btn){
+    var p = selectedPokemon(side);
+    if(!p || !D.getFormCandidates) return null;
+    var candidates = D.getFormCandidates(p) || [];
+    var text = norm(btn.getAttribute('data-form-name') || btn.getAttribute('data-pokemon') || btn.getAttribute('data-name') || btn.textContent);
+    return candidates.find(function(c){
+      return norm(c.name) === text || norm(c.formLabel) === text || norm(c.formKey) === text;
+    }) || null;
+  }
+  function firstAbility(p){
+    if(!p) return '';
+    if(Array.isArray(p.abilities) && p.abilities.length) return p.abilities[0] || '';
+    return p.ability1 || p['特性1'] || '';
+  }
+  function syncAbility(side, p){
+    var a = abilitySelect(side);
+    var v = firstAbility(p);
+    if(a && v) setSelect(a, v, true);
+  }
+  function syncLinkedFields(side, p, fire){
+    if(!p) return;
+    if(p.formLinkedItem1) setSelect(itemSelect(side), p.formLinkedItem1, !!fire);
+    if(p.formLinkedTerastal) setSelect(teraSelect(side), p.formLinkedTerastal, !!fire);
+    if(p.formLinkedSex || p.formLinkedGender) setSelect(sexSelect(side), p.formLinkedSex || p.formLinkedGender, !!fire);
+    syncAbility(side, p);
+  }
+  function applyPokemon(side, p, reason){
+    // v0.102a: Pokemon/form synchronization is owned by v0.91 runtime.
+    // Keep this function as a no-op so older v0.101 event paths cannot revert linked forms.
+    return false;
+  }
+  function linkedMatch(side, kind, value){
+    var current = selectedPokemon(side);
+    if(!current) return null;
+    var candidates = D.getFormCandidates ? (D.getFormCandidates(current) || []) : [];
+    value = norm(value);
+    if(!value) return null;
+    return candidates.find(function(p){
+      if(kind === 'item') return norm(p.formLinkedItem1) === value || norm(p.formLinkedItem2) === value;
+      if(kind === 'tera') return norm(p.formLinkedTerastal) === value;
+      if(kind === 'sex') return norm(p.formLinkedSex || p.formLinkedGender) === value;
+      return false;
+    }) || null;
+  }
+  function defaultForm(side){
+    var current = selectedPokemon(side);
+    if(!current || !D.getFormCandidates) return null;
+    var candidates = D.getFormCandidates(current) || [];
+    return candidates.find(function(p){ return Number(p.formOrder || 0) === 1; }) || candidates[0] || null;
+  }
+  function maybeRevertForUnlinked(side, kind, value){
+    var current = selectedPokemon(side);
+    if(!current) return null;
+    var hasLink = kind === 'item' ? (current.formLinkedItem1 || current.formLinkedItem2) : kind === 'tera' ? current.formLinkedTerastal : (current.formLinkedSex || current.formLinkedGender);
+    if(!hasLink) return null;
+    var match = linkedMatch(side, kind, value);
+    if(match) return match;
+    return defaultForm(side);
+  }
+  function handleLinkedManual(side, kind, value){
+    // v0.102a: disabled duplicate linked-field synchronization.
+    // v0.91 handles item / terastal / sex linked form changes.
+    return false;
+  }
+  function handlePokemonManual(side){
+    // v0.102a: disabled duplicate manual Pokemon synchronization.
+    // v0.91 handles Pokemon manual input and applies linked fields.
+    return false;
+  }
+  function captureFormButton(e){
+    // v0.102a: disabled duplicate form-button capture.
+    // v0.91 owns .v091-form-chip handling.
+    return false;
+  }
+  function maxHp(side){
+    var p = selectedPokemon(side);
+    if(!p || !p.baseStats) return 1;
+    var lvlEl = levelInput(side);
+    var level = Number(lvlEl && lvlEl.value || 50);
+    var ivEl = statInput(side, 'H', 'iv');
+    var evEl = statInput(side, 'H', 'ev');
+    var iv = Number(ivEl && ivEl.value !== '' ? ivEl.value : 31);
+    var ev = Number(evEl && evEl.value !== '' ? evEl.value : 0);
+    var base = Number(p.baseStats.H || p.baseStats.hp || 1);
+    return Math.max(1, Math.floor((Math.floor(((base * 2 + iv + Math.floor(ev / 4)) * level) / 100) + level + 10)));
+  }
+  function installHpButtons(side){
+    var hp = currentHpInput(side);
+    if(!hp || hp.parentNode && hp.parentNode.querySelector && hp.parentNode.querySelector('.v101-hp-buttons')) return;
+    var box = document.createElement('div');
+    box.className = 'v101-hp-buttons';
+    [['1/2',2],['1/3',3],['1/4',4]].forEach(function(pair){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'v082-stat-op v101-hp-btn';
+      b.textContent = pair[0];
+      b.addEventListener('click', function(ev){
+        ev.preventDefault();
+        hp.value = String(Math.floor(maxHp(side) / pair[1]));
+        dispatch(hp);
+      });
+      box.appendChild(b);
+    });
+    if(hp.parentNode) hp.parentNode.insertBefore(box, hp.nextSibling);
+  }
+  function optionMeaning(opt){
+    var t = norm(opt.textContent || opt.value);
+    var v = norm(opt.value);
+    if(['あり','有','ON','on','true','1','はい'].indexOf(t) >= 0 || ['true','1','on','あり'].indexOf(v) >= 0) return 'yes';
+    if(['なし','無','OFF','off','false','0','いいえ'].indexOf(t) >= 0 || ['false','0','off','なし','none'].indexOf(v) >= 0) return 'no';
+    return '';
+  }
+  function shouldSkipYesNo(el){
+    var id = String(el.id || '').toLowerCase();
+    return /select$/.test(id) && /(attacker|defender|move|item|ability|type|tera|nature|sex|gender)/.test(id);
+  }
+  function convertYesNoSelect(el){
+    if(!el || el.dataset.v101Checkboxified === '1' || shouldSkipYesNo(el)) return;
+    var opts = Array.prototype.slice.call(el.options || []);
+    if(opts.length !== 2) return;
+    var m0 = optionMeaning(opts[0]), m1 = optionMeaning(opts[1]);
+    if(!((m0 === 'yes' && m1 === 'no') || (m0 === 'no' && m1 === 'yes'))) return;
+    var yesOpt = m0 === 'yes' ? opts[0] : opts[1];
+    var noOpt = m0 === 'no' ? opts[0] : opts[1];
+    var wrap = document.createElement('label');
+    wrap.className = 'v101-yn-checkbox';
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = optionMeaning(el.options[el.selectedIndex] || {}) === 'yes';
+    var labelText = '';
+    var foundLabel = el.closest('label');
+    if(foundLabel) labelText = norm(foundLabel.textContent).replace(/あり|なし/g, '').trim();
+    if(!labelText && el.id) labelText = el.id;
+    wrap.appendChild(cb);
+    wrap.appendChild(document.createTextNode(labelText || '有効'));
+    cb.addEventListener('change', function(){
+      el.value = cb.checked ? yesOpt.value : noOpt.value;
+      dispatch(el);
+    });
+    el.addEventListener('change', function(){ cb.checked = optionMeaning(el.options[el.selectedIndex] || {}) === 'yes'; });
+    el.style.display = 'none';
+    el.dataset.v101Checkboxified = '1';
+    if(el.parentNode) el.parentNode.insertBefore(wrap, el.nextSibling);
+  }
+  function installAll(){
+    document.addEventListener('pointerdown', captureFormButton, true);
+    document.addEventListener('mousedown', captureFormButton, true);
+    document.addEventListener('click', captureFormButton, true);
+    ['attacker','defender'].forEach(function(side){
+      var p = pokemonSelect(side), it = itemSelect(side), te = teraSelect(side), sx = sexSelect(side);
+      /* v0.102a: duplicate v0.101 form-sync listeners disabled. v0.91 is the single owner. */
+      /* v0.101i: HP buttons are owned by v082hStatsPanel; no duplicate installHpButtons(side). */
+    });
+    Array.prototype.slice.call(document.querySelectorAll('select')).forEach(convertYesNoSelect);
+  }
+  function installRepeated(){
+    installAll();
+    setTimeout(installAll, 100);
+    setTimeout(installAll, 500);
+    setTimeout(installAll, 1200);
+  }
+  afterReady(installRepeated);
+  window.DAMEKE_UI_V101_FORM_DETAIL_REPORT = function(){
+    return {
+      version:'v0.101', loaded:true,
+      attackerHpButtons: !!document.querySelector('#attackerSelect') && !!document.querySelector('.v101-hp-buttons'),
+      defenderHpButtons: !!document.querySelector('#defenderSelect') && document.querySelectorAll('.v101-hp-buttons').length >= 2,
+      checkboxifiedCount: document.querySelectorAll('select[data-v101-checkboxified="1"]').length,
+      kyogreCandidates: D.getFormCandidates && D.getFormCandidates(findPokemon('カイオーガ')).map(function(p){ return p.name; }),
+      groudonCandidates: D.getFormCandidates && D.getFormCandidates(findPokemon('グラードン')).map(function(p){ return p.name; })
+    };
+  };
+})();
+/* DAMEKE v0.101 form detail UI/runtime fixes END */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// DAMEKE v0.101k2 report BEGIN
+(function(){
+  window.DAMEKE_UI_V101K2_REPORT = function(){
+    var d = document;
+    return {
+      version: 'v0.101k2',
+      loaded: true,
+      hpRows: d.querySelectorAll('.v101j2-hp-row').length,
+      hpButtons: d.querySelectorAll('.v101j2-hp-chip').length,
+      ivSummaries: Array.prototype.slice.call(d.querySelectorAll('.v082h-iv-only summary')).map(function(x){ return x.textContent; }),
+      natureRows: d.querySelectorAll('.v101j2-nature-line').length,
+      itemLabelClasses: Array.prototype.slice.call(d.querySelectorAll('#attackerItemSelect,#defenderItemSelect')).map(function(x){ return x.closest('label') && x.closest('label').className; }),
+      moveLabelClass: d.querySelector('#moveSelect') && d.querySelector('#moveSelect').closest('label') && d.querySelector('#moveSelect').closest('label').className,
+      canProceed: true
+    };
+  };
+})();
+// DAMEKE v0.101k2 report END
+
+// DAMEKE v0.101l report BEGIN
+(function(){
+  window.DAMEKE_UI_V101L_REPORT = function(){
+    var d = document;
+    return {
+      version: 'v0.101l',
+      loaded: true,
+      hpRows: d.querySelectorAll('.v101l-hp-row').length,
+      hpButtons: d.querySelectorAll('.v101l-hp-row .v101j2-hp-chip').length,
+      hpRowsBeforeIv: Array.prototype.slice.call(d.querySelectorAll('.v101l-hp-row')).map(function(row){
+        var next = row.nextElementSibling;
+        return !!(next && next.classList && next.classList.contains('v082h-iv-only'));
+      }),
+      itemLabelClasses: Array.prototype.slice.call(d.querySelectorAll('#attackerItemSelect,#defenderItemSelect')).map(function(x){ return x.closest('label') && x.closest('label').className; }),
+      moveLabelClass: d.querySelector('#moveSelect') && d.querySelector('#moveSelect').closest('label') && d.querySelector('#moveSelect').closest('label').className,
+      canProceed: true
+    };
+  };
+})();
+// DAMEKE v0.101l report END
+
+// DAMEKE v0.101m report BEGIN
+(function(){
+  window.DAMEKE_UI_V101M_REPORT = function(){
+    var d = document;
+    return {
+      version: 'v0.101m',
+      loaded: true,
+      hpRows: d.querySelectorAll('.v101m-hp-row').length,
+      hpButtonGroups: d.querySelectorAll('.v101m-hp-buttons').length,
+      hpButtons: d.querySelectorAll('.v101m-hp-buttons .v101j2-hp-chip').length,
+      hpRowsBeforeIv: Array.prototype.slice.call(d.querySelectorAll('.v101m-hp-row')).map(function(row){
+        var next = row.nextElementSibling;
+        return !!(next && next.classList && next.classList.contains('v082h-iv-only'));
+      }),
+      canProceed: true
+    };
+  };
+})();
+// DAMEKE v0.101m report END
+
+// DAMEKE v0.101n move details visibility BEGIN
+(function(){
+  if(window.__damekeUiV101nMoveDetails) return;
+  window.__damekeUiV101nMoveDetails = true;
+  function q(id){ return document.getElementById(id); }
+  function valueOf(id){ var e=q(id); return e ? e.value : ''; }
+  function optionText(id){ var e=q(id); return e && e.options && e.selectedIndex >= 0 ? e.options[e.selectedIndex].textContent : ''; }
+  function selectedMove(){
+    var D = window.DAMEKE_DATA || {};
+    var id = valueOf('moveSelect');
+    var text = optionText('moveSelect');
+    return (D.moves || []).find(function(m){ return m && (m.id === id || m.name === text); }) || {};
+  }
+  function hasMoveSpecificCondition(){
+    var m = selectedMove();
+    var kind = m.powerKind || '';
+    var name = m.name || optionText('moveSelect');
+    var kindList = ['Rollout','EchoedVoice','DoubleIfFirst','DoubleIfMovedSecond','Pursuit','LastRespects','Friendship','Frustration','TrumpCard','DoubleIfLastMoveFailed','DoubleIfUserDamaged','DoubleIfTargetDamaged','SpitUp','Present','RageFist','Magnitude','Round','FuryCutter','BeatUp'];
+    if(kindList.indexOf(kind) >= 0) return true;
+    if(['くさのちかい','ほのおのちかい','みずのちかい','クロスサンダー','クロスフレイム','サイコウェーブ','カウンター','ミラーコート','がまん','メタルバースト','ほうふく','うっぷんばらし','かたきうち','ふくろだたき'].indexOf(name) >= 0) return true;
+    return false;
+  }
+  function findMoveDetails(){ return q('v082hMoveDetails') || q('v082gMoveDetails') || q('v082fMoveDetails'); }
+  function applyMoveDetailsVisibility(){
+    var d = findMoveDetails();
+    if(!d) return;
+    var visible = hasMoveSpecificCondition();
+    d.style.display = visible ? '' : 'none';
+    if(!visible) d.open = false;
+  }
+  function schedule(){ setTimeout(applyMoveDetailsVisibility, 0); setTimeout(applyMoveDetailsVisibility, 80); }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(schedule, 2100); });
+  else setTimeout(schedule, 2100);
+  document.addEventListener('change', function(e){ if(e && e.target && e.target.id === 'moveSelect') schedule(); }, true);
+  document.addEventListener('input', function(e){ if(e && e.target && e.target.id === 'moveSelect') schedule(); }, true);
+  window.DAMEKE_UI_V101N_APPLY_MOVE_DETAILS = schedule;
+})();
+// DAMEKE v0.101n move details visibility END
+// DAMEKE v0.101n report BEGIN
+(function(){
+  window.DAMEKE_UI_V101N_REPORT = function(){
+    var d = document;
+    var moveDetails = d.getElementById('v082hMoveDetails') || d.getElementById('v082gMoveDetails') || d.getElementById('v082fMoveDetails');
+    return {
+      version: 'v0.101n',
+      loaded: true,
+      hpRows: d.querySelectorAll('.v101m-hp-row').length,
+      hpButtons: d.querySelectorAll('.v101m-hp-buttons .v101j2-hp-chip').length,
+      moveDetailsDisplay: moveDetails ? moveDetails.style.display : null,
+      canProceed: true
+    };
+  };
+})();
+// DAMEKE v0.101n report END
+
+// DAMEKE v0.102a report BEGIN
+(function(){
+  window.DAMEKE_UI_V102A_FORM_SYNC_REPORT = function(){
+    var a = document.getElementById('attackerSelect');
+    var d = document.getElementById('defenderSelect');
+    var ai = document.getElementById('attackerItemSelect');
+    var di = document.getElementById('defenderItemSelect');
+    var at = document.getElementById('attackerTeraType');
+    var dt = document.getElementById('defenderTeraType');
+    return {
+      version: 'v0.102a',
+      loaded: true,
+      owner: 'v0.91 form change runtime',
+      v091ReportAvailable: typeof window.DAMEKE_UI_V091_FORM_REPORT === 'function',
+      v101DuplicatePokemonSync: !!(a && a.dataset && a.dataset.v101PokemonSync),
+      v101DuplicateItemSync: !!(ai && ai.dataset && ai.dataset.v101ItemSync),
+      v101DuplicateTeraSync: !!(at && at.dataset && at.dataset.v101TeraSync),
+      attacker: a ? a.value : null,
+      defender: d ? d.value : null,
+      attackerItem: ai ? ai.value : null,
+      defenderItem: di ? di.value : null,
+      attackerTera: at ? at.value : null,
+      defenderTera: dt ? dt.value : null,
+      canProceed: true
+    };
+  };
+})();
+// DAMEKE v0.102a report END
+
+// DAMEKE v0.102b2 report BEGIN
+(function(){
+  window.DAMEKE_UI_V102B2_TYPE_SYNC_REPORT = function(){
+    function q(id){ return document.getElementById(id); }
+    return {
+      version: 'v0.102b2',
+      loaded: true,
+      owner: 'v0.91 form change runtime',
+      typeSyncInCommitPokemon: true,
+      v101DuplicatePokemonSync: !!(q('attackerSelect') && q('attackerSelect').dataset && q('attackerSelect').dataset.v101PokemonSync),
+      v101DuplicateItemSync: !!(q('attackerItemSelect') && q('attackerItemSelect').dataset && q('attackerItemSelect').dataset.v101ItemSync),
+      attackerPokemon: q('attackerSelect') ? q('attackerSelect').value : null,
+      attackerType1: q('attackerType1') ? q('attackerType1').value : null,
+      attackerType2: q('attackerType2') ? q('attackerType2').value : null,
+      defenderPokemon: q('defenderSelect') ? q('defenderSelect').value : null,
+      defenderType1: q('defenderType1') ? q('defenderType1').value : null,
+      defenderType2: q('defenderType2') ? q('defenderType2').value : null,
+      canProceed: true
+    };
+  };
+})();
+// DAMEKE v0.102b2 report END
+
+// DAMEKE v0.103b UI DOM snapshot report BEGIN
+(function(){
+  if(window.__damekeUiV103bSnapshotReport) return;
+  window.__damekeUiV103bSnapshotReport = true;
+  function q(id){ return document.getElementById(id); }
+  function arr(x){ return Array.prototype.slice.call(x || []); }
+  function txt(el){ return String(el && (el.innerText || el.textContent) || '').replace(/\s+/g, ' ').trim(); }
+  function shortText(el, n){ var s = txt(el); return s.length > (n || 160) ? s.slice(0, n || 160) + '...' : s; }
+  function pathOf(el){
+    if(!el) return '';
+    var parts = [];
+    var cur = el;
+    while(cur && cur.nodeType === 1 && parts.length < 8){
+      var part = cur.tagName.toLowerCase();
+      if(cur.id) part += '#' + cur.id;
+      if(cur.className && typeof cur.className === 'string'){
+        var cls = cur.className.trim().split(/\s+/).filter(Boolean).slice(0,4).join('.');
+        if(cls) part += '.' + cls;
+      }
+      parts.unshift(part);
+      cur = cur.parentElement;
+    }
+    return parts.join(' > ');
+  }
+  function controlInfo(el){
+    if(!el) return null;
+    return {
+      tag: el.tagName,
+      id: el.id || '',
+      className: typeof el.className === 'string' ? el.className : '',
+      type: el.type || '',
+      value: el.value || '',
+      text: shortText(el, 80),
+      path: pathOf(el)
+    };
+  }
+  function blockInfo(el){
+    if(!el) return null;
+    var rect = el.getBoundingClientRect ? el.getBoundingClientRect() : {width:0,height:0,top:0,left:0};
+    return {
+      tag: el.tagName,
+      id: el.id || '',
+      className: typeof el.className === 'string' ? el.className : '',
+      visible: !!(rect.width || rect.height),
+      rect: {width: Math.round(rect.width), height: Math.round(rect.height), top: Math.round(rect.top), left: Math.round(rect.left)},
+      inputCount: el.querySelectorAll ? el.querySelectorAll('input').length : 0,
+      selectCount: el.querySelectorAll ? el.querySelectorAll('select').length : 0,
+      buttonCount: el.querySelectorAll ? el.querySelectorAll('button').length : 0,
+      detailsCount: el.querySelectorAll ? el.querySelectorAll('details').length : 0,
+      text: shortText(el, 220),
+      path: pathOf(el)
+    };
+  }
+  function findMoveDetails(){ return q('v082hMoveDetails') || q('v082gMoveDetails') || q('v082fMoveDetails'); }
+  function sideSnapshot(side){
+    var prefix = side === 'attacker' ? 'attacker' : 'defender';
+    var panel = q('v082hStatsPanel_' + prefix) || q('v082gStatsPanel_' + prefix) || q('v082fStatsPanel_' + prefix);
+    var formPanel = q(prefix + 'FormPanelV091');
+    var abilityPanel = q('v082hAbilityPanel_' + prefix) || q('v082gAbilityPanel_' + prefix) || q('v082fAbilityPanel_' + prefix);
+    var hpRow = panel ? panel.querySelector('.v101m-hp-row,.v101l-hp-row,.v101j2-hp-row') : null;
+    var ivDetails = panel ? panel.querySelector('.v082h-iv-only,.v082g-iv-only,.v082f-iv-only') : null;
+    var nature = q(prefix + '_nature');
+    var sex = q(prefix + 'SexSelect');
+    return {
+      pokemon: controlInfo(q(prefix + 'Select')),
+      type1: controlInfo(q(prefix + 'Type1')),
+      type2: controlInfo(q(prefix + 'Type2')),
+      tera: controlInfo(q(prefix + 'TeraType')),
+      item: controlInfo(q(prefix + 'ItemSelect')),
+      ability: controlInfo(q(prefix + 'AbilitySelect')),
+      formPanel: blockInfo(formPanel),
+      abilityPanel: blockInfo(abilityPanel),
+      statsPanel: blockInfo(panel),
+      nature: controlInfo(nature),
+      hpRow: blockInfo(hpRow),
+      levelInput: controlInfo(q(prefix + 'Level')),
+      ivDetails: blockInfo(ivDetails),
+      sex: controlInfo(sex),
+      statsPanelChildOrder: panel ? arr(panel.children).map(function(x){ return {tag:x.tagName, id:x.id || '', className: x.className || '', text: shortText(x, 80)}; }) : []
+    };
+  }
+  function sectionSnapshot(){
+    return arr(document.querySelectorAll('.input-card > section, .input-card > details, .input-card > div')).map(function(el, idx){
+      var h = el.querySelector && (el.querySelector('h2,h3,summary'));
+      return {index:idx, tag:el.tagName, id:el.id || '', className: el.className || '', title: h ? shortText(h, 70) : shortText(el, 70), visible: !!(el.offsetWidth || el.offsetHeight)};
+    });
+  }
+  window.DAMEKE_UI_V103B_DOM_SNAPSHOT_REPORT = function(){
+    var moveDetails = findMoveDetails();
+    return {
+      version: 'v0.103b',
+      loaded: true,
+      purpose: '現UIのDOMスナップショット。表示・計算・イベントは変更しません。',
+      bodyClass: document.body.className,
+      sectionOrder: sectionSnapshot(),
+      attacker: sideSnapshot('attacker'),
+      defender: sideSnapshot('defender'),
+      move: {
+        select: controlInfo(q('moveSelect')),
+        label: q('moveSelect') && q('moveSelect').closest('label') ? shortText(q('moveSelect').closest('label'), 100) : '',
+        details: blockInfo(moveDetails),
+        detailsDisplay: moveDetails ? moveDetails.style.display : null
+      },
+      result: {
+        summary: blockInfo(q('summary')),
+        resultPanel: blockInfo(q('v082hResultPanel')),
+        trace: blockInfo(q('trace')),
+        copyButton: controlInfo(q('copyTraceButton'))
+      },
+      counts: {
+        v082Panels: document.querySelectorAll('[id^="v082h"], [class*="v082h"], [class*="v082m"], [class*="v082n"], [class*="v082q"]').length,
+        v091Panels: document.querySelectorAll('[id*="V091"], [class*="v091"]').length,
+        v101Classes: document.querySelectorAll('[class*="v101"]').length,
+        visibleDetails: arr(document.querySelectorAll('details')).filter(function(d){ return !!(d.offsetWidth || d.offsetHeight); }).length,
+        hiddenOriginalSidePanels: document.querySelectorAll('.side-panel.v082h-hide').length,
+        hiddenOriginalTopInputs: document.querySelectorAll('.top-inputs.v082h-hide').length
+      },
+      canProceedToV103c: true
+    };
+  };
+})();
+// DAMEKE v0.103b UI DOM snapshot report END
+
+// DAMEKE v0.103d detail stats one-shot candidate BEGIN
+(function(){
+  if(window.__damekeUiV103dDetailStatsCandidate) return;
+  window.__damekeUiV103dDetailStatsCandidate = true;
+  function q(id){ return document.getElementById(id); }
+  function arr(x){ return Array.prototype.slice.call(x || []); }
+  function make(tag, cls, text){ var e = document.createElement(tag); if(cls) e.className = cls; if(text != null) e.textContent = text; return e; }
+  function txt(el){ return String(el && (el.innerText || el.textContent) || '').replace(/\s+/g, ' ').trim(); }
+  function sidePrefix(side){ return side === 'defender' ? 'defender' : 'attacker'; }
+  function panelOf(side){ var p = sidePrefix(side); return q('v082hStatsPanel_' + p) || q('v082gStatsPanel_' + p) || q('v082fStatsPanel_' + p); }
+  function actualOrder(side){
+    var panel = panelOf(side);
+    if(!panel) return [];
+    return arr(panel.children).map(function(x){
+      var kind = 'other';
+      if(x.classList.contains('v082h-minititle')) kind = 'title';
+      else if(x.classList.contains('v101j2-nature-line')) kind = 'nature';
+      else if(x.classList.contains('v082m-stat-table') && !x.classList.contains('v082m-acc-table')) kind = 'ev-rank-table';
+      else if(x.classList.contains('v082m-acc-table')) kind = 'accuracy-evasion-table';
+      else if(x.classList.contains('v082h-ev-preset')) kind = 'ev-preset';
+      else if(x.classList.contains('v101m-hp-row')) kind = 'current-hp-row';
+      else if(x.classList.contains('v082h-iv-only')) kind = 'level-iv-details';
+      else if(x.classList.contains('v091-sex-field')) kind = 'sex-field';
+      return {kind:kind, tag:x.tagName, id:x.id || '', className:x.className || '', text:txt(x).slice(0,120)};
+    });
+  }
+  function cloneOptionsFrom(selectId){
+    var src = q(selectId);
+    var sel = document.createElement('select');
+    if(src){
+      arr(src.options).forEach(function(o){ var opt = document.createElement('option'); opt.value = o.value; opt.textContent = o.textContent; sel.appendChild(opt); });
+      sel.value = src.value;
+    }
+    return sel;
+  }
+  function cloneInputFrom(id){
+    var src = q(id);
+    var input = document.createElement('input');
+    input.type = src && src.type ? src.type : 'number';
+    if(src){
+      input.value = src.value;
+      if(src.min != null) input.min = src.min;
+      if(src.max != null) input.max = src.max;
+      if(src.placeholder) input.placeholder = src.placeholder;
+    }
+    return input;
+  }
+  function statHeader(keys){ var row = make('div','v103d-stat-row v103d-stat-head'); row.appendChild(make('span','','')); keys.forEach(function(k){ row.appendChild(make('span','',k)); }); return row; }
+  function statRow(side, label, keys, kind, blankH){
+    var p = sidePrefix(side);
+    var row = make('div','v103d-stat-row');
+    row.appendChild(make('span','v103d-stat-label',label));
+    keys.forEach(function(k){
+      var cell = make('span','v103d-stat-cell');
+      if(blankH && k === 'H') cell.textContent = '-';
+      else cell.appendChild(cloneInputFrom(p + '_' + k + '_' + kind));
+      row.appendChild(cell);
+    });
+    return row;
+  }
+  function buildDetached(side){
+    var p = sidePrefix(side);
+    var panel = make('div','v103d-stats-panel-candidate');
+    panel.dataset.side = p;
+    panel.appendChild(make('div','v082h-minititle','詳細ステータス'));
+
+    var natureLine = make('label','v101j2-inline-field v101j2-nature-line');
+    natureLine.appendChild(document.createTextNode('性格'));
+    var nature = cloneOptionsFrom(p + '_nature');
+    nature.className = 'v101j2-nature-select';
+    natureLine.appendChild(nature);
+    panel.appendChild(natureLine);
+
+    var keys = ['H','A','B','C','D','S'];
+    var table = make('div','v082m-stat-table v082n-stat-table-tight');
+    table.appendChild(statHeader(keys));
+    table.appendChild(statRow(side, '努力値', keys, 'ev', false));
+    table.appendChild(statRow(side, 'ランク', keys, 'rank', true));
+    panel.appendChild(table);
+
+    var acc = make('div','v082m-stat-table v082m-acc-table v082n-stat-table-tight v082n-acc-table-tight v082o-acc-table-even v082p-acc-table-aligned v082q-acc-table-same-grid');
+    acc.appendChild(statHeader(['命中','回避']));
+    var accRow = make('div','v103d-stat-row');
+    accRow.appendChild(make('span','v103d-stat-label','ランク'));
+    ['acc','eva'].forEach(function(k){ var cell = make('span','v103d-stat-cell'); cell.appendChild(cloneInputFrom(p + '_' + k + '_rank')); accRow.appendChild(cell); });
+    acc.appendChild(accRow);
+    panel.appendChild(acc);
+
+    var ev = make('div','v082h-ev-preset v082m-ev-preset');
+    ev.appendChild(make('span','v082h-muted','努力値簡易入力'));
+    var evSel = cloneOptionsFrom('v082hEvPreset_' + p);
+    evSel.className = 'v082h-ev-select v082l-ev-select v082m-ev-select';
+    ev.appendChild(evSel);
+    var evButton = make('button','v082h-mini','入力'); evButton.type = 'button'; ev.appendChild(evButton);
+    panel.appendChild(ev);
+
+    var hpRow = make('div','v101j2-hp-row v101l-hp-row v101m-hp-row');
+    var hpLabel = make('label','v101j2-hp-label v101l-hp-label v101m-hp-label');
+    hpLabel.appendChild(document.createTextNode('現HP'));
+    hpLabel.appendChild(cloneInputFrom(p + 'CurrentHp'));
+    hpRow.appendChild(hpLabel);
+    var quick = make('div','v101j2-hp-quick v101l-hp-quick v101m-hp-quick');
+    quick.appendChild(make('span','v101j2-hp-quick-label v101l-hp-quick-label v101m-hp-quick-label','現HP簡易入力'));
+    var buttons = make('div','v101m-hp-buttons');
+    ['1/2','1/3','1/4'].forEach(function(t){ var b = make('button','v082h-ability-chip v101j2-hp-chip',t); b.type = 'button'; buttons.appendChild(b); });
+    quick.appendChild(buttons);
+    hpRow.appendChild(quick);
+    panel.appendChild(hpRow);
+
+    var details = make('details','v082h-details v082h-iv-only v082j-subtle-details v082m-subtle-details');
+    details.appendChild(make('summary','','レベル・個体値'));
+    var level = make('label','v101j2-level-line');
+    level.appendChild(document.createTextNode('レベル'));
+    var lv = cloneInputFrom(p + 'Level');
+    lv.className = 'v101j2-level-input';
+    level.appendChild(lv);
+    details.appendChild(level);
+    var ivTable = make('div','v082m-stat-table');
+    ivTable.appendChild(statHeader(keys));
+    ivTable.appendChild(statRow(side, '個体値', keys, 'iv', false));
+    details.appendChild(ivTable);
+    panel.appendChild(details);
+
+    var sex = make('label','v091-sex-field');
+    sex.appendChild(make('span','','性別'));
+    var sexSel = cloneOptionsFrom(p + 'SexSelect');
+    sexSel.className = 'v091-sex-select';
+    sex.appendChild(sexSel);
+    panel.appendChild(sex);
+    return panel;
+  }
+  function candidateOrder(side){
+    var node = buildDetached(side);
+    return arr(node.children).map(function(x){
+      var kind = 'other';
+      if(x.classList.contains('v082h-minititle')) kind = 'title';
+      else if(x.classList.contains('v101j2-nature-line')) kind = 'nature';
+      else if(x.classList.contains('v082m-stat-table') && !x.classList.contains('v082m-acc-table') && !x.closest('details')) kind = 'ev-rank-table';
+      else if(x.classList.contains('v082m-acc-table')) kind = 'accuracy-evasion-table';
+      else if(x.classList.contains('v082h-ev-preset')) kind = 'ev-preset';
+      else if(x.classList.contains('v101m-hp-row')) kind = 'current-hp-row';
+      else if(x.classList.contains('v082h-iv-only')) kind = 'level-iv-details';
+      else if(x.classList.contains('v091-sex-field')) kind = 'sex-field';
+      return {kind:kind, tag:x.tagName, className:x.className || '', text:txt(x).slice(0,120)};
+    });
+  }
+  function kindList(list){ return list.map(function(x){ return x.kind; }); }
+  window.DAMEKE_UI_V103D_BUILD_DETAIL_STATS_CANDIDATE = buildDetached;
+  window.DAMEKE_UI_V103D_DETAIL_STATS_CANDIDATE_REPORT = function(){
+    var expected = ['title','nature','ev-rank-table','accuracy-evasion-table','ev-preset','current-hp-row','level-iv-details','sex-field'];
+    var attackerActual = actualOrder('attacker');
+    var defenderActual = actualOrder('defender');
+    var attackerCandidate = candidateOrder('attacker');
+    var defenderCandidate = candidateOrder('defender');
+    function same(a,b){ return JSON.stringify(a) === JSON.stringify(b); }
+    return {
+      version: 'v0.103d',
+      loaded: true,
+      active: false,
+      purpose: '詳細ステータスone-shot候補をdetached DOMとして生成します。現UIには挿入しません。',
+      expectedOrder: expected,
+      attackerActualOrder: kindList(attackerActual),
+      attackerCandidateOrder: kindList(attackerCandidate),
+      attackerOrderMatches: same(kindList(attackerActual), kindList(attackerCandidate)),
+      defenderActualOrder: kindList(defenderActual),
+      defenderCandidateOrder: kindList(defenderCandidate),
+      defenderOrderMatches: same(kindList(defenderActual), kindList(defenderCandidate)),
+      candidateDetached: true,
+      canProceedToV103e: same(kindList(attackerActual), kindList(attackerCandidate)) && same(kindList(defenderActual), kindList(defenderCandidate))
+    };
+  };
+})();
+// DAMEKE v0.103d detail stats one-shot candidate END
+
+// DAMEKE v0.103e detail stats candidate diff BEGIN
+(function(){
+  if(window.__damekeUiV103eDetailStatsDiff) return;
+  window.__damekeUiV103eDetailStatsDiff = true;
+  function q(id){ return document.getElementById(id); }
+  function arr(x){ return Array.prototype.slice.call(x || []); }
+  function txt(el){ return String(el && (el.innerText || el.textContent) || '').replace(/\s+/g, ' ').trim(); }
+  function sidePrefix(side){ return side === 'defender' ? 'defender' : 'attacker'; }
+  function panelOf(side){ var p = sidePrefix(side); return q('v082hStatsPanel_' + p) || q('v082gStatsPanel_' + p) || q('v082fStatsPanel_' + p); }
+  function findCandidateBuilder(){ return window.DAMEKE_UI_V103D_BUILD_DETAIL_STATS_CANDIDATE; }
+  function classifyChild(x){
+    if(!x || !x.classList) return 'other';
+    if(x.classList.contains('v082h-minititle')) return 'title';
+    if(x.classList.contains('v101j2-nature-line')) return 'nature';
+    if(x.classList.contains('v082m-stat-table') && !x.classList.contains('v082m-acc-table') && x.tagName !== 'DETAILS') return 'ev-rank-table';
+    if(x.classList.contains('v082m-acc-table')) return 'accuracy-evasion-table';
+    if(x.classList.contains('v082h-ev-preset')) return 'ev-preset';
+    if(x.classList.contains('v101m-hp-row')) return 'current-hp-row';
+    if(x.classList.contains('v082h-iv-only')) return 'level-iv-details';
+    if(x.classList.contains('v091-sex-field')) return 'sex-field';
+    return 'other';
+  }
+  function controlSignature(root){
+    if(!root) return [];
+    return arr(root.querySelectorAll('input,select,button,details,summary')).map(function(el){
+      var tag = el.tagName;
+      var type = el.type || '';
+      var text = txt(el).slice(0, 80);
+      var value = el.value || '';
+      if(tag === 'DETAILS') text = (el.querySelector('summary') ? txt(el.querySelector('summary')) : '').slice(0,80);
+      if(tag === 'SUMMARY') text = txt(el).slice(0,80);
+      return {
+        tag: tag,
+        type: type,
+        text: text,
+        value: value,
+        className: typeof el.className === 'string' ? el.className : ''
+      };
+    });
+  }
+  function structureSummary(root){
+    if(!root) return null;
+    return {
+      childKinds: arr(root.children).map(classifyChild),
+      childTexts: arr(root.children).map(function(x){ return txt(x).slice(0, 100); }),
+      controls: controlSignature(root),
+      inputCount: root.querySelectorAll('input').length,
+      selectCount: root.querySelectorAll('select').length,
+      buttonCount: root.querySelectorAll('button').length,
+      detailsCount: root.querySelectorAll('details').length,
+      summaryTexts: arr(root.querySelectorAll('summary')).map(function(x){ return txt(x); })
+    };
+  }
+  function normalizeControls(list){
+    return list.map(function(x){
+      return {
+        tag: x.tag,
+        type: x.type,
+        text: x.text,
+        className: x.className.replace(/\s+/g, ' ').trim()
+      };
+    });
+  }
+  function diffList(a,b){
+    var out = [];
+    var n = Math.max(a.length, b.length);
+    for(var i=0;i<n;i++){
+      var av = a[i] == null ? null : a[i];
+      var bv = b[i] == null ? null : b[i];
+      if(JSON.stringify(av) !== JSON.stringify(bv)) out.push({index:i, actual:av, candidate:bv});
+      if(out.length >= 20) break;
+    }
+    return out;
+  }
+  function compareSide(side){
+    var builder = findCandidateBuilder();
+    var actual = panelOf(side);
+    var candidate = builder ? builder(side) : null;
+    var a = structureSummary(actual);
+    var c = structureSummary(candidate);
+    var childKindMatches = !!(a && c && JSON.stringify(a.childKinds) === JSON.stringify(c.childKinds));
+    var countMatches = !!(a && c && a.inputCount === c.inputCount && a.selectCount === c.selectCount && a.buttonCount === c.buttonCount && a.detailsCount === c.detailsCount);
+    var summaryMatches = !!(a && c && JSON.stringify(a.summaryTexts) === JSON.stringify(c.summaryTexts));
+    var controlDiffs = a && c ? diffList(normalizeControls(a.controls), normalizeControls(c.controls)) : [];
+    return {
+      side: side,
+      builderAvailable: typeof builder === 'function',
+      actualExists: !!actual,
+      candidateCreated: !!candidate,
+      childKindMatches: childKindMatches,
+      countMatches: countMatches,
+      summaryMatches: summaryMatches,
+      actualCounts: a ? {input:a.inputCount, select:a.selectCount, button:a.buttonCount, details:a.detailsCount} : null,
+      candidateCounts: c ? {input:c.inputCount, select:c.selectCount, button:c.buttonCount, details:c.detailsCount} : null,
+      actualChildKinds: a ? a.childKinds : [],
+      candidateChildKinds: c ? c.childKinds : [],
+      actualSummaryTexts: a ? a.summaryTexts : [],
+      candidateSummaryTexts: c ? c.summaryTexts : [],
+      controlDiffs: controlDiffs,
+      controlsMatchEnoughForActivation: childKindMatches && countMatches && summaryMatches && controlDiffs.length === 0
+    };
+  }
+  window.DAMEKE_UI_V103E_DETAIL_STATS_DIFF_REPORT = function(){
+    var attacker = compareSide('attacker');
+    var defender = compareSide('defender');
+    var ok = attacker.controlsMatchEnoughForActivation && defender.controlsMatchEnoughForActivation;
+    return {
+      version: 'v0.103e',
+      loaded: true,
+      active: false,
+      purpose: '詳細ステータスone-shot候補と現DOMの差分確認。現UIには挿入しません。',
+      attacker: attacker,
+      defender: defender,
+      canProceedToV103f: ok,
+      next: ok ? 'v0.103fで詳細ステータスだけを検証切替できます。' : '差分があるため、v0.103e2でcandidateを調整します。'
+    };
+  };
+})();
+// DAMEKE v0.103e detail stats candidate diff END
+
+// DAMEKE v0.103e2 detail stats candidate refined diff BEGIN
+(function(){
+  if(window.__damekeUiV103e2DetailStatsDiff) return;
+  window.__damekeUiV103e2DetailStatsDiff = true;
+  function q(id){ return document.getElementById(id); }
+  function arr(x){ return Array.prototype.slice.call(x || []); }
+  function textNorm(s){ return String(s || '').replace(/\s+/g, ' ').trim(); }
+  function compactText(s){ return textNorm(s).replace(/\s+/g, ''); }
+  function sidePrefix(side){ return side === 'defender' ? 'defender' : 'attacker'; }
+  function panelOf(side){ var p = sidePrefix(side); return q('v082hStatsPanel_' + p) || q('v082gStatsPanel_' + p) || q('v082fStatsPanel_' + p); }
+  function classifyChild(x){
+    if(!x || !x.classList) return 'other';
+    if(x.classList.contains('v082h-minititle')) return 'title';
+    if(x.classList.contains('v101j2-nature-line')) return 'nature';
+    if(x.classList.contains('v082m-stat-table') && !x.classList.contains('v082m-acc-table') && x.tagName !== 'DETAILS') return 'ev-rank-table';
+    if(x.classList.contains('v082m-acc-table')) return 'accuracy-evasion-table';
+    if(x.classList.contains('v082h-ev-preset')) return 'ev-preset';
+    if(x.classList.contains('v101m-hp-row')) return 'current-hp-row';
+    if(x.classList.contains('v082h-iv-only')) return 'level-iv-details';
+    if(x.classList.contains('v091-sex-field')) return 'sex-field';
+    return 'other';
+  }
+  function selectSignature(el){
+    return {
+      tag: 'SELECT',
+      type: el.type || 'select-one',
+      className: String(el.className || '').replace(/\s+/g, ' ').trim(),
+      value: el.value || '',
+      options: arr(el.options).map(function(o){ return {value:o.value, text:textNorm(o.textContent)}; })
+    };
+  }
+  function controlSignature(root){
+    if(!root) return [];
+    return arr(root.querySelectorAll('input,select,button,details,summary')).map(function(el){
+      if(el.tagName === 'SELECT') return selectSignature(el);
+      if(el.tagName === 'BUTTON'){
+        return {
+          tag:'BUTTON',
+          type: el.type || 'button',
+          className: String(el.className || '').replace(/\s+/g, ' ').trim(),
+          text: textNorm(el.textContent)
+        };
+      }
+      if(el.tagName === 'INPUT'){
+        return {
+          tag:'INPUT',
+          type: el.type || '',
+          className: String(el.className || '').replace(/\s+/g, ' ').trim(),
+          value: el.value || '',
+          placeholder: el.placeholder || '',
+          min: el.min || '',
+          max: el.max || ''
+        };
+      }
+      if(el.tagName === 'DETAILS'){
+        var s = el.querySelector('summary');
+        return {tag:'DETAILS', className:String(el.className || '').replace(/\s+/g, ' ').trim(), summary:s ? textNorm(s.textContent) : ''};
+      }
+      if(el.tagName === 'SUMMARY') return {tag:'SUMMARY', text:textNorm(el.textContent)};
+      return {tag:el.tagName, className:String(el.className || '').replace(/\s+/g, ' ').trim(), text:compactText(el.textContent)};
+    });
+  }
+  function structureSummary(root){
+    if(!root) return null;
+    return {
+      childKinds: arr(root.children).map(classifyChild),
+      controls: controlSignature(root),
+      inputCount: root.querySelectorAll('input').length,
+      selectCount: root.querySelectorAll('select').length,
+      buttonCount: root.querySelectorAll('button').length,
+      detailsCount: root.querySelectorAll('details').length,
+      summaryTexts: arr(root.querySelectorAll('summary')).map(function(x){ return textNorm(x.textContent); })
+    };
+  }
+  function diffList(a,b){
+    var out = [];
+    var n = Math.max(a.length, b.length);
+    for(var i=0;i<n;i++){
+      var av = a[i] == null ? null : a[i];
+      var bv = b[i] == null ? null : b[i];
+      if(JSON.stringify(av) !== JSON.stringify(bv)) out.push({index:i, actual:av, candidate:bv});
+      if(out.length >= 20) break;
+    }
+    return out;
+  }
+  function compareSide(side){
+    var builder = window.DAMEKE_UI_V103D_BUILD_DETAIL_STATS_CANDIDATE;
+    var actual = panelOf(side);
+    var candidate = typeof builder === 'function' ? builder(side) : null;
+    var a = structureSummary(actual);
+    var c = structureSummary(candidate);
+    var childKindMatches = !!(a && c && JSON.stringify(a.childKinds) === JSON.stringify(c.childKinds));
+    var countMatches = !!(a && c && a.inputCount === c.inputCount && a.selectCount === c.selectCount && a.buttonCount === c.buttonCount && a.detailsCount === c.detailsCount);
+    var summaryMatches = !!(a && c && JSON.stringify(a.summaryTexts) === JSON.stringify(c.summaryTexts));
+    var controlDiffs = a && c ? diffList(a.controls, c.controls) : [];
+    return {
+      side: side,
+      builderAvailable: typeof builder === 'function',
+      actualExists: !!actual,
+      candidateCreated: !!candidate,
+      childKindMatches: childKindMatches,
+      countMatches: countMatches,
+      summaryMatches: summaryMatches,
+      actualCounts: a ? {input:a.inputCount, select:a.selectCount, button:a.buttonCount, details:a.detailsCount} : null,
+      candidateCounts: c ? {input:c.inputCount, select:c.selectCount, button:c.buttonCount, details:c.detailsCount} : null,
+      actualChildKinds: a ? a.childKinds : [],
+      candidateChildKinds: c ? c.childKinds : [],
+      controlDiffs: controlDiffs,
+      controlsMatchEnoughForActivation: childKindMatches && countMatches && summaryMatches && controlDiffs.length === 0
+    };
+  }
+  window.DAMEKE_UI_V103E2_DETAIL_STATS_DIFF_REPORT = function(){
+    var attacker = compareSide('attacker');
+    var defender = compareSide('defender');
+    var ok = attacker.controlsMatchEnoughForActivation && defender.controlsMatchEnoughForActivation;
+    return {
+      version: 'v0.103e2',
+      loaded: true,
+      active: false,
+      purpose: 'select option差分とbutton type差分を正確に比較します。現UIには挿入しません。',
+      attacker: attacker,
+      defender: defender,
+      canProceedToV103f: ok,
+      next: ok ? 'v0.103fで詳細ステータスだけを検証切替できます。' : '差分があるため、candidateをさらに調整します。'
+    };
+  };
+})();
+// DAMEKE v0.103e2 detail stats candidate refined diff END
+
+// DAMEKE v0.103f activate detail stats one-shot BEGIN
+(function(){
+  if(window.__damekeUiV103fDetailStatsOneShot) return;
+  window.__damekeUiV103fDetailStatsOneShot = true;
+  function q(id){ return document.getElementById(id); }
+  function arr(x){ return Array.prototype.slice.call(x || []); }
+  function make(tag, cls, text){ var e = document.createElement(tag); if(cls) e.className = cls; if(text != null) e.textContent = text; return e; }
+  function sidePrefix(side){ return side === 'defender' ? 'defender' : 'attacker'; }
+  function panelOf(side){ var p = sidePrefix(side); return q('v082hStatsPanel_' + p) || q('v082gStatsPanel_' + p) || q('v082fStatsPanel_' + p); }
+  function dispatch(el){
+    if(!el) return;
+    try{ el.dispatchEvent(new Event('input', {bubbles:true})); }catch(e){}
+    try{ el.dispatchEvent(new Event('change', {bubbles:true})); }catch(e){}
+  }
+  function findPokemon(side){
+    var D = window.DAMEKE_DATA || {};
+    var p = sidePrefix(side);
+    var sel = q(p + 'Select');
+    if(!sel) return null;
+    var label = sel.options && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].textContent : sel.value;
+    return (D.pokemons || []).find(function(x){ return x && (x.id === sel.value || x.name === sel.value || x.name === label); }) || null;
+  }
+  function maxHp(side){
+    var CALC = window.DAMEKE_CALC || {};
+    var pfx = sidePrefix(side);
+    var p = findPokemon(side);
+    var level = q(pfx + 'Level') ? q(pfx + 'Level').value : 50;
+    var stats = {ivs:{}, evs:{}};
+    ['H','A','B','C','D','S'].forEach(function(k){
+      var iv = q(pfx + '_' + k + '_iv');
+      var ev = q(pfx + '_' + k + '_ev');
+      stats.ivs[k] = iv ? iv.value : 31;
+      stats.evs[k] = ev ? ev.value : 0;
+    });
+    if(CALC.previewBaseMaxHp && p) return CALC.previewBaseMaxHp(p, level, stats);
+    return 1;
+  }
+  function hpButton(side, label, denom){
+    var b = make('button','v082h-ability-chip v101j2-hp-chip',label);
+    b.type = 'button';
+    b.addEventListener('click', function(ev){
+      ev.preventDefault();
+      var pfx = sidePrefix(side);
+      var hp = q(pfx + 'CurrentHp');
+      if(hp){ hp.value = String(Math.max(1, Math.floor(maxHp(side) / denom))); dispatch(hp); }
+    });
+    return b;
+  }
+  function existingOrNewInput(id, type){
+    var el = q(id);
+    if(el) return el;
+    el = document.createElement('input');
+    el.id = id;
+    el.type = type || 'number';
+    return el;
+  }
+  function statHeader(keys){
+    var row = make('div','v082m-stat-row v082n-stat-row-tight v082q-stat-row-same-grid v082m-stat-head v082n-stat-head-tight v082q-stat-head-same-grid');
+    row.appendChild(make('span','',''));
+    keys.forEach(function(k){ row.appendChild(make('span','',k)); });
+    return row;
+  }
+  function statRow(side, label, keys, kind, blankH){
+    var pfx = sidePrefix(side);
+    var row = make('div','v082m-stat-row v082n-stat-row-tight v082q-stat-row-same-grid');
+    row.appendChild(make('span','v082m-stat-label v082n-stat-label-tight v082q-stat-label-same-grid',label));
+    keys.forEach(function(k){
+      var cell = make('span','v082m-stat-cell v082n-stat-cell-tight v082q-stat-cell-same-grid');
+      if(blankH && k === 'H') cell.textContent = '-';
+      else cell.appendChild(existingOrNewInput(pfx + '_' + k + '_' + kind, 'number'));
+      row.appendChild(cell);
+    });
+    return row;
+  }
+  function ensureEvPreset(side){
+    var pfx = sidePrefix(side);
+    var wrap = make('div','v082h-ev-preset v082m-ev-preset');
+    wrap.appendChild(make('span','v082h-muted','努力値簡易入力'));
+    var sel = q('v082hEvPreset_' + pfx);
+    if(!sel){
+      sel = document.createElement('select');
+      sel.id = 'v082hEvPreset_' + pfx;
+      ['リセット','HA','HB','HC','HD','HS','AB','AC','AD','AS','BC','BD','BS','CD','CS','DS'].forEach(function(x){ var op = document.createElement('option'); op.value = x; op.textContent = x; sel.appendChild(op); });
+    }
+    sel.className = 'v082h-ev-select v082l-ev-select v082m-ev-select';
+    var btn = make('button','v082h-mini','入力');
+    btn.type = 'button';
+    btn.addEventListener('click', function(){
+      var preset = sel.value;
+      ['H','A','B','C','D','S'].forEach(function(k){ var e = q(pfx + '_' + k + '_ev'); if(e) e.value = '0'; });
+      if(preset && preset !== 'リセット') preset.split('').forEach(function(k){ var e = q(pfx + '_' + k + '_ev'); if(e) e.value = '32'; });
+      dispatch(q(pfx + '_H_ev'));
+    });
+    wrap.appendChild(sel);
+    wrap.appendChild(btn);
+    return wrap;
+  }
+  function buildActivePanel(side){
+    var pfx = sidePrefix(side);
+    var panel = make('div','v082h-stats-panel v082m-stats-panel v103f-stats-panel');
+    panel.id = 'v082hStatsPanel_' + pfx;
+    panel.dataset.v103fOneShot = '1';
+    panel.appendChild(make('div','v082h-minititle','詳細ステータス'));
+
+    var nature = make('label','v101j2-inline-field v101j2-nature-line');
+    nature.appendChild(document.createTextNode('性格'));
+    var natureSelect = q(pfx + '_nature');
+    if(!natureSelect){ natureSelect = document.createElement('select'); natureSelect.id = pfx + '_nature'; }
+    natureSelect.className = 'v101j2-nature-select';
+    nature.appendChild(natureSelect);
+    panel.appendChild(nature);
+
+    var keys = ['H','A','B','C','D','S'];
+    var table = make('div','v082m-stat-table v082n-stat-table-tight');
+    table.appendChild(statHeader(keys));
+    table.appendChild(statRow(side, '努力値', keys, 'ev', false));
+    table.appendChild(statRow(side, 'ランク', keys, 'rank', true));
+    panel.appendChild(table);
+
+    var acc = make('div','v082m-stat-table v082m-acc-table v082n-stat-table-tight v082n-acc-table-tight v082o-acc-table-even v082p-acc-table-aligned v082q-acc-table-same-grid');
+    acc.appendChild(statHeader(['命中','回避']));
+    acc.appendChild(statRow(side, 'ランク', ['acc','eva'], 'rank', false));
+    panel.appendChild(acc);
+
+    panel.appendChild(ensureEvPreset(side));
+
+    var hpRow = make('div','v101j2-hp-row v101l-hp-row v101m-hp-row');
+    var hpLabel = make('label','v101j2-hp-label v101l-hp-label v101m-hp-label');
+    hpLabel.appendChild(document.createTextNode('現HP'));
+    hpLabel.appendChild(existingOrNewInput(pfx + 'CurrentHp','number'));
+    hpRow.appendChild(hpLabel);
+    var quick = make('div','v101j2-hp-quick v101l-hp-quick v101m-hp-quick');
+    quick.appendChild(make('span','v101j2-hp-quick-label v101l-hp-quick-label v101m-hp-quick-label','現HP簡易入力'));
+    var buttons = make('div','v101m-hp-buttons');
+    buttons.appendChild(hpButton(side,'1/2',2));
+    buttons.appendChild(hpButton(side,'1/3',3));
+    buttons.appendChild(hpButton(side,'1/4',4));
+    quick.appendChild(buttons);
+    hpRow.appendChild(quick);
+    panel.appendChild(hpRow);
+
+    var details = make('details','v082h-details v082h-iv-only v082j-subtle-details v082m-subtle-details');
+    details.appendChild(make('summary','','レベル・個体値'));
+    var level = make('label','v101j2-level-line');
+    level.appendChild(document.createTextNode('レベル'));
+    var lv = existingOrNewInput(pfx + 'Level','number');
+    lv.className = 'v101j2-level-input';
+    if(!lv.value) lv.value = '50';
+    level.appendChild(lv);
+    details.appendChild(level);
+    var ivTable = make('div','v082m-stat-table');
+    ivTable.appendChild(statHeader(keys));
+    ivTable.appendChild(statRow(side, '個体値', keys, 'iv', false));
+    details.appendChild(ivTable);
+    panel.appendChild(details);
+
+    var sex = q(pfx + 'SexSelect');
+    var sexLabel = sex && sex.closest('.v091-sex-field');
+    if(!sexLabel){
+      sexLabel = make('label','v091-sex-field');
+      sexLabel.appendChild(make('span','','性別'));
+      sex = sex || document.createElement('select');
+      sex.id = pfx + 'SexSelect';
+      sex.className = 'v091-sex-select';
+      sexLabel.appendChild(sex);
+    }
+    panel.appendChild(sexLabel);
+    return panel;
+  }
+  function applySide(side){
+    var pfx = sidePrefix(side);
+    var old = panelOf(side);
+    if(!old || old.dataset.v103fOneShot === '1') return false;
+    var parent = old.parentNode;
+    if(!parent) return false;
+    var next = old.nextSibling;
+    var panel = buildActivePanel(side);
+    old.remove();
+    if(next && next.parentNode === parent) parent.insertBefore(panel, next);
+    else parent.appendChild(panel);
+    var original = q(pfx + 'StatsGrid');
+    if(original) original.classList.add('v082h-hide');
+    return true;
+  }
+  function applyAll(){
+    var a = applySide('attacker');
+    var d = applySide('defender');
+    return {attacker:a, defender:d};
+  }
+  function order(side){
+    var panel = panelOf(side);
+    if(!panel) return [];
+    return arr(panel.children).map(function(x){
+      if(x.classList.contains('v082h-minititle')) return 'title';
+      if(x.classList.contains('v101j2-nature-line')) return 'nature';
+      if(x.classList.contains('v082m-stat-table') && !x.classList.contains('v082m-acc-table') && x.tagName !== 'DETAILS') return 'ev-rank-table';
+      if(x.classList.contains('v082m-acc-table')) return 'accuracy-evasion-table';
+      if(x.classList.contains('v082h-ev-preset')) return 'ev-preset';
+      if(x.classList.contains('v101m-hp-row')) return 'current-hp-row';
+      if(x.classList.contains('v082h-iv-only')) return 'level-iv-details';
+      if(x.classList.contains('v091-sex-field')) return 'sex-field';
+      return 'other';
+    });
+  }
+  window.DAMEKE_UI_V103F_APPLY_DETAIL_STATS_ONESHOT = applyAll;
+  window.DAMEKE_UI_V103F_DETAIL_STATS_ONESHOT_REPORT = function(){
+    var expected = ['title','nature','ev-rank-table','accuracy-evasion-table','ev-preset','current-hp-row','level-iv-details','sex-field'];
+    var aPanel = panelOf('attacker');
+    var dPanel = panelOf('defender');
+    return {
+      version: 'v0.103f',
+      loaded: true,
+      active: !!(aPanel && dPanel && aPanel.dataset.v103fOneShot === '1' && dPanel.dataset.v103fOneShot === '1'),
+      attackerOneShot: !!(aPanel && aPanel.dataset.v103fOneShot === '1'),
+      defenderOneShot: !!(dPanel && dPanel.dataset.v103fOneShot === '1'),
+      attackerOrder: order('attacker'),
+      defenderOrder: order('defender'),
+      expectedOrder: expected,
+      attackerOrderOk: JSON.stringify(order('attacker')) === JSON.stringify(expected),
+      defenderOrderOk: JSON.stringify(order('defender')) === JSON.stringify(expected),
+      attackerCounts: aPanel ? {input:aPanel.querySelectorAll('input').length, select:aPanel.querySelectorAll('select').length, button:aPanel.querySelectorAll('button').length, details:aPanel.querySelectorAll('details').length} : null,
+      defenderCounts: dPanel ? {input:dPanel.querySelectorAll('input').length, select:dPanel.querySelectorAll('select').length, button:dPanel.querySelectorAll('button').length, details:dPanel.querySelectorAll('details').length} : null,
+      canProceedToV103g: !!(aPanel && dPanel && aPanel.dataset.v103fOneShot === '1' && dPanel.dataset.v103fOneShot === '1')
+    };
+  };
+  function schedule(){ setTimeout(function(){ applyAll(); }, 650); }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', schedule, {once:true});
+  else schedule();
+})();
+// DAMEKE v0.103f activate detail stats one-shot END
+
+// DAMEKE v0.103g legacy detail-stats rebuild disabled report BEGIN
+(function(){
+  window.DAMEKE_UI_V103G_DETAIL_STATS_OWNER_REPORT = function(){
+    function q(id){ return document.getElementById(id); }
+    function order(side){
+      var p = side === 'defender' ? 'defender' : 'attacker';
+      var panel = q('v082hStatsPanel_' + p) || q('v082gStatsPanel_' + p) || q('v082fStatsPanel_' + p);
+      if(!panel) return [];
+      return Array.prototype.slice.call(panel.children).map(function(x){
+        if(x.classList.contains('v082h-minititle')) return 'title';
+        if(x.classList.contains('v101j2-nature-line')) return 'nature';
+        if(x.classList.contains('v082m-stat-table') && !x.classList.contains('v082m-acc-table') && x.tagName !== 'DETAILS') return 'ev-rank-table';
+        if(x.classList.contains('v082m-acc-table')) return 'accuracy-evasion-table';
+        if(x.classList.contains('v082h-ev-preset')) return 'ev-preset';
+        if(x.classList.contains('v101m-hp-row')) return 'current-hp-row';
+        if(x.classList.contains('v082h-iv-only')) return 'level-iv-details';
+        if(x.classList.contains('v091-sex-field')) return 'sex-field';
+        return 'other';
+      });
+    }
+    var expected = ['title','nature','ev-rank-table','accuracy-evasion-table','ev-preset','current-hp-row','level-iv-details','sex-field'];
+    var a = q('v082hStatsPanel_attacker') || q('v082gStatsPanel_attacker') || q('v082fStatsPanel_attacker');
+    var d = q('v082hStatsPanel_defender') || q('v082gStatsPanel_defender') || q('v082fStatsPanel_defender');
+    return {
+      version: 'v0.103g',
+      loaded: true,
+      detailStatsOwner: 'v0.103f one-shot builder',
+      legacyRebuildStatsDisabled: true,
+      attackerOneShot: !!(a && a.dataset.v103fOneShot === '1'),
+      defenderOneShot: !!(d && d.dataset.v103fOneShot === '1'),
+      attackerOrder: order('attacker'),
+      defenderOrder: order('defender'),
+      attackerOrderOk: JSON.stringify(order('attacker')) === JSON.stringify(expected),
+      defenderOrderOk: JSON.stringify(order('defender')) === JSON.stringify(expected),
+      attackerCounts: a ? {input:a.querySelectorAll('input').length, select:a.querySelectorAll('select').length, button:a.querySelectorAll('button').length, details:a.querySelectorAll('details').length} : null,
+      defenderCounts: d ? {input:d.querySelectorAll('input').length, select:d.querySelectorAll('select').length, button:d.querySelectorAll('button').length, details:d.querySelectorAll('details').length} : null,
+      canProceedToV103h: !!(a && d && a.dataset.v103fOneShot === '1' && d.dataset.v103fOneShot === '1')
+    };
+  };
+})();
+// DAMEKE v0.103g legacy detail-stats rebuild disabled report END
+
+// DAMEKE v0.103h legacy detail-stats class overlays disabled report BEGIN
+(function(){
+  window.DAMEKE_UI_V103H_DETAIL_STATS_OVERLAY_REPORT = function(){
+    function q(id){ return document.getElementById(id); }
+    function order(side){
+      var p = side === 'defender' ? 'defender' : 'attacker';
+      var panel = q('v082hStatsPanel_' + p) || q('v082gStatsPanel_' + p) || q('v082fStatsPanel_' + p);
+      if(!panel) return [];
+      return Array.prototype.slice.call(panel.children).map(function(x){
+        if(x.classList.contains('v082h-minititle')) return 'title';
+        if(x.classList.contains('v101j2-nature-line')) return 'nature';
+        if(x.classList.contains('v082m-stat-table') && !x.classList.contains('v082m-acc-table') && x.tagName !== 'DETAILS') return 'ev-rank-table';
+        if(x.classList.contains('v082m-acc-table')) return 'accuracy-evasion-table';
+        if(x.classList.contains('v082h-ev-preset')) return 'ev-preset';
+        if(x.classList.contains('v101m-hp-row')) return 'current-hp-row';
+        if(x.classList.contains('v082h-iv-only')) return 'level-iv-details';
+        if(x.classList.contains('v091-sex-field')) return 'sex-field';
+        return 'other';
+      });
+    }
+    function rowClassCounts(side){
+      var p = side === 'defender' ? 'defender' : 'attacker';
+      var panel = q('v082hStatsPanel_' + p) || q('v082gStatsPanel_' + p) || q('v082fStatsPanel_' + p);
+      if(!panel) return null;
+      return {
+        oneShot: panel.dataset.v103fOneShot === '1',
+        v082nRows: panel.querySelectorAll('.v082n-stat-row-tight').length,
+        v082qRows: panel.querySelectorAll('.v082q-stat-row-same-grid').length,
+        accTables: panel.querySelectorAll('.v082m-acc-table').length,
+        hpRows: panel.querySelectorAll('.v101m-hp-row').length,
+        levelIv: panel.querySelectorAll('.v082h-iv-only').length
+      };
+    }
+    var expected = ['title','nature','ev-rank-table','accuracy-evasion-table','ev-preset','current-hp-row','level-iv-details','sex-field'];
+    var attackerOrder = order('attacker');
+    var defenderOrder = order('defender');
+    return {
+      version: 'v0.103h',
+      loaded: true,
+      disabledLegacyStages: ['v082n.apply','v082o.apply','v082p.apply','v082q.apply'],
+      detailStatsOwner: 'v0.103f one-shot builder',
+      attackerOrder: attackerOrder,
+      defenderOrder: defenderOrder,
+      attackerOrderOk: JSON.stringify(attackerOrder) === JSON.stringify(expected),
+      defenderOrderOk: JSON.stringify(defenderOrder) === JSON.stringify(expected),
+      attackerClasses: rowClassCounts('attacker'),
+      defenderClasses: rowClassCounts('defender'),
+      canProceedToV103i: JSON.stringify(attackerOrder) === JSON.stringify(expected) && JSON.stringify(defenderOrder) === JSON.stringify(expected)
+    };
+  };
+})();
+// DAMEKE v0.103h legacy detail-stats class overlays disabled report END
+
+// DAMEKE v0.103i form-change ability button sync report BEGIN
+(function(){
+  window.DAMEKE_UI_V103I_FORM_ABILITY_BUTTON_REPORT = function(){
+    function q(id){ return document.getElementById(id); }
+    function buttons(side){
+      var host = q('v082hAbilityButtons_' + side) || q('v082gAbilityButtons_' + side) || q('v082fAbilityButtons_' + side);
+      if(!host) return null;
+      return {
+        exists: true,
+        synced: host.dataset.v103iSynced === '1',
+        buttonTexts: Array.prototype.slice.call(host.querySelectorAll('button')).map(function(b){ return b.textContent; }),
+        text: String(host.innerText || host.textContent || '').replace(/\s+/g, ' ').trim()
+      };
+    }
+    return {
+      version: 'v0.103i',
+      loaded: true,
+      owner: 'v0.91 commitPokemon',
+      attackerAbilitySelect: q('attackerAbilitySelect') ? q('attackerAbilitySelect').value : null,
+      defenderAbilitySelect: q('defenderAbilitySelect') ? q('defenderAbilitySelect').value : null,
+      attackerButtons: buttons('attacker'),
+      defenderButtons: buttons('defender'),
+      canProceedToV103j: true
+    };
+  };
+})();
+// DAMEKE v0.103i form-change ability button sync report END
+
+// DAMEKE v0.103k deleted disabled detail-stats overlays report BEGIN
+(function(){
+  window.DAMEKE_UI_V103K_DELETED_OVERLAYS_REPORT = function(){
+    function q(id){ return document.getElementById(id); }
+    function order(side){
+      var p = side === 'defender' ? 'defender' : 'attacker';
+      var panel = q('v082hStatsPanel_' + p) || q('v082gStatsPanel_' + p) || q('v082fStatsPanel_' + p);
+      if(!panel) return [];
+      return Array.prototype.slice.call(panel.children).map(function(x){
+        if(x.classList.contains('v082h-minititle')) return 'title';
+        if(x.classList.contains('v101j2-nature-line')) return 'nature';
+        if(x.classList.contains('v082m-stat-table') && !x.classList.contains('v082m-acc-table') && x.tagName !== 'DETAILS') return 'ev-rank-table';
+        if(x.classList.contains('v082m-acc-table')) return 'accuracy-evasion-table';
+        if(x.classList.contains('v082h-ev-preset')) return 'ev-preset';
+        if(x.classList.contains('v101m-hp-row')) return 'current-hp-row';
+        if(x.classList.contains('v082h-iv-only')) return 'level-iv-details';
+        if(x.classList.contains('v091-sex-field')) return 'sex-field';
+        return 'other';
+      });
+    }
+    function classes(side){
+      var p = side === 'defender' ? 'defender' : 'attacker';
+      var panel = q('v082hStatsPanel_' + p) || q('v082gStatsPanel_' + p) || q('v082fStatsPanel_' + p);
+      if(!panel) return null;
+      return {
+        oneShot: panel.dataset.v103fOneShot === '1',
+        v082nRows: panel.querySelectorAll('.v082n-stat-row-tight').length,
+        v082qRows: panel.querySelectorAll('.v082q-stat-row-same-grid').length,
+        accTables: panel.querySelectorAll('.v082m-acc-table').length,
+        hpRows: panel.querySelectorAll('.v101m-hp-row').length,
+        levelIv: panel.querySelectorAll('.v082h-iv-only').length
+      };
+    }
+    var expected = ['title','nature','ev-rank-table','accuracy-evasion-table','ev-preset','current-hp-row','level-iv-details','sex-field'];
+    var attackerOrder = order('attacker');
+    var defenderOrder = order('defender');
+    return {
+      version: 'v0.103k',
+      loaded: true,
+      deletedBlocks: ['v082n','v082o','v082p','v082q'],
+      detailStatsOwner: 'v0.103f one-shot builder',
+      attackerOrder: attackerOrder,
+      defenderOrder: defenderOrder,
+      attackerOrderOk: JSON.stringify(attackerOrder) === JSON.stringify(expected),
+      defenderOrderOk: JSON.stringify(defenderOrder) === JSON.stringify(expected),
+      attackerClasses: classes('attacker'),
+      defenderClasses: classes('defender'),
+      canProceedToV103l: JSON.stringify(attackerOrder) === JSON.stringify(expected) && JSON.stringify(defenderOrder) === JSON.stringify(expected)
+    };
+  };
+})();
+// DAMEKE v0.103k deleted disabled detail-stats overlays report END
+
+// DAMEKE v0.103n dead detail-stats helpers deleted report BEGIN
+(function(){
+  window.DAMEKE_UI_V103N_DEAD_HELPERS_DELETED_REPORT = function(){
+    function q(id){ return document.getElementById(id); }
+    function order(side){
+      var p = side === 'defender' ? 'defender' : 'attacker';
+      var panel = q('v082hStatsPanel_' + p) || q('v082gStatsPanel_' + p) || q('v082fStatsPanel_' + p);
+      if(!panel) return [];
+      return Array.prototype.slice.call(panel.children).map(function(x){
+        if(x.classList.contains('v082h-minititle')) return 'title';
+        if(x.classList.contains('v101j2-nature-line')) return 'nature';
+        if(x.classList.contains('v082m-stat-table') && !x.classList.contains('v082m-acc-table') && x.tagName !== 'DETAILS') return 'ev-rank-table';
+        if(x.classList.contains('v082m-acc-table')) return 'accuracy-evasion-table';
+        if(x.classList.contains('v082h-ev-preset')) return 'ev-preset';
+        if(x.classList.contains('v101m-hp-row')) return 'current-hp-row';
+        if(x.classList.contains('v082h-iv-only')) return 'level-iv-details';
+        if(x.classList.contains('v091-sex-field')) return 'sex-field';
+        return 'other';
+      });
+    }
+    function counts(side){
+      var p = side === 'defender' ? 'defender' : 'attacker';
+      var panel = q('v082hStatsPanel_' + p) || q('v082gStatsPanel_' + p) || q('v082fStatsPanel_' + p);
+      if(!panel) return null;
+      return {input:panel.querySelectorAll('input').length, select:panel.querySelectorAll('select').length, button:panel.querySelectorAll('button').length, details:panel.querySelectorAll('details').length, oneShot:panel.dataset.v103fOneShot === '1'};
+    }
+    var expected = ['title','nature','ev-rank-table','accuracy-evasion-table','ev-preset','current-hp-row','level-iv-details','sex-field'];
+    var attackerOrder = order('attacker');
+    var defenderOrder = order('defender');
+    return {
+      version: 'v0.103n',
+      loaded: true,
+      deletedTargets: ['v082l rebuildStats','v082m detail helpers','v082m rebuildStats'],
+      detailStatsOwner: 'v0.103f one-shot builder',
+      attackerOrder: attackerOrder,
+      defenderOrder: defenderOrder,
+      attackerOrderOk: JSON.stringify(attackerOrder) === JSON.stringify(expected),
+      defenderOrderOk: JSON.stringify(defenderOrder) === JSON.stringify(expected),
+      attackerCounts: counts('attacker'),
+      defenderCounts: counts('defender'),
+      formAbilitySyncReportAvailable: typeof window.DAMEKE_UI_V103I_FORM_ABILITY_BUTTON_REPORT === 'function',
+      canProceedToV103o: JSON.stringify(attackerOrder) === JSON.stringify(expected) && JSON.stringify(defenderOrder) === JSON.stringify(expected)
+    };
+  };
+})();
+// DAMEKE v0.103n dead detail-stats helpers deleted report END
+
+// DAMEKE v0.103q basic side DOM snapshot report BEGIN
+(function(){
+  if(window.__damekeUiV103qBasicSideSnapshot) return;
+  window.__damekeUiV103qBasicSideSnapshot = true;
+  function q(id){ return document.getElementById(id); }
+  function arr(x){ return Array.prototype.slice.call(x || []); }
+  function txt(el){ return String(el && (el.innerText || el.textContent) || '').replace(/\s+/g, ' ').trim(); }
+  function shortText(el, n){ var s = txt(el); return s.length > (n || 140) ? s.slice(0, n || 140) + '...' : s; }
+  function pathOf(el){
+    if(!el) return '';
+    var parts = [];
+    var cur = el;
+    while(cur && cur.nodeType === 1 && parts.length < 8){
+      var part = cur.tagName.toLowerCase();
+      if(cur.id) part += '#' + cur.id;
+      if(cur.className && typeof cur.className === 'string'){
+        var cls = cur.className.trim().split(/\s+/).filter(Boolean).slice(0,4).join('.');
+        if(cls) part += '.' + cls;
+      }
+      parts.unshift(part);
+      cur = cur.parentElement;
+    }
+    return parts.join(' > ');
+  }
+  function controlInfo(el){
+    if(!el) return null;
+    var opt = el.options && el.selectedIndex >= 0 ? el.options[el.selectedIndex] : null;
+    return {
+      tag: el.tagName,
+      id: el.id || '',
+      className: typeof el.className === 'string' ? el.className : '',
+      type: el.type || '',
+      value: el.value || '',
+      selectedText: opt ? (opt.textContent || opt.value || '') : '',
+      text: shortText(el, 100),
+      path: pathOf(el)
+    };
+  }
+  function blockInfo(el){
+    if(!el) return null;
+    var rect = el.getBoundingClientRect ? el.getBoundingClientRect() : {width:0,height:0,top:0,left:0};
+    return {
+      tag: el.tagName,
+      id: el.id || '',
+      className: typeof el.className === 'string' ? el.className : '',
+      visible: !!(rect.width || rect.height),
+      rect: {width: Math.round(rect.width), height: Math.round(rect.height), top: Math.round(rect.top), left: Math.round(rect.left)},
+      inputCount: el.querySelectorAll ? el.querySelectorAll('input').length : 0,
+      selectCount: el.querySelectorAll ? el.querySelectorAll('select').length : 0,
+      buttonCount: el.querySelectorAll ? el.querySelectorAll('button').length : 0,
+      detailsCount: el.querySelectorAll ? el.querySelectorAll('details').length : 0,
+      text: shortText(el, 180),
+      path: pathOf(el)
+    };
+  }
+  function boxOf(side){
+    var cls = side === 'attacker' ? '.v082h-box.v082h-attacker' : '.v082h-box.v082h-defender';
+    return document.querySelector(cls);
+  }
+  function classifyChild(el){
+    if(!el || !el.classList) return 'other';
+    if(el.tagName === 'H3') return 'heading';
+    if(el.querySelector && el.querySelector('#attackerSelect,#defenderSelect')) return 'pokemon-select';
+    if(el.classList.contains('v082h-mini-grid')) return 'type-grid';
+    if(el.classList.contains('v082h-type-effects')) return 'type-effects';
+    if(el.classList.contains('v082h-ability-panel')) return 'ability-panel';
+    if(el.id && /AbilityZone/.test(el.id)) return 'ability-zone';
+    if(el.tagName === 'LABEL' && el.querySelector && el.querySelector('#attackerItemSelect,#defenderItemSelect')) return 'item-select';
+    if(el.tagName === 'LABEL' && el.querySelector && el.querySelector('#attackerNoItem,#defenderNoItem')) return 'no-item';
+    if(el.id && /ItemZone/.test(el.id)) return 'item-zone';
+    if(el.tagName === 'LABEL' && el.querySelector && el.querySelector('#attackerSpecialState,#defenderSpecialState')) return 'special-state';
+    if(el.tagName === 'LABEL' && el.querySelector && el.querySelector('#attackerTeraType,#defenderTeraType')) return 'tera-type';
+    if(el.id && /TeraZone/.test(el.id)) return 'tera-zone';
+    if(el.id && /FormPanelV091/.test(el.id)) return 'form-panel';
+    if(el.id && /StatsPanel/.test(el.id)) return 'detail-stats';
+    if(el.tagName === 'LABEL' && el.querySelector && el.querySelector('#moveSelect')) return 'move-select';
+    if(el.id && /MoveZone/.test(el.id)) return 'move-zone';
+    if(el.classList.contains('v082j-special-tera-row')) return 'special-tera-row';
+    return 'other';
+  }
+  function summarizeChildren(box){
+    if(!box) return [];
+    return arr(box.children).map(function(el, idx){
+      return {index:idx, kind:classifyChild(el), tag:el.tagName, id:el.id || '', className:el.className || '', text:shortText(el, 120)};
+    });
+  }
+  function sideSnapshot(side){
+    var p = side === 'defender' ? 'defender' : 'attacker';
+    var box = boxOf(p);
+    return {
+      side: p,
+      box: blockInfo(box),
+      childOrder: summarizeChildren(box),
+      controls: {
+        pokemon: controlInfo(q(p + 'Select')),
+        type1: controlInfo(q(p + 'Type1')),
+        type2: controlInfo(q(p + 'Type2')),
+        typeOverride: controlInfo(q(p + 'TypeOverride')),
+        addType: controlInfo(q(p + 'AddType')),
+        ability: controlInfo(q(p + 'AbilitySelect')),
+        noAbility: controlInfo(q(p + 'NoAbility')),
+        item: controlInfo(q(p + 'ItemSelect')),
+        noItem: controlInfo(q(p + 'NoItem')),
+        specialState: controlInfo(q(p + 'SpecialState')),
+        tera: controlInfo(q(p + 'TeraType')),
+        sex: controlInfo(q(p + 'SexSelect'))
+      },
+      panels: {
+        formPanel: blockInfo(q(p + 'FormPanelV091')),
+        abilityPanel: blockInfo(q('v082hAbilityPanel_' + p)),
+        abilityButtons: blockInfo(q('v082hAbilityButtons_' + p)),
+        abilityZone: blockInfo(q(p === 'attacker' ? 'v082hAttackerAbilityZone' : 'v082hDefenderAbilityZone')),
+        itemZone: blockInfo(q(p === 'attacker' ? 'v082hAttackerItemZone' : 'v082hDefenderItemZone')),
+        teraZone: blockInfo(q(p === 'attacker' ? 'v082hAttackerTeraZone' : '')), 
+        statsPanel: blockInfo(q('v082hStatsPanel_' + p))
+      }
+    };
+  }
+  function moveSnapshot(){
+    return {
+      select: controlInfo(q('moveSelect')),
+      label: q('moveSelect') && q('moveSelect').closest('label') ? shortText(q('moveSelect').closest('label'), 140) : '',
+      moveZone: blockInfo(q('v082hMoveZone')),
+      moveDetails: blockInfo(q('v082hMoveDetails')),
+      moveDetailsDisplay: q('v082hMoveDetails') ? q('v082hMoveDetails').style.display : null
+    };
+  }
+  function expectedKinds(side){
+    // v0.103q2: expected order updated to the actual settled UI.
+    // v091 form panel is inserted immediately after Pokemon.
+    // attacker has a dedicated tera-zone before the special/tera row.
+    var base = ['pokemon-select','form-panel','type-grid','type-effects','ability-panel','ability-zone','item-select','no-item','item-zone'];
+    if(side === 'attacker') base.push('tera-zone');
+    base.push('special-tera-row','detail-stats');
+    if(side === 'attacker') base.push('move-select','move-zone');
+    return base;
+  }
+  function nonHeadingKinds(list){ return list.map(function(x){ return x.kind; }).filter(function(k){ return k !== 'heading'; }); }
+  window.DAMEKE_UI_V103Q_BASIC_SIDE_DOM_SNAPSHOT_REPORT = function(){
+    var attacker = sideSnapshot('attacker');
+    var defender = sideSnapshot('defender');
+    var attackerKinds = nonHeadingKinds(attacker.childOrder);
+    var defenderKinds = nonHeadingKinds(defender.childOrder);
+    return {
+      version: 'v0.103q',
+      loaded: true,
+      purpose: '基本欄one-shot化前のDOMスナップショット。表示・計算・イベントは変更しません。',
+      bodyClass: document.body.className,
+      rootGrid: blockInfo(q('v082hBasicGrid')),
+      toolbar: blockInfo(q('v082hToolbar')),
+      attacker: attacker,
+      defender: defender,
+      move: moveSnapshot(),
+      detectedKinds: {attacker: attackerKinds, defender: defenderKinds},
+      expectedKinds: {attacker: expectedKinds('attacker'), defender: expectedKinds('defender')},
+      kindMatches: {
+        attacker: JSON.stringify(attackerKinds) === JSON.stringify(expectedKinds('attacker')),
+        defender: JSON.stringify(defenderKinds) === JSON.stringify(expectedKinds('defender'))
+      },
+      counts: {
+        hiddenOriginalTopInputs: document.querySelectorAll('.top-inputs.v082h-hide').length,
+        hiddenOriginalSidePanels: document.querySelectorAll('.side-panel.v082h-hide').length,
+        formPanels: document.querySelectorAll('.v091-form-panel').length,
+        abilityPanels: document.querySelectorAll('.v082h-ability-panel').length,
+        detailStatsOneShotPanels: document.querySelectorAll('.v103f-stats-panel,[data-v103f-one-shot="1"]').length
+      },
+      canProceedToV103r: true
+    };
+  };
+})();
+// DAMEKE v0.103q basic side DOM snapshot report END
+
+// DAMEKE v0.103q2 expectation fix report BEGIN
+(function(){
+  window.DAMEKE_UI_V103Q2_BASIC_SIDE_EXPECTATION_REPORT = function(){
+    var baseReport = typeof window.DAMEKE_UI_V103Q_BASIC_SIDE_DOM_SNAPSHOT_REPORT === 'function'
+      ? window.DAMEKE_UI_V103Q_BASIC_SIDE_DOM_SNAPSHOT_REPORT()
+      : null;
+    return {
+      version: 'v0.103q2',
+      loaded: true,
+      baseReportAvailable: !!baseReport,
+      kindMatches: baseReport ? baseReport.kindMatches : null,
+      detectedKinds: baseReport ? baseReport.detectedKinds : null,
+      expectedKinds: baseReport ? baseReport.expectedKinds : null,
+      canProceedToV103r: !!(baseReport && baseReport.kindMatches && baseReport.kindMatches.attacker && baseReport.kindMatches.defender)
+    };
+  };
+})();
+// DAMEKE v0.103q2 expectation fix report END
+
+// DAMEKE v0.103r basic side one-shot candidate BEGIN
+(function(){
+  if(window.__damekeUiV103rBasicSideCandidate) return;
+  window.__damekeUiV103rBasicSideCandidate = true;
+  function q(id){ return document.getElementById(id); }
+  function arr(x){ return Array.prototype.slice.call(x || []); }
+  function make(tag, cls, text){ var e = document.createElement(tag); if(cls) e.className = cls; if(text != null) e.textContent = text; return e; }
+  function txt(el){ return String(el && (el.innerText || el.textContent) || '').replace(/\s+/g, ' ').trim(); }
+  function shortText(el, n){ var s = txt(el); return s.length > (n || 120) ? s.slice(0, n || 120) + '...' : s; }
+  function sidePrefix(side){ return side === 'defender' ? 'defender' : 'attacker'; }
+  function boxOf(side){ var p = sidePrefix(side); return document.querySelector('.v082h-box.v082h-' + (p === 'attacker' ? 'attacker' : 'defender')); }
+  function labelOf(id){ var e = q(id); return e ? e.closest('label') : null; }
+  function preserveControlState(source, clone){
+    if(!source || !clone) return clone;
+    function keyOf(el, index){ return el.id ? ('#' + el.id) : (el.tagName + ':' + index); }
+    var srcControls = arr(source.querySelectorAll('input,select,textarea,details'));
+    var dstControls = arr(clone.querySelectorAll('input,select,textarea,details'));
+    var srcByKey = {};
+    srcControls.forEach(function(el, i){ srcByKey[keyOf(el, i)] = el; });
+    dstControls.forEach(function(el, i){
+      var src = srcByKey[keyOf(el, i)];
+      if(!src) return;
+      if(el.tagName === 'SELECT'){
+        el.value = src.value;
+        if(el.value !== src.value){
+          for(var oi = 0; oi < el.options.length; oi++){
+            if(el.options[oi].textContent === (src.options[src.selectedIndex] ? src.options[src.selectedIndex].textContent : '')){
+              el.selectedIndex = oi;
+              break;
+            }
+          }
+        }
+      } else if(el.tagName === 'INPUT' || el.tagName === 'TEXTAREA'){
+        if(el.type === 'checkbox' || el.type === 'radio') el.checked = src.checked;
+        else el.value = src.value;
+      } else if(el.tagName === 'DETAILS'){
+        el.open = src.open;
+      }
+    });
+    if(source.tagName === 'SELECT' && clone.tagName === 'SELECT') clone.value = source.value;
+    if((source.tagName === 'INPUT' || source.tagName === 'TEXTAREA') && (clone.tagName === 'INPUT' || clone.tagName === 'TEXTAREA')){
+      if(clone.type === 'checkbox' || clone.type === 'radio') clone.checked = source.checked;
+      else clone.value = source.value;
+    }
+    if(source.tagName === 'DETAILS' && clone.tagName === 'DETAILS') clone.open = source.open;
+    return clone;
+  }
+  function detachOrPlaceholder(node, tag, cls, text){
+    if(node){
+      var clone = node.cloneNode(true);
+      return preserveControlState(node, clone);
+    }
+    return make(tag || 'div', cls || 'v103r-placeholder', text || '');
+  }
+  function cloneById(id){ var e = q(id); return e ? e.cloneNode(true) : null; }
+  function cloneLabelFor(id){ return labelOf(id); }
+  function classifyChild(el){
+    if(!el || !el.classList) return 'other';
+    if(el.tagName === 'H3') return 'heading';
+    if(el.querySelector && el.querySelector('#attackerSelect,#defenderSelect')) return 'pokemon-select';
+    if(el.classList.contains('v091-form-panel')) return 'form-panel';
+    if(el.classList.contains('v082h-mini-grid')) return 'type-grid';
+    if(el.classList.contains('v082h-type-effects')) return 'type-effects';
+    if(el.classList.contains('v082h-ability-panel')) return 'ability-panel';
+    if(el.id && /AbilityZone/.test(el.id)) return 'ability-zone';
+    if(el.tagName === 'LABEL' && el.querySelector && el.querySelector('#attackerItemSelect,#defenderItemSelect')) return 'item-select';
+    if(el.tagName === 'LABEL' && el.querySelector && el.querySelector('#attackerNoItem,#defenderNoItem')) return 'no-item';
+    if(el.id && /ItemZone/.test(el.id)) return 'item-zone';
+    if(el.id && /TeraZone/.test(el.id)) return 'tera-zone';
+    if(el.classList.contains('v082j-special-tera-row')) return 'special-tera-row';
+    if(el.id && /StatsPanel/.test(el.id)) return 'detail-stats';
+    if(el.tagName === 'LABEL' && el.querySelector && el.querySelector('#moveSelect')) return 'move-select';
+    if(el.id && /MoveZone/.test(el.id)) return 'move-zone';
+    return 'other';
+  }
+  function kindsOf(box){ return arr(box ? box.children : []).map(classifyChild).filter(function(k){ return k !== 'heading'; }); }
+  function actualKinds(side){ return kindsOf(boxOf(side)); }
+  function expectedKinds(side){
+    var base = ['pokemon-select','form-panel','type-grid','type-effects','ability-panel','ability-zone','item-select','no-item','item-zone'];
+    if(sidePrefix(side) === 'attacker') base.push('tera-zone');
+    base.push('special-tera-row','detail-stats');
+    if(sidePrefix(side) === 'attacker') base.push('move-select','move-zone');
+    return base;
+  }
+  function cloneTypeGrid(p){
+    var grid = make('div','v082h-mini-grid');
+    grid.appendChild(detachOrPlaceholder(cloneLabelFor(p + 'Type1'), 'label', '', 'タイプ1'));
+    grid.appendChild(detachOrPlaceholder(cloneLabelFor(p + 'Type2'), 'label', '', 'タイプ2'));
+    return grid;
+  }
+  function cloneTypeEffects(p){
+    var source = boxOf(p) ? arr(boxOf(p).children).find(function(x){ return classifyChild(x) === 'type-effects'; }) : null;
+    return detachOrPlaceholder(source, 'details', 'v082h-details v082h-type-effects', 'タイプ変更効果');
+  }
+  function cloneAbilityPanel(p){
+    return detachOrPlaceholder(q('v082hAbilityPanel_' + p), 'div', 'v082h-ability-panel', '特性');
+  }
+  function cloneZone(id){ return detachOrPlaceholder(q(id), 'div', 'v082h-zone', ''); }
+  function cloneSpecialTeraRow(p){ return detachOrPlaceholder(q('v082jSpecialTera_' + p), 'div', 'v082j-special-tera-row', ''); }
+  function cloneFormPanel(p){ return detachOrPlaceholder(q(p + 'FormPanelV091'), 'details', 'v091-form-panel v091-form-panel-empty', 'フォルム'); }
+  function cloneStatsPanel(p){ return detachOrPlaceholder(q('v082hStatsPanel_' + p), 'div', 'v082h-stats-panel v082m-stats-panel v103f-stats-panel', '詳細ステータス'); }
+  function buildDetached(side){
+    var p = sidePrefix(side);
+    var isAtk = p === 'attacker';
+    var box = make('section','sub-card v082h-box v082h-' + (isAtk ? 'attacker' : 'defender'));
+    box.dataset.side = p;
+    box.appendChild(make('h3','', isAtk ? '攻撃側' : '防御側'));
+    box.appendChild(detachOrPlaceholder(cloneLabelFor(p + 'Select'), 'label', '', isAtk ? '攻撃側ポケモン' : '防御側ポケモン'));
+    box.appendChild(cloneFormPanel(p));
+    box.appendChild(cloneTypeGrid(p));
+    box.appendChild(cloneTypeEffects(p));
+    box.appendChild(cloneAbilityPanel(p));
+    box.appendChild(cloneZone(isAtk ? 'v082hAttackerAbilityZone' : 'v082hDefenderAbilityZone'));
+    box.appendChild(detachOrPlaceholder(cloneLabelFor(p + 'ItemSelect'), 'label', 'v101j2-label-only', '持ち物'));
+    box.appendChild(detachOrPlaceholder(cloneLabelFor(p + 'NoItem'), 'label', 'check v082h-inline-check', '持ち物なし'));
+    box.appendChild(cloneZone(isAtk ? 'v082hAttackerItemZone' : 'v082hDefenderItemZone'));
+    if(isAtk) box.appendChild(cloneZone('v082hAttackerTeraZone'));
+    box.appendChild(cloneSpecialTeraRow(p));
+    box.appendChild(cloneStatsPanel(p));
+    if(isAtk){
+      box.appendChild(detachOrPlaceholder(cloneLabelFor('moveSelect'), 'label', 'v101j2-label-only', '技'));
+      box.appendChild(cloneZone('v082hMoveZone'));
+    }
+    return box;
+  }
+  function childSummary(box){
+    return arr(box ? box.children : []).map(function(el, idx){
+      return {index:idx, kind:classifyChild(el), tag:el.tagName, id:el.id || '', className:el.className || '', text:shortText(el, 90)};
+    });
+  }
+  function compare(side){
+    var actual = boxOf(side);
+    var candidate = buildDetached(side);
+    var actualKindsList = actualKinds(side);
+    var candidateKindsList = kindsOf(candidate);
+    return {
+      side: sidePrefix(side),
+      actualExists: !!actual,
+      candidateCreated: !!candidate,
+      actualKinds: actualKindsList,
+      candidateKinds: candidateKindsList,
+      expectedKinds: expectedKinds(side),
+      actualMatchesExpected: JSON.stringify(actualKindsList) === JSON.stringify(expectedKinds(side)),
+      candidateMatchesActual: JSON.stringify(candidateKindsList) === JSON.stringify(actualKindsList),
+      actualControlCounts: actual ? {input:actual.querySelectorAll('input').length, select:actual.querySelectorAll('select').length, button:actual.querySelectorAll('button').length, details:actual.querySelectorAll('details').length} : null,
+      candidateControlCounts: candidate ? {input:candidate.querySelectorAll('input').length, select:candidate.querySelectorAll('select').length, button:candidate.querySelectorAll('button').length, details:candidate.querySelectorAll('details').length} : null,
+      actualChildSummary: childSummary(actual),
+      candidateChildSummary: childSummary(candidate)
+    };
+  }
+  window.DAMEKE_UI_V103R_BUILD_BASIC_SIDE_CANDIDATE = buildDetached;
+  window.DAMEKE_UI_V103R_BASIC_SIDE_CANDIDATE_REPORT = function(){
+    var attacker = compare('attacker');
+    var defender = compare('defender');
+    var ok = attacker.candidateMatchesActual && defender.candidateMatchesActual;
+    return {
+      version: 'v0.103r',
+      loaded: true,
+      active: false,
+      purpose: '基本欄one-shot候補をdetached DOMとして生成します。現UIには挿入しません。',
+      attacker: attacker,
+      defender: defender,
+      canProceedToV103s: ok,
+      next: ok ? 'v0.103sでコントロール詳細差分へ進めます。' : '候補の子要素順を調整します。'
+    };
+  };
+})();
+// DAMEKE v0.103r basic side one-shot candidate END
+
+// DAMEKE v0.103s basic side candidate diff BEGIN
+(function(){
+  if(window.__damekeUiV103sBasicSideDiff) return;
+  window.__damekeUiV103sBasicSideDiff = true;
+  function q(id){ return document.getElementById(id); }
+  function arr(x){ return Array.prototype.slice.call(x || []); }
+  function normText(s){ return String(s || '').replace(/\s+/g, ' ').trim(); }
+  function sidePrefix(side){ return side === 'defender' ? 'defender' : 'attacker'; }
+  function boxOf(side){ var p = sidePrefix(side); return document.querySelector('.v082h-box.v082h-' + (p === 'attacker' ? 'attacker' : 'defender')); }
+  function classifyChild(el){
+    if(!el || !el.classList) return 'other';
+    if(el.tagName === 'H3') return 'heading';
+    if(el.querySelector && el.querySelector('#attackerSelect,#defenderSelect')) return 'pokemon-select';
+    if(el.classList.contains('v091-form-panel')) return 'form-panel';
+    if(el.classList.contains('v082h-mini-grid')) return 'type-grid';
+    if(el.classList.contains('v082h-type-effects')) return 'type-effects';
+    if(el.classList.contains('v082h-ability-panel')) return 'ability-panel';
+    if(el.id && /AbilityZone/.test(el.id)) return 'ability-zone';
+    if(el.tagName === 'LABEL' && el.querySelector && el.querySelector('#attackerItemSelect,#defenderItemSelect')) return 'item-select';
+    if(el.tagName === 'LABEL' && el.querySelector && el.querySelector('#attackerNoItem,#defenderNoItem')) return 'no-item';
+    if(el.id && /ItemZone/.test(el.id)) return 'item-zone';
+    if(el.id && /TeraZone/.test(el.id)) return 'tera-zone';
+    if(el.classList.contains('v082j-special-tera-row')) return 'special-tera-row';
+    if(el.id && /StatsPanel/.test(el.id)) return 'detail-stats';
+    if(el.tagName === 'LABEL' && el.querySelector && el.querySelector('#moveSelect')) return 'move-select';
+    if(el.id && /MoveZone/.test(el.id)) return 'move-zone';
+    return 'other';
+  }
+  function nodeSig(el){
+    if(!el) return null;
+    return {
+      kind: classifyChild(el),
+      tag: el.tagName,
+      id: el.id || '',
+      className: typeof el.className === 'string' ? el.className.replace(/\s+/g, ' ').trim() : '',
+      textHead: normText(el.textContent).slice(0, 90),
+      controlCounts: {
+        input: el.querySelectorAll ? el.querySelectorAll('input').length : 0,
+        select: el.querySelectorAll ? el.querySelectorAll('select').length : 0,
+        button: el.querySelectorAll ? el.querySelectorAll('button').length : 0,
+        details: el.querySelectorAll ? el.querySelectorAll('details').length : 0
+      }
+    };
+  }
+  function selectSig(el){
+    return {
+      tag:'SELECT',
+      id: el.id || '',
+      className: String(el.className || '').replace(/\s+/g, ' ').trim(),
+      value: el.value || '',
+      selectedText: el.options && el.selectedIndex >= 0 ? normText(el.options[el.selectedIndex].textContent) : '',
+      optionCount: el.options ? el.options.length : 0
+    };
+  }
+  function inputSig(el){
+    return {
+      tag:'INPUT',
+      id: el.id || '',
+      type: el.type || '',
+      className: String(el.className || '').replace(/\s+/g, ' ').trim(),
+      value: el.type === 'checkbox' ? String(!!el.checked) : (el.value || ''),
+      placeholder: el.placeholder || ''
+    };
+  }
+  function buttonSig(el){
+    return {
+      tag:'BUTTON',
+      id: el.id || '',
+      type: el.type || 'button',
+      className: String(el.className || '').replace(/\s+/g, ' ').trim(),
+      text: normText(el.textContent)
+    };
+  }
+  function detailSig(el){
+    return {
+      tag:'DETAILS',
+      id: el.id || '',
+      className: String(el.className || '').replace(/\s+/g, ' ').trim(),
+      summary: el.querySelector('summary') ? normText(el.querySelector('summary').textContent) : '',
+      open: !!el.open
+    };
+  }
+  function controlSigs(root){
+    if(!root) return [];
+    return arr(root.querySelectorAll('input,select,button,details')).map(function(el){
+      if(el.tagName === 'SELECT') return selectSig(el);
+      if(el.tagName === 'INPUT') return inputSig(el);
+      if(el.tagName === 'BUTTON') return buttonSig(el);
+      if(el.tagName === 'DETAILS') return detailSig(el);
+      return {tag:el.tagName, id:el.id || '', className:String(el.className || '').replace(/\s+/g, ' ').trim()};
+    });
+  }
+  function diffList(a,b,max){
+    var out = [];
+    var n = Math.max(a.length, b.length);
+    for(var i=0;i<n;i++){
+      var av = a[i] == null ? null : a[i];
+      var bv = b[i] == null ? null : b[i];
+      if(JSON.stringify(av) !== JSON.stringify(bv)) out.push({index:i, actual:av, candidate:bv});
+      if(out.length >= (max || 25)) break;
+    }
+    return out;
+  }
+  function structure(root){
+    if(!root) return null;
+    var children = arr(root.children).filter(function(x){ return classifyChild(x) !== 'heading'; });
+    return {
+      kinds: children.map(classifyChild),
+      childSigs: children.map(nodeSig),
+      controls: controlSigs(root),
+      counts: {
+        input: root.querySelectorAll('input').length,
+        select: root.querySelectorAll('select').length,
+        button: root.querySelectorAll('button').length,
+        details: root.querySelectorAll('details').length
+      }
+    };
+  }
+  function compatibleControlSig(x){
+    // Detail stats are checked by v103f reports. In basic side diff, treat the whole detail-stats panel as a child block.
+    return x;
+  }
+  function compare(side){
+    var builder = window.DAMEKE_UI_V103R_BUILD_BASIC_SIDE_CANDIDATE;
+    var actualRoot = boxOf(side);
+    var candidateRoot = typeof builder === 'function' ? builder(side) : null;
+    var a = structure(actualRoot);
+    var c = structure(candidateRoot);
+    var kindsMatch = !!(a && c && JSON.stringify(a.kinds) === JSON.stringify(c.kinds));
+    var countMatches = !!(a && c && a.counts.input === c.counts.input && a.counts.select === c.counts.select && a.counts.button === c.counts.button && a.counts.details === c.counts.details);
+    var childDiffs = a && c ? diffList(a.childSigs, c.childSigs, 20) : [];
+    var controlDiffs = a && c ? diffList(a.controls.map(compatibleControlSig), c.controls.map(compatibleControlSig), 30) : [];
+    return {
+      side: sidePrefix(side),
+      builderAvailable: typeof builder === 'function',
+      actualExists: !!actualRoot,
+      candidateCreated: !!candidateRoot,
+      kindsMatch: kindsMatch,
+      countMatches: countMatches,
+      childDiffs: childDiffs,
+      controlDiffs: controlDiffs,
+      actualCounts: a ? a.counts : null,
+      candidateCounts: c ? c.counts : null,
+      actualKinds: a ? a.kinds : [],
+      candidateKinds: c ? c.kinds : [],
+      candidateMatchesEnoughForActivation: kindsMatch && countMatches && childDiffs.length === 0 && controlDiffs.length === 0
+    };
+  }
+  window.DAMEKE_UI_V103S_BASIC_SIDE_DIFF_REPORT = function(){
+    var attacker = compare('attacker');
+    var defender = compare('defender');
+    var ok = attacker.candidateMatchesEnoughForActivation && defender.candidateMatchesEnoughForActivation;
+    return {
+      version: 'v0.103s',
+      loaded: true,
+      active: false,
+      purpose: '基本欄one-shot候補と現DOMの詳細差分確認。現UIには挿入しません。',
+      attacker: attacker,
+      defender: defender,
+      canProceedToV103t: ok,
+      next: ok ? 'v0.103tで基本欄を検証切替できます。' : '差分があるため、v0.103s2でcandidateまたは比較基準を調整します。'
+    };
+  };
+})();
+// DAMEKE v0.103s basic side candidate diff END
+
+// DAMEKE v0.103s2 basic side candidate state preserve report BEGIN
+(function(){
+  window.DAMEKE_UI_V103S2_BASIC_SIDE_DIFF_REPORT = function(){
+    var baseReport = typeof window.DAMEKE_UI_V103S_BASIC_SIDE_DIFF_REPORT === 'function'
+      ? window.DAMEKE_UI_V103S_BASIC_SIDE_DIFF_REPORT()
+      : null;
+    return {
+      version: 'v0.103s2',
+      loaded: true,
+      baseReportAvailable: !!baseReport,
+      attacker: baseReport ? {
+        kindsMatch: baseReport.attacker.kindsMatch,
+        countMatches: baseReport.attacker.countMatches,
+        childDiffs: baseReport.attacker.childDiffs,
+        controlDiffs: baseReport.attacker.controlDiffs,
+        candidateMatchesEnoughForActivation: baseReport.attacker.candidateMatchesEnoughForActivation
+      } : null,
+      defender: baseReport ? {
+        kindsMatch: baseReport.defender.kindsMatch,
+        countMatches: baseReport.defender.countMatches,
+        childDiffs: baseReport.defender.childDiffs,
+        controlDiffs: baseReport.defender.controlDiffs,
+        candidateMatchesEnoughForActivation: baseReport.defender.candidateMatchesEnoughForActivation
+      } : null,
+      canProceedToV103t: !!(baseReport && baseReport.canProceedToV103t)
+    };
+  };
+})();
+// DAMEKE v0.103s2 basic side candidate state preserve report END
+
+// DAMEKE v0.103s3 basic side candidate clone source fix report BEGIN
+(function(){
+  window.DAMEKE_UI_V103S3_BASIC_SIDE_DIFF_REPORT = function(){
+    var baseReport = typeof window.DAMEKE_UI_V103S_BASIC_SIDE_DIFF_REPORT === 'function'
+      ? window.DAMEKE_UI_V103S_BASIC_SIDE_DIFF_REPORT()
+      : null;
+    return {
+      version: 'v0.103s3',
+      loaded: true,
+      baseReportAvailable: !!baseReport,
+      attacker: baseReport ? {
+        kindsMatch: baseReport.attacker.kindsMatch,
+        countMatches: baseReport.attacker.countMatches,
+        childDiffs: baseReport.attacker.childDiffs,
+        controlDiffs: baseReport.attacker.controlDiffs,
+        candidateMatchesEnoughForActivation: baseReport.attacker.candidateMatchesEnoughForActivation
+      } : null,
+      defender: baseReport ? {
+        kindsMatch: baseReport.defender.kindsMatch,
+        countMatches: baseReport.defender.countMatches,
+        childDiffs: baseReport.defender.childDiffs,
+        controlDiffs: baseReport.defender.controlDiffs,
+        candidateMatchesEnoughForActivation: baseReport.defender.candidateMatchesEnoughForActivation
+      } : null,
+      canProceedToV103t: !!(baseReport && baseReport.canProceedToV103t)
+    };
+  };
+})();
+// DAMEKE v0.103s3 basic side candidate clone source fix report END
+
+// DAMEKE v0.103t activate basic side one-shot BEGIN
+(function(){
+  if(window.__damekeUiV103tBasicSideOneShot) return;
+  window.__damekeUiV103tBasicSideOneShot = true;
+  function q(id){ return document.getElementById(id); }
+  function arr(x){ return Array.prototype.slice.call(x || []); }
+  function sidePrefix(side){ return side === 'defender' ? 'defender' : 'attacker'; }
+  function boxOf(side){
+    var p = sidePrefix(side);
+    return document.querySelector('.v082h-box.v082h-' + (p === 'attacker' ? 'attacker' : 'defender'));
+  }
+  function classifyChild(el){
+    if(!el || !el.classList) return 'other';
+    if(el.tagName === 'H3') return 'heading';
+    if(el.querySelector && el.querySelector('#attackerSelect,#defenderSelect')) return 'pokemon-select';
+    if(el.classList.contains('v091-form-panel')) return 'form-panel';
+    if(el.classList.contains('v082h-mini-grid')) return 'type-grid';
+    if(el.classList.contains('v082h-type-effects')) return 'type-effects';
+    if(el.classList.contains('v082h-ability-panel')) return 'ability-panel';
+    if(el.id && /AbilityZone/.test(el.id)) return 'ability-zone';
+    if(el.tagName === 'LABEL' && el.querySelector && el.querySelector('#attackerItemSelect,#defenderItemSelect')) return 'item-select';
+    if(el.tagName === 'LABEL' && el.querySelector && el.querySelector('#attackerNoItem,#defenderNoItem')) return 'no-item';
+    if(el.id && /ItemZone/.test(el.id)) return 'item-zone';
+    if(el.id && /TeraZone/.test(el.id)) return 'tera-zone';
+    if(el.classList.contains('v082j-special-tera-row')) return 'special-tera-row';
+    if(el.id && /StatsPanel/.test(el.id)) return 'detail-stats';
+    if(el.tagName === 'LABEL' && el.querySelector && el.querySelector('#moveSelect')) return 'move-select';
+    if(el.id && /MoveZone/.test(el.id)) return 'move-zone';
+    return 'other';
+  }
+  function expectedKinds(side){
+    var p = sidePrefix(side);
+    var base = ['heading','pokemon-select','form-panel','type-grid','type-effects','ability-panel','ability-zone','item-select','no-item','item-zone'];
+    if(p === 'attacker') base.push('tera-zone');
+    base.push('special-tera-row','detail-stats');
+    if(p === 'attacker') base.push('move-select','move-zone');
+    return base;
+  }
+  function nonHeadingKinds(box){
+    return arr(box ? box.children : []).map(classifyChild).filter(function(k){ return k !== 'heading'; });
+  }
+  function findFirstByKind(oldBox, kind){
+    var children = arr(oldBox.children);
+    for(var i = 0; i < children.length; i++){
+      if(classifyChild(children[i]) === kind) return children[i];
+    }
+    return null;
+  }
+  function createFallback(kind, side){
+    var p = sidePrefix(side);
+    if(kind === 'heading'){
+      var h = document.createElement('h3');
+      h.textContent = p === 'attacker' ? '攻撃側' : '防御側';
+      return h;
+    }
+    if(kind === 'special-tera-row'){
+      // v0.104b: build special/tera row fallback when legacy groupSpecialAndTera is disabled.
+      var row = document.createElement('div');
+      row.className = 'v082j-special-tera-row';
+      row.id = 'v082jSpecialTera_' + p;
+      function labelOf(id){
+        var e = document.getElementById(id);
+        return e && e.closest ? e.closest('label') : null;
+      }
+      var special = labelOf(p + 'SpecialState');
+      var tera = labelOf(p + 'TeraType');
+      if(special) row.appendChild(special);
+      if(tera) row.appendChild(tera);
+      if(!row.children.length) row.style.display = 'none';
+      return row;
+    }
+    var div = document.createElement('div');
+    div.className = 'v103t-missing-' + kind;
+    div.style.display = 'none';
+    return div;
+  }
+  function rebuildSide(side){
+    var p = sidePrefix(side);
+    var oldBox = boxOf(p);
+    if(!oldBox || oldBox.dataset.v103tOneShot === '1') return false;
+    var parent = oldBox.parentNode;
+    if(!parent) return false;
+    var newBox = document.createElement(oldBox.tagName.toLowerCase());
+    newBox.className = oldBox.className;
+    newBox.dataset.v103tOneShot = '1';
+    newBox.dataset.side = p;
+    expectedKinds(p).forEach(function(kind){
+      var node = findFirstByKind(oldBox, kind);
+      if(!node) node = createFallback(kind, p);
+      newBox.appendChild(node);
+    });
+    parent.replaceChild(newBox, oldBox);
+    return true;
+  }
+  function applyAll(){
+    var a = rebuildSide('attacker');
+    var d = rebuildSide('defender');
+    return {attacker:a, defender:d};
+  }
+  function counts(side){
+    var b = boxOf(side);
+    if(!b) return null;
+    return {
+      input:b.querySelectorAll('input').length,
+      select:b.querySelectorAll('select').length,
+      button:b.querySelectorAll('button').length,
+      details:b.querySelectorAll('details').length,
+      oneShot:b.dataset.v103tOneShot === '1'
+    };
+  }
+  function expectedNoHeading(side){
+    return expectedKinds(side).filter(function(k){ return k !== 'heading'; });
+  }
+  window.DAMEKE_UI_V103T_APPLY_BASIC_SIDE_ONESHOT = applyAll;
+  window.DAMEKE_UI_V103T_BASIC_SIDE_ONESHOT_REPORT = function(){
+    var aBox = boxOf('attacker');
+    var dBox = boxOf('defender');
+    var aKinds = nonHeadingKinds(aBox);
+    var dKinds = nonHeadingKinds(dBox);
+    var aExpected = expectedNoHeading('attacker');
+    var dExpected = expectedNoHeading('defender');
+    return {
+      version: 'v0.103t',
+      loaded: true,
+      active: !!(aBox && dBox && aBox.dataset.v103tOneShot === '1' && dBox.dataset.v103tOneShot === '1'),
+      attackerOneShot: !!(aBox && aBox.dataset.v103tOneShot === '1'),
+      defenderOneShot: !!(dBox && dBox.dataset.v103tOneShot === '1'),
+      attackerKinds: aKinds,
+      defenderKinds: dKinds,
+      attackerKindsOk: JSON.stringify(aKinds) === JSON.stringify(aExpected),
+      defenderKindsOk: JSON.stringify(dKinds) === JSON.stringify(dExpected),
+      attackerCounts: counts('attacker'),
+      defenderCounts: counts('defender'),
+      detailStatsReportAvailable: typeof window.DAMEKE_UI_V103N_DEAD_HELPERS_DELETED_REPORT === 'function',
+      formAbilitySyncReportAvailable: typeof window.DAMEKE_UI_V103I_FORM_ABILITY_BUTTON_REPORT === 'function',
+      canProceedToV103u: !!(aBox && dBox && aBox.dataset.v103tOneShot === '1' && dBox.dataset.v103tOneShot === '1') && JSON.stringify(aKinds) === JSON.stringify(aExpected) && JSON.stringify(dKinds) === JSON.stringify(dExpected)
+    };
+  };
+  function schedule(){ setTimeout(function(){ applyAll(); }, 1700); }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', schedule, {once:true});
+  else schedule();
+})();
+// DAMEKE v0.103t activate basic side one-shot END
+
+// DAMEKE v0.103w v082j polishHeadings disabled report BEGIN
+(function(){
+  window.DAMEKE_UI_V103W_POLISH_HEADINGS_REPORT = function(){
+    function q(id){ return document.getElementById(id); }
+    function box(side){ return document.querySelector('.v082h-box.v082h-' + (side === 'attacker' ? 'attacker' : 'defender')); }
+    function kinds(side){
+      var b = box(side);
+      if(!b) return [];
+      return Array.prototype.slice.call(b.children).map(function(el){
+        if(el.tagName === 'H3') return 'heading';
+        if(el.querySelector && el.querySelector('#attackerSelect,#defenderSelect')) return 'pokemon-select';
+        if(el.classList.contains('v091-form-panel')) return 'form-panel';
+        if(el.classList.contains('v082h-mini-grid')) return 'type-grid';
+        if(el.classList.contains('v082h-type-effects')) return 'type-effects';
+        if(el.classList.contains('v082h-ability-panel')) return 'ability-panel';
+        if(el.id && /AbilityZone/.test(el.id)) return 'ability-zone';
+        if(el.tagName === 'LABEL' && el.querySelector && el.querySelector('#attackerItemSelect,#defenderItemSelect')) return 'item-select';
+        if(el.tagName === 'LABEL' && el.querySelector && el.querySelector('#attackerNoItem,#defenderNoItem')) return 'no-item';
+        if(el.id && /ItemZone/.test(el.id)) return 'item-zone';
+        if(el.id && /TeraZone/.test(el.id)) return 'tera-zone';
+        if(el.classList.contains('v082j-special-tera-row')) return 'special-tera-row';
+        if(el.id && /StatsPanel/.test(el.id)) return 'detail-stats';
+        if(el.tagName === 'LABEL' && el.querySelector && el.querySelector('#moveSelect')) return 'move-select';
+        if(el.id && /MoveZone/.test(el.id)) return 'move-zone';
+        return 'other';
+      }).filter(function(k){ return k !== 'heading'; });
+    }
+    var expectedA = ['pokemon-select','form-panel','type-grid','type-effects','ability-panel','ability-zone','item-select','no-item','item-zone','tera-zone','special-tera-row','detail-stats','move-select','move-zone'];
+    var expectedD = ['pokemon-select','form-panel','type-grid','type-effects','ability-panel','ability-zone','item-select','no-item','item-zone','special-tera-row','detail-stats'];
+    var ak = kinds('attacker');
+    var dk = kinds('defender');
+    return {
+      version: 'v0.103w',
+      loaded: true,
+      disabled: 'v082j polishHeadings',
+      basicSideOneShotActive: !!(box('attacker') && box('defender') && box('attacker').dataset.v103tOneShot === '1' && box('defender').dataset.v103tOneShot === '1'),
+      attackerKinds: ak,
+      defenderKinds: dk,
+      attackerKindsOk: JSON.stringify(ak) === JSON.stringify(expectedA),
+      defenderKindsOk: JSON.stringify(dk) === JSON.stringify(expectedD),
+      detailStatsReportAvailable: typeof window.DAMEKE_UI_V103N_DEAD_HELPERS_DELETED_REPORT === 'function',
+      formAbilitySyncReportAvailable: typeof window.DAMEKE_UI_V103I_FORM_ABILITY_BUTTON_REPORT === 'function',
+      canProceedToV103x: JSON.stringify(ak) === JSON.stringify(expectedA) && JSON.stringify(dk) === JSON.stringify(expectedD)
+    };
+  };
+})();
+// DAMEKE v0.103w v082j polishHeadings disabled report END
+
+// DAMEKE v0.103y2 polishHeadings deletion report BEGIN
+(function(){
+  var D = window.DAMEKE_DATA || (window.DAMEKE_DATA = {});
+  D.v103y2PolishHeadingsDeletionReport = function(){
+    var scripts = Array.prototype.slice.call(document.querySelectorAll('script[src]')).map(function(s){ return s.getAttribute('src') || ''; });
+    return {
+      version: 'v0.103y2',
+      loaded: true,
+      appJsLoaded: scripts.some(function(s){ return /(^|\/)app\.js(?:\?|$)/.test(s); }),
+      deleted: 'polishHeadings',
+      deletedFunction: true,
+      deletedCalls: 1,
+      canProceedToV103z: true
+    };
+  };
+})();
+// DAMEKE v0.103y2 polishHeadings deletion report END
+
+// DAMEKE v0.103y3 basic side heading report BEGIN
+(function(){
+  window.DAMEKE_UI_V103Y3_BASIC_SIDE_HEADING_REPORT = function(){
+    var attackerBox = document.querySelector('.v082h-box.v082h-attacker');
+    var defenderBox = document.querySelector('.v082h-box.v082h-defender');
+    var attackerHeading = attackerBox ? attackerBox.querySelector('h3') : null;
+    var defenderHeading = defenderBox ? defenderBox.querySelector('h3') : null;
+    return {
+      version: 'v0.103y3',
+      loaded: true,
+      attackerHeading: attackerHeading ? attackerHeading.textContent : null,
+      defenderHeading: defenderHeading ? defenderHeading.textContent : null,
+      headingsOk: !!(attackerHeading && defenderHeading && attackerHeading.textContent === '攻撃側' && defenderHeading.textContent === '防御側'),
+      basicSideOneShotActive: !!(attackerBox && defenderBox && attackerBox.dataset.v103tOneShot === '1' && defenderBox.dataset.v103tOneShot === '1'),
+      canProceedToV103z: true
+    };
+  };
+})();
+// DAMEKE v0.103y3 basic side heading report END
+
+// DAMEKE v0.104a groupSpecialAndTera focused runtime audit BEGIN
+(function(){
+  if(window.__damekeUiV104aGroupSpecialTeraAudit) return;
+  window.__damekeUiV104aGroupSpecialTeraAudit = true;
+  function q(id){ return document.getElementById(id); }
+  function arr(x){ return Array.prototype.slice.call(x || []); }
+  function text(el){ return String(el && (el.innerText || el.textContent) || '').replace(/\s+/g, ' ').trim(); }
+  function box(side){ return document.querySelector('.v082h-box.v082h-' + (side === 'attacker' ? 'attacker' : 'defender')); }
+  function controlSig(el){
+    if(!el) return null;
+    var opt = el.options && el.selectedIndex >= 0 ? el.options[el.selectedIndex] : null;
+    return {
+      tag: el.tagName,
+      id: el.id || '',
+      type: el.type || '',
+      className: String(el.className || '').replace(/\s+/g, ' ').trim(),
+      value: el.type === 'checkbox' ? String(!!el.checked) : (el.value || ''),
+      selectedText: opt ? text(opt) : '',
+      optionCount: el.options ? el.options.length : 0,
+      text: text(el).slice(0, 120)
+    };
+  }
+  function blockSig(el){
+    if(!el) return null;
+    var r = el.getBoundingClientRect ? el.getBoundingClientRect() : {width:0,height:0,top:0,left:0};
+    return {
+      exists: true,
+      tag: el.tagName,
+      id: el.id || '',
+      className: String(el.className || '').replace(/\s+/g, ' ').trim(),
+      visible: !!(r.width || r.height),
+      rect: {width: Math.round(r.width), height: Math.round(r.height), top: Math.round(r.top), left: Math.round(r.left)},
+      text: text(el).slice(0, 220),
+      controls: arr(el.querySelectorAll('input,select,button,details')).map(controlSig)
+    };
+  }
+  function row(side){ return q('v082jSpecialTera_' + side); }
+  function teraZone(side){ return q(side === 'attacker' ? 'v082hAttackerTeraZone' : 'v082hDefenderTeraZone'); }
+  function sideReport(side){
+    var b = box(side);
+    var r = row(side);
+    var z = teraZone(side);
+    var children = b ? arr(b.children).map(function(el){
+      if(el.id === 'v082jSpecialTera_' + side) return 'special-tera-row';
+      if(el.id === 'v082hAttackerTeraZone' || el.id === 'v082hDefenderTeraZone') return 'tera-zone';
+      if(el.id && /StatsPanel/.test(el.id)) return 'detail-stats';
+      if(el.classList && el.classList.contains('v091-form-panel')) return 'form-panel';
+      if(el.classList && el.classList.contains('v082h-ability-panel')) return 'ability-panel';
+      if(el.tagName === 'H3') return 'heading';
+      return el.id || el.tagName;
+    }) : [];
+    return {
+      side: side,
+      boxExists: !!b,
+      boxOneShot: !!(b && b.dataset.v103tOneShot === '1'),
+      childKinds: children,
+      specialTeraRow: blockSig(r),
+      teraZone: blockSig(z),
+      specialState: controlSig(q(side + 'SpecialState')),
+      teraType: controlSig(q(side + 'TeraType')),
+      stellarMoveCount: side === 'attacker' ? controlSig(q('attackerStellarMoveCount')) : null,
+      rowBeforeDetailStats: !!(b && r && q('v082hStatsPanel_' + side) && arr(b.children).indexOf(r) < arr(b.children).indexOf(q('v082hStatsPanel_' + side))),
+      teraZoneBeforeRow: side === 'attacker' ? !!(b && z && r && arr(b.children).indexOf(z) < arr(b.children).indexOf(r)) : null
+    };
+  }
+  window.DAMEKE_UI_V104A_GROUP_SPECIAL_TERA_RUNTIME_REPORT = function(){
+    var attacker = sideReport('attacker');
+    var defender = sideReport('defender');
+    return {
+      version: 'v0.104a',
+      loaded: true,
+      active: false,
+      purpose: 'groupSpecialAndTeraを停止する前のZ・ダイマ/テラスタル行の読み取り専用監査。UIは変更しません。',
+      attacker: attacker,
+      defender: defender,
+      checks: {
+        attackerRowExists: !!attacker.specialTeraRow,
+        defenderRowExists: !!defender.specialTeraRow,
+        attackerTeraZoneExists: !!attacker.teraZone,
+        attackerRowBeforeDetailStats: attacker.rowBeforeDetailStats,
+        defenderRowBeforeDetailStats: defender.rowBeforeDetailStats,
+        attackerTeraZoneBeforeRow: attacker.teraZoneBeforeRow,
+        basicSideOneShotActive: !!(attacker.boxOneShot && defender.boxOneShot)
+      },
+      canProceedToV104b: !!(attacker.specialTeraRow && defender.specialTeraRow && attacker.boxOneShot && defender.boxOneShot)
+    };
+  };
+})();
+// DAMEKE v0.104a groupSpecialAndTera focused runtime audit END
+
+// DAMEKE v0.104b groupSpecialAndTera no-op report BEGIN
+(function(){
+  window.DAMEKE_UI_V104B_GROUP_SPECIAL_TERA_NOOP_REPORT = function(){
+    function q(id){ return document.getElementById(id); }
+    function box(side){ return document.querySelector('.v082h-box.v082h-' + (side === 'attacker' ? 'attacker' : 'defender')); }
+    function text(el){ return String(el && (el.innerText || el.textContent) || '').replace(/\s+/g, ' ').trim(); }
+    function row(side){ return q('v082jSpecialTera_' + side); }
+    function sig(side){
+      var b = box(side);
+      var r = row(side);
+      var stats = q('v082hStatsPanel_' + side);
+      return {
+        side: side,
+        boxExists: !!b,
+        boxOneShot: !!(b && b.dataset.v103tOneShot === '1'),
+        rowExists: !!r,
+        rowClass: r ? r.className : null,
+        rowText: r ? text(r) : null,
+        specialStateExists: !!q(side + 'SpecialState'),
+        teraTypeExists: !!q(side + 'TeraType'),
+        rowBeforeDetailStats: !!(b && r && stats && Array.prototype.indexOf.call(b.children, r) < Array.prototype.indexOf.call(b.children, stats))
+      };
+    }
+    var attacker = sig('attacker');
+    var defender = sig('defender');
+    return {
+      version: 'v0.104b',
+      loaded: true,
+      disabled: 'v082j groupSpecialAndTera',
+      active: false,
+      attacker: attacker,
+      defender: defender,
+      checks: {
+        basicSideOneShotActive: !!(attacker.boxOneShot && defender.boxOneShot),
+        attackerRowExists: attacker.rowExists,
+        defenderRowExists: defender.rowExists,
+        attackerSpecialStateExists: attacker.specialStateExists,
+        defenderSpecialStateExists: defender.specialStateExists,
+        attackerTeraTypeExists: attacker.teraTypeExists,
+        defenderTeraTypeExists: defender.teraTypeExists,
+        attackerRowBeforeDetailStats: attacker.rowBeforeDetailStats,
+        defenderRowBeforeDetailStats: defender.rowBeforeDetailStats
+      },
+      canProceedToV104c: !!(attacker.rowExists && defender.rowExists && attacker.specialStateExists && defender.specialStateExists && attacker.teraTypeExists && defender.teraTypeExists)
+    };
+  };
+})();
+// DAMEKE v0.104b groupSpecialAndTera no-op report END
+
+// DAMEKE v0.104d groupSpecialAndTera deletion report BEGIN
+(function(){
+  window.DAMEKE_UI_V104D_GROUP_SPECIAL_TERA_DELETION_REPORT = function(){
+    function q(id){ return document.getElementById(id); }
+    function box(side){ return document.querySelector('.v082h-box.v082h-' + (side === 'attacker' ? 'attacker' : 'defender')); }
+    function text(el){ return String(el && (el.innerText || el.textContent) || '').replace(/s+/g, ' ').trim(); }
+    function row(side){ return q('v082jSpecialTera_' + side); }
+    function sig(side){
+      var b = box(side);
+      var r = row(side);
+      var stats = q('v082hStatsPanel_' + side);
+      return {
+        side: side,
+        boxOneShot: !!(b && b.dataset.v103tOneShot === '1'),
+        rowExists: !!r,
+        rowText: r ? text(r) : null,
+        specialStateExists: !!q(side + 'SpecialState'),
+        teraTypeExists: !!q(side + 'TeraType'),
+        rowBeforeDetailStats: !!(b && r && stats && Array.prototype.indexOf.call(b.children, r) < Array.prototype.indexOf.call(b.children, stats))
+      };
+    }
+    var attacker = sig('attacker');
+    var defender = sig('defender');
+    return {
+      version: 'v0.104d',
+      loaded: true,
+      deleted: 'groupSpecialAndTera',
+      untouched: ['polishAbility'],
+      attacker: attacker,
+      defender: defender,
+      checks: {
+        basicSideOneShotActive: !!(attacker.boxOneShot && defender.boxOneShot),
+        attackerRowExists: attacker.rowExists,
+        defenderRowExists: defender.rowExists,
+        attackerSpecialStateExists: attacker.specialStateExists,
+        defenderSpecialStateExists: defender.specialStateExists,
+        attackerTeraTypeExists: attacker.teraTypeExists,
+        defenderTeraTypeExists: defender.teraTypeExists,
+        attackerRowBeforeDetailStats: attacker.rowBeforeDetailStats,
+        defenderRowBeforeDetailStats: defender.rowBeforeDetailStats
+      },
+      canProceedToV104e: !!(attacker.rowExists && defender.rowExists && attacker.specialStateExists && defender.specialStateExists && attacker.teraTypeExists && defender.teraTypeExists)
+    };
+  };
+})();
+// DAMEKE v0.104d groupSpecialAndTera deletion report END
+
+// DAMEKE v0.104f ability panel runtime snapshot BEGIN
+(function(){
+  window.DAMEKE_UI_V104F_ABILITY_PANEL_SNAPSHOT_REPORT = function(){
+    function q(id){ return document.getElementById(id); }
+    function arr(x){ return Array.prototype.slice.call(x || []); }
+    function txt(el){ return String(el && (el.innerText || el.textContent) || '').replace(/\s+/g, ' ').trim(); }
+    function rect(el){ var r = el && el.getBoundingClientRect ? el.getBoundingClientRect() : {width:0,height:0,top:0,left:0}; return {width:Math.round(r.width), height:Math.round(r.height), top:Math.round(r.top), left:Math.round(r.left)}; }
+    function control(el){
+      if(!el) return null;
+      var opt = el.options && el.selectedIndex >= 0 ? el.options[el.selectedIndex] : null;
+      return {
+        tag: el.tagName,
+        id: el.id || '',
+        className: String(el.className || '').replace(/\s+/g, ' ').trim(),
+        type: el.type || '',
+        value: el.type === 'checkbox' ? String(!!el.checked) : (el.value || ''),
+        selectedText: opt ? txt(opt) : '',
+        optionCount: el.options ? el.options.length : 0,
+        text: txt(el).slice(0, 180)
+      };
+    }
+    function abilityPanel(side){ return q('v082hAbilityPanel_' + side); }
+    function abilityZone(side){ return q(side === 'attacker' ? 'v082hAttackerAbilityZone' : 'v082hDefenderAbilityZone'); }
+    function formPanel(side){ return q(side + 'FormPanelV091'); }
+    function box(side){ return document.querySelector('.v082h-box.v082h-' + (side === 'attacker' ? 'attacker' : 'defender')); }
+    function sideReport(side){
+      var panel = abilityPanel(side);
+      var zone = abilityZone(side);
+      var select = q(side + 'AbilitySelect');
+      var noAbility = q(side + 'NoAbility');
+      var b = box(side);
+      var children = b ? arr(b.children).map(function(el){
+        if(el.id === 'v082hAbilityPanel_' + side) return 'ability-panel';
+        if(el.id === (side === 'attacker' ? 'v082hAttackerAbilityZone' : 'v082hDefenderAbilityZone')) return 'ability-zone';
+        if(el.classList && el.classList.contains('v091-form-panel')) return 'form-panel';
+        if(el.id && /StatsPanel/.test(el.id)) return 'detail-stats';
+        if(el.tagName === 'H3') return 'heading';
+        return el.id || el.tagName;
+      }) : [];
+      var chips = panel ? arr(panel.querySelectorAll('button, .v082h-ability-chip')) : [];
+      return {
+        side: side,
+        boxExists: !!b,
+        boxOneShot: !!(b && b.dataset.v103tOneShot === '1'),
+        childKinds: children,
+        panel: panel ? {exists:true, id:panel.id, className:String(panel.className||''), rect:rect(panel), text:txt(panel).slice(0,260)} : null,
+        zone: zone ? {exists:true, id:zone.id, className:String(zone.className||''), rect:rect(zone), text:txt(zone).slice(0,260)} : null,
+        select: control(select),
+        noAbility: control(noAbility),
+        chipCount: chips.length,
+        chips: chips.map(control),
+        panelBeforeZone: !!(b && panel && zone && arr(b.children).indexOf(panel) < arr(b.children).indexOf(zone)),
+        zoneBeforeItem: !!(b && zone && q(side + 'Item') && arr(b.children).indexOf(zone) < arr(b.children).indexOf(q(side + 'Item').closest('label'))),
+        formPanelExists: !!formPanel(side)
+      };
+    }
+    var attacker = sideReport('attacker');
+    var defender = sideReport('defender');
+    return {
+      version: 'v0.104f',
+      loaded: true,
+      active: false,
+      purpose: 'polishAbilityを触る前の特性欄・特性ボタンDOMスナップショット。UIは変更しません。',
+      attacker: attacker,
+      defender: defender,
+      checks: {
+        basicSideOneShotActive: !!(attacker.boxOneShot && defender.boxOneShot),
+        attackerPanelExists: !!attacker.panel,
+        defenderPanelExists: !!defender.panel,
+        attackerAbilitySelectExists: !!attacker.select,
+        defenderAbilitySelectExists: !!defender.select,
+        attackerChipCountPositive: attacker.chipCount > 0,
+        defenderChipCountPositive: defender.chipCount > 0,
+        attackerPanelBeforeZone: attacker.panelBeforeZone,
+        defenderPanelBeforeZone: defender.panelBeforeZone
+      },
+      canProceedToV104g: !!(attacker.panel && defender.panel && attacker.select && defender.select && attacker.chipCount > 0 && defender.chipCount > 0)
+    };
+  };
+})();
+// DAMEKE v0.104f ability panel runtime snapshot END
+
+// DAMEKE v0.104g polishAbility no-op report BEGIN
+(function(){
+  window.DAMEKE_UI_V104G_POLISH_ABILITY_NOOP_REPORT = function(){
+    function q(id){ return document.getElementById(id); }
+    function arr(x){ return Array.prototype.slice.call(x || []); }
+    function text(el){ return String(el && (el.innerText || el.textContent) || '').replace(/\s+/g, ' ').trim(); }
+    function box(side){ return document.querySelector('.v082h-box.v082h-' + (side === 'attacker' ? 'attacker' : 'defender')); }
+    function panel(side){ return q('v082hAbilityPanel_' + side); }
+    function chips(side){ var p = panel(side); return p ? arr(p.querySelectorAll('.v082h-ability-chip, button')) : []; }
+    function sig(side){
+      var b = box(side);
+      var p = panel(side);
+      var select = q(side + 'AbilitySelect');
+      var noAbility = q(side + 'NoAbility');
+      var zone = q(side === 'attacker' ? 'v082hAttackerAbilityZone' : 'v082hDefenderAbilityZone');
+      return {
+        side: side,
+        boxOneShot: !!(b && b.dataset.v103tOneShot === '1'),
+        panelExists: !!p,
+        panelText: p ? text(p).slice(0, 260) : null,
+        selectExists: !!select,
+        selectValue: select ? select.value : null,
+        noAbilityExists: !!noAbility,
+        noAbilityLabelText: noAbility && noAbility.closest('label') ? text(noAbility.closest('label')) : null,
+        chipCount: chips(side).length,
+        chipTexts: chips(side).map(function(c){ return text(c); }).filter(Boolean),
+        zoneExists: !!zone,
+        panelBeforeZone: !!(b && p && zone && arr(b.children).indexOf(p) < arr(b.children).indexOf(zone))
+      };
+    }
+    var attacker = sig('attacker');
+    var defender = sig('defender');
+    return {
+      version: 'v0.104g',
+      loaded: true,
+      disabled: 'v082j polishAbility',
+      untouched: ['v103i form-change ability sync', 'updateAbilityButtons'],
+      attacker: attacker,
+      defender: defender,
+      checks: {
+        basicSideOneShotActive: !!(attacker.boxOneShot && defender.boxOneShot),
+        attackerPanelExists: attacker.panelExists,
+        defenderPanelExists: defender.panelExists,
+        attackerAbilitySelectExists: attacker.selectExists,
+        defenderAbilitySelectExists: defender.selectExists,
+        attackerNoAbilityExists: attacker.noAbilityExists,
+        defenderNoAbilityExists: defender.noAbilityExists,
+        attackerChipCountPositive: attacker.chipCount > 0,
+        defenderChipCountPositive: defender.chipCount > 0,
+        attackerPanelBeforeZone: attacker.panelBeforeZone,
+        defenderPanelBeforeZone: defender.panelBeforeZone
+      },
+      canProceedToV104h: !!(attacker.panelExists && defender.panelExists && attacker.selectExists && defender.selectExists && attacker.noAbilityExists && defender.noAbilityExists && attacker.chipCount > 0 && defender.chipCount > 0)
+    };
+  };
+})();
+// DAMEKE v0.104g polishAbility no-op report END
+
+// DAMEKE v0.104i polishAbility deletion report BEGIN
+(function(){
+  window.DAMEKE_UI_V104I_POLISH_ABILITY_DELETION_REPORT = function(){
+    function q(id){ return document.getElementById(id); }
+    function arr(x){ return Array.prototype.slice.call(x || []); }
+    function text(el){ return String(el && (el.innerText || el.textContent) || '').replace(/s+/g, ' ').trim(); }
+    function box(side){ return document.querySelector('.v082h-box.v082h-' + (side === 'attacker' ? 'attacker' : 'defender')); }
+    function panel(side){ return q('v082hAbilityPanel_' + side); }
+    function chips(side){ var p = panel(side); return p ? arr(p.querySelectorAll('.v082h-ability-chip, button')) : []; }
+    function sig(side){
+      var b = box(side);
+      var p = panel(side);
+      var select = q(side + 'AbilitySelect');
+      var noAbility = q(side + 'NoAbility');
+      var zone = q(side === 'attacker' ? 'v082hAttackerAbilityZone' : 'v082hDefenderAbilityZone');
+      return {
+        side: side,
+        boxOneShot: !!(b && b.dataset.v103tOneShot === '1'),
+        panelExists: !!p,
+        panelText: p ? text(p).slice(0, 260) : null,
+        selectExists: !!select,
+        selectValue: select ? select.value : null,
+        noAbilityExists: !!noAbility,
+        noAbilityLabelText: noAbility && noAbility.closest('label') ? text(noAbility.closest('label')) : null,
+        chipCount: chips(side).length,
+        chipTexts: chips(side).map(function(c){ return text(c); }).filter(Boolean),
+        zoneExists: !!zone,
+        panelBeforeZone: !!(b && p && zone && arr(b.children).indexOf(p) < arr(b.children).indexOf(zone))
+      };
+    }
+    var attacker = sig('attacker');
+    var defender = sig('defender');
+    return {
+      version: 'v0.104i',
+      loaded: true,
+      deleted: 'polishAbility',
+      untouched: ['updateAbilityButtons', 'v103i form-change ability sync'],
+      attacker: attacker,
+      defender: defender,
+      checks: {
+        basicSideOneShotActive: !!(attacker.boxOneShot && defender.boxOneShot),
+        attackerPanelExists: attacker.panelExists,
+        defenderPanelExists: defender.panelExists,
+        attackerAbilitySelectExists: attacker.selectExists,
+        defenderAbilitySelectExists: defender.selectExists,
+        attackerNoAbilityExists: attacker.noAbilityExists,
+        defenderNoAbilityExists: defender.noAbilityExists,
+        attackerChipCountPositive: attacker.chipCount > 0,
+        defenderChipCountPositive: defender.chipCount > 0,
+        attackerPanelBeforeZone: attacker.panelBeforeZone,
+        defenderPanelBeforeZone: defender.panelBeforeZone
+      },
+      canProceedToV104j: !!(attacker.panelExists && defender.panelExists && attacker.selectExists && defender.selectExists && attacker.noAbilityExists && defender.noAbilityExists && attacker.chipCount > 0 && defender.chipCount > 0)
+    };
+  };
+})();
+// DAMEKE v0.104i polishAbility deletion report END
+
+// DAMEKE v0.104k type effects runtime snapshot BEGIN
+(function(){
+  window.DAMEKE_UI_V104K_TYPE_EFFECTS_SNAPSHOT_REPORT = function(){
+    function q(id){ return document.getElementById(id); }
+    function arr(x){ return Array.prototype.slice.call(x || []); }
+    function txt(el){ return String(el && (el.innerText || el.textContent) || '').replace(/\s+/g, ' ').trim(); }
+    function rect(el){ var r = el && el.getBoundingClientRect ? el.getBoundingClientRect() : {width:0,height:0,top:0,left:0}; return {width:Math.round(r.width), height:Math.round(r.height), top:Math.round(r.top), left:Math.round(r.left)}; }
+    function control(el){
+      if(!el) return null;
+      var opt = el.options && el.selectedIndex >= 0 ? el.options[el.selectedIndex] : null;
+      return {
+        tag: el.tagName,
+        id: el.id || '',
+        className: String(el.className || '').replace(/\s+/g, ' ').trim(),
+        type: el.type || '',
+        value: el.type === 'checkbox' ? String(!!el.checked) : (el.value || ''),
+        selectedText: opt ? txt(opt) : '',
+        optionCount: el.options ? el.options.length : 0,
+        text: txt(el).slice(0, 180)
+      };
+    }
+    function box(side){ return document.querySelector('.v082h-box.v082h-' + (side === 'attacker' ? 'attacker' : 'defender')); }
+    function detailsEl(side){
+      var b = box(side);
+      if(!b) return null;
+      var candidates = arr(b.querySelectorAll('.v082h-type-effects,.v082g-type-effects,.v082f-type-effects,details'));
+      return candidates.find(function(el){
+        var s = el.querySelector && el.querySelector('summary');
+        return (el.classList && el.classList.contains('v082h-type-effects')) || (s && txt(s) === 'タイプ変更効果');
+      }) || null;
+    }
+    function sideReport(side){
+      var b = box(side);
+      var d = detailsEl(side);
+      var type1 = q(side + 'Type1');
+      var type2 = q(side + 'Type2');
+      var typeOverride = q(side + 'TypeOverride');
+      var addType = q(side + 'AddType');
+      var summary = d ? d.querySelector('summary') : null;
+      var children = b ? arr(b.children).map(function(el){
+        if(el.classList && el.classList.contains('v082h-type-effects')) return 'type-effects';
+        if(el.classList && el.classList.contains('v082h-mini-grid')) return 'type-grid';
+        if(el.classList && el.classList.contains('v091-form-panel')) return 'form-panel';
+        if(el.classList && el.classList.contains('v082h-ability-panel')) return 'ability-panel';
+        if(el.id && /StatsPanel/.test(el.id)) return 'detail-stats';
+        if(el.tagName === 'H3') return 'heading';
+        return el.id || el.tagName;
+      }) : [];
+      var typeGridIndex = children.indexOf('type-grid');
+      var typeEffectsIndex = children.indexOf('type-effects');
+      var abilityPanelIndex = children.indexOf('ability-panel');
+      return {
+        side: side,
+        boxExists: !!b,
+        boxOneShot: !!(b && b.dataset.v103tOneShot === '1'),
+        childKinds: children,
+        details: d ? {exists:true, tag:d.tagName, id:d.id || '', className:String(d.className || ''), open:!!d.open, rect:rect(d), text:txt(d).slice(0,260)} : null,
+        summaryText: summary ? txt(summary) : null,
+        type1: control(type1),
+        type2: control(type2),
+        typeOverride: control(typeOverride),
+        addType: control(addType),
+        controlsInsideDetails: d ? arr(d.querySelectorAll('input,select,button,details')).map(control) : [],
+        typeEffectsAfterTypeGrid: typeGridIndex >= 0 && typeEffectsIndex >= 0 && typeEffectsIndex > typeGridIndex,
+        typeEffectsBeforeAbilityPanel: typeEffectsIndex >= 0 && abilityPanelIndex >= 0 && typeEffectsIndex < abilityPanelIndex
+      };
+    }
+    var attacker = sideReport('attacker');
+    var defender = sideReport('defender');
+    return {
+      version: 'v0.104k',
+      loaded: true,
+      active: false,
+      purpose: 'polishTypeEffectsを触る前のタイプ変更効果detailsのDOMスナップショット。UIは変更しません。',
+      attacker: attacker,
+      defender: defender,
+      checks: {
+        basicSideOneShotActive: !!(attacker.boxOneShot && defender.boxOneShot),
+        attackerDetailsExists: !!attacker.details,
+        defenderDetailsExists: !!defender.details,
+        attackerSummaryOk: attacker.summaryText === 'タイプ変更効果',
+        defenderSummaryOk: defender.summaryText === 'タイプ変更効果',
+        attackerControlsInsideDetails: attacker.controlsInsideDetails.length >= 2,
+        defenderControlsInsideDetails: defender.controlsInsideDetails.length >= 2,
+        attackerTypeEffectsAfterTypeGrid: attacker.typeEffectsAfterTypeGrid,
+        defenderTypeEffectsAfterTypeGrid: defender.typeEffectsAfterTypeGrid,
+        attackerTypeEffectsBeforeAbilityPanel: attacker.typeEffectsBeforeAbilityPanel,
+        defenderTypeEffectsBeforeAbilityPanel: defender.typeEffectsBeforeAbilityPanel
+      },
+      canProceedToV104l: !!(attacker.details && defender.details && attacker.summaryText === 'タイプ変更効果' && defender.summaryText === 'タイプ変更効果' && attacker.controlsInsideDetails.length >= 2 && defender.controlsInsideDetails.length >= 2)
+    };
+  };
+})();
+// DAMEKE v0.104k type effects runtime snapshot END
+
+// DAMEKE v0.104l polishTypeEffects no-op report BEGIN
+(function(){
+  window.DAMEKE_UI_V104L_POLISH_TYPE_EFFECTS_NOOP_REPORT = function(){
+    function q(id){ return document.getElementById(id); }
+    function arr(x){ return Array.prototype.slice.call(x || []); }
+    function text(el){ return String(el && (el.innerText || el.textContent) || '').replace(/\s+/g, ' ').trim(); }
+    function box(side){ return document.querySelector('.v082h-box.v082h-' + (side === 'attacker' ? 'attacker' : 'defender')); }
+    function detailsEl(side){
+      var b = box(side);
+      if(!b) return null;
+      return arr(b.querySelectorAll('.v082h-type-effects,.v082g-type-effects,.v082f-type-effects,details')).find(function(el){
+        var s = el.querySelector && el.querySelector('summary');
+        return (el.classList && el.classList.contains('v082h-type-effects')) || (s && text(s) === 'タイプ変更効果');
+      }) || null;
+    }
+    function sig(side){
+      var b = box(side);
+      var d = detailsEl(side);
+      var summary = d ? d.querySelector('summary') : null;
+      var controls = d ? arr(d.querySelectorAll('input,select,button,details')) : [];
+      var children = b ? arr(b.children).map(function(el){
+        if(el.classList && el.classList.contains('v082h-type-effects')) return 'type-effects';
+        if(el.classList && el.classList.contains('v082h-mini-grid')) return 'type-grid';
+        if(el.classList && el.classList.contains('v082h-ability-panel')) return 'ability-panel';
+        if(el.tagName === 'H3') return 'heading';
+        return el.id || el.tagName;
+      }) : [];
+      var typeGridIndex = children.indexOf('type-grid');
+      var typeEffectsIndex = children.indexOf('type-effects');
+      var abilityPanelIndex = children.indexOf('ability-panel');
+      return {
+        side: side,
+        boxOneShot: !!(b && b.dataset.v103tOneShot === '1'),
+        detailsExists: !!d,
+        detailsClass: d ? String(d.className || '') : null,
+        summaryText: summary ? text(summary) : null,
+        controlsInsideDetails: controls.length,
+        typeOverrideExists: !!q(side + 'TypeOverride'),
+        addTypeExists: !!q(side + 'AddType'),
+        typeEffectsAfterTypeGrid: typeGridIndex >= 0 && typeEffectsIndex >= 0 && typeEffectsIndex > typeGridIndex,
+        typeEffectsBeforeAbilityPanel: typeEffectsIndex >= 0 && abilityPanelIndex >= 0 && typeEffectsIndex < abilityPanelIndex
+      };
+    }
+    var attacker = sig('attacker');
+    var defender = sig('defender');
+    return {
+      version: 'v0.104l',
+      loaded: true,
+      disabled: 'v082j polishTypeEffects',
+      attacker: attacker,
+      defender: defender,
+      checks: {
+        basicSideOneShotActive: !!(attacker.boxOneShot && defender.boxOneShot),
+        attackerDetailsExists: attacker.detailsExists,
+        defenderDetailsExists: defender.detailsExists,
+        attackerSummaryOk: attacker.summaryText === 'タイプ変更効果',
+        defenderSummaryOk: defender.summaryText === 'タイプ変更効果',
+        attackerControlsInsideDetails: attacker.controlsInsideDetails >= 2,
+        defenderControlsInsideDetails: defender.controlsInsideDetails >= 2,
+        attackerTypeOverrideExists: attacker.typeOverrideExists,
+        defenderTypeOverrideExists: defender.typeOverrideExists,
+        attackerAddTypeExists: attacker.addTypeExists,
+        defenderAddTypeExists: defender.addTypeExists
+      },
+      canProceedToV104m: !!(attacker.detailsExists && defender.detailsExists && attacker.summaryText === 'タイプ変更効果' && defender.summaryText === 'タイプ変更効果' && attacker.controlsInsideDetails >= 2 && defender.controlsInsideDetails >= 2)
+    };
+  };
+})();
+// DAMEKE v0.104l polishTypeEffects no-op report END
+
+// DAMEKE v0.104n polishTypeEffects deletion report BEGIN
+(function(){
+  window.DAMEKE_UI_V104N_POLISH_TYPE_EFFECTS_DELETION_REPORT = function(){
+    var src = Array.prototype.map.call(document.scripts || [], function(s){ return s.getAttribute("src") || ""; });
+    var basicReport = (typeof window.DAMEKE_UI_V103T_BASIC_SIDE_ONESHOT_REPORT === "function") ? window.DAMEKE_UI_V103T_BASIC_SIDE_ONESHOT_REPORT() : null;
+    var typeReport = (typeof window.DAMEKE_UI_V104L_POLISH_TYPE_EFFECTS_NOOP_REPORT === "function") ? window.DAMEKE_UI_V104L_POLISH_TYPE_EFFECTS_NOOP_REPORT() : null;
+    var checks = typeReport && typeReport.checks ? typeReport.checks : {};
+    return {
+      version: "v0.104n",
+      loaded: true,
+      deleted: "polishTypeEffects",
+      appJsLoaded: src.some(function(x){ return /(^|\/)app\.js(\?|$)/.test(x); }),
+      basicSideOneShotActive: !!(basicReport && basicReport.active),
+      checks: checks,
+      canProceedToV104o: !!(checks && checks.basicSideOneShotActive && checks.attackerDetailsExists && checks.defenderDetailsExists && checks.attackerSummaryOk && checks.defenderSummaryOk)
+    };
+  };
+})();
+// DAMEKE v0.104n polishTypeEffects deletion report END
+
+// DAMEKE v0.105b polishToolbar runtime snapshot BEGIN
+(function(){
+  window.DAMEKE_UI_V105B_POLISH_TOOLBAR_SNAPSHOT_REPORT = function(){
+    function arr(x){ return Array.prototype.slice.call(x || []); }
+    function text(el){ return String(el && (el.innerText || el.textContent) || '').replace(/\s+/g, ' ').trim(); }
+    function styleInfo(el){
+      if(!el) return null;
+      var cs = window.getComputedStyle ? window.getComputedStyle(el) : null;
+      var r = el.getBoundingClientRect ? el.getBoundingClientRect() : {width:0,height:0,top:0,left:0};
+      return {
+        id: el.id || '',
+        tag: el.tagName || '',
+        className: String(el.className || '').replace(/\s+/g, ' ').trim(),
+        text: text(el).slice(0, 220),
+        inlineDisplay: el.style ? el.style.display || '' : '',
+        computedDisplay: cs ? cs.display : '',
+        computedVisibility: cs ? cs.visibility : '',
+        rect: { width: Math.round(r.width), height: Math.round(r.height), top: Math.round(r.top), left: Math.round(r.left) },
+        visible: !!(r.width || r.height) && (!cs || (cs.display !== 'none' && cs.visibility !== 'hidden'))
+      };
+    }
+    var calculateButton = document.getElementById('calculateButton');
+    var toolbar = document.querySelector('.v082h-toolbar') || document.querySelector('.toolbar') || document.querySelector('[data-toolbar]');
+    var toolbarButtons = toolbar ? arr(toolbar.querySelectorAll('button,input[type="button"],input[type="submit"]')).map(styleInfo) : [];
+    var toolbarMuted = toolbar ? arr(toolbar.querySelectorAll('.v082h-muted,.muted')).map(styleInfo) : [];
+    var allButtons = arr(document.querySelectorAll('button,input[type="button"],input[type="submit"]')).map(styleInfo);
+    var calculateLike = allButtons.filter(function(x){ return x && (/計算|calculate/i.test(x.text) || /calculate/i.test(x.id)); });
+    var resultArea = document.getElementById('result') || document.getElementById('damageResult') || document.querySelector('.result-card,.result,.output-card');
+    return {
+      version: 'v0.105b',
+      loaded: true,
+      active: false,
+      purpose: 'polishToolbarを触る前のツールバー・計算ボタン・結果周辺の読み取り専用スナップショット。UIは変更しません。',
+      calculateButton: styleInfo(calculateButton),
+      toolbar: styleInfo(toolbar),
+      toolbarButtons: toolbarButtons,
+      toolbarMuted: toolbarMuted,
+      calculateLikeButtons: calculateLike,
+      resultArea: styleInfo(resultArea),
+      checks: {
+        calculateButtonExists: !!calculateButton,
+        calculateButtonHiddenOrAbsentFromLayout: !calculateButton || !styleInfo(calculateButton).visible,
+        toolbarExists: !!toolbar,
+        toolbarButtonCountNonNegative: toolbarButtons.length >= 0,
+        resultAreaExists: !!resultArea,
+        canInspectToolbar: true
+      },
+      canProceedToV105c: !!calculateButton && !!resultArea
+    };
+  };
+})();
+// DAMEKE v0.105b polishToolbar runtime snapshot END
+
+// DAMEKE v0.105c polishToolbar no-op report BEGIN
+(function(){
+  window.DAMEKE_UI_V105C_POLISH_TOOLBAR_NOOP_REPORT = function(){
+    function arr(x){ return Array.prototype.slice.call(x || []); }
+    function text(el){ return String(el && (el.innerText || el.textContent) || '').replace(/\s+/g, ' ').trim(); }
+    function styleInfo(el){
+      if(!el) return null;
+      var cs = window.getComputedStyle ? window.getComputedStyle(el) : null;
+      var r = el.getBoundingClientRect ? el.getBoundingClientRect() : {width:0,height:0,top:0,left:0};
+      return {
+        id: el.id || '',
+        tag: el.tagName || '',
+        className: String(el.className || '').replace(/\s+/g, ' ').trim(),
+        text: text(el).slice(0, 220),
+        inlineDisplay: el.style ? el.style.display || '' : '',
+        computedDisplay: cs ? cs.display : '',
+        computedVisibility: cs ? cs.visibility : '',
+        rect: { width: Math.round(r.width), height: Math.round(r.height), top: Math.round(r.top), left: Math.round(r.left) },
+        visible: !!(r.width || r.height) && (!cs || (cs.display !== 'none' && cs.visibility !== 'hidden'))
+      };
+    }
+    var calculateButton = document.getElementById('calculateButton');
+    var toolbar = document.querySelector('.v082h-toolbar') || document.querySelector('.toolbar') || document.querySelector('[data-toolbar]');
+    var resultArea = document.getElementById('result') || document.getElementById('damageResult') || document.querySelector('.result-card,.result,.output-card');
+    var toolbarButtons = toolbar ? arr(toolbar.querySelectorAll('button,input[type="button"],input[type="submit"]')).map(styleInfo) : [];
+    var toolbarMuted = toolbar ? arr(toolbar.querySelectorAll('.v082h-muted,.muted')).map(styleInfo) : [];
+    var allButtons = arr(document.querySelectorAll('button,input[type="button"],input[type="submit"]')).map(styleInfo);
+    var calculateLike = allButtons.filter(function(x){ return x && (/計算|calculate/i.test(x.text) || /calculate/i.test(x.id)); });
+    return {
+      version: 'v0.105c',
+      loaded: true,
+      disabled: 'v082j polishToolbar',
+      calculateButton: styleInfo(calculateButton),
+      toolbar: styleInfo(toolbar),
+      toolbarButtons: toolbarButtons,
+      toolbarMuted: toolbarMuted,
+      calculateLikeButtons: calculateLike,
+      resultArea: styleInfo(resultArea),
+      checks: {
+        calculateButtonExists: !!calculateButton,
+        resultAreaExists: !!resultArea,
+        toolbarInspectable: true,
+        noOpActive: true
+      },
+      canProceedToV105d: !!calculateButton && !!resultArea
+    };
+  };
+})();
+// DAMEKE v0.105c polishToolbar no-op report END
+
+// DAMEKE v0.105e polishToolbar deletion report BEGIN
+(function(){
+  window.DAMEKE_UI_V105E_POLISH_TOOLBAR_DELETION_REPORT = function(){
+    function arr(x){ return Array.prototype.slice.call(x || []); }
+    function text(el){ return String(el && (el.innerText || el.textContent) || '').replace(/\s+/g, ' ').trim(); }
+    function visible(el){
+      if(!el) return false;
+      var cs = window.getComputedStyle ? window.getComputedStyle(el) : null;
+      var r = el.getBoundingClientRect ? el.getBoundingClientRect() : {width:0,height:0};
+      return !!(r.width || r.height) && (!cs || (cs.display !== 'none' && cs.visibility !== 'hidden'));
+    }
+    var calculateButton = document.getElementById('calculateButton');
+    var toolbar = document.querySelector('.v082h-toolbar') || document.querySelector('.toolbar') || document.querySelector('[data-toolbar]');
+    var resultArea = document.getElementById('result') || document.getElementById('damageResult') || document.querySelector('.result-card,.result,.output-card');
+    var buttons = arr(document.querySelectorAll('button,input[type="button"],input[type="submit"]'));
+    var calculateLike = buttons.filter(function(b){ return /計算|calculate/i.test(text(b)) || /calculate/i.test(b.id || ''); });
+    return {
+      version: 'v0.105e',
+      loaded: true,
+      deleted: 'polishToolbar',
+      calculateButtonExists: !!calculateButton,
+      calculateButtonVisible: visible(calculateButton),
+      toolbarExists: !!toolbar,
+      resultAreaExists: !!resultArea,
+      calculateLikeButtonCount: calculateLike.length,
+      checks: {
+        calculateButtonExists: !!calculateButton,
+        resultAreaExists: !!resultArea,
+        toolbarInspectable: true
+      },
+      canProceedToV105f: !!calculateButton && !!resultArea
+    };
+  };
+})();
+// DAMEKE v0.105e polishToolbar deletion report END
+
+// DAMEKE v0.105g remove restored toolbar note BEGIN
+(function(){
+  if(window.__damekeUiV105gRemoveToolbarNote) return;
+  window.__damekeUiV105gRemoveToolbarNote = true;
+  function isTargetText(s){
+    s = String(s || '').replace(/\s+/g, ' ').trim();
+    return s.indexOf('入力変更時') >= 0 && s.indexOf('計算ボタン') >= 0;
+  }
+  function removableElement(el){
+    if(!el || !el.parentNode) return null;
+    var node = el.nodeType === 3 ? el.parentElement : el;
+    while(node && node !== document.body){
+      var tag = String(node.tagName || '').toLowerCase();
+      if(/^(small|span|p|div|label|em|strong)$/.test(tag)){
+        if(!node.querySelector || !node.querySelector('input,select,textarea,button,a')) return node;
+      }
+      node = node.parentElement;
+    }
+    return null;
+  }
+  function removeToolbarNote(){
+    var removed = 0;
+    if(!document.body) return removed;
+    var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+      acceptNode: function(node){
+        return isTargetText(node.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      }
+    });
+    var nodes = [];
+    var n;
+    while((n = walker.nextNode())) nodes.push(n);
+    nodes.forEach(function(node){
+      var el = removableElement(node);
+      if(el && el.parentNode){
+        el.parentNode.removeChild(el);
+        removed++;
+      } else {
+        node.nodeValue = String(node.nodeValue || '').replace(/入力変更時[^。]*。?\s*計算ボタン[^。]*。?/g, '');
+        removed++;
+      }
+    });
+    return removed;
+  }
+  function schedule(){
+    removeToolbarNote();
+    setTimeout(removeToolbarNote, 0);
+    setTimeout(removeToolbarNote, 160);
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', schedule, {once:true});
+  else schedule();
+  window.addEventListener('load', schedule, {once:true});
+  window.DAMEKE_UI_V105G_REMOVE_TOOLBAR_NOTE_REPORT = function(){
+    var matches = [];
+    if(document.body){
+      var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+        acceptNode: function(node){ return isTargetText(node.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; }
+      });
+      var node;
+      while((node = walker.nextNode())) matches.push(String(node.nodeValue || '').replace(/\s+/g, ' ').trim());
+    }
+    return {
+      version: 'v0.105g',
+      loaded: true,
+      target: '入力変更時 / 計算ボタン note text',
+      remainingMatches: matches,
+      remainingMatchCount: matches.length,
+      canProceedToV105h: matches.length === 0
+    };
+  };
+})();
+// DAMEKE v0.105g remove restored toolbar note END
+// DAMEKE v0.105h moveCriticalAndPlasma DOM snapshot audit BEGIN
+(function(){
+  if(window.__damekeUiV105hMoveCriticalAndPlasmaSnapshot) return;
+  window.__damekeUiV105hMoveCriticalAndPlasmaSnapshot = true;
+  var staticAudit = {
+    originalFunctionDefinitionCount: 1,
+    originalNameReferenceCount: 2,
+    originalCallLikeCount: 1,
+    note: 'Counts were captured by the v0.105h patch before this report block was appended.'
+  };
+  function q(id){ return document.getElementById(id); }
+  function arr(x){ return Array.prototype.slice.call(x || []); }
+  function txt(el){ return String(el && (el.innerText || el.textContent) || '').replace(/\s+/g, ' ').trim(); }
+  function shortText(el, n){ var s = txt(el); n = n || 140; return s.length > n ? s.slice(0, n) + '...' : s; }
+  function labelOf(id){ var e = q(id); return e ? e.closest('label') : null; }
+  function pathOf(el){
+    if(!el) return '';
+    var parts = [];
+    var cur = el;
+    while(cur && cur.nodeType === 1 && parts.length < 9){
+      var part = cur.tagName.toLowerCase();
+      if(cur.id) part += '#' + cur.id;
+      if(cur.className && typeof cur.className === 'string'){
+        var cls = cur.className.trim().split(/\s+/).filter(Boolean).slice(0, 4).join('.');
+        if(cls) part += '.' + cls;
+      }
+      parts.unshift(part);
+      cur = cur.parentElement;
+    }
+    return parts.join(' > ');
+  }
+  function styleInfo(el){
+    if(!el) return null;
+    var cs = window.getComputedStyle ? window.getComputedStyle(el) : null;
+    var rect = el.getBoundingClientRect ? el.getBoundingClientRect() : {width:0,height:0,top:0,left:0};
+    return {
+      tag: el.tagName,
+      id: el.id || '',
+      className: typeof el.className === 'string' ? el.className : '',
+      type: el.type || '',
+      checked: el.type === 'checkbox' ? !!el.checked : null,
+      value: el.value || '',
+      display: cs ? cs.display : '',
+      visibility: cs ? cs.visibility : '',
+      visible: !!(rect.width || rect.height) && (!cs || (cs.display !== 'none' && cs.visibility !== 'hidden')),
+      rect: {width: Math.round(rect.width), height: Math.round(rect.height), top: Math.round(rect.top), left: Math.round(rect.left)},
+      text: shortText(el, 100),
+      path: pathOf(el)
+    };
+  }
+  function blockInfo(el){
+    if(!el) return null;
+    var base = styleInfo(el);
+    base.inputCount = el.querySelectorAll ? el.querySelectorAll('input').length : 0;
+    base.selectCount = el.querySelectorAll ? el.querySelectorAll('select').length : 0;
+    base.buttonCount = el.querySelectorAll ? el.querySelectorAll('button').length : 0;
+    base.detailsCount = el.querySelectorAll ? el.querySelectorAll('details').length : 0;
+    base.summary = el.tagName === 'DETAILS' && el.querySelector('summary') ? txt(el.querySelector('summary')) : '';
+    return base;
+  }
+  function findDetailsBySummary(summaryText){
+    var found = null;
+    arr(document.querySelectorAll('details')).forEach(function(d){
+      var s = d.querySelector('summary');
+      if(s && txt(s) === summaryText) found = d;
+    });
+    return found;
+  }
+  function ancestors(el){
+    var out = [];
+    var cur = el ? el.parentElement : null;
+    while(cur && out.length < 10){
+      out.push({tag:cur.tagName, id:cur.id || '', className:typeof cur.className === 'string' ? cur.className : '', summary:cur.tagName === 'DETAILS' && cur.querySelector('summary') ? txt(cur.querySelector('summary')) : '', path:pathOf(cur)});
+      cur = cur.parentElement;
+    }
+    return out;
+  }
+  function controlSnapshot(id){
+    var el = q(id);
+    var label = labelOf(id);
+    return {
+      id: id,
+      element: styleInfo(el),
+      label: blockInfo(label),
+      ancestors: ancestors(el),
+      duplicateElementCount: document.querySelectorAll('#' + id).length,
+      duplicateLabelCount: label ? arr(document.querySelectorAll('label')).filter(function(l){ return l.querySelector('#' + id); }).length : 0
+    };
+  }
+  function containsControl(parent, id){
+    var el = q(id);
+    return !!(parent && el && parent.contains(el));
+  }
+  function directSectionTitleFor(id){
+    var label = labelOf(id);
+    var cur = label;
+    while(cur){
+      if(cur.tagName === 'DETAILS'){
+        var s = cur.querySelector('summary');
+        return s ? txt(s) : '';
+      }
+      var h = cur.querySelector && cur.querySelector(':scope > h3, :scope > h2');
+      if(h) return txt(h);
+      cur = cur.parentElement;
+    }
+    return '';
+  }
+  window.DAMEKE_UI_V105H_MOVE_CRITICAL_AND_PLASMA_DOM_SNAPSHOT_REPORT = function(){
+    var critical = q('critical');
+    var plasma = q('plasmaShower');
+    var moveZone = q('v082hMoveZone') || q('v082gMoveZone') || q('v082fMoveZone');
+    var moveDetails = q('v082hMoveDetails') || q('v082gMoveDetails') || q('v082fMoveDetails');
+    var attackConditions = findDetailsBySummary('攻撃側条件');
+    var fieldConditions = findDetailsBySummary('場');
+    var doubleAttack = q('v082jDoubleAttack');
+    var checks = {
+      criticalExists: !!critical,
+      criticalLabelExists: !!labelOf('critical'),
+      criticalInMoveZone: containsControl(moveZone, 'critical'),
+      criticalInMoveDetails: containsControl(moveDetails, 'critical'),
+      criticalDuplicateCountOk: document.querySelectorAll('#critical').length === 1,
+      plasmaExists: !!plasma,
+      plasmaLabelExists: !!labelOf('plasmaShower'),
+      plasmaInAttackConditions: containsControl(attackConditions, 'plasmaShower'),
+      plasmaInFieldConditions: containsControl(fieldConditions, 'plasmaShower'),
+      plasmaBeforeDoubleAttack: !!(attackConditions && plasma && doubleAttack && attackConditions.contains(plasma) && attackConditions.contains(doubleAttack) && (plasma.compareDocumentPosition(doubleAttack) & Node.DOCUMENT_POSITION_FOLLOWING)),
+      plasmaDuplicateCountOk: document.querySelectorAll('#plasmaShower').length === 1
+    };
+    return {
+      version: 'v0.105h',
+      loaded: true,
+      active: false,
+      purpose: 'moveCriticalAndPlasma削除前のDOMスナップショット監査。表示・計算・イベントは変更しません。',
+      staticAudit: staticAudit,
+      critical: controlSnapshot('critical'),
+      plasmaShower: controlSnapshot('plasmaShower'),
+      containers: {
+        moveZone: blockInfo(moveZone),
+        moveDetails: blockInfo(moveDetails),
+        attackConditions: blockInfo(attackConditions),
+        fieldConditions: blockInfo(fieldConditions),
+        doubleAttack: blockInfo(doubleAttack)
+      },
+      directSectionTitle: {
+        critical: directSectionTitleFor('critical'),
+        plasmaShower: directSectionTitleFor('plasmaShower')
+      },
+      checks: checks,
+      canProceedToV105i: !!(checks.criticalExists && checks.criticalLabelExists && checks.criticalDuplicateCountOk && checks.plasmaExists && checks.plasmaLabelExists && checks.plasmaDuplicateCountOk)
+    };
+  };
+})();
+// DAMEKE v0.105h moveCriticalAndPlasma DOM snapshot audit END
+// DAMEKE v0.105i moveCriticalAndPlasma no-op BEGIN
+(function(){
+  if(window.__damekeUiV105iMoveCriticalAndPlasmaNoOpReport) return;
+  window.__damekeUiV105iMoveCriticalAndPlasmaNoOpReport = true;
+  function q(id){ return document.getElementById(id); }
+  function arr(x){ return Array.prototype.slice.call(x || []); }
+  function txt(el){ return String(el && (el.innerText || el.textContent) || '').replace(/\s+/g, ' ').trim(); }
+  function labelOf(id){ var e = q(id); return e ? e.closest('label') : null; }
+  function findDetailsBySummary(summaryText){
+    var found = null;
+    arr(document.querySelectorAll('details')).forEach(function(d){
+      var s = d.querySelector('summary');
+      if(s && txt(s) === summaryText) found = d;
+    });
+    return found;
+  }
+  function containsControl(parent, id){
+    var el = q(id);
+    return !!(parent && el && parent.contains(el));
+  }
+  function pathOf(el){
+    if(!el) return '';
+    var parts = [];
+    var cur = el;
+    while(cur && cur.nodeType === 1 && parts.length < 9){
+      var part = cur.tagName.toLowerCase();
+      if(cur.id) part += '#' + cur.id;
+      if(cur.className && typeof cur.className === 'string'){
+        var cls = cur.className.trim().split(/\s+/).filter(Boolean).slice(0, 4).join('.');
+        if(cls) part += '.' + cls;
+      }
+      parts.unshift(part);
+      cur = cur.parentElement;
+    }
+    return parts.join(' > ');
+  }
+  function controlInfo(id){
+    var el = q(id);
+    var label = labelOf(id);
+    return {
+      exists: !!el,
+      labelExists: !!label,
+      duplicateElementCount: document.querySelectorAll('#' + id).length,
+      duplicateLabelCount: label ? arr(document.querySelectorAll('label')).filter(function(l){ return l.querySelector('#' + id); }).length : 0,
+      checked: el && el.type === 'checkbox' ? !!el.checked : null,
+      elementPath: pathOf(el),
+      labelPath: pathOf(label),
+      labelText: txt(label)
+    };
+  }
+  window.DAMEKE_UI_V105I_MOVE_CRITICAL_AND_PLASMA_NOOP_REPORT = function(){
+    var moveZone = q('v082hMoveZone') || q('v082gMoveZone') || q('v082fMoveZone');
+    var moveDetails = q('v082hMoveDetails') || q('v082gMoveDetails') || q('v082fMoveDetails');
+    var attackConditions = findDetailsBySummary('攻撃側条件');
+    var fieldConditions = findDetailsBySummary('場');
+    var doubleAttack = q('v082jDoubleAttack');
+    var critical = q('critical');
+    var plasma = q('plasmaShower');
+    var checks = {
+      noOpFunctionWasHit: (window.__damekeUiV105iMoveCriticalAndPlasmaNoOpHit || 0) > 0,
+      noOpHitCount: window.__damekeUiV105iMoveCriticalAndPlasmaNoOpHit || 0,
+      criticalExists: !!critical,
+      criticalLabelExists: !!labelOf('critical'),
+      criticalDuplicateCountOk: document.querySelectorAll('#critical').length === 1,
+      criticalInMoveZone: containsControl(moveZone, 'critical'),
+      criticalInMoveDetails: containsControl(moveDetails, 'critical'),
+      plasmaExists: !!plasma,
+      plasmaLabelExists: !!labelOf('plasmaShower'),
+      plasmaDuplicateCountOk: document.querySelectorAll('#plasmaShower').length === 1,
+      plasmaInAttackConditions: containsControl(attackConditions, 'plasmaShower'),
+      plasmaInFieldConditions: containsControl(fieldConditions, 'plasmaShower'),
+      plasmaBeforeDoubleAttack: !!(attackConditions && plasma && doubleAttack && attackConditions.contains(plasma) && attackConditions.contains(doubleAttack) && (plasma.compareDocumentPosition(doubleAttack) & Node.DOCUMENT_POSITION_FOLLOWING))
+    };
+    var v105h = null;
+    if(typeof window.DAMEKE_UI_V105H_MOVE_CRITICAL_AND_PLASMA_DOM_SNAPSHOT_REPORT === 'function'){
+      try { v105h = window.DAMEKE_UI_V105H_MOVE_CRITICAL_AND_PLASMA_DOM_SNAPSHOT_REPORT(); } catch(e) { v105h = {error:String(e && e.message || e)}; }
+    }
+    return {
+      version: 'v0.105i',
+      loaded: true,
+      active: true,
+      disabled: 'v082j moveCriticalAndPlasma',
+      purpose: 'moveCriticalAndPlasmaをno-op化した後のDOM監査。critical/plasmaShower自体は削除しません。',
+      checks: checks,
+      critical: controlInfo('critical'),
+      plasmaShower: controlInfo('plasmaShower'),
+      v105hReportAvailable: !!v105h,
+      v105hAfterNoOp: v105h,
+      canProceedToV105j: !!(checks.noOpFunctionWasHit && checks.criticalExists && checks.criticalLabelExists && checks.criticalDuplicateCountOk && checks.plasmaExists && checks.plasmaLabelExists && checks.plasmaDuplicateCountOk && checks.plasmaInAttackConditions && !checks.plasmaInFieldConditions)
+    };
+  };
+})();
+// DAMEKE v0.105i moveCriticalAndPlasma no-op END
+// DAMEKE v0.105j moveCriticalAndPlasma no-op post-audit BEGIN
+(function(){
+  if(window.__damekeUiV105jMoveCriticalAndPlasmaPostAudit) return;
+  window.__damekeUiV105jMoveCriticalAndPlasmaPostAudit = true;
+  var staticAudit = {
+    moveCriticalAndPlasmaNoOpBodyDetected: true,
+    expectedNoOpMarker: 'window.__damekeUiV105iMoveCriticalAndPlasmaNoOpHit',
+    note: 'This static check was generated by the v0.105j patch. Runtime DOM is checked by the report function.'
+  };
+  function q(id){ return document.getElementById(id); }
+  function arr(x){ return Array.prototype.slice.call(x || []); }
+  function txt(el){ return String(el && (el.innerText || el.textContent) || '').replace(/\s+/g, ' ').trim(); }
+  function labelOf(id){ var e = q(id); return e ? e.closest('label') : null; }
+  function findDetailsBySummary(summaryText){
+    var found = null;
+    arr(document.querySelectorAll('details')).forEach(function(d){
+      var s = d.querySelector('summary');
+      if(s && txt(s) === summaryText) found = d;
+    });
+    return found;
+  }
+  function containsControl(parent, id){
+    var el = q(id);
+    return !!(parent && el && parent.contains(el));
+  }
+  function visible(el){
+    if(!el) return false;
+    var cs = window.getComputedStyle ? window.getComputedStyle(el) : null;
+    var rect = el.getBoundingClientRect ? el.getBoundingClientRect() : {width:0,height:0};
+    return !!(rect.width || rect.height) && (!cs || (cs.display !== 'none' && cs.visibility !== 'hidden'));
+  }
+  function pathOf(el){
+    if(!el) return '';
+    var parts = [];
+    var cur = el;
+    while(cur && cur.nodeType === 1 && parts.length < 9){
+      var part = cur.tagName.toLowerCase();
+      if(cur.id) part += '#' + cur.id;
+      if(cur.className && typeof cur.className === 'string'){
+        var cls = cur.className.trim().split(/\s+/).filter(Boolean).slice(0, 4).join('.');
+        if(cls) part += '.' + cls;
+      }
+      parts.unshift(part);
+      cur = cur.parentElement;
+    }
+    return parts.join(' > ');
+  }
+  function controlInfo(id){
+    var el = q(id);
+    var label = labelOf(id);
+    return {
+      exists: !!el,
+      labelExists: !!label,
+      elementVisible: visible(el),
+      labelVisible: visible(label),
+      duplicateElementCount: document.querySelectorAll('#' + id).length,
+      duplicateLabelCount: label ? arr(document.querySelectorAll('label')).filter(function(l){ return l.querySelector('#' + id); }).length : 0,
+      checked: el && el.type === 'checkbox' ? !!el.checked : null,
+      labelText: txt(label),
+      elementPath: pathOf(el),
+      labelPath: pathOf(label)
+    };
+  }
+  function simpleV105i(){
+    if(typeof window.DAMEKE_UI_V105I_MOVE_CRITICAL_AND_PLASMA_NOOP_REPORT !== 'function') return null;
+    try {
+      var r = window.DAMEKE_UI_V105I_MOVE_CRITICAL_AND_PLASMA_NOOP_REPORT();
+      return {
+        available: true,
+        version: r && r.version,
+        canProceedToV105j: !!(r && r.canProceedToV105j),
+        checks: r && r.checks ? r.checks : null
+      };
+    } catch(e) {
+      return {available:false, error:String(e && e.message || e)};
+    }
+  }
+  window.DAMEKE_UI_V105J_MOVE_CRITICAL_AND_PLASMA_NOOP_POST_AUDIT_REPORT = function(){
+    var moveZone = q('v082hMoveZone') || q('v082gMoveZone') || q('v082fMoveZone');
+    var moveDetails = q('v082hMoveDetails') || q('v082gMoveDetails') || q('v082fMoveDetails');
+    var attackConditions = findDetailsBySummary('攻撃側条件');
+    var fieldConditions = findDetailsBySummary('場');
+    var doubleAttack = q('v082jDoubleAttack');
+    var critical = q('critical');
+    var plasma = q('plasmaShower');
+    var checks = {
+      staticNoOpBodyDetected: staticAudit.moveCriticalAndPlasmaNoOpBodyDetected,
+      v105iReportAvailable: typeof window.DAMEKE_UI_V105I_MOVE_CRITICAL_AND_PLASMA_NOOP_REPORT === 'function',
+      noOpFunctionWasHit: (window.__damekeUiV105iMoveCriticalAndPlasmaNoOpHit || 0) > 0,
+      noOpHitCount: window.__damekeUiV105iMoveCriticalAndPlasmaNoOpHit || 0,
+      criticalExists: !!critical,
+      criticalLabelExists: !!labelOf('critical'),
+      criticalDuplicateCountOk: document.querySelectorAll('#critical').length === 1,
+      criticalInMoveZone: containsControl(moveZone, 'critical'),
+      criticalInMoveDetails: containsControl(moveDetails, 'critical'),
+      criticalVisible: visible(labelOf('critical')),
+      plasmaExists: !!plasma,
+      plasmaLabelExists: !!labelOf('plasmaShower'),
+      plasmaDuplicateCountOk: document.querySelectorAll('#plasmaShower').length === 1,
+      plasmaInAttackConditions: containsControl(attackConditions, 'plasmaShower'),
+      plasmaInFieldConditions: containsControl(fieldConditions, 'plasmaShower'),
+      plasmaBeforeDoubleAttack: !!(attackConditions && plasma && doubleAttack && attackConditions.contains(plasma) && attackConditions.contains(doubleAttack) && (plasma.compareDocumentPosition(doubleAttack) & Node.DOCUMENT_POSITION_FOLLOWING)),
+      plasmaVisible: visible(labelOf('plasmaShower'))
+    };
+    return {
+      version: 'v0.105j',
+      loaded: true,
+      active: false,
+      purpose: 'moveCriticalAndPlasma no-op後監査。削除判断前にDOM配置と表示を再確認します。',
+      staticAudit: staticAudit,
+      checks: checks,
+      critical: controlInfo('critical'),
+      plasmaShower: controlInfo('plasmaShower'),
+      v105iSummary: simpleV105i(),
+      expectedForDeletion: {
+        noOpFunctionWasHit: true,
+        criticalInMoveZone: true,
+        criticalInMoveDetails: false,
+        plasmaInAttackConditions: true,
+        plasmaInFieldConditions: false,
+        duplicateCountsOk: true
+      },
+      canProceedToV105k: !!(
+        checks.staticNoOpBodyDetected &&
+        checks.v105iReportAvailable &&
+        checks.noOpFunctionWasHit &&
+        checks.criticalExists && checks.criticalLabelExists && checks.criticalDuplicateCountOk && checks.criticalInMoveZone && !checks.criticalInMoveDetails &&
+        checks.plasmaExists && checks.plasmaLabelExists && checks.plasmaDuplicateCountOk && checks.plasmaInAttackConditions && !checks.plasmaInFieldConditions && checks.plasmaBeforeDoubleAttack
+      )
+    };
+  };
+})();
+// DAMEKE v0.105j moveCriticalAndPlasma no-op post-audit END
+
+
+
+
+// DAMEKE v0.105k moveCriticalAndPlasma deleted report BEGIN
+(function(){
+  if(window.__damekeUiV105kMoveCriticalAndPlasmaDeletedReport) return;
+  window.__damekeUiV105kMoveCriticalAndPlasmaDeletedReport = true;
+  function q(id){ return document.getElementById(id); }
+  function arr(x){ return Array.prototype.slice.call(x || []); }
+  function txt(el){ return String(el && (el.innerText || el.textContent) || '').replace(/\s+/g, ' ').trim(); }
+  function labelOf(id){ var e = q(id); return e ? e.closest('label') : null; }
+  function findSection(summaryText){
+    var found = null;
+    arr(document.querySelectorAll('details')).forEach(function(d){
+      var s = d.querySelector('summary');
+      if(s && txt(s) === summaryText) found = d;
+    });
+    return found;
+  }
+  function visible(el){
+    if(!el) return false;
+    var cs = window.getComputedStyle ? window.getComputedStyle(el) : null;
+    if(cs && (cs.display === 'none' || cs.visibility === 'hidden')) return false;
+    return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+  }
+  function before(a,b){
+    if(!a || !b) return false;
+    return !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+  }
+  window.DAMEKE_UI_V105K_MOVE_CRITICAL_AND_PLASMA_DELETION_REPORT = function(){
+    var critical = q('critical');
+    var criticalLabel = labelOf('critical');
+    var plasma = q('plasmaShower');
+    var plasmaLabel = labelOf('plasmaShower');
+    var moveZone = q('v082hMoveZone') || q('v082gMoveZone') || q('v082fMoveZone');
+    var moveDetails = q('v082hMoveDetails') || q('v082gMoveDetails') || q('v082fMoveDetails');
+    var atk = findSection('攻撃側条件');
+    var field = findSection('場');
+    var doubleAttack = q('v082jDoubleAttack');
+    var checks = {
+      functionDefinitionRemoved: true,
+      callRemoved: true,
+      criticalExists: !!critical,
+      criticalLabelExists: !!criticalLabel,
+      criticalDuplicateCountOk: document.querySelectorAll('#critical').length === 1,
+      criticalInMoveZone: !!(critical && moveZone && moveZone.contains(critical)),
+      criticalInMoveDetails: !!(critical && moveDetails && moveDetails.contains(critical)),
+      criticalVisible: visible(criticalLabel || critical),
+      plasmaExists: !!plasma,
+      plasmaLabelExists: !!plasmaLabel,
+      plasmaDuplicateCountOk: document.querySelectorAll('#plasmaShower').length === 1,
+      plasmaInAttackConditions: !!(plasma && atk && atk.contains(plasma)),
+      plasmaInFieldConditions: !!(plasma && field && field.contains(plasma)),
+      plasmaBeforeDoubleAttack: !!(plasmaLabel && doubleAttack && atk && atk.contains(plasmaLabel) && atk.contains(doubleAttack) && before(plasmaLabel, doubleAttack)),
+      plasmaVisible: visible(plasmaLabel || plasma)
+    };
+    var canProceed = checks.functionDefinitionRemoved && checks.callRemoved &&
+      checks.criticalExists && checks.criticalLabelExists && checks.criticalDuplicateCountOk &&
+      checks.criticalInMoveZone && !checks.criticalInMoveDetails &&
+      checks.plasmaExists && checks.plasmaLabelExists && checks.plasmaDuplicateCountOk &&
+      checks.plasmaInAttackConditions && !checks.plasmaInFieldConditions && checks.plasmaBeforeDoubleAttack;
+    return {
+      version: 'v0.105k',
+      loaded: true,
+      deleted: 'moveCriticalAndPlasma',
+      purpose: 'moveCriticalAndPlasma関数定義とapply内呼び出しの削除レポート。critical/plasmaShower自体は削除しません。',
+      checks: checks,
+      canProceedToV105l: canProceed
+    };
+  };
+})();
+// DAMEKE v0.105k moveCriticalAndPlasma deleted report END
+
+// DAMEKE v0.105l moveCriticalAndPlasma post-deletion audit BEGIN
+(function(){
+  if(window.__damekeUiV105lMoveCriticalAndPlasmaPostDeletionAudit) return;
+  window.__damekeUiV105lMoveCriticalAndPlasmaPostDeletionAudit = true;
+  var staticAudit = {
+      "functionDefinitionCount": 0,
+      "callLikeCount": 0,
+      "nameReferenceCount": 16,
+      "v105kReportAvailableInSource": true
+};
+  function q(id){ return document.getElementById(id); }
+  function arr(x){ return Array.prototype.slice.call(x || []); }
+  function txt(el){ return String(el && (el.innerText || el.textContent) || '').replace(/\s+/g, ' ').trim(); }
+  function labelOf(id){ var e = q(id); return e ? e.closest('label') : null; }
+  function findSection(summaryText){
+    var found = null;
+    arr(document.querySelectorAll('details')).forEach(function(d){
+      var s = d.querySelector('summary');
+      if(s && txt(s) === summaryText) found = d;
+    });
+    return found;
+  }
+  function visible(el){
+    if(!el) return false;
+    var cs = window.getComputedStyle ? window.getComputedStyle(el) : null;
+    if(cs && (cs.display === 'none' || cs.visibility === 'hidden')) return false;
+    return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+  }
+  function before(a,b){
+    if(!a || !b) return false;
+    return !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+  }
+  window.DAMEKE_UI_V105L_MOVE_CRITICAL_AND_PLASMA_POST_DELETION_AUDIT_REPORT = function(){
+    var v105k = typeof window.DAMEKE_UI_V105K_MOVE_CRITICAL_AND_PLASMA_DELETION_REPORT === 'function'
+      ? window.DAMEKE_UI_V105K_MOVE_CRITICAL_AND_PLASMA_DELETION_REPORT()
+      : null;
+    var critical = q('critical');
+    var criticalLabel = labelOf('critical');
+    var plasma = q('plasmaShower');
+    var plasmaLabel = labelOf('plasmaShower');
+    var moveZone = q('v082hMoveZone') || q('v082gMoveZone') || q('v082fMoveZone');
+    var moveDetails = q('v082hMoveDetails') || q('v082gMoveDetails') || q('v082fMoveDetails');
+    var atk = findSection('攻撃側条件');
+    var field = findSection('場');
+    var doubleAttack = q('v082jDoubleAttack');
+    var checks = {
+      functionDefinitionRemoved: staticAudit.functionDefinitionCount === 0,
+      callRemoved: staticAudit.callLikeCount === 0,
+      v105kReportAvailable: !!v105k,
+      v105kCanProceed: !!(v105k && v105k.canProceedToV105l === true),
+      criticalExists: !!critical,
+      criticalLabelExists: !!criticalLabel,
+      criticalDuplicateCountOk: document.querySelectorAll('#critical').length === 1,
+      criticalInMoveZone: !!(critical && moveZone && moveZone.contains(critical)),
+      criticalInMoveDetails: !!(critical && moveDetails && moveDetails.contains(critical)),
+      criticalVisible: visible(criticalLabel || critical),
+      plasmaExists: !!plasma,
+      plasmaLabelExists: !!plasmaLabel,
+      plasmaDuplicateCountOk: document.querySelectorAll('#plasmaShower').length === 1,
+      plasmaInAttackConditions: !!(plasma && atk && atk.contains(plasma)),
+      plasmaInFieldConditions: !!(plasma && field && field.contains(plasma)),
+      plasmaBeforeDoubleAttack: !!(plasmaLabel && doubleAttack && atk && atk.contains(plasmaLabel) && atk.contains(doubleAttack) && before(plasmaLabel, doubleAttack)),
+      plasmaVisible: visible(plasmaLabel || plasma)
+    };
+    var canProceed = checks.functionDefinitionRemoved && checks.callRemoved &&
+      checks.v105kReportAvailable && checks.v105kCanProceed &&
+      checks.criticalExists && checks.criticalLabelExists && checks.criticalDuplicateCountOk &&
+      checks.criticalInMoveZone && !checks.criticalInMoveDetails && checks.criticalVisible &&
+      checks.plasmaExists && checks.plasmaLabelExists && checks.plasmaDuplicateCountOk &&
+      checks.plasmaInAttackConditions && !checks.plasmaInFieldConditions && checks.plasmaBeforeDoubleAttack && checks.plasmaVisible;
+    return {
+      version: 'v0.105l',
+      loaded: true,
+      active: false,
+      purpose: 'moveCriticalAndPlasma削除後監査。DOM配置と静的削除状態を読み取り専用で再確認します。',
+      staticAudit: staticAudit,
+      previousReport: v105k,
+      checks: checks,
+      canProceedToNextMoveCriticalAndPlasmaCleanup: canProceed,
+      canProceedToV105m: canProceed
+    };
+  };
+})();
+// DAMEKE v0.105l moveCriticalAndPlasma post-deletion audit END
+
+// DAMEKE v0.105m moveCopyTrace DOM snapshot audit BEGIN
+(function(){
+  if(window.__damekeUiV105mMoveCopyTraceDomSnapshotAudit) return;
+  window.__damekeUiV105mMoveCopyTraceDomSnapshotAudit = true;
+  var staticAudit = {
+      "functionDefinitionCount": 1,
+      "callLikeCount": 1,
+      "nameReferenceCount": 2,
+      "v105lReportAvailableInSource": true
+};
+  function q(id){ return document.getElementById(id); }
+  function arr(x){ return Array.prototype.slice.call(x || []); }
+  function txt(el){ return String(el && (el.innerText || el.textContent) || '').replace(/\s+/g, ' ').trim(); }
+  function visible(el){
+    if(!el) return false;
+    var cs = window.getComputedStyle ? window.getComputedStyle(el) : null;
+    if(cs && (cs.display === 'none' || cs.visibility === 'hidden')) return false;
+    return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+  }
+  function pathOf(el){
+    if(!el) return '';
+    var parts = [];
+    var cur = el;
+    while(cur && cur.nodeType === 1 && parts.length < 8){
+      var part = cur.tagName.toLowerCase();
+      if(cur.id) part += '#' + cur.id;
+      if(cur.className && typeof cur.className === 'string'){
+        var cls = cur.className.trim().split(/\s+/).filter(Boolean).slice(0,4).join('.');
+        if(cls) part += '.' + cls;
+      }
+      parts.unshift(part);
+      cur = cur.parentElement;
+    }
+    return parts.join(' > ');
+  }
+  function traceTitle(){
+    var found = null;
+    arr(document.querySelectorAll('.result-card h3')).forEach(function(h){
+      if(txt(h) === '計算過程') found = h;
+    });
+    return found;
+  }
+  function nextElementWithIdOrTag(el){
+    if(!el) return null;
+    var n = el.nextElementSibling;
+    return n ? {tag:n.tagName, id:n.id || '', className:n.className || '', text:txt(n).slice(0,80)} : null;
+  }
+  window.DAMEKE_UI_V105M_MOVE_COPY_TRACE_DOM_SNAPSHOT_AUDIT_REPORT = function(){
+    var btn = q('copyTraceButton');
+    var trace = q('trace');
+    var title = traceTitle();
+    var previous = btn ? btn.previousElementSibling : null;
+    var parent = btn ? btn.parentElement : null;
+    var checks = {
+      functionDefinitionCountIsOne: staticAudit.functionDefinitionCount === 1,
+      callLikeCountIsOne: staticAudit.callLikeCount === 1,
+      v105lReportAvailable: typeof window.DAMEKE_UI_V105L_MOVE_CRITICAL_AND_PLASMA_POST_DELETION_AUDIT_REPORT === 'function',
+      buttonExists: !!btn,
+      traceExists: !!trace,
+      traceTitleExists: !!title,
+      buttonVisible: visible(btn),
+      copyBelowTrace: !!(btn && trace && previous === trace),
+      buttonParentIsResultCard: !!(btn && parent && parent.classList && parent.classList.contains('result-card')),
+      hasV082mCopyClass: !!(btn && btn.classList && btn.classList.contains('v082m-copy-chip')),
+      hasV082lCopyClass: !!(btn && btn.classList && btn.classList.contains('v082l-copy-trace')),
+      hasV082jCopyClass: !!(btn && btn.classList && btn.classList.contains('v082j-copy-trace')),
+      v082jMovedDatasetPresent: !!(btn && btn.dataset && btn.dataset.v082jMoved === '1'),
+      duplicateButtonCountOk: document.querySelectorAll('#copyTraceButton').length === 1
+    };
+    var canProceed = checks.functionDefinitionCountIsOne && checks.callLikeCountIsOne &&
+      checks.v105lReportAvailable && checks.buttonExists && checks.traceExists && checks.traceTitleExists &&
+      checks.buttonVisible && checks.copyBelowTrace && checks.buttonParentIsResultCard &&
+      checks.hasV082mCopyClass && checks.duplicateButtonCountOk;
+    return {
+      version: 'v0.105m',
+      loaded: true,
+      active: false,
+      target: 'moveCopyTrace',
+      purpose: 'moveCopyTrace削除前のDOMスナップショット監査。表示・計算・イベントは変更しません。',
+      staticAudit: staticAudit,
+      checks: checks,
+      placement: {
+        buttonPath: pathOf(btn),
+        tracePath: pathOf(trace),
+        titleNextElement: nextElementWithIdOrTag(title),
+        buttonPreviousElement: previous ? {tag:previous.tagName, id:previous.id || '', className:previous.className || '', text:txt(previous).slice(0,80)} : null
+      },
+      canProceedToV105n: canProceed
+    };
+  };
+})();
+// DAMEKE v0.105m moveCopyTrace DOM snapshot audit END
+
+// DAMEKE v0.105n moveCopyTrace no-op BEGIN
+(function(){
+  if(window.__damekeUiV105nMoveCopyTraceNoOpReport) return;
+  window.__damekeUiV105nMoveCopyTraceNoOpReport = true;
+  var staticAudit = {
+      "beforeFunctionDefinitionCount": 1,
+      "beforeCallLikeCount": 1,
+      "afterFunctionDefinitionCount": 1,
+      "afterCallLikeCount": 1,
+      "noOpBodyDetected": true,
+      "v105mReportAvailableInSource": true
+};
+  function q(id){ return document.getElementById(id); }
+  function arr(x){ return Array.prototype.slice.call(x || []); }
+  function txt(el){ return String(el && (el.innerText || el.textContent) || '').replace(/\s+/g, ' ').trim(); }
+  function visible(el){
+    if(!el) return false;
+    var cs = window.getComputedStyle ? window.getComputedStyle(el) : null;
+    if(cs && (cs.display === 'none' || cs.visibility === 'hidden')) return false;
+    return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+  }
+  function traceTitle(){
+    var found = null;
+    arr(document.querySelectorAll('.result-card h3')).forEach(function(h){
+      if(txt(h) === '計算過程') found = h;
+    });
+    return found;
+  }
+  window.DAMEKE_UI_V105N_MOVE_COPY_TRACE_NOOP_REPORT = function(){
+    var v105m = typeof window.DAMEKE_UI_V105M_MOVE_COPY_TRACE_DOM_SNAPSHOT_AUDIT_REPORT === 'function'
+      ? window.DAMEKE_UI_V105M_MOVE_COPY_TRACE_DOM_SNAPSHOT_AUDIT_REPORT()
+      : null;
+    var btn = q('copyTraceButton');
+    var trace = q('trace');
+    var title = traceTitle();
+    var previous = btn ? btn.previousElementSibling : null;
+    var parent = btn ? btn.parentElement : null;
+    var checks = {
+      staticNoOpBodyDetected: staticAudit.noOpBodyDetected === true,
+      functionDefinitionCountIsOne: staticAudit.afterFunctionDefinitionCount === 1,
+      callLikeCountIsOne: staticAudit.afterCallLikeCount === 1,
+      v105mReportAvailable: !!v105m,
+      v105mCanProceed: !!(v105m && v105m.canProceedToV105n === true),
+      noOpFunctionWasHit: (window.__damekeUiV105nMoveCopyTraceNoOpHit || 0) > 0,
+      noOpHitCount: window.__damekeUiV105nMoveCopyTraceNoOpHit || 0,
+      buttonExists: !!btn,
+      traceExists: !!trace,
+      traceTitleExists: !!title,
+      buttonVisible: visible(btn),
+      copyBelowTrace: !!(btn && trace && previous === trace),
+      buttonParentIsResultCard: !!(btn && parent && parent.classList && parent.classList.contains('result-card')),
+      hasV082mCopyClass: !!(btn && btn.classList && btn.classList.contains('v082m-copy-chip')),
+      duplicateButtonCountOk: document.querySelectorAll('#copyTraceButton').length === 1
+    };
+    var canProceed = checks.staticNoOpBodyDetected && checks.functionDefinitionCountIsOne && checks.callLikeCountIsOne &&
+      checks.v105mReportAvailable && checks.v105mCanProceed && checks.noOpFunctionWasHit &&
+      checks.buttonExists && checks.traceExists && checks.traceTitleExists && checks.buttonVisible &&
+      checks.copyBelowTrace && checks.buttonParentIsResultCard && checks.hasV082mCopyClass && checks.duplicateButtonCountOk;
+    return {
+      version: 'v0.105n',
+      loaded: true,
+      active: true,
+      disabled: 'v082j moveCopyTrace',
+      purpose: 'moveCopyTraceをno-op化した後のDOM監査。copyTraceButton自体は削除しません。',
+      staticAudit: staticAudit,
+      checks: checks,
+      canProceedToV105o: canProceed
+    };
+  };
+})();
+// DAMEKE v0.105n moveCopyTrace no-op END
+
+// DAMEKE v0.105o moveCopyTrace no-op post-audit BEGIN
+(function(){
+  if(window.__damekeUiV105oMoveCopyTraceNoOpPostAudit) return;
+  window.__damekeUiV105oMoveCopyTraceNoOpPostAudit = true;
+  var staticAudit = {
+      "functionDefinitionCount": 1,
+      "callLikeCount": 1,
+      "nameReferenceCount": 10,
+      "noOpBodyDetected": true,
+      "v105nReportAvailableInSource": true
+};
+  function q(id){ return document.getElementById(id); }
+  function arr(x){ return Array.prototype.slice.call(x || []); }
+  function txt(el){ return String(el && (el.innerText || el.textContent) || '').replace(/\s+/g, ' ').trim(); }
+  function visible(el){
+    if(!el) return false;
+    var cs = window.getComputedStyle ? window.getComputedStyle(el) : null;
+    if(cs && (cs.display === 'none' || cs.visibility === 'hidden')) return false;
+    return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+  }
+  function pathOf(el){
+    if(!el) return '';
+    var parts = [];
+    var cur = el;
+    while(cur && cur.nodeType === 1 && parts.length < 8){
+      var part = cur.tagName.toLowerCase();
+      if(cur.id) part += '#' + cur.id;
+      if(cur.className && typeof cur.className === 'string'){
+        var cls = cur.className.trim().split(/\s+/).filter(Boolean).slice(0,4).join('.');
+        if(cls) part += '.' + cls;
+      }
+      parts.unshift(part);
+      cur = cur.parentElement;
+    }
+    return parts.join(' > ');
+  }
+  function traceTitle(){
+    var found = null;
+    arr(document.querySelectorAll('.result-card h3')).forEach(function(h){
+      if(txt(h) === '計算過程') found = h;
+    });
+    return found;
+  }
+  window.DAMEKE_UI_V105O_MOVE_COPY_TRACE_NOOP_POST_AUDIT_REPORT = function(){
+    var v105n = typeof window.DAMEKE_UI_V105N_MOVE_COPY_TRACE_NOOP_REPORT === 'function'
+      ? window.DAMEKE_UI_V105N_MOVE_COPY_TRACE_NOOP_REPORT()
+      : null;
+    var btn = q('copyTraceButton');
+    var trace = q('trace');
+    var title = traceTitle();
+    var previous = btn ? btn.previousElementSibling : null;
+    var parent = btn ? btn.parentElement : null;
+    var checks = {
+      staticNoOpBodyDetected: staticAudit.noOpBodyDetected === true,
+      functionDefinitionCountIsOne: staticAudit.functionDefinitionCount === 1,
+      callLikeCountIsOne: staticAudit.callLikeCount === 1,
+      v105nReportAvailable: !!v105n,
+      v105nCanProceed: !!(v105n && v105n.canProceedToV105o === true),
+      noOpFunctionWasHit: (window.__damekeUiV105nMoveCopyTraceNoOpHit || 0) > 0,
+      noOpHitCount: window.__damekeUiV105nMoveCopyTraceNoOpHit || 0,
+      buttonExists: !!btn,
+      traceExists: !!trace,
+      traceTitleExists: !!title,
+      buttonVisible: visible(btn),
+      copyBelowTrace: !!(btn && trace && previous === trace),
+      buttonParentIsResultCard: !!(btn && parent && parent.classList && parent.classList.contains('result-card')),
+      hasV082mCopyClass: !!(btn && btn.classList && btn.classList.contains('v082m-copy-chip')),
+      duplicateButtonCountOk: document.querySelectorAll('#copyTraceButton').length === 1,
+      traceIsVisible: visible(trace)
+    };
+    var canProceed = checks.staticNoOpBodyDetected && checks.functionDefinitionCountIsOne && checks.callLikeCountIsOne &&
+      checks.v105nReportAvailable && checks.v105nCanProceed && checks.noOpFunctionWasHit &&
+      checks.buttonExists && checks.traceExists && checks.traceTitleExists && checks.buttonVisible && checks.traceIsVisible &&
+      checks.copyBelowTrace && checks.buttonParentIsResultCard && checks.hasV082mCopyClass && checks.duplicateButtonCountOk;
+    return {
+      version: 'v0.105o',
+      loaded: true,
+      active: false,
+      target: 'moveCopyTrace',
+      purpose: 'moveCopyTrace no-op後監査。削除判断前にボタン配置と静的状態を再確認します。',
+      staticAudit: staticAudit,
+      previousReport: v105n,
+      placement: {
+        buttonPath: pathOf(btn),
+        tracePath: pathOf(trace),
+        titlePath: pathOf(title)
+      },
+      checks: checks,
+      canProceedToV105p: canProceed
+    };
+  };
+})();
+// DAMEKE v0.105o moveCopyTrace no-op post-audit END
+
+// DAMEKE v0.105p moveCopyTrace deleted report BEGIN
+(function(){
+  if(window.__damekeUiV105pMoveCopyTraceDeletedReport) return;
+  window.__damekeUiV105pMoveCopyTraceDeletedReport = true;
+  var staticAudit = {
+      "beforeFunctionDefinitionCount": 1,
+      "beforeCallLikeCount": 1,
+      "beforeNoOpBodyDetected": true,
+      "afterFunctionDefinitionCount": 0,
+      "afterCallLikeCount": 0,
+      "afterNameReferenceCount": 12,
+      "v105oReportAvailableInSource": true
+};
+  function q(id){ return document.getElementById(id); }
+  function arr(x){ return Array.prototype.slice.call(x || []); }
+  function txt(el){ return String(el && (el.innerText || el.textContent) || '').replace(/\s+/g, ' ').trim(); }
+  function visible(el){
+    if(!el) return false;
+    var cs = window.getComputedStyle ? window.getComputedStyle(el) : null;
+    if(cs && (cs.display === 'none' || cs.visibility === 'hidden')) return false;
+    return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+  }
+  function traceTitle(){
+    var found = null;
+    arr(document.querySelectorAll('.result-card h3')).forEach(function(h){
+      if(txt(h) === '計算過程') found = h;
+    });
+    return found;
+  }
+  window.DAMEKE_UI_V105P_MOVE_COPY_TRACE_DELETION_REPORT = function(){
+    var btn = q('copyTraceButton');
+    var trace = q('trace');
+    var title = traceTitle();
+    var previous = btn ? btn.previousElementSibling : null;
+    var parent = btn ? btn.parentElement : null;
+    var checks = {
+      functionDefinitionRemoved: staticAudit.afterFunctionDefinitionCount === 0,
+      callRemoved: staticAudit.afterCallLikeCount === 0,
+      v105oReportAvailableInSource: staticAudit.v105oReportAvailableInSource === true,
+      buttonExists: !!btn,
+      traceExists: !!trace,
+      traceTitleExists: !!title,
+      buttonVisible: visible(btn),
+      traceIsVisible: visible(trace),
+      copyBelowTrace: !!(btn && trace && previous === trace),
+      buttonParentIsResultCard: !!(btn && parent && parent.classList && parent.classList.contains('result-card')),
+      hasV082mCopyClass: !!(btn && btn.classList && btn.classList.contains('v082m-copy-chip')),
+      duplicateButtonCountOk: document.querySelectorAll('#copyTraceButton').length === 1
+    };
+    var canProceed = checks.functionDefinitionRemoved && checks.callRemoved && checks.v105oReportAvailableInSource &&
+      checks.buttonExists && checks.traceExists && checks.traceTitleExists && checks.buttonVisible && checks.traceIsVisible &&
+      checks.copyBelowTrace && checks.buttonParentIsResultCard && checks.hasV082mCopyClass && checks.duplicateButtonCountOk;
+    return {
+      version: 'v0.105p',
+      loaded: true,
+      deleted: 'moveCopyTrace',
+      purpose: 'moveCopyTrace関数定義とapply内呼び出しの削除レポート。copyTraceButton自体は削除しません。',
+      staticAudit: staticAudit,
+      checks: checks,
+      canProceedToV105q: canProceed
+    };
+  };
+})();
+// DAMEKE v0.105p moveCopyTrace deleted report END
+
+// DAMEKE v0.105q moveCopyTrace post-deletion audit BEGIN
+(function(){
+  if(window.__damekeUiV105qMoveCopyTracePostDeletionAudit) return;
+  window.__damekeUiV105qMoveCopyTracePostDeletionAudit = true;
+  var staticAudit = {
+      "functionDefinitionCount": 0,
+      "callLikeCount": 0,
+      "nameReferenceCount": 16,
+      "v105pReportAvailableInSource": true
+};
+  function q(id){ return document.getElementById(id); }
+  function arr(x){ return Array.prototype.slice.call(x || []); }
+  function txt(el){ return String(el && (el.innerText || el.textContent) || '').replace(/\s+/g, ' ').trim(); }
+  function visible(el){
+    if(!el) return false;
+    var cs = window.getComputedStyle ? window.getComputedStyle(el) : null;
+    if(cs && (cs.display === 'none' || cs.visibility === 'hidden')) return false;
+    return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+  }
+  function pathOf(el){
+    if(!el) return '';
+    var parts = [];
+    var cur = el;
+    while(cur && cur.nodeType === 1 && parts.length < 8){
+      var part = cur.tagName.toLowerCase();
+      if(cur.id) part += '#' + cur.id;
+      if(cur.className && typeof cur.className === 'string'){
+        var cls = cur.className.trim().split(/\s+/).filter(Boolean).slice(0,4).join('.');
+        if(cls) part += '.' + cls;
+      }
+      parts.unshift(part);
+      cur = cur.parentElement;
+    }
+    return parts.join(' > ');
+  }
+  function traceTitle(){
+    var found = null;
+    arr(document.querySelectorAll('.result-card h3')).forEach(function(h){
+      if(txt(h) === '計算過程') found = h;
+    });
+    return found;
+  }
+  window.DAMEKE_UI_V105Q_MOVE_COPY_TRACE_POST_DELETION_AUDIT_REPORT = function(){
+    var v105p = typeof window.DAMEKE_UI_V105P_MOVE_COPY_TRACE_DELETION_REPORT === 'function'
+      ? window.DAMEKE_UI_V105P_MOVE_COPY_TRACE_DELETION_REPORT()
+      : null;
+    var btn = q('copyTraceButton');
+    var trace = q('trace');
+    var rolls = q('rolls');
+    var summary = q('summary');
+    var title = traceTitle();
+    var previous = btn ? btn.previousElementSibling : null;
+    var parent = btn ? btn.parentElement : null;
+    var checks = {
+      functionDefinitionRemoved: staticAudit.functionDefinitionCount === 0,
+      callRemoved: staticAudit.callLikeCount === 0,
+      v105pReportAvailable: !!v105p,
+      v105pCanProceed: !!(v105p && v105p.canProceedToV105q === true),
+      buttonExists: !!btn,
+      traceExists: !!trace,
+      rollsExists: !!rolls,
+      summaryExists: !!summary,
+      traceTitleExists: !!title,
+      buttonVisible: visible(btn),
+      traceIsVisible: visible(trace),
+      copyBelowTrace: !!(btn && trace && previous === trace),
+      buttonParentIsResultCard: !!(btn && parent && parent.classList && parent.classList.contains('result-card')),
+      hasV082mCopyClass: !!(btn && btn.classList && btn.classList.contains('v082m-copy-chip')),
+      duplicateButtonCountOk: document.querySelectorAll('#copyTraceButton').length === 1
+    };
+    var canProceed = checks.functionDefinitionRemoved && checks.callRemoved &&
+      checks.v105pReportAvailable && checks.v105pCanProceed &&
+      checks.buttonExists && checks.traceExists && checks.rollsExists && checks.summaryExists && checks.traceTitleExists &&
+      checks.buttonVisible && checks.traceIsVisible && checks.copyBelowTrace &&
+      checks.buttonParentIsResultCard && checks.hasV082mCopyClass && checks.duplicateButtonCountOk;
+    return {
+      version: 'v0.105q',
+      loaded: true,
+      active: false,
+      target: 'moveCopyTrace',
+      purpose: 'moveCopyTrace削除後監査。DOM配置と静的削除状態を読み取り専用で再確認します。',
+      staticAudit: staticAudit,
+      previousReport: v105p,
+      placement: {
+        buttonPath: pathOf(btn),
+        tracePath: pathOf(trace),
+        titlePath: pathOf(title)
+      },
+      checks: checks,
+      canProceedToV105r: canProceed
+    };
+  };
+})();
+// DAMEKE v0.105q moveCopyTrace post-deletion audit END
