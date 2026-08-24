@@ -5,6 +5,7 @@ body { margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Se
 .app-header h1 { margin: 0 0 4px; font-size: 22px; }
 .app-header p { margin: 0; color: #d1d5db; }
 .layout { display: grid; grid-template-columns: 700px 700px; gap: 16px; padding: 16px; align-items: start; }
+body:not(.v082h-ready) .layout { visibility: hidden; }
 .card,.sub-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; box-shadow: 0 1px 3px rgba(15,23,42,.08); }
 .card { padding: 16px; }
 .sub-card { padding: 12px; margin: 12px 0; }
@@ -38,14 +39,33 @@ button:hover { background: #e0e7ff; }
 .trace{min-height:520px;font-size:12px}
 .result-card pre#trace{margin-bottom:0;}
 @media(max-width:1250px){.layout{grid-template-columns:1fr}}
+@media(max-width:760px){
+  body{font-size:15px;}
+  .app-header{padding:12px 14px;}
+  .layout{padding:10px;gap:10px;}
+  .result-card{order:-1;position:sticky;top:0;z-index:50;max-height:46vh;overflow-y:auto;box-shadow:0 6px 16px rgba(15,23,42,.22);}
+  .v082h-basic-grid{grid-template-columns:1fr;width:auto;}
+  .v082h-box{width:auto;}
+  .v082h-cond-wrap{grid-template-columns:1fr;}
+  .trace{min-height:160px;}
+}
 
 /* ==== v082h main UI ==== */
 .v082h-hide{display:none!important;}
 .v082h-root-basic{overflow-x:auto;}
 .v082h-basic-grid{display:grid;grid-template-columns:320px 320px;width:652px;gap:12px;margin-top:10px;}
 .v082h-box{margin:0;width:320px;}
+.v082h-attacker,.v082h-section-details.v082h-attacker{background:#fff8f8;border-color:#f1d8d8;}
+.v082h-defender,.v082h-section-details.v082h-defender{background:#f7faff;border-color:#d7e3f4;}
+.v082h-attacker .v082h-ability-panel,.v082h-attacker .v082h-stats-panel,.v082h-attacker .v082h-double-fold{background:#fff8f8;border-color:#f1d8d8;}
+.v082h-defender .v082h-ability-panel,.v082h-defender .v082h-stats-panel,.v082h-defender .v082h-double-fold{background:#f7faff;border-color:#d7e3f4;}
 .v082h-box input,.v082h-box select{min-width:0;}
 .v082h-pokemon-field{margin-bottom:6px;}
+.v082h-search-combo{position:relative;}
+.v082h-search-input{width:100%;}
+.v082h-search-list{position:fixed;z-index:1000;margin:0;padding:2px;list-style:none;background:#fff;border:1px solid #cbd5e1;border-radius:8px;box-shadow:0 4px 12px rgba(15,23,42,.14);max-height:220px;overflow-y:auto;overscroll-behavior:contain;}
+.v082h-search-item{padding:5px 8px;font-size:12px;border-radius:5px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.v082h-search-item:hover,.v082h-search-item.active{background:#eef2ff;}
 .v082h-type-grid{margin-top:4px;}
 .v082h-mini-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:8px;}
 .v082h-details,.v082h-section-details{border:1px solid #d8dee9;border-radius:12px;padding:8px 10px;margin:8px 0;background:#f8fafc;}
@@ -60,8 +80,8 @@ button:hover { background: #e0e7ff; }
 .v082h-ability-panel{border:1px solid #e5e7eb;border-radius:12px;padding:8px 10px;margin:8px 0;background:#fff;}
 .v082h-minititle{font-weight:700;color:#334155;margin-bottom:6px;}
 .v082h-ability-buttons{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;align-items:center;}
-.v082h-ability-chip{font-size:.86rem;padding:3px 8px;border-radius:999px;background:#f8fafc;border:1px solid #cbd5e1;color:#334155;font-weight:500;box-shadow:none;}
-.v082h-ability-chip:hover{background:#eef2ff;}
+.v082h-ability-chip,.operation-buttons button{font-size:.86rem;padding:3px 8px;border-radius:999px;background:#f8fafc;border:1px solid #cbd5e1;color:#334155;font-weight:500;box-shadow:none;}
+.v082h-ability-chip:hover,.operation-buttons button:hover{background:#eef2ff;}
 .v082h-inline-check{display:flex;align-items:center;gap:6px;margin-top:6px;}
 .v082h-stats-panel{border:1px solid #e5e7eb;border-radius:12px;padding:8px 10px;margin:8px 0;background:#fff;}
 .v082h-stats-panel>label{margin:0 0 8px;grid-template-columns:1fr;}
@@ -112,5 +132,5 @@ button:hover { background: #e0e7ff; }
 .v091-form-chip.active{background:#285ea8;color:#fff;border-color:#285ea8;font-weight:600}
 
 /* ==== item/move label styling (v101j2) ==== */
-.v101j2-label-only{font-size:14px!important;font-weight:700!important;color:#334155!important;line-height:1.25!important;}
-.v101j2-label-only > select{font-size:12px!important;font-weight:400!important;color:#111827!important;padding:6px 8px!important;min-height:32px!important;width:100%!important;margin-top:4px!important;}
+.dameke-main-control-label{font-size:14px;font-weight:700;color:#334155;line-height:1.25;}
+.dameke-main-control-label > select,.dameke-main-control-label .v082h-search-input{font-size:12px;font-weight:400;color:#111827;padding:6px 8px;min-height:32px;width:100%;margin-top:4px;}
