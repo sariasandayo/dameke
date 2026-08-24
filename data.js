@@ -7,7 +7,7 @@
 function ability(name, kind) { return { id: name, name, kind: kind || 'Generic', ignorableByMoldBreaker: ['てんねん','ふゆう','ふしぎなまもり','カブトアーマー','シェルアーマー'].includes(name) }; }
 const TYPES = ['なし','ノーマル','ほのお','みず','でんき','くさ','こおり','かくとう','どく','じめん','ひこう','エスパー','むし','いわ','ゴースト','ドラゴン','あく','はがね','フェアリー','ステラ'];
 window.DAMEKE_DATA = {
-  typeOptions: ['なし','タイプなし','ノーマル','ほのお','みず','でんき','くさ','こおり','かくとう','どく','じめん','ひこう','エスパー','むし','いわ','ゴースト','ドラゴン','あく','はがね','フェアリー'].map(x => ({ id:x, name:x })),
+  typeOptions: ['なし','ノーマル','ほのお','みず','でんき','くさ','こおり','かくとう','どく','じめん','ひこう','エスパー','むし','いわ','ゴースト','ドラゴン','あく','はがね','フェアリー'].map(x => ({ id:x, name:x })),
   teraTypes: TYPES.map(x => ({ id: x, name: x })),
   weatherOptions: ['なし','にほんばれ','あめ','すなあらし','ゆき','おおひでり','おおあめ','らんきりゅう','ノーてんき・エアロック'].map(x => ({ id:x, name:x })),
   fieldOptions: ['なし','エレキフィールド','グラスフィールド','ミストフィールド','サイコフィールド'].map(x => ({ id:x, name:x })),
@@ -31,7 +31,7 @@ window.DAMEKE_DATA = {
   moves: [
     {id:'thunderbolt',name:'10まんボルト',type:'でんき',category:'特殊',power:90,contact:false},
     {id:'tackle',name:'たいあたり',type:'ノーマル',category:'物理',power:40,contact:true},
-    {id:'struggle',name:'わるあがき',type:'ノーマル',category:'物理',power:50,contact:true},
+    {id:'struggle',name:'わるあがき',type:'タイプなし',category:'物理',power:50,contact:true},
     {id:'sunsteel',name:'メテオドライブ',type:'はがね',category:'物理',power:100,contact:true,ignoresAbilities:true},
     {id:'photon',name:'フォトンゲイザー',type:'エスパー',category:'特殊',power:100,contact:false,ignoresAbilities:true},
     {id:'light_that_burns',name:'てんこがすめつぼうのひかり',type:'エスパー',category:'特殊',power:200,contact:false,ignoresAbilities:true},
@@ -57285,7 +57285,7 @@ window.DAMEKE_GENERATED_DATA = {
     {
       "id": "わるあがき",
       "name": "わるあがき",
-      "type": "ノーマル",
+      "type": "タイプなし",
       "category": "物理",
       "power": 50,
       "priority": 0,

@@ -441,15 +441,7 @@ function weatherIgnored(aState,dState,o){return o.weather==='ノーてんき・�
   function mod(v,r){return fl(v*r/4096);}
   function baseDamage(level,power,atk,def){if(!power||power<=0||def<=0)return 0;return fl(fl((fl(2*level/5)+2)*power*atk/def)/50)+2;}
   function pokeById(id){return (D.pokemons||[]).find(function(p){return p.id===id;}) || null;}
-  function beatUpBaseName(name){var map={
-    'ヨワシ(むれたすがた)':'ヨワシ(たんどくのすがた)', 'メテノ(りゅうせい)':'メテノ(コア)',
-    'テラパゴス(テラスタル)':'テラパゴス', 'テラパゴス(ステラ)':'テラパゴス',
-    'ヒヒダルマ(ダルマモード)':'ヒヒダルマ', 'ヒヒダルマ(ダルマモード(ガラル))':'ヒヒダルマ(ガラル)',
-    'メロエッタ(ステップフォルム)':'メロエッタ(ボイスフォルム)', 'ギルガルド(ブレードフォルム)':'ギルガルド(シールドフォルム)',
-    'ネクロズマ(ウルトラネクロズマ)':'ネクロズマ(たそがれのたてがみ)', 'イルカマン(マイティ)':'イルカマン(ナイーブ)',
-    'ゲンシグラードン':'グラードン', 'ゲンシカイオーガ':'カイオーガ'
-  }; if(map[name]) return map[name]; if(name.indexOf('メガ')===0 && name!=='メガニウム' && name!=='メガヤンマ'){var b=name.slice(2); if(b.endsWith('X')||b.endsWith('Y')) b=b.slice(0,-1); return b;} return name;}
-  function beatUpPokemon(mon){var base=beatUpBaseName(mon.name);return (D.pokemons||[]).find(function(p){return p.name===base;}) || mon;}
+  function beatUpPokemon(mon){ return (D.getBeatUpAttackPokemon && D.getBeatUpAttackPokemon(mon)) || mon; }
   function partyForBeatUp(attacker,o){var party=[beatUpPokemon(attacker)];for(var i=1;i<=5;i++){var id=o['beatUpAlly'+i];if(id&&id!=='none'){var p=pokeById(id);if(p) party.push(beatUpPokemon(p));}}return party;}
   function makeHitPlan(move,attacker,o){var plan=[];if(move.powerKind==='TripleAxel'){for(var i=1;i<=3;i++)plan.push({hitIndex:i,basePower:20*i,note:'トリプルアクセル '+i+'回目'});}else if(move.powerKind==='TripleKick'){for(var j=1;j<=3;j++)plan.push({hitIndex:j,basePower:10*j,note:'トリプルキック '+j+'回目'});}else if(move.powerKind==='WaterShuriken'){var count=window.DAMEKE_DATA_HELPERS.pokemonMatches(attacker,['ゲッコウガ(サトシゲッコウガ)','greninja_ash'])?3:5;var power=window.DAMEKE_DATA_HELPERS.pokemonMatches(attacker,['ゲッコウガ(サトシゲッコウガ)','greninja_ash'])?20:15;for(var k=1;k<=count;k++)plan.push({hitIndex:k,basePower:power,note:'みずしゅりけん'});}else if(move.powerKind==='BeatUp'){var party=partyForBeatUp(attacker,o);for(var h=0;h<party.length;h++){var mon=party[h];plan.push({hitIndex:h+1,basePower:fl((mon.baseStats.A||0)/10)+5,note:mon.name+' A種族値参照'});}}return plan;}
   function setOrPushTrace(trace,label,name,value,note){var line=(trace||[]).find(function(x){return String(x.label).includes(label);});if(line){line.name=name;line.value=value;line.note=note||line.note;}else trace.push({label:label,name:name,value:value,note:note||'',implemented:true});}
@@ -614,7 +606,7 @@ function weatherIgnored(aState,dState,o){return o.weather==='ノーてんき・�
   function recalc(result,input,finalPowers){var o=input.options||{},level=clamp(num(input.attackerLevel,50),1,100),dlevel=clamp(num(input.defenderLevel,50),1,100);var as=stats(input.attacker,level,o.attackerStats),ds=stats(input.defender,dlevel,o.defenderStats);var cat=result.effectiveCategory||input.move.category,an=cat==='物理'?'A':'C',dn=cat==='物理'?'B':'D';var atk=rank(as[an],(as.input.ranks||{})[an]||0),def=rank(ds[dn],(ds.input.ranks||{})[dn]||0);var tr=result.typeRate4096||combo(result.effectiveType||input.move.type,result.defenderTypes||input.defender.types);var sr=result.stabRate4096||((input.attacker.types||[]).includes(result.effectiveType||input.move.type)?6144:4096);var rollsFirst=[],totalMin=0,totalMax=0,lines=[];for(var i=0;i<finalPowers.length;i++){var pw=finalPowers[i],rolls=[];if(tr===0||cat==='変化')rolls=[0];else{var b=baseDamage(level,pw,atk,def);for(var f=85;f<=100;f++){var d=mod(mod(fl(b*f/100),sr),tr);if(d<1)d=1;rolls.push(d);}}if(!rollsFirst.length)rollsFirst=rolls;var mn=Math.min.apply(null,rolls),mx=Math.max.apply(null,rolls);totalMin+=mn;totalMax+=mx;lines.push((i+1)+'回目 威力'+pw+': '+rolls.join(', '));}result.rolls=rollsFirst;result.multiHitRolls=finalPowers.length>1?lines:null;result.minDamage=totalMin;result.maxDamage=totalMax;var hp=result.defenderMaxHp||ds.H;result.minRate=hp?totalMin/hp*100:0;result.maxRate=hp?totalMax/hp*100:0;}
   function setTrace(result,label,name,value,note){var line=(result.trace||[]).find(x=>String(x.label).includes(label));if(line){line.name=name;line.value=value;if(note!=null)line.note=note;}else result.trace.push({label:label,name:name,value:value,note:note||'',implemented:true});}
   var previousPowerModifierCalc=C.calculateDamage.bind(C);
-  C.calculateDamage=function(input){var result=previousPowerModifierCalc(input);if(result&&result.__coreState)(input.options||(input.options={})).__coreState=result.__coreState;var base=getBasePowerFromResult(result,input);var modInfo=calcModifier(result,input,base);var hitPlan=result.hitPlan&&result.hitPlan.length?result.hitPlan:[{hitIndex:1,basePower:base,note:'基礎威力'}];var finals=[];var notes=[];for(var i=0;i<hitPlan.length;i++){var bp=hitPlan[i].basePower;if(input.move.name==='Gのちから'&&(input.options||{}).gravity)bp=90;var pre=Math.max(1,roundFiveDown(bp*modInfo.rate/4096));var fin=teraFinalPower(bp,pre,input,result);finals.push(fin);notes.push(hitPlan[i].hitIndex+'回目='+fin+'（基礎'+bp+' 補正'+modInfo.rate+'/4096'+(fin!==pre?' テラス最低威力':'')+'）');}setTrace(result,'変動後威力','最終威力',notes.join(' / '),'威力補正: '+(modInfo.logs.join(' / ')||'なし'));recalc(result,input,finals);return result;};
+  C.calculateDamage=function(input){var result=previousPowerModifierCalc(input);if(result&&result.__coreState)(input.options||(input.options={})).__coreState=result.__coreState;if((result.effectiveCategory||input.move.category)==='変化'){setTrace(result,'変動後威力','最終威力','-','変化技のため威力なし');return result;}var base=getBasePowerFromResult(result,input);var modInfo=calcModifier(result,input,base);var hitPlan=result.hitPlan&&result.hitPlan.length?result.hitPlan:[{hitIndex:1,basePower:base,note:'基礎威力'}];var finals=[];var notes=[];for(var i=0;i<hitPlan.length;i++){var bp=hitPlan[i].basePower;if(input.move.name==='Gのちから'&&(input.options||{}).gravity)bp=90;var pre=Math.max(1,roundFiveDown(bp*modInfo.rate/4096));var fin=teraFinalPower(bp,pre,input,result);finals.push(fin);notes.push(hitPlan[i].hitIndex+'回目='+fin+'（基礎'+bp+' 補正'+modInfo.rate+'/4096'+(fin!==pre?' テラス最低威力':'')+'）');}setTrace(result,'変動後威力','最終威力',notes.join(' / '),'威力補正: '+(modInfo.logs.join(' / ')||'なし'));recalc(result,input,finals);return result;};
   C.__powerModifierPatched=true;
 })();
 
@@ -1383,6 +1375,125 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
       runtimeScriptLoaded: scripts.indexOf('runtime/calc.runtime.fix.v063.js') >= 0,
       canProceedToV098: scripts.indexOf('runtime/calc.runtime.fix.v063.js') < 0
     };
+  };
+  window.DAMEKE_CALC = C;
+})();
+
+/* v0.98 exact KO-count probability (independent per-hit rolls, DP convolution) */
+(function(){
+  var C = window.DAMEKE_CALC || {};
+  var R = window.DAMEKE_ROUNDING;
+  function num(v,d){var n=Number(v);return isFinite(n)?n:d;}
+  function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+  function parseAfterArrow(result,labelPart){var line=(result.trace||[]).find(function(x){return String(x.label).includes(labelPart);});if(!line)return null;var m=String(line.value).match(/->\s*(\d+)/);return m?num(m[1],null):null;}
+  function calcOneKo(level,power,atk,def,rnd,rates,parentalRate){
+    var a=Math.floor(level*2/5)+2,b=Math.floor(a*power*atk/def),d=Math.floor(b/50)+2;
+    d=R.apply4096FiveDown(d,rates.range);
+    d=R.apply4096FiveDown(d,parentalRate);
+    d=R.apply4096FiveDown(d,rates.weather);
+    d=R.apply4096FiveDown(d,rates.glaiveRush);
+    d=R.apply4096FiveDown(d,rates.critical);
+    d=Math.floor(d*rnd/100);
+    d=R.apply4096FiveDown(d,rates.stab);
+    d=R.apply4096Floor(d,rates.type);
+    d=R.apply4096FiveDown(d,rates.burn);
+    d=R.apply4096FiveDown(d,rates.other);
+    d=R.apply4096FiveDown(d,rates.protect);
+    return d<1?1:d;
+  }
+  function distFromRolls(rolls){
+    var out=Object.create(null),p=1/rolls.length;
+    for(var i=0;i<rolls.length;i++){ var d=rolls[i]; out[d]=(out[d]||0)+p; }
+    return out;
+  }
+  function convolve(a,b){
+    var out=Object.create(null);
+    for(var da in a){ var pa=a[da]; for(var db in b){ var s=Number(da)+Number(db); out[s]=(out[s]||0)+pa*b[db]; } }
+    return out;
+  }
+  function probAtLeast(dist,threshold){
+    var p=0; for(var d in dist){ if(Number(d)>=threshold) p+=dist[d]; } return p;
+  }
+
+  var MAX_SUBHITS_PER_TURN = 12;   // spec allows up to 10-hit moves; small margin
+  var MAX_TURNS = 30;              // generous cap; exact math has no real limit here
+
+  function computeExactKoInfo(result, input){
+    result.koInfo = null;
+    if(!result) return;
+    var cat = result.effectiveCategory || (input.move && input.move.category);
+    if(cat === '変化') return;
+    if(result.typeRate4096 === 0) return;
+    var hp = result.defenderCurrentHp;
+    if(!hp || hp <= 0) return;
+
+    var level = clamp(num(input.attackerLevel,50),1,100);
+    var atk = parseAfterArrow(result,'補正後攻撃側実数値');
+    var def = parseAfterArrow(result,'補正後防御側実数値');
+    if(!atk || !def) return;
+
+    var baseLine = (result.trace||[]).slice().reverse().find(function(x){ return String(x.label).indexOf('ダメージ補正値')>=0; });
+    var baseTxt = String(baseLine && baseLine.value || '');
+    function pull(re,d2){ var m=baseTxt.match(re); return m ? num(m[1],d2) : d2; }
+    var rates = {
+      range: pull(/範囲=(\d+)/,4096),
+      weather: pull(/天候=(\d+)/,4096),
+      glaiveRush: pull(/きょけんとつげき=(\d+)/,4096),
+      critical: pull(/急所=(\d+)/,4096),
+      stab: pull(/STAB=(\d+)/, result.stabRate4096||4096),
+      type: result.typeRate4096==null ? 4096 : result.typeRate4096,
+      burn: pull(/やけど=(\d+)/,4096),
+      other: pull(/その他=(\d+)/,4096),
+      protect: pull(/まもる=(\d+)/,4096)
+    };
+    var parentalRates = baseTxt.indexOf('4096,1024') >= 0 ? [4096,1024] : [4096];
+
+    var hitPlan = (result.hitPlan && result.hitPlan.length) ? result.hitPlan : [{basePower:(input.move && input.move.power) || 1}];
+    if(hitPlan.length > MAX_SUBHITS_PER_TURN) return;
+
+    var turnDist = null;
+    for(var i=0;i<hitPlan.length;i++){
+      var pw = hitPlan[i].basePower;
+      if(!pw || pw <= 0) continue;
+      for(var pi=0; pi<parentalRates.length; pi++){
+        var rolls = [];
+        for(var rnd=85; rnd<=100; rnd++) rolls.push(calcOneKo(level,pw,atk,def,rnd,rates,parentalRates[pi]));
+        var hitDist = distFromRolls(rolls);
+        turnDist = turnDist ? convolve(turnDist, hitDist) : hitDist;
+      }
+    }
+    if(!turnDist) return;
+
+    var turnKeys = Object.keys(turnDist).map(Number);
+    var turnMin = Math.min.apply(null, turnKeys), turnMax = Math.max.apply(null, turnKeys);
+    if(result.minDamage != null && result.maxDamage != null){
+      var refMax = Math.max(1, result.maxDamage);
+      if(Math.abs(turnMin - result.minDamage) > refMax * 0.15 || Math.abs(turnMax - result.maxDamage) > refMax * 0.15){
+        if(window.console && console.warn) console.warn('[koInfo] skipped: per-turn damage ('+turnMin+'-'+turnMax+') does not match displayed range ('+result.minDamage+'-'+result.maxDamage+')');
+        return;
+      }
+    }
+
+    var cum = turnDist, partial = null, certain = null;
+    for(var k=1;k<=MAX_TURNS;k++){
+      if(k>1) cum = convolve(cum, turnDist);
+      var p = probAtLeast(cum, hp);
+      if(p > 1e-9 && p < 1 - 1e-9 && !partial) partial = { hits:k, probability:p };
+      if(p >= 1 - 1e-9){ certain = k; break; }
+    }
+    result.koInfo = {
+      certain: certain,
+      partial: (partial && (!certain || partial.hits < certain)) ? partial : null,
+      cappedAt: certain ? null : MAX_TURNS
+    };
+  }
+
+  var prevKo = C.calculateDamage;
+  C.calculateDamage = function(input){
+    var result = prevKo(input);
+    try{ computeExactKoInfo(result, input || {}); }
+    catch(e){ if(window.console && console.error) console.error('[koInfo] failed:', e); }
+    return result;
   };
   window.DAMEKE_CALC = C;
 })();

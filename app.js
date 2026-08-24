@@ -22,11 +22,6 @@
     var v = s ? s.value : '';
     if(v==='♂') return 'male';
     if(v==='♀') return 'female';
-    if(v) return 'unknown';
-    var g = document.getElementById(prefix+'Gender');
-    var gv = g ? g.value : '';
-    if(gv==='male') return 'male';
-    if(gv==='female') return 'female';
     return 'unknown';
   }
   function fillSelect(select, items) { select.textContent = ""; for (const item of items) { const op = document.createElement('option'); op.value = item.id; op.textContent = item.name; select.appendChild(op); } }
@@ -112,9 +107,16 @@
       moldBreaker: false, neutralizingGas: false, attackerItemSuppressed: false, defenderItemSuppressed: false
     };
   }
+  function formatKoInfo(koInfo) {
+    if (!koInfo) return '計算対象外';
+    if (koInfo.partial) return '乱数' + koInfo.partial.hits + '発(' + (koInfo.partial.probability * 100).toFixed(2) + '%)';
+    if (koInfo.certain) return '確定' + koInfo.certain + '発';
+    if (koInfo.cappedAt) return koInfo.cappedAt + '発以上でも確定せず';
+    return '圏外';
+  }
   function calculate() {
     const result = CALC.calculateDamage({ attacker: byId(DATA.pokemons, el.attackerSelect.value), defender: byId(DATA.pokemons, el.defenderSelect.value), move: byId(DATA.moves, el.moveSelect.value), attackerLevel: el.attackerLevel.value, defenderLevel: el.defenderLevel.value, options: buildOptions() });
-    el.summary.innerHTML = ['<strong>' + result.attackerName + '</strong> の <strong>' + result.moveName + '</strong> → <strong>' + result.defenderName + '</strong>', '判定分類: <strong>' + result.effectiveCategory + '</strong>', '技タイプ: <strong>' + result.effectiveType + '</strong>', 'ダメージ: <strong>' + result.minDamage + ' ～ ' + result.maxDamage + '</strong>', '割合: <strong>' + result.minRate.toFixed(1) + '% ～ ' + result.maxRate.toFixed(1) + '%</strong>', '防御側HP: ' + result.defenderCurrentHp + ' / ' + result.defenderMaxHp].join('<br>');
+    el.summary.innerHTML = ['<strong>' + result.attackerName + '</strong> の <strong>' + result.moveName + '</strong> → <strong>' + result.defenderName + '</strong>', '判定分類: <strong>' + result.effectiveCategory + '</strong>', '技タイプ: <strong>' + result.effectiveType + '</strong>', 'ダメージ: <strong>' + result.minDamage + ' ～ ' + result.maxDamage + '</strong>', '割合: <strong>' + result.minRate.toFixed(1) + '% ～ ' + result.maxRate.toFixed(1) + '%</strong>', '防御側HP: ' + result.defenderCurrentHp + ' / ' + result.defenderMaxHp, '確定数: <strong>' + formatKoInfo(result.koInfo) + '</strong>'].join('<br>');
     el.rolls.textContent = (result.multiHitRolls && result.multiHitRolls.length) ? result.multiHitRolls.join(NL) : result.rolls.join(', ');
     el.trace.textContent = formatTrace(result.trace);
   }
@@ -128,7 +130,7 @@
     el.resetTransformOps.addEventListener('click', () => { transformOps = []; updateOpsDisplay(); calculate(); });
     el.calculateButton.addEventListener('click', calculate); el.copyTraceButton.addEventListener('click', copyTrace);
     document.querySelectorAll('button[data-hp-side]').forEach(btn => btn.addEventListener('click', () => setHpFraction(btn.dataset.hpSide, Number(btn.dataset.hpRate))));
-    document.querySelectorAll('input,select').forEach(node => node.addEventListener('change', calculate));
+    document.addEventListener('change', function(e){ var t=e.target; if(t && t.matches && t.matches('input,select')) calculate(); });
     updateOpsDisplay(); calculate();
   }
   window.__damekeInitV084 = init;
@@ -285,6 +287,22 @@
   function box(title, cls){ var s=make('section','sub-card v082h-box '+(cls||'')); s.appendChild(make('h3','',title)); return s; }
   function zone(id, title){ var d=details(title,'v082h-details v082h-trigger-details',false); d.id=id; return d; }
 
+  function setActiveSide(side){
+    document.body.classList.remove('v082h-tab-attacker','v082h-tab-defender');
+    document.body.classList.add('v082h-tab-'+side);
+    all('.v082h-side-tabs button').forEach(function(b){ b.classList.toggle('active', b.dataset.side===side); });
+  }
+  function buildSideTabs(){
+    var bar=make('div','v082h-side-tabs');
+    ['attacker','defender'].forEach(function(side){
+      var b=document.createElement('button'); b.type='button';
+      b.textContent = side==='attacker' ? '攻撃側' : '防御側';
+      b.dataset.side=side;
+      b.addEventListener('click', function(){ setActiveSide(side); });
+      bar.appendChild(b);
+    });
+    return bar;
+  }
   function installLayout(){
     if(q('v082hBasicGrid')) return;
     var top=document.querySelector('.top-inputs');
@@ -298,6 +316,7 @@
     toolbar.appendChild(swap);
     root.appendChild(toolbar);
 
+    root.appendChild(buildSideTabs());
     var grid=make('div','v082h-basic-grid'); grid.id='v082hBasicGrid'; root.appendChild(grid);
     var atk=box('攻撃側','v082h-attacker');
     var def=box('防御側','v082h-defender');
@@ -460,7 +479,6 @@
     btnLabel.appendChild(buttons);
     row.appendChild(btnLabel);
     panel.appendChild(row);
-    applyHpFraction(side, 1);
     if(oldHpTools && oldHpTools.parentNode) oldHpTools.parentNode.removeChild(oldHpTools);
   }
   function levelRow(side){
@@ -578,9 +596,12 @@
     }
 
     if(atk && def && atk.parentNode){
-      var wrap=make('div','v082h-cond-wrap');
+      var wrap=make('div','v082h-cond-wrap-outer');
       atk.parentNode.insertBefore(wrap, atk);
-      wrap.appendChild(atk); wrap.appendChild(def);
+      wrap.appendChild(buildSideTabs());
+      var condWrap=make('div','v082h-cond-wrap');
+      wrap.appendChild(condWrap);
+      condWrap.appendChild(atk); condWrap.appendChild(def);
       var syncingOpen=false;
       atk.addEventListener('toggle', function(){ if(syncingOpen) return; syncingOpen=true; def.open=atk.open; syncingOpen=false; });
       def.addEventListener('toggle', function(){ if(syncingOpen) return; syncingOpen=true; atk.open=def.open; syncingOpen=false; });
@@ -598,15 +619,102 @@
   function valueAfter(lines,prefix){ for(var i=0;i<lines.length;i++){ if(lines[i].indexOf(prefix)===0) return lines[i].slice(prefix.length).trim(); } return ''; }
   function digits(s){ var arr=[], cur=''; s=String(s||''); for(var i=0;i<s.length;i++){ var c=s.charAt(i); if(c>='0'&&c<='9') cur+=c; else if(cur){ arr.push(Number(cur)); cur=''; } } if(cur) arr.push(Number(cur)); return arr; }
   function traceLine(key){ var lines=linesOf(q('trace')); for(var i=0;i<lines.length;i++){ if(lines[i].indexOf(key)>=0) return lines[i]; } return ''; }
-  function compactPower(line){ var txt=String(line||''); var nums=[], re=/回目=([0-9]+)/g, m; while((m=re.exec(txt))) nums.push(m[1]); if(nums.length) return nums.join(','); m=txt.match(/最終威力:\s*([0-9]+)/); return m?m[1]:'未計算'; }
+  function compactPower(line){ var txt=String(line||'').trim(); if(txt==='-') return '-'; var nums=[], re=/回目=([0-9]+)/g, m; while((m=re.exec(txt))) nums.push(m[1]); if(nums.length) return nums.join(','); m=txt.match(/最終威力:\s*([0-9]+)/); return m?m[1]:'未計算'; }
   function cleanCurrent(s){ return String(s||'').replace(/^.*?\]\s*/,'').replace(/^現在値:\s*/,'').trim(); }
-  function renderResult(){ var src=q('summary'); if(!src) return; var panel=q('v082hResultPanel'); if(!panel){ panel=make('div','v082h-result-panel'); panel.id='v082hResultPanel'; src.parentNode.insertBefore(panel,src); src.classList.add('v082h-hide'); } var lines=summaryLines(); var head=lines[0]||'未計算'; var cat=valueAfter(lines,'判定分類:'); var type=valueAfter(lines,'技タイプ:'); var dmg=valueAfter(lines,'ダメージ:'); var rate=valueAfter(lines,'割合:'); var hp=valueAfter(lines,'防御側HP:'); var dn=digits(dmg), hn=digits(hp), certainty='未計算', remain='未計算'; if(dn.length>=2&&hn.length>=2){ var min=dn[0], max=dn[1], cur=hn[0]; certainty=min>=cur?'確定1発':(max>0?Math.ceil(cur/max)+'発以上':'未計算'); remain=Math.max(0,cur-max)+' ～ '+Math.max(0,cur-min); } var power=compactPower(traceLine('変動後威力')); var priority=cleanCurrent(traceLine('優先度'))||'未計算'; var invalid=cleanCurrent(traceLine('無効要素'))||'なし'; panel.innerHTML=''; panel.appendChild(make('div','v082h-result-title',head)); var grid=make('div','v082h-result-grid'); panel.appendChild(grid); [['技分類',cat],['技タイプ',type],['技威力',power],['ダメージ',dmg],['割合',rate],['確定数',certainty],['防御側残HP',remain],['命中・必中','未計算'],['優先度',priority],['無効要素',invalid],['みがわり','未実装'],['瀕死率','未実装']].forEach(function(r){ var item=make('div','v082h-result-item'); item.appendChild(make('span','v082h-result-key',r[0])); item.appendChild(make('span','v082h-result-value',r[1]||'未計算')); grid.appendChild(item); }); }
+  function statText(side, key, kind) { var el = q(side+'_'+key+'_'+kind); return el ? el.value : ''; }
+  function natureText(side) { var el = q(side+'_nature'); if (!el) return ''; var opt = el.options[el.selectedIndex]; return opt ? opt.textContent : ''; }
+  function statRefFor(labelKey, fallbackSide, fallbackKey) {
+    var line = traceLine(labelKey);
+    var m = line.match(/(攻撃側|防御側)ランク補正込み([ABCD])参照/);
+    if (m) return { side: m[1]==='攻撃側' ? 'attacker' : 'defender', key: m[2] };
+    return { side: fallbackSide, key: fallbackKey };
+  }
+  function hpColorClass(remainHp, maxHp) {
+    if (remainHp <= 0) return 'v082h-hp-faint';
+    var half = Math.floor(maxHp / 2), quarter = Math.floor(maxHp / 4);
+    if (remainHp > half) return 'v082h-hp-green';
+    if (remainHp > quarter) return 'v082h-hp-yellow';
+    return 'v082h-hp-red';
+  }
+  function buildHpBar(maxHp, minRemain, maxRemain) {
+    var track = make('div','v082h-hpbar-track');
+    if (!maxHp || maxHp <= 0) return track;
+    function pct(v){ return Math.max(0, Math.min(100, v / maxHp * 100)); }
+    var colorClass = hpColorClass(maxRemain, maxHp);
+    var solid = make('div', 'v082h-hpbar-seg v082h-hpbar-solid ' + colorClass);
+    solid.style.width = pct(maxRemain) + '%';
+    var uncertain = make('div', 'v082h-hpbar-seg v082h-hpbar-uncertain ' + colorClass);
+    uncertain.style.width = Math.max(0, pct(minRemain) - pct(maxRemain)) + '%';
+    track.appendChild(solid);
+    track.appendChild(uncertain);
+    return track;
+  }
+  function resultRow(container, label, value){ var item=make('div','v082h-result-item'); item.appendChild(make('span','v082h-result-key',label)); item.appendChild(make('span','v082h-result-value',value||'未計算')); container.appendChild(item); }
+  function renderResult(){
+    var src=q('summary'); if(!src) return;
+    var lines=summaryLines();
+    var cat=valueAfter(lines,'判定分類:');
+    var type=valueAfter(lines,'技タイプ:');
+    var dmg=valueAfter(lines,'ダメージ:');
+    var rate=valueAfter(lines,'割合:');
+    var hp=valueAfter(lines,'防御側HP:');
+    var certainty=valueAfter(lines,'確定数:')||'未計算';
+    var power=compactPower(traceLine('変動後威力'));
+    var priority=cleanCurrent(traceLine('優先度'))||'未計算';
+    var invalid=cleanCurrent(traceLine('無効要素'))||'なし';
+    var dn=digits(dmg), hn=digits(hp);
+
+    // ---- compact HP-bar summary: this is the only part pinned at the top on narrow screens ----
+    var panel=q('v082hResultPanel');
+    if(!panel){ panel=make('div','v082h-result-panel'); panel.id='v082hResultPanel'; src.parentNode.insertBefore(panel,src); src.classList.add('v082h-hide'); }
+    panel.innerHTML='';
+    panel.appendChild(make('div','v082h-hp-infoline', dmg+'（'+rate+'）'));
+    panel.appendChild(make('div','v082h-hp-infoline2', certainty+'　瀕死率:未実装'));
+
+    var maxHp=0;
+    if (dn.length>=2 && hn.length>=2) {
+      var minDmg=dn[0], maxDmg=dn[1], curHp=hn[0]; maxHp=hn[1];
+      var minRemain=Math.max(0, curHp-minDmg), maxRemain=Math.max(0, curHp-maxDmg);
+      var barWrap=make('div','v082h-hpbar-wrap');
+      barWrap.appendChild(buildHpBar(maxHp, minRemain, maxRemain));
+      barWrap.appendChild(make('div','v082h-hpbar-nums', maxRemain+' ～ '+minRemain+' / '+maxHp));
+      panel.appendChild(barWrap);
+    }
+
+    var atkRef = statRefFor('補正後攻撃側実数値', 'attacker', cat==='特殊'?'C':'A');
+    var defRef = statRefFor('補正後防御側実数値', 'defender', cat==='特殊'?'D':'B');
+    var sideGrid = make('div','v082h-result-sidegrid');
+    panel.appendChild(sideGrid);
+    var atkCol = make('div','v082h-result-col'), defCol = make('div','v082h-result-col');
+    sideGrid.appendChild(atkCol); sideGrid.appendChild(defCol);
+    resultRow(atkCol, '性格', natureText('attacker'));
+    resultRow(defCol, '性格', natureText('defender'));
+    if (cat !== '変化') {
+      var atkSideJp = atkRef.side==='attacker' ? '攻' : '防';
+      resultRow(atkCol, '努力値('+atkSideJp+atkRef.key+')', statText(atkRef.side, atkRef.key, 'ev'));
+      resultRow(defCol, '努力値(H/'+defRef.key+')', statText('defender','H','ev')+' / '+statText('defender',defRef.key,'ev'));
+      resultRow(atkCol, 'ランク('+atkSideJp+atkRef.key+')', statText(atkRef.side, atkRef.key, 'rank'));
+      resultRow(defCol, 'ランク('+defRef.key+')', statText('defender',defRef.key,'rank'));
+    }
+
+    // ---- full detail panel + rolls/trace: restored as-is, normal flow, not pinned ----
+    var detail=q('v082hResultDetailPanel');
+    if(!detail){ detail=make('div','v082h-result-panel'); detail.id='v082hResultDetailPanel'; panel.parentNode.insertBefore(detail, panel.nextSibling); }
+    detail.innerHTML='';
+    var grid=make('div','v082h-result-grid');
+    detail.appendChild(grid);
+    [['技分類',cat],['技タイプ',type],['技威力',power],['ダメージ',dmg],['割合',rate],['確定数',certainty],['命中・必中','未計算'],['優先度',priority],['無効要素',invalid],['みがわり','未実装'],['瀕死率','未実装']].forEach(function(r){ resultRow(grid, r[0], r[1]); });
+
+    requestAnimationFrame(function(){
+      document.documentElement.style.setProperty('--v082h-fixed-panel-h', panel.offsetHeight + 'px');
+    });
+  }
   function setupResult(){ var s=q('summary'), t=q('trace'); if(!s) return; var obs=new MutationObserver(renderResult); obs.observe(s,{childList:true,subtree:true,characterData:true}); if(t) obs.observe(t,{childList:true,subtree:true,characterData:true}); setTimeout(renderResult,0); }
   function refreshAll(){ updateAbilityButtons('attacker'); updateAbilityButtons('defender'); updateConditional(); renderResult(); }
   function bind(){ ['attackerSelect','defenderSelect'].forEach(function(id){ var e=q(id); if(e) e.addEventListener('change',function(){ setTimeout(refreshAll,0); }); }); ['moveSelect','attackerAbilitySelect','defenderAbilitySelect','attackerItemSelect','attackerTeraType'].forEach(function(id){ var e=q(id); if(e) e.addEventListener('change',function(){ setTimeout(updateConditional,0); }); }); }
 
   function safeStep(name, fn){ try{ fn(); }catch(e){ if(window.console && console.error) console.error('[v082h] '+name+' failed:', e); } }
-  function finalizeAbilitySearchCombos(){
+  function finalizeSearchCombos(){
     // Attaching the ability search combo here (after the rest of the layout has
     // settled) instead of inline inside addAbilityPanel is what reliably works;
     // building it earlier in the sequence did not take effect consistently.
@@ -621,17 +729,21 @@
         l.insertBefore(document.createTextNode('特性選択'), l.firstChild);
       }
     });
+    for(var n=1;n<=5;n++){
+      var beatSel = q('beatUpAlly'+n);
+      if(beatSel) attachSearchCombo('beatUpAlly'+n);
+    }
   }
   function buildLayoutAndZones(){
     safeStep('installLayout', installLayout);
     safeStep('setupZones', setupZones);
     safeStep('restructureConditions', restructureConditions);
-    safeStep('finalizeAbilitySearchCombos', finalizeAbilitySearchCombos);
+    safeStep('finalizeSearchCombos', finalizeSearchCombos);
   }
   function initializeLayoutAndZones(){
     buildLayoutAndZones();
   }
-  function init(){ document.body.classList.add('v082h-ui'); initializeLayoutAndZones(); bind(); refreshAll(); setupResult(); }
+  function init(){ document.body.classList.add('v082h-ui'); initializeLayoutAndZones(); setActiveSide('attacker'); bind(); refreshAll(); setupResult(); }
     window.DAMEKE_UI_V082H_COND_DEBUG=function(){
     function info(el){
       if(!el) return {found:false};
