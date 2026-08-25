@@ -1,3 +1,129 @@
+// ==== shared active-item / active-ability helpers ====
+// Consolidates ~16 near-duplicate copies of this logic that had accumulated across
+// the file's many patch layers into one canonical implementation per behavior variant.
+// Behavior is unchanged from before -- this only removes the duplicated text.
+(function(){
+  if(window.DAMEKE_CALC_SHARED) return;
+  var D = window.DAMEKE_DATA;
+  function by(list,id){ return (list||[]).find(function(x){ return x.id===id; }) || (list||[])[0]; }
+
+  // Variant "WithFallback": prefer the core result's already-computed active state;
+  // if unavailable, independently re-derive from the raw held-item/ability + field flags.
+  function activeItemWithFallback(side,item,o){
+    if(o&&o.__coreState){
+      var st=side==='A'?o.__coreState.attackerItemState:o.__coreState.defenderItemState;
+      var coreItem=side==='A'?o.__coreState.attackerItem:o.__coreState.defenderItem;
+      if(st&&coreItem&&item&&coreItem.id===item.id) return !!st.active;
+    }
+    if(!item||item.id==='none') return false;
+    if(side==='A'&&o.attackerNoItem) return false;
+    if(side==='D'&&o.defenderNoItem) return false;
+    if(o.magicRoom) return false;
+    if(side==='A'&&o.attackerEmbargo) return false;
+    if(side==='D'&&o.defenderEmbargo) return false;
+    return true;
+  }
+  function activeAbilityWithFallback(side,ab,o){
+    if(o&&o.__coreState){
+      var st=side==='A'?o.__coreState.attackerAbilityState:o.__coreState.defenderAbilityState;
+      if(st&&st.ability&&ab&&st.ability.id===ab.id) return !!st.active;
+    }
+    if(!ab||ab.id==='なし') return false;
+    if(side==='A'&&o.attackerNoAbility) return false;
+    if(side==='D'&&o.defenderNoAbility) return false;
+    if(ab.name==='マルチタイプ'||ab.name==='ARシステム') return true;
+    if(o.neutralizingGasField) return false;
+    var other=by(D.abilities,side==='A'?o.defenderAbilityId:o.attackerAbilityId);
+    var otherNo=side==='A'?o.defenderNoAbility:o.attackerNoAbility;
+    if(other&&!otherNo&&other.name==='かがくへんかガス') return false;
+    return true;
+  }
+
+  // Variant "CoreOnly": trust only the core result's state; if it's unavailable
+  // (e.g. called before the core has run), report inactive rather than guessing.
+  function activeItemCoreOnly(side,item,o,result){
+    var core=(result&&result.__coreState)||(o&&o.__coreState);
+    if(core){
+      var st=side==='A'?core.attackerItemState:core.defenderItemState;
+      var coreItem=side==='A'?core.attackerItem:core.defenderItem;
+      if(st&&coreItem&&item&&coreItem.id===item.id) return !!st.active;
+    }
+    return false;
+  }
+  function activeAbilityCoreOnly(side,ab,o,result){
+    var core=(result&&result.__coreState)||(o&&o.__coreState);
+    if(core){
+      var st=side==='A'?core.attackerAbilityState:core.defenderAbilityState;
+      if(st&&st.ability&&ab&&st.ability.id===ab.id) return !!st.active;
+    }
+    return false;
+  }
+
+  function num(v,f){ var n=parseInt(v,10); return Number.isFinite(n) ? n : f; }
+  function parseAfterArrow(result,labelPart){
+    var line=(result.trace||[]).find(function(x){ return String(x.label).includes(labelPart); });
+    if(!line) return null;
+    var m=String(line.value).match(/->\s*(\d+)/);
+    return m ? num(m[1],null) : null;
+  }
+
+  function attackerCalcTypes(result){ var line=(result.trace||[]).find(function(x){return String(x.label).includes('計算上タイプ（攻撃側）');}); return line?String(line.value||'').split('/').filter(Boolean):[]; }
+  function defenderCalcTypes(result){ var line=(result.trace||[]).find(function(x){return String(x.label).includes('計算上タイプ（防御側）');}); return line?String(line.value||'').split('/').filter(Boolean):[]; }
+  function isGrounded(result,side){ var label=side==='A'?'接地判定（攻撃側）':'接地判定（防御側）'; var line=(result.trace||[]).find(function(x){return String(x.label).includes(label);}); return !line||line.value==='有効'; }
+  function contactActive(result){
+    if(result && typeof result.contactEffective === 'boolean') return result.contactEffective;
+    var line=(result.trace||[]).find(function(x){return String(x.label).includes('直接攻撃判定');});
+    return !!(line && String(line.value).includes('直接') && !String(line.value).includes('非直接'));
+  }
+  function isZOrMax(result,o){
+    var line=(result.trace||[]).find(function(x){return String(x.label).includes('Z・ダイマックス（攻撃側）');});
+    var nm=String((line&&line.name)||''), val=String((line&&line.value)||'');
+    return (val==='有効'&&(nm==='Zワザ'||nm==='専用Z'||nm==='ダイマックス'||nm==='キョダイマックス')) || (o.attackerSpecialState&&o.attackerSpecialState!=='none');
+  }
+  function isAbility(name,ab,ok){ return ok && ab && ab.name===name; }
+  function moveName(result,input){ return result.moveName || input.move.name; }
+  function protectedPierceMove(n,maxGuard){ return window.DAMEKE_DATA_HELPERS.moveTagByName(n, maxGuard ? 'maxGuardBypass' : 'protectBypass'); }
+  function protectInfo(result,input,o){
+    var state=o.defenderProtectState||'none', n=moveName(result,input);
+    if(state==='none') return {rate:4096,invalid:false,reason:'なし'};
+    if(state==='maxGuard'){
+      if(protectedPierceMove(n,true)) return {rate:4096,invalid:false,reason:'ダイウォール例外 '+n};
+      return {rate:0,invalid:true,reason:'ダイウォール'};
+    }
+    if(protectedPierceMove(n,false)) return {rate:4096,invalid:false,reason:'まもる例外 '+n};
+    if(isZOrMax(result,o)) return {rate:1024,invalid:false,reason:'Z/ダイマ技のまもる貫通25%'};
+    var aAb=by(D.abilities,o.attackerAbilityId||'なし');
+    if(activeAbilityCoreOnly('A',aAb,o,result) && window.DAMEKE_DATA_HELPERS.abilityTag(aAb,'protectPiercingContact') && contactActive(result))
+      return {rate:1024,invalid:false,reason:aAb.name+'+直接攻撃'};
+    return {rate:0,invalid:true,reason:'まもる'};
+  }
+  // Consolidates 6 near-identical copies. One had extra critical-hit rank-normalization
+  // logic (crit/atk params), but every call site always passes crit=false, so that branch
+  // was provably dead -- effectiveRanks() already does critical-hit rank normalization
+  // upstream before calling this. Dropped safely; behavior is unchanged.
+  function fl(x){ return window.DAMEKE_ROUNDING.floor(x); }
+  function rank(v,r){ r=num(r,0); return r>=0 ? fl(v*(2+r)/2) : fl(v*2/(2-r)); }
+
+  window.DAMEKE_CALC_SHARED = {
+    num: num,
+    parseAfterArrow: parseAfterArrow,
+    attackerCalcTypes: attackerCalcTypes,
+    defenderCalcTypes: defenderCalcTypes,
+    isGrounded: isGrounded,
+    contactActive: contactActive,
+    isZOrMax: isZOrMax,
+    isAbility: isAbility,
+    moveName: moveName,
+    protectedPierceMove: protectedPierceMove,
+    protectInfo: protectInfo,
+    rank: rank,
+    activeItemWithFallback: activeItemWithFallback,
+    activeAbilityWithFallback: activeAbilityWithFallback,
+    activeItemCoreOnly: activeItemCoreOnly,
+    activeAbilityCoreOnly: activeAbilityCoreOnly
+  };
+})();
+
 
 
 // fix/v0.48-v0.51 early canonical name-reference helpers
@@ -146,7 +272,7 @@
   const hiddenPowerTypes = ['かくとう','ひこう','どく','じめん','いわ','むし','ゴースト','はがね','ほのお','みず','くさ','でんき','エスパー','こおり','ドラゴン','あく'];
   function i(v,f){const n=parseInt(v,10);return Number.isFinite(n)?n:f;} function fl(v){return window.DAMEKE_ROUNDING.floor(v);} function cl(v,a,b){return Math.min(Math.max(v,a),b);} function st(label,name,value,note='',implemented=true){return{label,name,value,note,implemented};} function pend(label,name,note){return st(label,name,'未反映',note||'未実装枠',false);} function by(list,id){return list.find(x=>x.id===id)||list[0];} function formatRate(r){return r+'/4096 ('+(r/4096).toFixed(2)+'倍)';}
   function spToEv(sp){sp=cl(i(sp,0),0,32);return sp<=0?0:(sp===32?252:4+(sp-1)*8);} function norm(src){const o={ivs:{},evs:{},ranks:{}};let total=0;src=src||{};for(const k of ['H','A','B','C','D','S']){o.ivs[k]=cl(i(src.ivs&&src.ivs[k],31),0,31);const raw=cl(i(src.evs&&src.evs[k],0),0,32);const use=Math.min(raw,Math.max(0,66-total));o.evs[k]=use;total+=use;}for(const k of ['A','B','C','D','S','acc','eva'])o.ranks[k]=cl(i(src.ranks&&src.ranks[k],0),-6,6);o.totalEv=total;return o;} function stat(base,level,iv,sp,hp){const ev=spToEv(sp);return hp?fl(((2*base+iv+fl(ev/4))*level)/100)+level+10:fl(((2*base+iv+fl(ev/4))*level)/100)+5;} function getActualStats(p,level,input){const n=norm(input),b=p.baseStats,o={input:n};for(const k of ['H','A','B','C','D','S']){o[k]=stat(b[k],level,n.ivs[k],n.evs[k],k==='H');if(k==='H'&&window.DAMEKE_DATA_HELPERS.pokemonMatches(p,'ヌケニン'))o[k]=1;if(k!=='H')o[k]=window.DAMEKE_NATURE.apply(o[k],k,input||{});}return o;} function previewBaseMaxHp(p,level,input){return getActualStats(p,cl(i(level,50),1,100),input).H;} function cloneStats(s){return Object.assign({},s,{input:s.input});}
-  function rank(v,r,crit,atk){if(crit&&atk&&r<0)r=0;if(crit&&!atk&&r>0)r=0;return r>=0?fl(v*(2+r)/2):fl(v*2/(2-r));} function typeRate(t,dt){return (DATA.typeChart4096[t]||{})[dt]??4096;} function combo(t,types){let r=4096,details=[];for(const dt of types){const single=typeRate(t,dt),before=r;r=fl(r*single/4096);details.push({attackType:t,defenseType:dt,single,before,after:r});}return{rate:r,details};} function stab(t,types){return types.includes(t)?6144:4096;} function mod(v,r){return fl(v*r/4096);} function baseDamage(level,power,atk,def){if(!power||def<=0)return 0;return fl(fl((fl(2*level/5)+2)*power*atk/def)/50)+2;}
+  var rank = window.DAMEKE_CALC_SHARED.rank; function typeRate(t,dt){return (DATA.typeChart4096[t]||{})[dt]??4096;} function combo(t,types){let r=4096,details=[];for(const dt of types){const single=typeRate(t,dt),before=r;r=fl(r*single/4096);details.push({attackType:t,defenseType:dt,single,before,after:r});}return{rate:r,details};} function stab(t,types){return types.includes(t)?6144:4096;} function mod(v,r){return fl(v*r/4096);} function baseDamage(level,power,atk,def){if(!power||def<=0)return 0;return fl(fl((fl(2*level/5)+2)*power*atk/def)/50)+2;}
   function maxPower(p){
     var z = (window.DAMEKE_DATA && window.DAMEKE_DATA.zMax) || (typeof DATA !== 'undefined' && DATA.zMax) || {};
     if(p == null) return null;
@@ -188,7 +314,7 @@
   }
 function hpBlock(side,p,stt,item,itState,ab,special,o){const prefix=side==='A'?'attacker':'defender',max=stt.H;const raw=o[prefix+'CurrentHpInput']===''||o[prefix+'CurrentHpInput']==null?max:cl(i(o[prefix+'CurrentHpInput'],max),1,max);let hd=0,notes=[];const immune=(itState.active&&item.kind==='HazardImmune')||(ab.active&&window.DAMEKE_DATA_HELPERS.abilityTag(ab.ability,'hazardImmune'));if(immune)notes.push('あつぞこブーツまたはマジックガードにより設置技0');if(!immune&&o[prefix+'StealthRock']){const d=hazardType(max,'いわ',p.types);hd+=d;notes.push('ステロ='+d);}if(!immune&&o[prefix+'SteelSurge']){const d=hazardType(max,'はがね',p.types);hd+=d;notes.push('キョダイコウジン='+d);}const sp=cl(i(o[prefix+'Spikes'],0),0,3);if(!immune&&sp>0){if(grounded(p,ab,itState,item,o)){const d=sp===1?hazardDamage(max,1,8):sp===2?hazardDamage(max,1,6):hazardDamage(max,1,4);hd+=d;notes.push('まきびし'+sp+'回='+d);}else notes.push('まきびし=0（繰り出し時非接地扱い）');}const after=Math.max(0,raw-hd);return{maxFinal:special?max*2:max,currentFinal:special?after*2:after,hazardDamage:hd,notes:notes.join('、')||'なし'};}
   function ranksToText(r){return'A'+r.A+' / B'+r.B+' / C'+r.C+' / D'+r.D+' / S'+r.S;} function copyRanks(r){const o={};for(const k of ['A','B','C','D','S','acc','eva'])o[k]=r[k]||0;return o;} function effectiveRankedStatsText(hp,raw,ranks,isAtk){return hp.currentFinal+'/'+hp.maxFinal+' / '+[rank(raw.A,ranks.A,false,isAtk),rank(raw.B,ranks.B,false,isAtk),rank(raw.C,ranks.C,false,isAtk),rank(raw.D,ranks.D,false,isAtk),rank(raw.S,ranks.S,false,isAtk)].join('/');}
-  function criticalState(dState,o,move){const name=move&&move.name;const fixed=!!(move&&window.DAMEKE_DATA_HELPERS.moveTag(move,'fixedDamage'));const merciless=(o&&o.defenderStatus==='どく'&&o.attackerAbilityId==='ひとでなし');const forced=(move&&window.DAMEKE_DATA_HELPERS.moveTag(move,'alwaysCrit'))||merciless;if(dState.active&&(window.DAMEKE_DATA_HELPERS.abilityTag(dState.ability,'criticalBlock')||window.DAMEKE_DATA_HELPERS.abilityTag(dState.ability,'criticalBlock')))return{requested:!!o.critical||forced,effective:false,reason:'防御側特性'+dState.ability.name+'により急所無効'};if(o.defenderLuckyChant)return{requested:!!o.critical||forced,effective:false,reason:'防御側おまじないにより急所無効'};if(fixed)return{requested:!!o.critical||forced,effective:false,reason:'固定ダメージ技のため急所なし'};if(forced)return{requested:true,effective:true,reason:name+'により急所確定'};if(o.critical)return{requested:true,effective:true,reason:'攻撃側条件急所'};return{requested:false,effective:false,reason:'急所指定なし'};} function effectiveRanks(aIn,dIn,aState,dState,move,o,crit){const a=copyRanks(aIn),d=copyRanks(dIn),notes=[];if((aState.active&&aState.ability.name==='てんねん')||DEF_RANK_IGNORE_MOVES.has(move.name)){for(const k of ['B','C','D'])d[k]=0;if(move.name!=='イカサマ')d.A=0;notes.push((aState.active&&aState.ability.name==='てんねん'?'攻撃側てんねん':move.name)+'により防御側ABCDランクを0');}if(dState.active&&dState.ability.name==='てんねん'){for(const k of ['A','B','C','D'])a[k]=0;if(move.name==='イカサマ')d.A=0;notes.push('防御側てんねんにより攻撃側ABCDランクを0'+(move.name==='イカサマ'?'、イカサマ参照の防御側Aも0':''));}if(crit.effective){for(const k of ['A','B','C','D']){if(a[k]<0)a[k]=0;if(d[k]>0)d[k]=0;}notes.push('急所により攻撃側不利ランクと防御側有利ランクを0');}const accRank=(dState.active&&dState.ability.name==='てんねん')?0:a.acc;const ignoreEva=(aState.active&&['てんねん','しんがん','するどいめ','はっこう'].includes(aState.ability.name))||o.defenderForesight||o.defenderMiracleEye;const evaRank=ignoreEva?0:d.eva;const hitRank=cl(accRank-evaRank,-6,6);return{attacker:a,defender:d,notes:notes.join('、')||'入力どおり',hitRank,hitNote:'命中'+accRank+' - 回避'+evaRank+' = '+hitRank+(ignoreEva?'（回避ランク無視）':'')};}
+  function criticalState(dState,o,move){const name=move&&move.name;const fixed=!!(move&&window.DAMEKE_DATA_HELPERS.moveTag(move,'fixedDamage'));const merciless=(o&&o.defenderStatus==='どく'&&o.attackerAbilityId==='ひとでなし');const forced=(move&&window.DAMEKE_DATA_HELPERS.moveTag(move,'alwaysCrit'))||merciless;if(dState.active&&window.DAMEKE_DATA_HELPERS.abilityTag(dState.ability,'criticalBlock'))return{requested:!!o.critical||forced,effective:false,forced,reason:'防御側特性'+dState.ability.name+'により急所無効'};if(o.defenderLuckyChant)return{requested:!!o.critical||forced,effective:false,forced,reason:'防御側おまじないにより急所無効'};if(fixed)return{requested:!!o.critical||forced,effective:false,forced,reason:'固定ダメージ技のため急所なし'};if(forced)return{requested:true,effective:true,forced:true,reason:name+'により急所確定'};if(o.critical)return{requested:true,effective:true,forced:false,reason:'攻撃側条件急所'};return{requested:false,effective:false,forced:false,reason:'急所指定なし'};} function effectiveRanks(aIn,dIn,aState,dState,move,o,crit){const a=copyRanks(aIn),d=copyRanks(dIn),notes=[];if(move.name==='シャドースチール'){var stolen=[];for(const k of ['A','B','C','D','S']){if(d[k]>0){var steal=d[k];d[k]=0;a[k]=cl(a[k]+steal,-6,6);stolen.push(k+'+'+steal);}}if(stolen.length)notes.push('シャドースチールにより防御側の有利ランク（'+stolen.join('、')+'）を攻撃側へ移動');}if((aState.active&&aState.ability.name==='てんねん')||DEF_RANK_IGNORE_MOVES.has(move.name)){for(const k of ['B','C','D'])d[k]=0;if(move.name!=='イカサマ')d.A=0;notes.push((aState.active&&aState.ability.name==='てんねん'?'攻撃側てんねん':move.name)+'により防御側ABCDランクを0');}if(dState.active&&dState.ability.name==='てんねん'){for(const k of ['A','B','C','D'])a[k]=0;if(move.name==='イカサマ')d.A=0;notes.push('防御側てんねんにより攻撃側ABCDランクを0'+(move.name==='イカサマ'?'、イカサマ参照の防御側Aも0':''));}if(crit.effective){for(const k of ['A','B','C','D']){if(a[k]<0)a[k]=0;if(d[k]>0)d[k]=0;}notes.push('急所により攻撃側不利ランクと防御側有利ランクを0');}const accRank=(dState.active&&dState.ability.name==='てんねん')?0:a.acc;const ignoreEva=(aState.active&&['てんねん','しんがん','するどいめ','はっこう'].includes(aState.ability.name))||o.defenderForesight||o.defenderMiracleEye;const evaRank=ignoreEva?0:d.eva;const hitRank=cl(accRank-evaRank,-6,6);return{attacker:a,defender:d,notes:notes.join('、')||'入力どおり',hitRank,hitNote:'命中'+accRank+' - 回避'+evaRank+' = '+hitRank+(ignoreEva?'（回避ランク無視）':'')};}
   function inputRanked(raw,statName,isAtk,rankName){return rank(raw[statName],raw.input.ranks[rankName||statName],false,isAtk);} function normalizeCategoryLabel(cat){cat=String(cat||'');if(cat.indexOf('物理')>=0)return '物理';if(cat.indexOf('特殊')>=0)return '特殊';if(cat.indexOf('変化')>=0)return '変化';return cat;} function categoryDecision(move,as,ds,tera,level,wonderRoom){const A=inputRanked(as,'A',true),C=inputRanked(as,'C',true),B=inputRanked(ds,'B',false),D=inputRanked(ds,'D',false),name=move.name;if(name==='ナインエボルブースト')return{category:'変化',reason:'ナインエボルブーストは変化扱い',detail:'-'};if(name==='フォトンゲイザー'||name==='てんこがすめつぼうのひかり')return{category:A>C?'物理':'特殊',reason:name+'のA/C比較',detail:'A='+A+' / C='+C};if(name==='テラバースト'||window.DAMEKE_DATA_HELPERS.moveTagByName(name,'teraCluster')){if(tera&&tera!=='なし')return{category:A>C?'物理':'特殊',reason:name+' テラスタル時のA/C比較',detail:'A='+A+' / C='+C+' / テラ='+tera};return{category:'特殊',reason:name+' 非テラスタル時は特殊',detail:'テラ=なし'};}if(name==='シェルアームズ'){const lp=fl((level*2)/5)+2;const phy=((lp*90*A/B)/50),sp=((lp*90*C/D)/50);return{category:phy>sp?'物理':'特殊',reason:'シェルアームズの物理/特殊比較'+(wonderRoom?'（ワンダールーム操作後）':''),detail:'物理='+phy.toFixed(4)+' / 特殊='+sp.toFixed(4)+'（同値は特殊）'};}var normalizedCategory=normalizeCategoryLabel(move.category);return{category:normalizedCategory,reason:'技データの分類',detail:normalizedCategory+(normalizedCategory!==move.category?'（元='+move.category+'）':'')};}
   
   function normalizeCalcTypes(types){const out=[];for(const t of (types||[])){if(!t||t==='なし')continue;if(t==='タイプなし'){if(!out.length)out.push('タイプなし');continue;}if(!out.includes(t))out.push(t);}return out.length?out:['タイプなし'];}
@@ -223,14 +349,23 @@ function hpBlock(side,p,stt,item,itState,ab,special,o){const prefix=side==='A'?'
     } else {notes.push('テラスタル中の一部タイプ変更無効');}
     return {types:normalizeCalcTypes(types),notes:notes.join('、')};
   }
-function weatherIgnored(aState,dState,o){return o.weather==='ノーてんき・エアロック'||(aState.active&&window.DAMEKE_DATA_HELPERS.abilityTag(aState.ability,'ignoreWeather'))||(dState.active&&window.DAMEKE_DATA_HELPERS.abilityTag(dState.ability,'ignoreWeather'));}
   function hiddenPowerType(ivs){const sum=(ivs.H%2?1:0)+(ivs.A%2?2:0)+(ivs.B%2?4:0)+(ivs.S%2?8:0)+(ivs.C%2?16:0)+(ivs.D%2?32:0);return hiddenPowerTypes[fl(sum*15/63)];}
   function skinType(ability){const map={'ノーマルスキン':'ノーマル','エレキスキン':'でんき','スカイスキン':'ひこう','ドラゴンスキン':'ドラゴン','フェアリースキン':'フェアリー','フリーズスキン':'こおり'};return map[ability.name]||null;}
   function contactState(move,aState,aItem,aIt,dState){const name=move&&move.name;const isPunch=!!(move&&window.DAMEKE_DATA_HELPERS.moveTag(move,'punch'));if(aState.active&&aState.ability&&aState.ability.name==='えんかく')return{contact:false,reason:'攻撃側特性えんかく'};if(isPunch&&aIt.active&&aItem&&(window.DAMEKE_DATA_HELPERS.itemTag(aItem,'punchingGlove')||aItem.name==='パンチグローブ'))return{contact:false,reason:'パンチ技+パンチグローブ'};return{contact:!!(move&&move.contact),reason:'技データ'};}
   function resolveMoveType(ctx){const {move,attacker,as,aState,dState,aItem,aIt,o,originalMove,calcTypes}=ctx;let type=move.type,note='技データのタイプ',locked=false;if(o.electrify){type='でんき';note='そうでん状態';locked=true;} if(!locked&&(move.name==='テラバースト'||window.DAMEKE_DATA_HELPERS.moveTag(move,'teraCluster'))&&o.attackerTeraType&&o.attackerTeraType!=='なし'){type=o.attackerTeraType;note=move.name+' + 攻撃側テラスタル';locked=true;} if(!locked&&move.name==='ウェザーボール'){const w=o.attackerEffectiveWeather||o.weather;const map={'にほんばれ':'ほのお','おおひでり':'ほのお','あめ':'みず','おおあめ':'みず','すなあらし':'いわ','ゆき':'こおり'};type=map[w]||'ノーマル';note='攻撃側天候='+w;locked=true;} if(!locked&&move.name==='さばきのつぶて'){type=(aIt.active&&aItem.kind==='Plate')?aItem.type:'ノーマル';note=aIt.active&&aItem.kind==='Plate'?'プレートによるタイプ':'有効なプレートなし';locked=true;} if(!locked&&move.name==='しぜんのめぐみ'){const ngState=itemActiveForMoveType('A',aItem,aState,dState,o,move.name);type=(ngState.active&&aItem.isBerry&&aItem.naturalGiftType)?aItem.naturalGiftType:'ノーマル';note=ngState.active&&aItem.isBerry?'きのみのしぜんのめぐみタイプ':'有効なきのみなし';locked=true;} if(!locked&&move.name==='だいちのはどう'){const map={'エレキフィールド':'でんき','グラスフィールド':'くさ','ミストフィールド':'フェアリー','サイコフィールド':'エスパー'};type=map[o.field]||'ノーマル';note=map[o.field]?'フィールド='+o.field+'、接地判定は暫定有効':'フィールドなし';locked=true;} if(!locked&&move.name==='マルチアタック'){type=(aIt.active&&aItem.kind==='Memory')?aItem.type:'ノーマル';note=aIt.active&&aItem.kind==='Memory'?'メモリによるタイプ':'有効なメモリなし';locked=true;} if(!locked&&move.name==='めざめるダンス'){if(o.attackerSpecialState==='zmove'||o.attackerSpecialState==='special_z'){type='ノーマル';note='Zワザ時はノーマル';}else if(o.attackerTeraType&&o.attackerTeraType!=='なし'&&o.attackerTeraType!=='ステラ'){type=o.attackerTeraType;note='テラスタル時はテラスタイプ';}else{type=(calcTypes&&calcTypes[0]&&calcTypes[0]!=='タイプなし')?calcTypes[0]:'ノーマル';note='計算上タイプ1';}locked=true;} if(!locked&&move.name==='めざめるパワー'){type=hiddenPowerType(as.input.ivs);note='個体値から算出';locked=true;} if(!locked&&move.name==='テクノバスター'){type=(aIt.active&&aItem.kind==='Drive')?aItem.type:'ノーマル';note=aIt.active&&aItem.kind==='Drive'?'カセットによるタイプ':'有効なカセットなし';locked=true;} if(!locked&&move.name==='レイジングブル'){const rbType=window.DAMEKE_DATA_HELPERS.formMoveType('レイジングブル',attacker,null);if(rbType){type=rbType;note='ケンタロス系統によるタイプ';locked=true;}} if(!locked&&aState.active&&aState.ability&&aState.ability.name){const st=skinType(aState.ability);const blockedZ=move.isZMove&&move.category!=='変化';const pledgeBlocked=o.pledgeCombination&&PLEDGE_MOVES.has(originalMove.name);if(st&&move.name!=='わるあがき'&&!blockedZ&&!pledgeBlocked){if(aState.ability.name==='ノーマルスキン'){type='ノーマル';note='ノーマルスキン';locked=true;}else if(type==='ノーマル'){type=st;note=aState.ability.name+'によりノーマル技を変換';locked=true;}}} if(!locked&&aState.active&&aState.ability.kind==='LiquidVoice'&&window.DAMEKE_DATA_HELPERS.moveTag(move,'sound')){type='みず';note='うるおいボイス + 音技';locked=true;} if(!locked&&move.name==='オーラぐるま'){type=window.DAMEKE_DATA_HELPERS.formMoveType('オーラぐるま',attacker,'でんき');note='モルペコの姿によるタイプ';locked=true;} if(!locked&&move.name==='ツタこんぼう'){type=window.DAMEKE_DATA_HELPERS.formMoveType('ツタこんぼう',attacker,'くさ');note='オーガポンの姿によるタイプ';locked=true;} if(o.plasmaShower&&type==='ノーマル'){type='でんき';note+='、プラズマシャワーでノーマル→でんき';}return{type,note};}
-  function calculateDamage(input){const trace=[],o=input.options||{},atk=input.attacker,def=input.defender,al=cl(i(input.attackerLevel,50),1,100),dl=cl(i(input.defenderLevel,50),1,100);const aItem=by(DATA.items,o.attackerItemId||'none'),dItem=by(DATA.items,o.defenderItemId||'none'),aAb=by(DATA.abilities,o.attackerAbilityId||'なし'),dAb=by(DATA.abilities,o.defenderAbilityId||'なし');const aSpec=by(DATA.specialStates,o.attackerSpecialState||'none'),dSpec=by(DATA.specialStates,o.defenderSpecialState||'none'),tf=resolveSpecialMove(atk,input.move,aSpec),m=tf.move,defDyn=(dSpec.kind==='dynamax'||dSpec.kind==='gmax')&&!def.cannotDynamax;const ev=abilityStates(aAb,dAb,aItem,dItem,o),baseA=ev.attackerAbilityState,baseD=ev.defenderAbilityState,ig=ignored(baseA,baseD,dItem,m,o),aState=baseA,dState=ig.ignored?Object.assign({},baseD,{active:false,status:'無視',reason:ig.reason,ignored:true}):baseD,aIt=itemActive('A',aItem,aState,dState,o),dIt=itemActive('D',dItem,dState,aState,o);const aCalc=resolveCalcTypes('A',atk,aState,aItem,o,dState),dCalc=resolveCalcTypes('D',def,dState,dItem,o,aState),baseAs=getActualStats(atk,al,o.attackerStats),baseDs=getActualStats(def,dl,o.defenderStats),transformed=applyTransformOps(baseAs,baseDs,o.transformOps||[],ignoreWonderRawSwap(aState,m)),as=transformed.attacker,ds=transformed.defender;const aHp=hpBlock('A',atk,as,aItem,aIt,aState,tf.isDynamaxActive,o),dHp=hpBlock('D',def,ds,dItem,dIt,dState,defDyn,o),crit=criticalState(dState,o,m),er=effectiveRanks(as.input.ranks,ds.input.ranks,aState,dState,m,o,crit),cat=categoryDecision(m,as,ds,o.attackerTeraType||'なし',al,transformed.wonderRoomActive),moveType=resolveMoveType({move:m,originalMove:input.move,attacker:atk,as,aState,dState,aItem,aIt,o,calcTypes:aCalc.types});const phys=cat.category==='物理',an=phys?'A':'C',dn=phys?'B':'D',af=rank(as[an],er.attacker[an],false,true),df=rank(ds[dn],er.defender[dn],false,false),type=combo(moveType.type,dCalc.types),sr=stab(moveType.type,atk.types);const aGrounding=sideGrounded('A',atk,aState,aIt,aItem,o,aCalc.types),dGrounding=sideGrounded('D',def,dState,dIt,dItem,o,dCalc.types);const cState=contactState(m,aState,aItem,aIt,dState);
+  function resolveEffectiveWeather(o,aState,dState,aAb,dAb,aIt,dIt,aItem,dItem){
+    var raw=o.weather||'なし';
+    var aw=raw,dw=raw,notes=[];
+    if(aState.active&&aAb.name==='メガソーラー'){aw='にほんばれ';dw='にほんばれ';notes.push('攻撃側メガソーラー: 両側天候=にほんばれ');}
+    if((aState.active&&window.DAMEKE_DATA_HELPERS.abilityTag(aAb,'ignoreWeather'))||(dState.active&&window.DAMEKE_DATA_HELPERS.abilityTag(dAb,'ignoreWeather'))||raw==='ノーてんき・エアロック'||o.weatherSuppressField){aw='なし';dw='なし';notes.push('ノーてんき・エアロック: 両側天候=なし');}
+    if(aIt.active&&aItem.kind==='WeatherIgnore'&&['にほんばれ','おおひでり','あめ','おおあめ'].includes(aw)){aw='なし';notes.push('攻撃側ばんのうがさ: 攻撃側天候=なし');}
+    if(dIt.active&&dItem.kind==='WeatherIgnore'&&['にほんばれ','おおひでり','あめ','おおあめ'].includes(dw)){dw='なし';notes.push('防御側ばんのうがさ: 防御側天候=なし');}
+    o.attackerEffectiveWeather=aw;o.defenderEffectiveWeather=dw;
+    return {raw:raw,attacker:aw,defender:dw,note:notes.join('、')||'入力どおり'};
+  }
+  function calculateDamage(input){const trace=[],o=input.options||{},atk=input.attacker,def=input.defender,al=cl(i(input.attackerLevel,50),1,100),dl=cl(i(input.defenderLevel,50),1,100);const aItem=by(DATA.items,o.attackerItemId||'none'),dItem=by(DATA.items,o.defenderItemId||'none'),aAb=by(DATA.abilities,o.attackerAbilityId||'なし'),dAb=by(DATA.abilities,o.defenderAbilityId||'なし');const aSpec=by(DATA.specialStates,o.attackerSpecialState||'none'),dSpec=by(DATA.specialStates,o.defenderSpecialState||'none'),tf=resolveSpecialMove(atk,input.move,aSpec),m=tf.move,defDyn=(dSpec.kind==='dynamax'||dSpec.kind==='gmax')&&!def.cannotDynamax;const ev=abilityStates(aAb,dAb,aItem,dItem,o),baseA=ev.attackerAbilityState,baseD=ev.defenderAbilityState,ig=ignored(baseA,baseD,dItem,m,o),aState=baseA,dState=ig.ignored?Object.assign({},baseD,{active:false,status:'無視',reason:ig.reason,ignored:true}):baseD,aIt=itemActive('A',aItem,aState,dState,o),dIt=itemActive('D',dItem,dState,aState,o);var weatherResolution=resolveEffectiveWeather(o,aState,dState,aAb,dAb,aIt,dIt,aItem,dItem);const aCalc=resolveCalcTypes('A',atk,aState,aItem,o,dState),dCalc=resolveCalcTypes('D',def,dState,dItem,o,aState),baseAs=getActualStats(atk,al,o.attackerStats),baseDs=getActualStats(def,dl,o.defenderStats),transformed=applyTransformOps(baseAs,baseDs,o.transformOps||[],ignoreWonderRawSwap(aState,m)),as=transformed.attacker,ds=transformed.defender;const aHp=hpBlock('A',atk,as,aItem,aIt,aState,tf.isDynamaxActive,o),dHp=hpBlock('D',def,ds,dItem,dIt,dState,defDyn,o),crit=criticalState(dState,o,m),er=effectiveRanks(as.input.ranks,ds.input.ranks,aState,dState,m,o,crit),cat=categoryDecision(m,as,ds,o.attackerTeraType||'なし',al,transformed.wonderRoomActive),moveType=resolveMoveType({move:m,originalMove:input.move,attacker:atk,as,aState,dState,aItem,aIt,o,calcTypes:aCalc.types});const phys=cat.category==='物理',an=phys?'A':'C',dn=phys?'B':'D',af=rank(as[an],er.attacker[an],false,true),df=rank(ds[dn],er.defender[dn],false,false),type=combo(moveType.type,dCalc.types),sr=stab(moveType.type,atk.types);const aGrounding=sideGrounded('A',atk,aState,aIt,aItem,o,aCalc.types),dGrounding=sideGrounded('D',def,dState,dIt,dItem,o,dCalc.types);const cState=contactState(m,aState,aItem,aIt,dState);
     trace.push(st('00 持ち物（攻撃側）',aItem.name,aIt.status,aIt.reason));trace.push(st('00 持ち物（防御側）',dItem.name,dIt.status,dIt.reason));trace.push(st('00 特性（攻撃側）',aAb.name,aState.status,aState.reason));trace.push(st('00 特性（防御側）',dAb.name,dState.status,dState.reason));trace.push(st('00 天候','現在値',o.weather||'なし'));trace.push(st('00 フィールド','現在値',o.field||'なし'));trace.push(st('00 急所','指定',crit.requested?'あり':'なし',crit.reason));trace.push(st('00 Z・ダイマックス（攻撃側）',aSpec.name,tf.info.status,tf.info.reason));trace.push(st('00 Z・ダイマックス（防御側）',dSpec.name,defDyn?'有効':(dSpec.kind==='none'?'なし':'無効'),def.cannotDynamax?def.name+'はダイマックス不可':''));trace.push(st('00 テラスタル（攻撃側）','タイプ',o.attackerTeraType||'なし','現時点ではタイプ変更未反映'));trace.push(st('00 テラスタル（防御側）','タイプ',o.defenderTeraType||'なし','現時点ではタイプ変更未反映'));trace.push(st('00 技名変換',tf.info.originalMoveName,tf.info.transformedMoveName));trace.push(st('00 強化技効果','通常技固有効果',tf.info.effectReset,tf.info.enhancedEffectNote));trace.push(st('02 計算上タイプ（攻撃側）','タイプ',aCalc.types.join('/'),aCalc.notes));trace.push(st('02 計算上タイプ（防御側）','タイプ',dCalc.types.join('/'),dCalc.notes));trace.push(st('02 実数値操作','適用順',transformed.logs.length?transformed.logs.join(' / '):'なし','最終ワンダールーム='+(transformed.wonderRoomActive?'ON':'OFF')+(transformed.wonderRoomRawIgnored?'、B/D入替のみ無効':'')));trace.push(st('02 接地判定（攻撃側）','地面にいる',aGrounding.grounded?'有効':'無効',aGrounding.reason));trace.push(st('02 接地判定（防御側）','地面にいる',dGrounding.grounded?'有効':'無効',dGrounding.reason));trace.push(st('02 まきびし接地判定','注記','通常接地判定とは別処理','まきびしは、くろいてっきゅう・じゅうりょく・本来ひこうタイプ・ふゆう・ふうせんだけで繰り出し時判定'));trace.push(st('02 実効ランク（攻撃側）','A/B/C/D/S/命中回避',ranksToText(er.attacker)+' / 命中回避'+er.hitRank,er.notes+'、'+er.hitNote));trace.push(st('02 実効ランク（防御側）','A/B/C/D/S',ranksToText(er.defender),er.notes));trace.push(st('02 攻撃側ランク補正込み実数値','H/A/B/C/D/S',effectiveRankedStatsText(aHp,as,er.attacker,true),'Hは現在/最大。ABCDSは実効ランク反映後。設置技='+aHp.hazardDamage+'、'+aHp.notes));trace.push(st('02 防御側ランク補正込み実数値','H/A/B/C/D/S',effectiveRankedStatsText(dHp,ds,er.defender,false),'Hは現在/最大。ABCDSは実効ランク反映後。設置技='+dHp.hazardDamage+'、'+dHp.notes));trace.push(st('02 物理/特殊判定',m.name,cat.category,cat.reason+' / '+cat.detail));trace.push(st('02 技タイプ',m.name,moveType.type,moveType.note));trace.push(st('N54 補正後攻撃側実数値',an,as[an]+' -> '+af+' / 実効ランク '+er.attacker[an]));trace.push(st('N57 補正後防御側実数値',dn,ds[dn]+' -> '+df+' / 実効ランク '+er.defender[dn]));trace.push(st('N46 変動後威力','現在値',m.power??'特殊'));trace.push(st('N64 ダメージ変動値','タイプ一致',formatRate(sr)));trace.push(st('N64 ダメージ変動値','相性',formatRate(type.rate)));for(const d of type.details)trace.push(st('タイプ相性詳細',d.attackType+' -> '+d.defenseType,d.single+' / 合成 '+d.before+' -> '+d.after));trace.push(pend('N66 ダメージ補正値','各補正値','枠のみ'));
-    let invalid='',rolls=[];if(type.rate===0){invalid='タイプ相性により無効';rolls=[0];}else if(m.damageKind==='AttackerLevel')rolls=[al];else if(cat.category==='変化')rolls=[0];else{const b=baseDamage(al,m.power,af,df);trace.push(st('基本ダメージ','前',b));const pr=o.protect?(m.protectRate4096||0):4096;if(o.protect&&pr===0)invalid='まもる状態により0ダメージ';for(let f=85;f<=100;f++){let d=mod(mod(mod(fl(b*f/100),sr),type.rate),pr);if(d<1&&!invalid)d=1;if(invalid)d=0;rolls.push(d);}trace.push(st('N64 ダメージ変動値','まもる',o.protect?formatRate(pr):formatRate(4096),o.protect&&pr===1024?'Z/ダイマ技のため25%':''));}trace.push(st('N68 乱数','85から100',rolls.join(', ')));trace.push(st('N79 優先度','現在値',m.priority??0));trace.push(st('N80 直接攻撃判定','現在値',cState.contact?'直接':'非直接',cState.reason));trace.push(st('N81 無効要素','現在値',invalid||'なし'));const min=Math.min(...rolls),max=Math.max(...rolls),hp=dHp.maxFinal||ds.H;return{attackerName:atk.name,defenderName:def.name,moveName:m.name,effectiveCategory:cat.category,effectiveType:moveType.type,rolls,trace,defenderMaxHp:dHp.maxFinal,defenderCurrentHp:dHp.currentFinal,typeRate4096:type.rate,stabRate4096:sr,minDamage:min,maxDamage:max,minRate:hp?min/hp*100:0,maxRate:hp?max/hp*100:0,__coreState:{attackerAbilityState:aState,defenderAbilityState:dState,attackerItemState:aIt,defenderItemState:dIt,attackerAbility:aAb,defenderAbility:dAb,attackerItem:aItem,defenderItem:dItem}};}
+    let invalid='',rolls=[];if(type.rate===0){invalid='タイプ相性により無効';rolls=[0];}else if(m.damageKind==='AttackerLevel')rolls=[al];else if(cat.category==='変化')rolls=[0];else{const b=baseDamage(al,m.power,af,df);trace.push(st('基本ダメージ','前',b));const pr=o.protect?(m.protectRate4096||0):4096;if(o.protect&&pr===0)invalid='まもる状態により0ダメージ';for(let f=85;f<=100;f++){let d=mod(mod(mod(fl(b*f/100),sr),type.rate),pr);if(d<1&&!invalid)d=1;if(invalid)d=0;rolls.push(d);}trace.push(st('N64 ダメージ変動値','まもる',o.protect?formatRate(pr):formatRate(4096),o.protect&&pr===1024?'Z/ダイマ技のため25%':''));}trace.push(st('N68 乱数','85から100',rolls.join(', ')));trace.push(st('N79 優先度','現在値',m.priority??0));trace.push(st('N80 直接攻撃判定','現在値',cState.contact?'直接':'非直接',cState.reason));trace.push(st('N81 無効要素','現在値',invalid||'なし'));const min=Math.min(...rolls),max=Math.max(...rolls),hp=dHp.maxFinal||ds.H;return{attackerName:atk.name,defenderName:def.name,moveName:m.name,effectiveCategory:cat.category,effectiveType:moveType.type,rolls,trace,defenderMaxHp:dHp.maxFinal,defenderCurrentHp:dHp.currentFinal,typeRate4096:type.rate,minDamage:min,maxDamage:max,minRate:hp?min/hp*100:0,maxRate:hp?max/hp*100:0,attackerEffectiveWeather:weatherResolution.attacker,defenderEffectiveWeather:weatherResolution.defender,weatherResolution:weatherResolution,criticalEffective:crit.effective,criticalForced:crit.forced,contactEffective:cState.contact,__coreState:{attackerAbilityState:aState,defenderAbilityState:dState,attackerItemState:aIt,defenderItemState:dIt,attackerAbility:aAb,defenderAbility:dAb,attackerItem:aItem,defenderItem:dItem}};}
   window.DAMEKE_CALC={calculateDamage,getActualStats,previewBaseMaxHp,resolveSpecialMove};
 })();
 
@@ -245,7 +380,7 @@ function weatherIgnored(aState,dState,o){return o.weather==='ノーてんき・�
   function fl(x){return window.DAMEKE_ROUNDING.floor(x);}
   function roundFiveDown(x){var f=Math.floor(x),r=x-f;return r>0.5?f+1:f;}
   function clamp(v,a,b){return Math.min(Math.max(v,a),b);}
-  function rank(v,r){return r>=0?fl(v*(2+r)/2):fl(v*2/(2-r));}
+  var rank = window.DAMEKE_CALC_SHARED.rank;
   function spToEv(sp){sp=clamp(int(sp,0),0,32);if(sp<=0)return 0;if(sp===32)return 252;return 4+(sp-1)*8;}
   function stats(p,level,input){const src=input||{},iv=src.ivs||{},ev=src.evs||{},ranks=src.ranks||{},b=p.baseStats,o={input:{ivs:iv,evs:ev,ranks}};for(const k of ['H','A','B','C','D','S']){const evv=spToEv(ev[k]);o[k]=k==='H'?fl(((2*b[k]+int(iv[k],31)+fl(evv/4))*level)/100)+level+10:fl(((2*b[k]+int(iv[k],31)+fl(evv/4))*level)/100)+5;if(k==='H'&&window.DAMEKE_DATA_HELPERS.pokemonMatches(p,'ヌケニン'))o[k]=1;if(k!=='H')o[k]=window.DAMEKE_NATURE.apply(o[k],k,src);}return o;}
   function typeRate(t,dt){if(!dt||dt==='タイプなし')return 4096;return ((D.typeChart4096&&D.typeChart4096[t])||{})[dt]??4096;}
@@ -258,7 +393,7 @@ function weatherIgnored(aState,dState,o){return o.weather==='ノーてんき・�
   function currentHp(max,input){return input===''||input==null?max:clamp(int(input,max),1,max);}
   function reversalPower(cur,max){const x=fl(cur*48/max);if(x>=33)return 20;if(x>=17)return 40;if(x>=10)return 80;if(x>=5)return 100;if(x>=2)return 150;return 200;}
   function speedValue(st){return rank(st.S, st.input.ranks.S||0);}
-  function isGroundedForTerrain(result){const line=(result.trace||[]).find(x=>String(x.label).includes('接地判定（攻撃側）'));return !line || line.value==='有効';}
+  function isGroundedForTerrain(result){ return window.DAMEKE_CALC_SHARED.isGrounded(result,'A'); }
   function getMoveType(result,move){return result.effectiveType || move.type || 'ノーマル';}
   function getDefTypes(result,def){return result.defenderTypes || def.types || [];}
   function onePower(move,ctx,hit){const o=ctx.o,kind=move.powerKind,base=move.power;switch(kind){
@@ -348,17 +483,17 @@ function weatherIgnored(aState,dState,o){return o.weather==='ノーてんき・�
   var D = window.DAMEKE_DATA;
   var C = window.DAMEKE_CALC;
   if(!D || !C || !C.calculateDamage || C.__speedPatchedV2) return;
-  function num(v,f){var n=parseInt(v,10);return Number.isFinite(n)?n:f;}
+  var num = window.DAMEKE_CALC_SHARED.num;
   function fl(x){return window.DAMEKE_ROUNDING.floor(x);}
   function roundHalfUp(x){return Math.floor(x+0.5);}
   function roundFiveDown(x){return window.DAMEKE_ROUNDING.roundFiveDown(x);}
   function clamp(v,a,b){return Math.min(Math.max(v,a),b);}
   function by(list,id){return (list||[]).find(function(x){return x.id===id;}) || (list||[])[0] || {};}
-  function rank(v,r){r=num(r,0);return r>=0?fl(v*(2+r)/2):fl(v*2/(2-r));}
+  var rank = window.DAMEKE_CALC_SHARED.rank;
   function spToEv(sp){sp=clamp(num(sp,0),0,32);if(sp<=0)return 0;if(sp===32)return 252;return 4+(sp-1)*8;}
   function makeStats(p,level,input){var src=input||{},iv=src.ivs||{},ev=src.evs||{},ranks=src.ranks||{},b=p.baseStats,o={input:{ivs:iv,evs:ev,ranks:ranks}};['H','A','B','C','D','S'].forEach(function(k){var evv=spToEv(ev[k]);o[k]=k==='H'?fl(((2*b[k]+num(iv[k],31)+fl(evv/4))*level)/100)+level+10:fl(((2*b[k]+num(iv[k],31)+fl(evv/4))*level)/100)+5;if(k==='H'&&window.DAMEKE_DATA_HELPERS.pokemonMatches(p,'ヌケニン'))o[k]=1;if(k!=='H')o[k]=window.DAMEKE_NATURE.apply(o[k],k,src);});return o;}
-  function activeItem(side,item,o){if(o&&o.__coreState){var st=side==='A'?o.__coreState.attackerItemState:o.__coreState.defenderItemState;var coreItem=side==='A'?o.__coreState.attackerItem:o.__coreState.defenderItem;if(st&&coreItem&&item&&coreItem.id===item.id)return !!st.active;}if(!item||item.id==='none')return false;if(side==='A'&&o.attackerNoItem)return false;if(side==='D'&&o.defenderNoItem)return false;if(o.magicRoom)return false;if(side==='A'&&o.attackerEmbargo)return false;if(side==='D'&&o.defenderEmbargo)return false;return true;}
-  function activeAbility(side,ab,o){if(o&&o.__coreState){var st=side==='A'?o.__coreState.attackerAbilityState:o.__coreState.defenderAbilityState;if(st&&st.ability&&ab&&st.ability.id===ab.id)return !!st.active;}if(!ab||ab.id==='なし')return false;if(side==='A'&&o.attackerNoAbility)return false;if(side==='D'&&o.defenderNoAbility)return false;if(ab.name==='マルチタイプ'||ab.name==='ARシステム')return true;if(o.neutralizingGasField)return false;var other=by(D.abilities,side==='A'?o.defenderAbilityId:o.attackerAbilityId);var otherNo=side==='A'?o.defenderNoAbility:o.attackerNoAbility;if(other&&!otherNo&&other.name==='かがくへんかガス')return false;return true;}
+  var activeItem = window.DAMEKE_CALC_SHARED.activeItemWithFallback;
+  var activeAbility = window.DAMEKE_CALC_SHARED.activeAbilityWithFallback;
   function rateText(r){return r+'/4096 ('+(r/4096).toFixed(2)+'倍)';}
   function otherWeatherIgnored(side,o){var other=by(D.abilities, side==='A'?o.defenderAbilityId:o.attackerAbilityId);var no=side==='A'?o.defenderNoAbility:o.attackerNoAbility;return !no && (other.kind==='IgnoreWeather'||other.name==='ノーてんき'||other.name==='エアロック');}
   function itemRate(side,pokemon,item,itemOk){if(!itemOk||!item)return{rate:4096,reason:'なし'};if(item.kind==='SpeedPowder'&&pokemon.name==='メタモン')return{rate:8192,reason:'スピードパウダー'};if(item.kind==='ChoiceScarf'||item.name==='こだわりスカーフ')return{rate:6144,reason:'こだわりスカーフ'};if(item.kind==='Grounding'||item.kind==='SpeedHalve'||['くろいてっきゅう','パワーウエイト','パワーリスト','パワーベルト','パワーレンズ','パワーバンド','パワーアンクル','きょうせいギプス'].includes(item.name))return{rate:2048,reason:item.name};return{rate:4096,reason:'なし'};}
@@ -401,19 +536,19 @@ function weatherIgnored(aState,dState,o){return o.weather==='ノーてんき・�
   var D = window.DAMEKE_DATA;
   var C = window.DAMEKE_CALC;
   if(!D || !C || !C.calculateDamage || C.__weightPatched) return;
-  function num(v,f){var n=parseInt(v,10);return Number.isFinite(n)?n:f;}
+  var num = window.DAMEKE_CALC_SHARED.num;
   function fl(x){return window.DAMEKE_ROUNDING.floor(x);}
   function clamp(v,a,b){return Math.min(Math.max(v,a),b);}
   function by(list,id){return (list||[]).find(function(x){return x.id===id;}) || (list||[])[0] || {};}
-  function activeItem(side,item,o){if(o&&o.__coreState){var st=side==='A'?o.__coreState.attackerItemState:o.__coreState.defenderItemState;var coreItem=side==='A'?o.__coreState.attackerItem:o.__coreState.defenderItem;if(st&&coreItem&&item&&coreItem.id===item.id)return !!st.active;}if(!item||item.id==='none')return false;if(side==='A'&&o.attackerNoItem)return false;if(side==='D'&&o.defenderNoItem)return false;if(o.magicRoom)return false;if(side==='A'&&o.attackerEmbargo)return false;if(side==='D'&&o.defenderEmbargo)return false;return true;}
-  function activeAbility(side,ab,o){if(o&&o.__coreState){var st=side==='A'?o.__coreState.attackerAbilityState:o.__coreState.defenderAbilityState;if(st&&st.ability&&ab&&st.ability.id===ab.id)return !!st.active;}if(!ab||ab.id==='なし')return false;if(side==='A'&&o.attackerNoAbility)return false;if(side==='D'&&o.defenderNoAbility)return false;if(ab.name==='マルチタイプ'||ab.name==='ARシステム')return true;if(o.neutralizingGasField)return false;var other=by(D.abilities,side==='A'?o.defenderAbilityId:o.attackerAbilityId);var otherNo=side==='A'?o.defenderNoAbility:o.attackerNoAbility;if(other&&!otherNo&&other.name==='かがくへんかガス')return false;return true;}
+  var activeItem = window.DAMEKE_CALC_SHARED.activeItemWithFallback;
+  var activeAbility = window.DAMEKE_CALC_SHARED.activeAbilityWithFallback;
   function trunc1(x){return Math.floor(x*10)/10;}
-  function calcWeight(side,pokemon,o){var prefix=side==='A'?'attacker':'defender';var item=by(D.items,side==='A'?o.attackerItemId:o.defenderItemId);var ab=by(D.abilities,side==='A'?o.attackerAbilityId:o.defenderAbilityId);var itemOk=activeItem(side,item,o);var abOk=activeAbility(side,ab,o);var w=Number(pokemon.weight||0);var notes=['本来='+w.toFixed(1)+'kg'];if(pokemon.name==='テラパゴス(テラスタル)'&&o[prefix+'TeraType']==='ステラ'){w=77.0;notes.push('ステラテラス 77.0kg');}var bp=clamp(num(o[prefix+'BodyPurge'],0),0,6);if(bp>0){w-=bp*100;notes.push('ボディパージ '+bp+'回 = -'+(bp*100)+'kg');}if(abOk&&ab.name==='ライトメタル'){w=trunc1(w/2);notes.push('ライトメタル');}if(abOk&&ab.name==='ヘヴィメタル'){w=w*2;notes.push('ヘヴィメタル');}if(itemOk&&item.kind==='WeightHalve'){w=trunc1(w/2);notes.push('かるいし');}if(w<=0.1){w=0.1;notes.push('最小0.1kg');}return{value:w,notes:notes.join('、')};}
+  function calcWeight(side,pokemon,o){var prefix=side==='A'?'attacker':'defender';var item=by(D.items,side==='A'?o.attackerItemId:o.defenderItemId);var ab=by(D.abilities,side==='A'?o.attackerAbilityId:o.defenderAbilityId);var itemOk=activeItem(side,item,o);var abOk=activeAbility(side,ab,o);var w=Number(pokemon.weight||0);var notes=['本来='+w.toFixed(1)+'kg'];var bp=clamp(num(o[prefix+'BodyPurge'],0),0,6);if(bp>0){w-=bp*100;notes.push('ボディパージ '+bp+'回 = -'+(bp*100)+'kg');}if(abOk&&ab.name==='ライトメタル'){var beforeLM=w;w=trunc1(w/2);notes.push('ライトメタル '+beforeLM.toFixed(1)+'kg->'+w.toFixed(1)+'kg');}if(abOk&&ab.name==='ヘヴィメタル'){var beforeHM=w;w=w*2;notes.push('ヘヴィメタル '+beforeHM.toFixed(1)+'kg->'+w.toFixed(1)+'kg');}if(itemOk&&item.kind==='WeightHalve'){var beforeKI=w;w=trunc1(w/2);notes.push('かるいし '+beforeKI.toFixed(1)+'kg->'+w.toFixed(1)+'kg');}if(w<=0.1){w=0.1;notes.push('最小0.1kg');}return{value:w,notes:notes.join('、')};}
   function weightPower(w){w=Number(w||0);if(w<10)return 20;if(w<25)return 40;if(w<50)return 60;if(w<100)return 80;if(w<200)return 100;return 120;}
   function heavyPower(a,d){if(d<=a/5)return 120;if(d<=a/4)return 100;if(d<=a/3)return 80;if(d<=a/2)return 60;return 40;}
   function spToEv(sp){sp=clamp(num(sp,0),0,32);if(sp<=0)return 0;if(sp===32)return 252;return 4+(sp-1)*8;}
   function makeStats(p,level,input){var src=input||{},iv=src.ivs||{},ev=src.evs||{},ranks=src.ranks||{},b=p.baseStats,o={input:{ivs:iv,evs:ev,ranks:ranks}};['H','A','B','C','D','S'].forEach(function(k){var evv=spToEv(ev[k]);o[k]=k==='H'?fl(((2*b[k]+num(iv[k],31)+fl(evv/4))*level)/100)+level+10:fl(((2*b[k]+num(iv[k],31)+fl(evv/4))*level)/100)+5;if(k==='H'&&window.DAMEKE_DATA_HELPERS.pokemonMatches(p,'ヌケニン'))o[k]=1;if(k!=='H')o[k]=window.DAMEKE_NATURE.apply(o[k],k,src);});return o;}
-  function rank(v,r){r=num(r,0);return r>=0?fl(v*(2+r)/2):fl(v*2/(2-r));}
+  var rank = window.DAMEKE_CALC_SHARED.rank;
   function typeRate(t,dt){if(!dt||dt==='タイプなし')return 4096;return ((D.typeChart4096&&D.typeChart4096[t])||{})[dt]??4096;}
   function combo(t,types){var r=4096;(types||[]).forEach(function(dt){r=fl(r*typeRate(t,dt)/4096);});return r;}
   function mod(v,r){return fl(v*r/4096);}
@@ -430,12 +565,12 @@ function weatherIgnored(aState,dState,o){return o.weather==='ノーてんき・�
   var D = window.DAMEKE_DATA;
   var C = window.DAMEKE_CALC;
   if(!D || !C || !C.calculateDamage || C.__multiHitPatched) return;
-  function num(v,f){var n=parseInt(v,10);return Number.isFinite(n)?n:f;}
+  var num = window.DAMEKE_CALC_SHARED.num;
   function fl(x){return window.DAMEKE_ROUNDING.floor(x);}
   function clamp(v,a,b){return Math.min(Math.max(v,a),b);}
   function spToEv(sp){sp=clamp(num(sp,0),0,32);if(sp<=0)return 0;if(sp===32)return 252;return 4+(sp-1)*8;}
   function stats(p,level,input){var src=input||{},iv=src.ivs||{},ev=src.evs||{},ranks=src.ranks||{},b=p.baseStats,o={input:{ivs:iv,evs:ev,ranks:ranks}};['H','A','B','C','D','S'].forEach(function(k){var evv=spToEv(ev[k]);o[k]=k==='H'?fl(((2*b[k]+num(iv[k],31)+fl(evv/4))*level)/100)+level+10:fl(((2*b[k]+num(iv[k],31)+fl(evv/4))*level)/100)+5;if(k==='H'&&window.DAMEKE_DATA_HELPERS.pokemonMatches(p,'ヌケニン'))o[k]=1;if(k!=='H')o[k]=window.DAMEKE_NATURE.apply(o[k],k,src);});return o;}
-  function rank(v,r){r=num(r,0);return r>=0?fl(v*(2+r)/2):fl(v*2/(2-r));}
+  var rank = window.DAMEKE_CALC_SHARED.rank;
   function typeRate(t,dt){if(!dt||dt==='タイプなし')return 4096;return ((D.typeChart4096&&D.typeChart4096[t])||{})[dt]??4096;}
   function combo(t,types){var r=4096;(types||[]).forEach(function(dt){r=fl(r*typeRate(t,dt)/4096);});return r;}
   function mod(v,r){return fl(v*r/4096);}
@@ -511,15 +646,33 @@ function weatherIgnored(aState,dState,o){return o.weather==='ノーてんき・�
     if(!forZ&&abOk){var skin={'ノーマルスキン':'ノーマル','エレキスキン':'でんき','スカイスキン':'ひこう','ドラゴンスキン':'ドラゴン','フェアリースキン':'フェアリー','フリーズスキン':'こおり'}[ab.name];if(ab.name==='ノーマルスキン')type='ノーマル';else if(type==='ノーマル'&&skin)type=skin;if(ab.kind==='LiquidVoice'&&window.DAMEKE_DATA_HELPERS.moveTag(move,'sound'))type='みず';}
     if(o.plasmaShower&&type==='ノーマル')type='でんき';return type;}
   function transform(attacker,move,state,o){var info={status:'通常',reason:'なし',originalMoveName:move.name,transformedMoveName:move.name,effectReset:'なし',enhancedEffectNote:'通常技'};if(!state||state==='none')return{move:move,info:info,active:false};
-    if(state==='zmove'){var zType=enhancedType(attacker,move,o,true);var name=(D.zMax&&D.zMax.zByType||{})[zType];if(!name||move.category==='変化'){info.status='無効';info.reason=move.category==='変化'?'変化技のタイプ別Zは現段階では未実装':'Z技名未定義';return{move:move,info:info,active:false};}var z=clearMulti(clone(move));z.name=name;z.type=zType;z.power=zPower(move);z.isZMove=true;z.contact=false;z.protectRate4096=1024;info.status='有効';info.reason='タイプ別Zワザ';info.transformedMoveName=z.name;info.effectReset='通常技固有効果をリセット';info.enhancedEffectNote='特殊効果なし';return{move:z,info:info,active:true};}
-    if(state==='special_z'){var rule=specialZRule(attacker,move);if(!rule){info.status='無効';info.reason='ポケモン+技の専用Z条件なし';return{move:move,info:info,active:false};}var sz=clearMulti(clone(move));sz.name=rule.name;sz.type=rule.type;sz.category=rule.category;sz.power=rule.power;sz.isZMove=true;sz.contact=false;sz.protectRate4096=1024;if(rule.ignoresAbilities)sz.ignoresAbilities=true;if(rule.categoryFromAC)sz.category='特殊';if(rule.damageKind)sz.damageKind=rule.damageKind;info.status='有効';info.reason='専用Z条件成立';info.transformedMoveName=sz.name;info.effectReset='通常技固有効果をリセット';info.enhancedEffectNote=rule.ignoresAbilities?'例外: 強化技側のかたやぶり効果あり':'特殊効果なし';return{move:sz,info:info,active:true};}
-    if(state==='dynamax'||state==='gmax'){if(!canDynamax(attacker)){info.status='無効';info.reason=attacker.name+'はダイマックス不可';return{move:move,info:info,active:false};}var mx=clearMulti(clone(move));mx.isMaxMove=true;mx.contact=false;mx.protectRate4096=1024;if(move.category==='変化'){mx.name='ダイウォール';mx.type='ノーマル';mx.category='変化';mx.power=null;}else{var dType=enhancedType(attacker,move,o,false);var g=state==='gmax'?gmaxName(attacker,dType):null;mx.type=dType;mx.name=g||((D.zMax&&D.zMax.maxByType||{})[dType]||move.name);mx.power=maxPower(move,dType);}info.status='有効';info.reason=state==='gmax'?'キョダイマックス技':'タイプ別ダイマックス技';info.transformedMoveName=mx.name;info.effectReset='通常技固有効果をリセット';info.enhancedEffectNote=(mx.name==='キョダイコランダ')?'例外: 強化技側のかたやぶり効果あり':'特殊効果なし';if(mx.name==='キョダイコランダ')mx.ignoresAbilities=true;return{move:mx,info:info,active:true};}
+    // Enhanced moves (Z/signature-Z/Max) do NOT inherit attributes from the base move --
+    // clone(move) below copies every property (contact, ignoresAbilities, sound, damageKind,
+    // etc.) from the original as a byproduct of being a generic shallow copy, which is wrong:
+    // it was leaking mold-breaker-style flags from moves like メテオドライブ/フォトンゲイザー
+    // into completely generic Z-moves/Max-moves built from them. Reset those fields to a clean
+    // slate here, then look up the enhanced move's OWN data (keyed by its own generated name)
+    // to reapply only what's actually documented for that specific enhanced move.
+    function resetInheritedAttributes(m){
+      m.ignoresAbilities=false; m.sound=false; m.damageKind=null;
+      var known=window.DAMEKE_DATA_HELPERS && window.DAMEKE_DATA_HELPERS.byMoveName && window.DAMEKE_DATA_HELPERS.byMoveName(m.name);
+      if(known){
+        if(known.contact) m.contact=true;
+        if(known.ignoresAbilities) m.ignoresAbilities=true;
+        if(known.sound) m.sound=true;
+        if(known.damageKind) m.damageKind=known.damageKind;
+      }
+      return m;
+    }
+    if(state==='zmove'){var zType=enhancedType(attacker,move,o,true);var name=(D.zMax&&D.zMax.zByType||{})[zType];if(!name||move.category==='変化'){info.status='無効';info.reason=move.category==='変化'?'変化技のタイプ別Zは現段階では未実装':'Z技名未定義';return{move:move,info:info,active:false};}var z=clearMulti(clone(move));z.name=name;z.type=zType;z.power=zPower(move);z.isZMove=true;z.contact=false;z.protectRate4096=1024;resetInheritedAttributes(z);info.status='有効';info.reason='タイプ別Zワザ';info.transformedMoveName=z.name;info.effectReset='通常技固有効果をリセット';info.enhancedEffectNote='特殊効果なし';return{move:z,info:info,active:true};}
+    if(state==='special_z'){var rule=specialZRule(attacker,move);if(!rule){info.status='無効';info.reason='ポケモン+技の専用Z条件なし';return{move:move,info:info,active:false};}var sz=clearMulti(clone(move));sz.name=rule.name;sz.type=rule.type;sz.category=rule.category;sz.power=rule.power;sz.isZMove=true;sz.contact=false;sz.protectRate4096=1024;resetInheritedAttributes(sz);if(rule.ignoresAbilities)sz.ignoresAbilities=true;if(rule.categoryFromAC)sz.category='特殊';if(rule.damageKind)sz.damageKind=rule.damageKind;info.status='有効';info.reason='専用Z条件成立';info.transformedMoveName=sz.name;info.effectReset='通常技固有効果をリセット';info.enhancedEffectNote=rule.ignoresAbilities?'例外: 強化技側のかたやぶり効果あり':'特殊効果なし';return{move:sz,info:info,active:true};}
+    if(state==='dynamax'||state==='gmax'){if(!canDynamax(attacker)){info.status='無効';info.reason=attacker.name+'はダイマックス不可';return{move:move,info:info,active:false};}var mx=clearMulti(clone(move));mx.isMaxMove=true;mx.contact=false;mx.protectRate4096=1024;if(move.category==='変化'){mx.name='ダイウォール';mx.type='ノーマル';mx.category='変化';mx.power=null;}else{var dType=enhancedType(attacker,move,o,false);var g=state==='gmax'?gmaxName(attacker,dType):null;mx.type=dType;mx.name=g||((D.zMax&&D.zMax.maxByType||{})[dType]||move.name);mx.power=maxPower(move,dType);}resetInheritedAttributes(mx);info.status='有効';info.reason=state==='gmax'?'キョダイマックス技':'タイプ別ダイマックス技';info.transformedMoveName=mx.name;info.effectReset='通常技固有効果をリセット';info.enhancedEffectNote=(mx.name==='キョダイコランダ')?'例外: 強化技側のかたやぶり効果あり':'特殊効果なし';if(mx.name==='キョダイコランダ')mx.ignoresAbilities=true;return{move:mx,info:info,active:true};}
     return{move:move,info:info,active:false};}
   function replaceTrace(result,labelPart,name,value,note){var line=(result.trace||[]).find(function(x){return String(x.label).includes(labelPart);});if(line){if(name!=null)line.name=name;if(value!=null)line.value=value;if(note!=null)line.note=note;}else result.trace.push({label:labelPart,name:name||'',value:value||'',note:note||'',implemented:true});}
   var originalSpecialMovePatch=C.calculateDamage.bind(C);
   C.calculateDamage=function(input){var o=clone(input.options||{});var state=o.attackerSpecialState||'none';var t=transform(input.attacker,input.move,state,o);if(t.active){o.attackerSpecialState='none';}
     var newInput={attacker:input.attacker,defender:input.defender,move:t.move,attackerLevel:input.attackerLevel,defenderLevel:input.defenderLevel,options:o};var result=originalSpecialMovePatch(newInput);
-    if(state&&state!=='none'){replaceTrace(result,'Z・ダイマックス（攻撃側）',state==='zmove'?'Zワザ':state==='special_z'?'専用Z':state==='dynamax'?'ダイマックス':'キョダイマックス',t.info.status,t.info.reason);replaceTrace(result,'技名変換',t.info.originalMoveName,t.info.transformedMoveName,'');replaceTrace(result,'強化技効果','通常技固有効果',t.info.effectReset,t.info.enhancedEffectNote);result.moveName=t.info.transformedMoveName||result.moveName;result.effectiveCategory=t.move.category||result.effectiveCategory;result.effectiveType=t.move.type||result.effectiveType;}
+    if(state&&state!=='none'){replaceTrace(result,'Z・ダイマックス（攻撃側）',state==='zmove'?'Zワザ':state==='special_z'?'専用Z':state==='dynamax'?'ダイマックス':'キョダイマックス',t.info.status,t.info.reason);replaceTrace(result,'技名変換',t.info.originalMoveName,t.info.transformedMoveName,'');replaceTrace(result,'強化技効果','通常技固有効果',t.info.effectReset,t.info.enhancedEffectNote);result.moveName=t.info.transformedMoveName||result.moveName;result.effectiveType=t.move.type||result.effectiveType;result.effectiveMove=t.move;result.originalMoveName=t.info.originalMoveName;}
     return result;};
   C.__specialMovePatched=true;
 })();
@@ -530,16 +683,16 @@ function weatherIgnored(aState,dState,o){return o.weather==='ノーてんき・�
   var D = window.DAMEKE_DATA;
   var C = window.DAMEKE_CALC;
   if(!D || !C || !C.calculateDamage || C.__powerModifierPatched) return;
-  function num(v,f){var n=parseInt(v,10);return Number.isFinite(n)?n:f;}
+  var num = window.DAMEKE_CALC_SHARED.num;
   function fl(x){return window.DAMEKE_ROUNDING.floor(x);} function roundHalfUp(x){return window.DAMEKE_ROUNDING.roundHalfUp(x);} function roundFiveDown(x){return window.DAMEKE_ROUNDING.roundFiveDown(x);} function clamp(v,a,b){return Math.min(Math.max(v,a),b);}
   function by(list,id){return (list||[]).find(function(x){return x.id===id;}) || (list||[])[0] || {};}
-  function activeItem(side,item,o){if(o&&o.__coreState){var st=side==='A'?o.__coreState.attackerItemState:o.__coreState.defenderItemState;var coreItem=side==='A'?o.__coreState.attackerItem:o.__coreState.defenderItem;if(st&&coreItem&&item&&coreItem.id===item.id)return !!st.active;}if(!item||item.id==='none')return false;if(side==='A'&&o.attackerNoItem)return false;if(side==='D'&&o.defenderNoItem)return false;if(o.magicRoom)return false;if(side==='A'&&o.attackerEmbargo)return false;if(side==='D'&&o.defenderEmbargo)return false;return true;}
-  function activeAbility(side,ab,o){if(o&&o.__coreState){var st=side==='A'?o.__coreState.attackerAbilityState:o.__coreState.defenderAbilityState;if(st&&st.ability&&ab&&st.ability.id===ab.id)return !!st.active;}if(!ab||ab.id==='なし')return false;if(side==='A'&&o.attackerNoAbility)return false;if(side==='D'&&o.defenderNoAbility)return false;if(ab.name==='マルチタイプ'||ab.name==='ARシステム')return true;if(o.neutralizingGasField)return false;var other=by(D.abilities,side==='A'?o.defenderAbilityId:o.attackerAbilityId);var otherNo=side==='A'?o.defenderNoAbility:o.attackerNoAbility;if(other&&!otherNo&&other.name==='かがくへんかガス')return false;return true;}
-  function weatherSuppressed(o){var a=by(D.abilities,o.attackerAbilityId),d=by(D.abilities,o.defenderAbilityId);return o.weatherSuppressField||o.weather==='ノーてんき・エアロック'||(activeAbility('A',a,o)&&(a.name==='ノーてんき'||a.name==='エアロック'||a.kind==='IgnoreWeather'))||(activeAbility('D',d,o)&&(d.name==='ノーてんき'||d.name==='エアロック'||d.kind==='IgnoreWeather'));}
-  function spToEv(sp){sp=clamp(num(sp,0),0,32);if(sp<=0)return 0;if(sp===32)return 252;return 4+(sp-1)*8;} function stats(p,level,input){var src=input||{},iv=src.ivs||{},ev=src.evs||{},ranks=src.ranks||{},b=p.baseStats,o={input:{ivs:iv,evs:ev,ranks:ranks}};['H','A','B','C','D','S'].forEach(function(k){var evv=spToEv(ev[k]);o[k]=k==='H'?fl(((2*b[k]+num(iv[k],31)+fl(evv/4))*level)/100)+level+10:fl(((2*b[k]+num(iv[k],31)+fl(evv/4))*level)/100)+5;if(k==='H'&&window.DAMEKE_DATA_HELPERS.pokemonMatches(p,'ヌケニン'))o[k]=1;if(k!=='H')o[k]=window.DAMEKE_NATURE.apply(o[k],k,src);});return o;} function rank(v,r){return r>=0?fl(v*(2+r)/2):fl(v*2/(2-r));}
+  var activeItem = window.DAMEKE_CALC_SHARED.activeItemWithFallback;
+  var activeAbility = window.DAMEKE_CALC_SHARED.activeAbilityWithFallback;
+  function spToEv(sp){sp=clamp(num(sp,0),0,32);if(sp<=0)return 0;if(sp===32)return 252;return 4+(sp-1)*8;} function stats(p,level,input){var src=input||{},iv=src.ivs||{},ev=src.evs||{},ranks=src.ranks||{},b=p.baseStats,o={input:{ivs:iv,evs:ev,ranks:ranks}};['H','A','B','C','D','S'].forEach(function(k){var evv=spToEv(ev[k]);o[k]=k==='H'?fl(((2*b[k]+num(iv[k],31)+fl(evv/4))*level)/100)+level+10:fl(((2*b[k]+num(iv[k],31)+fl(evv/4))*level)/100)+5;if(k==='H'&&window.DAMEKE_DATA_HELPERS.pokemonMatches(p,'ヌケニン'))o[k]=1;if(k!=='H')o[k]=window.DAMEKE_NATURE.apply(o[k],k,src);});return o;} var rank = window.DAMEKE_CALC_SHARED.rank;
   function typeRate(t,dt){if(!dt||dt==='タイプなし')return 4096;return ((D.typeChart4096&&D.typeChart4096[t])||{})[dt]??4096;} function combo(t,types){var r=4096;(types||[]).forEach(function(dt){r=fl(r*typeRate(t,dt)/4096);});return r;} function mod(v,r){return fl(v*r/4096);} function baseDamage(level,power,atk,def){if(!power||power<=0||def<=0)return 0;return fl(fl((fl(2*level/5)+2)*power*atk/def)/50)+2;}
   function setHas(arr,name){return arr.indexOf(name)>=0;}
-  function isGrounded(result,side){var label=side==='A'?'接地判定（攻撃側）':'接地判定（防御側）';var line=(result.trace||[]).find(function(x){return String(x.label).includes(label);});return !line||line.value==='有効';}
+  var isGrounded = window.DAMEKE_CALC_SHARED.isGrounded;
+  var contactActive = window.DAMEKE_CALC_SHARED.contactActive;
   function getBasePowerFromResult(result,input){if(result.hitPlan&&result.hitPlan[0])return result.hitPlan[0].basePower;var n46=(result.trace||[]).find(function(x){return String(x.label).includes('N46')||String(x.label).includes('変動後威力');});if(n46){var m=String(n46.value).match(/(?:1回目=)?(\d+)/);if(m)return num(m[1],input.move.power||1);}return input.move.power||1;}
   function applyRate(state,label,rate,list){var before=state.rate;state.rate=roundHalfUp(state.rate*rate/4096);list.push(label+': '+before+'->'+state.rate+' ('+rate+'/4096)');}
   function hasAura(name,o){var a=by(D.abilities,o.attackerAbilityId),d=by(D.abilities,o.defenderAbilityId);return (activeAbility('A',a,o)&&a.name===name)||(activeAbility('D',d,o)&&d.name===name)||(name==='フェアリーオーラ'&&o.fairyAuraField)||(name==='ダークオーラ'&&o.darkAuraField);}
@@ -554,7 +707,7 @@ function weatherIgnored(aState,dState,o){return o.weather==='ノーてんき・�
     if(o.batterySupport&&cat==='特殊')applyRate(state,'バッテリー',5325,logs);
     if(o.powerSpotSupport&&(cat==='物理'||cat==='特殊'))applyRate(state,'パワースポット',5325,logs);
     if(A('アナライズ')&&o.analyzeMovedLast)applyRate(state,'アナライズ',5325,logs);
-    if(A('かたいツメ')&&String((result.trace||[]).find(x=>String(x.label).includes('直接攻撃判定'))?.value).includes('直接'))applyRate(state,'かたいツメ',5325,logs);
+    if(A('かたいツメ')&&contactActive(result))applyRate(state,'かたいツメ',5325,logs);
     if(A('すなのちから')&&((o.attackerEffectiveWeather||o.weather)==='すなあらし')&&['じめん','いわ','はがね'].includes(type))applyRate(state,'すなのちから',5325,logs);
     if(A('ちからずく')&&window.DAMEKE_DATA_HELPERS.moveTagForEffective(input.move,name,'sheerForce'))applyRate(state,'ちからずく',5325,logs);
     if(A('パンクロック')&&window.DAMEKE_DATA_HELPERS.moveTagForEffective(input.move,name,'sound'))applyRate(state,'パンクロック',5325,logs);
@@ -612,79 +765,38 @@ function weatherIgnored(aState,dState,o){return o.weather==='ノーてんき・�
 
 
 // v0.23 common weather state resolver
+// The actual attacker/defender-effective weather is now resolved once, inside the
+// core calculation itself (where ability/item state is already known -- see
+// resolveEffectiveWeather), and exposed as result.weatherResolution. This layer's
+// only remaining job is to (a) relay that value into input.options so the later
+// layers in the chain that read o.attackerEffectiveWeather/o.defenderEffectiveWeather
+// see it too, matching how __coreState is relayed, and (b) render the trace line.
+// Previously this layer independently re-derived ability/item activity *before*
+// the core had run, and wrote the result only onto a local copy of options --
+// meaning later layers (attack/defense modifiers, weather-based damage rate) never
+// actually saw the corrected effective weather and silently fell back to the raw
+// input weather. Moving resolution into the core fixes that.
 (function(){
   var D = window.DAMEKE_DATA;
   var C = window.DAMEKE_CALC;
   if(!D || !C || !C.calculateDamage || C.__weatherStatePatched) return;
-  function by(list,id){return (list||[]).find(function(x){return x.id===id;}) || (list||[])[0] || {};}
-  function activeItem(side,item,o){
-    if(!item || item.id==='none') return false;
-    if(side==='A' && o.attackerNoItem) return false;
-    if(side==='D' && o.defenderNoItem) return false;
-    if(o.magicRoom) return false;
-    if(side==='A' && o.attackerEmbargo) return false;
-    if(side==='D' && o.defenderEmbargo) return false;
-    return true;
-  }
-  function activeAbility(side,ab,o){
-    if(!ab || ab.id==='なし') return false;
-    if(side==='A' && o.attackerNoAbility) return false;
-    if(side==='D' && o.defenderNoAbility) return false;
-    if(ab.name==='マルチタイプ' || ab.name==='ARシステム') return true;
-    if(o.neutralizingGasField) return false;
-    var other=by(D.abilities,side==='A'?o.defenderAbilityId:o.attackerAbilityId);
-    var otherNo=side==='A'?o.defenderNoAbility:o.attackerNoAbility;
-    if(other && !otherNo && other.name==='かがくへんかガス') return false;
-    return true;
-  }
-  function buildWeatherState(o){
-    var raw=o.weather || 'なし';
-    var aAb=by(D.abilities,o.attackerAbilityId||'なし');
-    var dAb=by(D.abilities,o.defenderAbilityId||'なし');
-    var aItem=by(D.items,o.attackerItemId||'none');
-    var dItem=by(D.items,o.defenderItemId||'none');
-    var aAbOk=activeAbility('A',aAb,o);
-    var dAbOk=activeAbility('D',dAb,o);
-    var aw=raw, dw=raw;
-    var notes=[];
-    if(aAbOk && aAb.name==='メガソーラー'){
-      aw='にほんばれ';
-      dw='にほんばれ';
-      notes.push('攻撃側メガソーラー: 両側天候=にほんばれ');
-    }
-    if((aAbOk && (window.DAMEKE_DATA_HELPERS.abilityTag(aAb,'ignoreWeather'))) ||
-       (dAbOk && (window.DAMEKE_DATA_HELPERS.abilityTag(dAb,'ignoreWeather'))) ||
-       raw==='ノーてんき・エアロック' || o.weatherSuppressField){
-      aw='なし';
-      dw='なし';
-      notes.push('ノーてんき・エアロック: 両側天候=なし');
-    }
-    if(activeItem('A',aItem,o) && aItem.kind==='WeatherIgnore' && ['にほんばれ','おおひでり','あめ','おおあめ'].includes(aw)){
-      aw='なし';
-      notes.push('攻撃側ばんのうがさ: 攻撃側天候=なし');
-    }
-    if(activeItem('D',dItem,o) && dItem.kind==='WeatherIgnore' && ['にほんばれ','おおひでり','あめ','おおあめ'].includes(dw)){
-      dw='なし';
-      notes.push('防御側ばんのうがさ: 防御側天候=なし');
-    }
-    return {raw:raw, attacker:aw, defender:dw, note:notes.join('、') || '入力どおり'};
-  }
   function setWeatherTrace(result,ws){
     var line=(result.trace||[]).find(function(x){return String(x.label).includes('天候');});
     if(line){
-      line.value=ws.raw;
       line.note='攻撃側天候='+ws.attacker+' / 防御側天候='+ws.defender+' / '+ws.note;
     } else {
-      result.trace.push({label:'00 天候',name:'現在値',value:ws.raw,note:'攻撃側天候='+ws.attacker+' / 防御側天候='+ws.defender+' / '+ws.note,implemented:true});
+      result.trace.push({label:'00 天候',name:'現在値',value:ws.attacker,note:'攻撃側天候='+ws.attacker+' / 防御側天候='+ws.defender+' / '+ws.note,implemented:true});
     }
   }
   var previousWeatherStateCalc=C.calculateDamage.bind(C);
   C.calculateDamage=function(input){
-    var o=Object.assign({}, input.options||{});
-    var ws=buildWeatherState(o);
-    o.attackerEffectiveWeather=ws.attacker;
-    o.defenderEffectiveWeather=ws.defender;
-    var result=previousWeatherStateCalc(Object.assign({}, input, {options:o}));
+    var result=previousWeatherStateCalc(input);
+    if(result&&result.__coreState)(input.options||(input.options={})).__coreState=result.__coreState;
+    var ws=result.weatherResolution || {raw:(input.options&&input.options.weather)||'なし', attacker:result.attackerEffectiveWeather||'なし', defender:result.defenderEffectiveWeather||'なし', note:'入力どおり'};
+    if(input.options){
+      input.options.attackerEffectiveWeather = result.attackerEffectiveWeather;
+      input.options.defenderEffectiveWeather = result.defenderEffectiveWeather;
+    }
     setWeatherTrace(result,ws);
     return result;
   };
@@ -697,20 +809,20 @@ function weatherIgnored(aState,dState,o){return o.weather==='ノーてんき・�
   var D = window.DAMEKE_DATA;
   var C = window.DAMEKE_CALC;
   if(!D || !C || !C.calculateDamage || C.__attackModifierPatched) return;
-  function num(v,f){var n=parseInt(v,10);return Number.isFinite(n)?n:f;}
+  var num = window.DAMEKE_CALC_SHARED.num;
   function fl(x){return window.DAMEKE_ROUNDING.floor(x);} function roundHalfUp(x){return window.DAMEKE_ROUNDING.roundHalfUp(x);} function roundFiveDown(x){return window.DAMEKE_ROUNDING.roundFiveDown(x);} function clamp(v,a,b){return Math.min(Math.max(v,a),b);}
   function typeRate(t,dt){if(!dt||dt==='タイプなし')return 4096;return ((D.typeChart4096&&D.typeChart4096[t])||{})[dt]??4096;}
   function combo(t,types){var r=4096;(types||[]).forEach(function(dt){r=fl(r*typeRate(t,dt)/4096);});return r;}
   function mod(v,r){return fl(v*r/4096);} function baseDamage(level,power,atk,def){if(!power||power<=0||def<=0)return 0;return fl(fl((fl(2*level/5)+2)*power*atk/def)/50)+2;}
   function by(list,id){return (list||[]).find(function(x){return x.id===id;}) || (list||[])[0] || {};}
-  function activeAbilityFromCore(side,ab,o,result){var core=(result&&result.__coreState)||(o&&o.__coreState);if(core){var st=side==='A'?core.attackerAbilityState:core.defenderAbilityState;if(st&&st.ability&&ab&&st.ability.id===ab.id)return !!st.active;}return false;}
-  function activeItemFromCore(side,item,o,result){var core=(result&&result.__coreState)||(o&&o.__coreState);if(core){var st=side==='A'?core.attackerItemState:core.defenderItemState;var coreItem=side==='A'?core.attackerItem:core.defenderItem;if(st&&coreItem&&item&&coreItem.id===item.id)return !!st.active;}return false;}
+  var activeAbilityFromCore = window.DAMEKE_CALC_SHARED.activeAbilityCoreOnly;
+  var activeItemFromCore = window.DAMEKE_CALC_SHARED.activeItemCoreOnly;
   function parseRankedValues(result,side){var label=side==='A'?'攻撃側ランク補正込み実数値':'防御側ランク補正込み実数値';var line=(result.trace||[]).find(function(x){return String(x.label).includes(label);});if(!line)return null;var parts=String(line.value).split('/').map(function(x){return num(x,NaN);});if(parts.length<7)return null;return {Hcur:parts[0],Hmax:parts[1],A:parts[2],B:parts[3],C:parts[4],D:parts[5],S:parts[6]};}
-  function parseAfterArrow(result,labelPart){var line=(result.trace||[]).find(function(x){return String(x.label).includes(labelPart);});if(!line)return null;var m=String(line.value).match(/->\s*(\d+)/);return m?num(m[1],null):null;}
+  var parseAfterArrow = window.DAMEKE_CALC_SHARED.parseAfterArrow;
   function getFinalPowers(result,input){var line=(result.trace||[]).find(function(x){return String(x.label).includes('変動後威力');});var txt=line?String(line.value):'';var re=/(\d+)回目=(\d+)/g,m,out=[];while((m=re.exec(txt)))out.push(num(m[2],0));if(out.length)return out;if(result.hitPlan&&result.hitPlan.length)return result.hitPlan.map(function(h){return h.basePower||input.move.power||1;});return [input.move.power||1];}
   function applyRate(state,label,rate,logs){var before=state.rate;state.rate=roundHalfUp(state.rate*rate/4096);logs.push(label+': '+before+'->'+state.rate+' ('+rate+'/4096)');}
   function currentHpInfo(result,side){var v=parseRankedValues(result,side);return v||{Hcur:1,Hmax:1};}
-  function isAbility(name,ab,ok){return ok&&ab&&ab.name===name;}
+  var isAbility = window.DAMEKE_CALC_SHARED.isAbility;
   function calcAtkModifier(result,input,source,cat,type){var o=input.options||{};var aAb=by(D.abilities,o.attackerAbilityId||'なし'),dAb=by(D.abilities,o.defenderAbilityId||'なし'),aItem=by(D.items,o.attackerItemId||'none');var aOk=activeAbilityFromCore('A',aAb,o,result),dOk=activeAbilityFromCore('D',dAb,o,result),itemOk=activeItemFromCore('A',aItem,o,result);var hp=currentHpInfo(result,'A');var state={rate:4096},logs=[];function A(n){return isAbility(n,aAb,aOk);}function Df(n){return isAbility(n,dAb,dOk);}function M(n){return (result.moveName||input.move.name)===n;}
     if(A('スロースタート')&&o.attackerSlowStart)applyRate(state,'スロースタート',2048,logs);
     if(A('よわき')&&hp.Hcur*2<=hp.Hmax)applyRate(state,'よわき',2048,logs);
@@ -761,22 +873,22 @@ function weatherIgnored(aState,dState,o){return o.weather==='ノーてんき・�
   var D = window.DAMEKE_DATA;
   var C = window.DAMEKE_CALC;
   if(!D || !C || !C.calculateDamage || C.__defenseModifierPatched) return;
-  function num(v,f){var n=parseInt(v,10);return Number.isFinite(n)?n:f;}
+  var num = window.DAMEKE_CALC_SHARED.num;
   function fl(x){return window.DAMEKE_ROUNDING.floor(x);} function roundHalfUp(x){return window.DAMEKE_ROUNDING.roundHalfUp(x);} function roundFiveDown(x){return window.DAMEKE_ROUNDING.roundFiveDown(x);} function clamp(v,a,b){return Math.min(Math.max(v,a),b);}
   function by(list,id){return (list||[]).find(function(x){return x.id===id;}) || (list||[])[0] || {};}
   function typeRate(t,dt){if(!dt||dt==='タイプなし')return 4096;return ((D.typeChart4096&&D.typeChart4096[t])||{})[dt]??4096;}
   function combo(t,types){var r=4096;(types||[]).forEach(function(dt){r=fl(r*typeRate(t,dt)/4096);});return r;}
   function mod(v,r){return fl(v*r/4096);} function baseDamage(level,power,atk,def){if(!power||power<=0||def<=0)return 0;return fl(fl((fl(2*level/5)+2)*power*atk/def)/50)+2;}
   function parseRankedValues(result,side){var label=side==='A'?'攻撃側ランク補正込み実数値':'防御側ランク補正込み実数値';var line=(result.trace||[]).find(function(x){return String(x.label).includes(label);});if(!line)return null;var parts=String(line.value).split('/').map(function(x){return num(x,NaN);});if(parts.length<7)return null;return {Hcur:parts[0],Hmax:parts[1],A:parts[2],B:parts[3],C:parts[4],D:parts[5],S:parts[6]};}
-  function parseAfterArrow(result,labelPart){var line=(result.trace||[]).find(function(x){return String(x.label).includes(labelPart);});if(!line)return null;var m=String(line.value).match(/->\s*(\d+)/);return m?num(m[1],null):null;}
+  var parseAfterArrow = window.DAMEKE_CALC_SHARED.parseAfterArrow;
   function getFinalPowers(result,input){var line=(result.trace||[]).find(function(x){return String(x.label).includes('変動後威力');});var txt=line?String(line.value):'';var re=/(\d+)回目=(\d+)/g,m,out=[];while((m=re.exec(txt)))out.push(num(m[2],0));if(out.length)return out;if(result.hitPlan&&result.hitPlan.length)return result.hitPlan.map(function(h){return h.basePower||input.move.power||1;});return [input.move.power||1];}
-  function activeAbilityFromCore(side,ab,o,result){var core=(result&&result.__coreState)||(o&&o.__coreState);if(core){var st=side==='A'?core.attackerAbilityState:core.defenderAbilityState;if(st&&st.ability&&ab&&st.ability.id===ab.id)return !!st.active;}return false;}
-  function activeItemFromCore(side,item,o,result){var core=(result&&result.__coreState)||(o&&o.__coreState);if(core){var st=side==='A'?core.attackerItemState:core.defenderItemState;var coreItem=side==='A'?core.attackerItem:core.defenderItem;if(st&&coreItem&&item&&coreItem.id===item.id)return !!st.active;}return false;}
-  function isAbility(name,ab,ok){return ok&&ab&&ab.name===name;}
+  var activeAbilityFromCore = window.DAMEKE_CALC_SHARED.activeAbilityCoreOnly;
+  var activeItemFromCore = window.DAMEKE_CALC_SHARED.activeItemCoreOnly;
+  var isAbility = window.DAMEKE_CALC_SHARED.isAbility;
   function applyRate(state,label,rate,logs){var before=state.rate;state.rate=roundHalfUp(state.rate*rate/4096);logs.push(label+': '+before+'->'+state.rate+' ('+rate+'/4096)');}
   function defenderWeather(result,o){var line=(result.trace||[]).find(function(x){return String(x.label).includes('天候');});var m=line&&String(line.note||'').match(/防御側天候=([^ /]+)/);return m?m[1]:(o.defenderEffectiveWeather||o.weather||'なし');}
-  function attackerCalcTypes(result){var line=(result.trace||[]).find(function(x){return String(x.label).includes('計算上タイプ（攻撃側）');});return line?String(line.value||'').split('/').filter(Boolean):[];}
-  function defenderCalcTypes(result){var line=(result.trace||[]).find(function(x){return String(x.label).includes('計算上タイプ（防御側）');});return line?String(line.value||'').split('/').filter(Boolean):[];}
+  var attackerCalcTypes = window.DAMEKE_CALC_SHARED.attackerCalcTypes;
+  var defenderCalcTypes = window.DAMEKE_CALC_SHARED.defenderCalcTypes;
   function wonderRoomOn(result){var line=(result.trace||[]).find(function(x){return String(x.label).includes('実数値操作');});return !!(line && String(line.note||'').includes('最終ワンダールーム=ON'));}
   function teraType(o){return o.defenderTeraType||'なし';}
   function typeConditionForWeather(result,o,need){var tera=teraType(o);if(tera===need)return true;if(!tera||tera==='なし'||tera==='ステラ')return defenderCalcTypes(result).includes(need);return false;}
@@ -811,24 +923,23 @@ function weatherIgnored(aState,dState,o){return o.weather==='ノーてんき・�
   var C = window.DAMEKE_CALC;
   var R = window.DAMEKE_ROUNDING;
   if(!D || !C || !C.calculateDamage || !R || C.__finalDamageCorePatchedV31) return;
-  function num(v,f){var n=parseInt(v,10);return Number.isFinite(n)?n:f;}
+  var num = window.DAMEKE_CALC_SHARED.num;
   function by(list,id){return (list||[]).find(function(x){return x.id===id;}) || (list||[])[0] || {};}
-  function activeAbilityFromCore(side,ab,o,result){var core=(result&&result.__coreState)||(o&&o.__coreState);if(core){var st=side==='A'?core.attackerAbilityState:core.defenderAbilityState;if(st&&st.ability&&ab&&st.ability.id===ab.id)return !!st.active;}return false;}
-  function parseAfterArrow(result,labelPart){var line=(result.trace||[]).find(function(x){return String(x.label).includes(labelPart);});if(!line)return null;var m=String(line.value).match(/->\s*(\d+)/);return m?num(m[1],null):null;}
+  var activeAbilityFromCore = window.DAMEKE_CALC_SHARED.activeAbilityCoreOnly;
+  var parseAfterArrow = window.DAMEKE_CALC_SHARED.parseAfterArrow;
   function getFinalPowers(result,input){var line=(result.trace||[]).find(function(x){return String(x.label).includes('変動後威力');});var txt=line?String(line.value):'';var re=/(\d+)回目=(\d+)/g,m,out=[];while((m=re.exec(txt)))out.push(num(m[2],0));if(out.length)return out;if(result.hitPlan&&result.hitPlan.length)return result.hitPlan.map(function(h){return h.basePower||input.move.power||1;});return [input.move.power||1];}
   function protectRate(result){var line=(result.trace||[]).find(function(x){return String(x.label).includes('まもる');});var m=line&&String(line.value||'').match(/(\d+)\/4096/);return m?num(m[1],4096):4096;}
-  function criticalRate(result){var line=(result.trace||[]).find(function(x){return String(x.label).includes('急所');});var note=String((line&&line.note)||'');var val=String((line&&line.value)||'');if(note.includes('急所無効')||note.includes('急所なし')||note.includes('固定ダメージ'))return 4096;if(note.includes('急所確定')||note.includes('攻撃側条件急所'))return 6144;if(val==='あり'&&!note.includes('無効')&&!note.includes('なし'))return 6144;return 4096;}
+  function criticalRate(result){return (result&&result.criticalEffective)?6144:4096;}
   function zeroDamage(result,input,rates){if(rates&&rates.weather===0)return true;if((result.typeRate4096||4096)===0)return true;if((result.effectiveCategory||input.move.category)==='変化')return true;return false;}
-  function isGrounded(result,side){var label=side==='A'?'接地判定（攻撃側）':'接地判定（防御側）';var line=(result.trace||[]).find(function(x){return String(x.label).includes(label);});return !line||line.value==='有効';}
-  function attackerWeather(result,o){var line=(result.trace||[]).find(function(x){return String(x.label).includes('天候');});var m=line&&String(line.note||'').match(/攻撃側天候=([^ /]+)/);return m?m[1]:(o.attackerEffectiveWeather||o.weather||'なし');}
+  var isGrounded = window.DAMEKE_CALC_SHARED.isGrounded;
   function effectiveMoveName(result,input){return result.moveName||input.move.name;}
   function moveTarget(result,input,o){var name=effectiveMoveName(result,input);var target=window.DAMEKE_DATA_HELPERS.moveTarget(input.move);
-    if(window.DAMEKE_DATA_HELPERS.moveTagByName(name,'teraCluster')&&window.DAMEKE_DATA_HELPERS.pokemonMatches(input.attacker,['テラパゴス(テラスタル)','terapagos_terastal'])&&o.attackerTeraType==='ステラ')return '相手全員';
-    if(window.DAMEKE_DATA_HELPERS.moveTagByName(name,'expandingForce')&&o.field==='サイコフィールド'&&isGrounded(result,'A'))return '相手全員';
+    if(window.DAMEKE_DATA_HELPERS.moveTagByName(name,'teraCluster')&&window.DAMEKE_DATA_HELPERS.pokemonMatches(input.attacker,['テラパゴス(テラスタル)','terapagos_terastal'])&&o.attackerTeraType==='ステラ')return '相手全体';
+    if(window.DAMEKE_DATA_HELPERS.moveTagByName(name,'expandingForce')&&o.field==='サイコフィールド'&&isGrounded(result,'A'))return '相手全体';
     return target;
   }
-  function rangeInfo(result,input,o){var target=moveTarget(result,input,o);var spread=target==='相手全員'||target==='自分以外';var rate=(o.attackerDoubleDamage&&spread)?3072:4096;return {rate:rate,target:target,spread:spread,reason:rate===3072?'ダブルダメージ+範囲'+target:'なし'};}
-  function isZOrSpecialZ(result,input){var line=(result.trace||[]).find(function(x){return String(x.label).includes('Z・ダイマックス（攻撃側）');});var name=String((line&&line.name)||'');var val=String((line&&line.value)||'');if(name==='Zワザ'||name==='専用Z')return val==='有効';return !!(input.move&&(input.move.isZMove||input.move.isSignatureZ));}
+  function rangeInfo(result,input,o){var target=moveTarget(result,input,o);var spread=target==='相手全体'||target==='自分以外';var rate=(o.attackerDoubleDamage&&spread)?3072:4096;return {rate:rate,target:target,spread:spread,reason:rate===3072?'ダブルダメージ+範囲'+target:'なし'};}
+  function isZOrSpecialZ(result,input){var line=(result.trace||[]).find(function(x){return String(x.label).includes('Z・ダイマックス（攻撃側）');});var name=String((line&&line.name)||'');var val=String((line&&line.value)||'');if(name==='Zワザ'||name==='専用Z')return val==='有効';var effMove=(result&&result.effectiveMove)||input.move;return !!(effMove&&(effMove.isZMove||effMove.isSignatureZ));}
   function parentalExcludedMove(name){return window.DAMEKE_DATA_HELPERS.moveTagByName(name,'parentalExcluded');}
   function parentalBondInfo(result,input,o,range){var aAb=by(D.abilities,o.attackerAbilityId||'なし');var aOk=activeAbilityFromCore('A',aAb,o,result);var cat=result.effectiveCategory||input.move.category;var name=effectiveMoveName(result,input);var existingHits=(result.hitPlan&&result.hitPlan.length)?result.hitPlan.length:1;var ok=aOk&&aAb.name==='おやこあい'&&(cat==='物理'||cat==='特殊')&&existingHits===1&&range.rate===4096&&!isZOrSpecialZ(result,input)&&!parentalExcludedMove(name);return {active:!!ok,rates:ok?[4096,1024]:[4096],reason:ok?'おやこあいにより2回攻撃 1回目4096/2回目1024':'なし'};}
   function weatherInfo(result,input,o){
@@ -879,13 +990,13 @@ function weatherIgnored(aState,dState,o){return o.weather==='ノーてんき・�
     }
     return {rate:rate,reason:reason,invalid:invalid,weather:w,attackerWeather:attackerW,defenderWeather:defenderW,source:source};
   }
-  function attackerCalcTypes(result){var line=(result.trace||[]).find(function(x){return String(x.label).includes('計算上タイプ（攻撃側）');});return line?String(line.value||'').split('/').filter(Boolean):[];}
+  var attackerCalcTypes = window.DAMEKE_CALC_SHARED.attackerCalcTypes;
   function stabInfo(result,input,o){var moveType=result.effectiveType||input.move.type;var tera=o.attackerTeraType||'なし';var calcTypes=attackerCalcTypes(result);var calcMatch=calcTypes.includes(moveType);var teraMatch=(tera&&tera!=='なし'&&tera!=='ステラ'&&moveType===tera);var isTerapagos=input.attacker&&window.DAMEKE_DATA_HELPERS.pokemonMatches(input.attacker,['テラパゴス(テラスタル)','terapagos_terastal']);var isStellarTerapagos=input.attacker&&window.DAMEKE_DATA_HELPERS.pokemonMatches(input.attacker,['テラパゴス(ステラ)','terapagos_stellar']);var count=o.attackerStellarMoveCount||'first';var aAb=by(D.abilities,o.attackerAbilityId||'なし');var adapt=activeAbilityFromCore('A',aAb,o,result)&&aAb.name==='てきおうりょく';var name=effectiveMoveName(result,input);if((isStellarTerapagos||(isTerapagos&&tera==='ステラ'))&&calcMatch)return {rate:8192,reason:'テラパゴス(ステラ)+計算上タイプ一致'};if((isStellarTerapagos||(isTerapagos&&tera==='ステラ'))&&!calcMatch)return {rate:4915,reason:'テラパゴス(ステラ)+計算上タイプ不一致'};if(!isTerapagos&&tera==='ステラ'&&calcMatch&&count==='first')return {rate:8192,reason:'ステラ1回目+計算上タイプ一致'};if(!isTerapagos&&tera==='ステラ'&&calcMatch&&count!=='first')return {rate:6144,reason:'ステラ2回目以降+計算上タイプ一致'};if(!isTerapagos&&tera==='ステラ'&&!calcMatch&&name!=='わるあがき'&&count==='first')return {rate:4915,reason:'ステラ1回目+計算上タイプ不一致'};if(!isTerapagos&&tera==='ステラ'&&!calcMatch&&count!=='first')return {rate:4096,reason:'ステラ2回目以降+計算上タイプ不一致'};if(tera!=='なし'&&tera!=='ステラ'&&adapt&&teraMatch&&calcMatch)return {rate:9216,reason:'テラ+てきおうりょく+テラタイプかつ計算上タイプ一致'};if(tera!=='なし'&&tera!=='ステラ'&&adapt&&teraMatch&&!calcMatch)return {rate:8192,reason:'テラ+てきおうりょく+テラタイプのみ一致'};if((!tera||tera==='なし')&&adapt&&calcMatch)return {rate:8192,reason:'非テラ+てきおうりょく+計算上タイプ一致'};if(tera!=='なし'&&tera!=='ステラ'&&teraMatch&&calcMatch)return {rate:8192,reason:'テラタイプかつ計算上タイプ一致'};if(tera!=='なし'&&tera!=='ステラ'&&(teraMatch||calcMatch))return {rate:6144,reason:'テラタイプまたは計算上タイプ一致'};if((!tera||tera==='なし')&&calcMatch)return {rate:6144,reason:'非テラ+計算上タイプ一致'};return {rate:4096,reason:'一致なし'};}
-  function defenderCalcTypes(result){var line=(result.trace||[]).find(function(x){return String(x.label).includes('計算上タイプ（防御側）');});return line?String(line.value||'').split('/').filter(Boolean):[];}
+  var defenderCalcTypes = window.DAMEKE_CALC_SHARED.defenderCalcTypes;
   function baseDefTypes(result,o){var tera=o.defenderTeraType||'なし';if(tera&&tera!=='なし'&&tera!=='ステラ')return [tera];var types=defenderCalcTypes(result);return types.length?types:['タイプなし'];}
   
   // v0.64i: final core local helper set. These must live in the same IIFE as typeEffectInfo().
-  function isAbility(result,o,side,name){
+  function isAbilityActive(result,o,side,name){
     var core=(result&&result.__coreState)||(o&&o.__coreState);
     if(core){
       var st=side==='A'?core.attackerAbilityState:core.defenderAbilityState;
@@ -894,7 +1005,7 @@ function weatherIgnored(aState,dState,o){return o.weather==='ノーてんき・�
     var ab=by(D.abilities,side==='A'?(o.attackerAbilityId||'なし'):(o.defenderAbilityId||'なし'));
     return !!(ab&&ab.name===name);
   }
-  function itemActive(result,o,side,name,kind){
+  function isItemActive(result,o,side,name,kind){
     var core=(result&&result.__coreState)||(o&&o.__coreState);
     if(core){
       var st=side==='A'?core.attackerItemState:core.defenderItemState;
@@ -934,8 +1045,8 @@ function weatherIgnored(aState,dState,o){return o.weather==='ノーてんき・�
   }
 function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'ほのお','そうしょく':'くさ','ちくでん':'でんき','ちょすい':'みず','でんきエンジン':'でんき','どしょく':'じめん','ひらいしん':'でんき','もらいび':'ほのお','よびみず':'みず'};for(var k in table){if(moveType===table[k]&&isAbility(result,o,'D',k))return k;}return null;}
   function singleRate(result,input,o,moveType,defType,logs){var name=effectiveMoveName(result,input);var rate=typeRate(moveType,defType);var original=rate;
-    if(itemActive(result,o,'D','ねらいのまと','RingTarget')&&rate===0){logs.push(defType+': ねらいのまとにより相性0のタイプを除外');return null;}
-    if((isAbility(result,o,'A','きもったま')||isAbility(result,o,'A','しんがん')||o.defenderForesight)&&(moveType==='ノーマル'||moveType==='かくとう')&&defType==='ゴースト'&&rate===0){rate=4096;logs.push(defType+': みやぶり/きもったま/しんがんで0->4096');}
+    if(isItemActive(result,o,'D','ねらいのまと','RingTarget')&&rate===0){logs.push(defType+': ねらいのまとにより相性0のタイプを除外');return null;}
+    if((isAbilityActive(result,o,'A','きもったま')||isAbilityActive(result,o,'A','しんがん')||o.defenderForesight)&&(moveType==='ノーマル'||moveType==='かくとう')&&defType==='ゴースト'&&rate===0){rate=4096;logs.push(defType+': みやぶり/きもったま/しんがんで0->4096');}
     if(o.defenderMiracleEye&&moveType==='エスパー'&&defType==='あく'&&rate===0){rate=4096;logs.push(defType+': ミラクルアイで0->4096');}
     if(window.DAMEKE_DATA_HELPERS.moveTagByName(name,'freezeDry')&&defType==='みず'){rate=8192;logs.push(defType+': フリーズドライで8192');}
     if(window.DAMEKE_DATA_HELPERS.moveTagByName(name,'absoluteZero')&&defType==='こおり'){rate=0;logs.push(defType+': ぜったいれいどで0');}
@@ -951,7 +1062,7 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
     var imm=abilityImmunity(result,o,moveType);if(imm)return {rate:0,invalid:true,reason:'防御側特性'+imm+'により無効',details:['特性無効']};
     var dGrounded=isGrounded(result,'D');
     if(window.DAMEKE_DATA_HELPERS.moveTagByName(name,'thousandArrows')&&moveType==='じめん'){
-      var targetRing=itemActive(result,o,'D','ねらいのまと','RingTarget');
+      var targetRing=isItemActive(result,o,'D','ねらいのまと','RingTarget');
       if(types.includes('ひこう')&&!dGrounded&&!targetRing)return {rate:4096,invalid:false,reason:'サウザンアロー: 非接地ひこう相手は4096',details:['サウザンアロー特殊=4096']};
       if(types.includes('ひこう')&&dGrounded&&!targetRing){types=types.filter(function(t){return t!=='ひこう';});logs.push('サウザンアロー: 接地ひこうを除外');if(!types.length)types=['タイプなし'];}
     } else if(!dGrounded&&moveType==='じめん'){
@@ -961,8 +1072,8 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
     var rate=combineRatesFloor(rates);
     if(window.DAMEKE_DATA_HELPERS.moveTagByName(name,'flyingPress')){var flyingRates=[];types.forEach(function(t){var r=singleRate(result,input,o,'ひこう',t,logs);if(r!==null)flyingRates.push(r);});var fr=flyingRates.length?combineRatesFloor(flyingRates):4096;logs.push('フライングプレス追加ひこう相性='+fr);rate=Math.floor(rate*fr/4096);}
     if(rate!==0&&moveType==='ほのお'&&o.defenderTarShot){logs.push('タールショット: '+rate+' -> '+Math.floor(rate*8192/4096));rate=Math.floor(rate*8192/4096);}
-    var hp=currentHpInfo(result);if(rate!==0&&isAbility(result,o,'D','テラスシェル')&&hp.cur===hp.max){logs.push('テラスシェル満タン: '+rate+' -> 2048');rate=2048;}
-    if(rate!==0&&rate<=4096&&isAbility(result,o,'D','ふしぎなまもり')){logs.push('ふしぎなまもり: '+rate+' -> 0');rate=0;invalid=true;}
+    var hp=currentHpInfo(result);if(rate!==0&&isAbilityActive(result,o,'D','テラスシェル')&&hp.cur===hp.max){logs.push('テラスシェル満タン: '+rate+' -> 2048');rate=2048;}
+    if(rate!==0&&rate<=4096&&isAbilityActive(result,o,'D','ふしぎなまもり')){logs.push('ふしぎなまもり: '+rate+' -> 0');rate=0;invalid=true;}
     if(rate===0)invalid=true;return {rate:rate,invalid:invalid,reason:logs.join(' / ')||'通常相性',details:logs};
   }
   function calcOtherModifier(){return {rate:4096,logs:['外枠のみ: その他補正は未実装のため4096']};}
@@ -970,7 +1081,7 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
   function calcOne(level,power,atk,def,rnd,rates,parentalRate){var steps=[];var a=Math.floor(level*2/5)+2;steps.push('floor(Lv*2/5)+2='+a);var b=Math.floor(a*power*atk/def);steps.push('floor('+a+'*威力'+power+'*攻撃'+atk+'/防御'+def+')='+b);var d=Math.floor(b/50)+2;steps.push('floor('+b+'/50)+2='+d);d=applyFiveDown(d,rates.range);steps.push('範囲 '+rates.range+' -> '+d);d=applyFiveDown(d,parentalRate);steps.push('おやこあい '+parentalRate+' -> '+d);d=applyFiveDown(d,rates.weather);steps.push('天候 '+rates.weather+' -> '+d);d=applyFiveDown(d,rates.glaiveRush);steps.push('きょけんとつげき '+rates.glaiveRush+' -> '+d);d=applyFiveDown(d,rates.critical);steps.push('急所 '+rates.critical+' -> '+d);d=applyFloorPercent(d,rnd);steps.push('乱数 '+rnd+'/100 -> '+d);d=applyFiveDown(d,rates.stab);steps.push('タイプ一致 '+rates.stab+' -> '+d);d=R.apply4096Floor(d,rates.type);steps.push('相性 '+rates.type+' -> '+d);d=applyFiveDown(d,rates.burn);steps.push('やけど '+rates.burn+' -> '+d);d=applyFiveDown(d,rates.other);steps.push('その他 '+rates.other+' -> '+d);d=applyFiveDown(d,rates.protect);steps.push('まもる '+rates.protect+' -> '+d);if(d<1)d=1;return {damage:d,steps:steps};}
   function setTrace(result,label,name,value,note){var line=(result.trace||[]).find(function(x){return String(x.label).includes(label);});if(line){line.name=name;line.value=value;if(note!=null)line.note=note;}else result.trace.push({label:label,name:name,value:value,note:note||'',implemented:true});}
   var prev=C.calculateDamage.bind(C);
-  C.calculateDamage=function(input){var result=prev(input);if(result&&result.__coreState)(input.options||(input.options={})).__coreState=result.__coreState;var o=input.options||{};var powers=getFinalPowers(result,input),atk=parseAfterArrow(result,'補正後攻撃側実数値'),def=parseAfterArrow(result,'補正後防御側実数値'),level=Math.min(Math.max(num(input.attackerLevel,50),1),100);var range=rangeInfo(result,input,o),parent=parentalBondInfo(result,input,o,range),weather=weatherInfo(result,input,o),stab=stabInfo(result,input,o),typeEff=typeEffectInfo(result,input,o),other=calcOtherModifier();var rates={range:range.rate,weather:weather.rate,glaiveRush:o.defenderGlaiveRush?8192:4096,critical:criticalRate(result),stab:stab.rate,type:typeEff.rate,burn:4096,other:other.rate,protect:protectRate(result)};
+  C.calculateDamage=function(input){var result=prev(input);if(result&&result.__coreState)(input.options||(input.options={})).__coreState=result.__coreState;var o=input.options||{};var powers=getFinalPowers(result,input),atk=parseAfterArrow(result,'補正後攻撃側実数値'),def=parseAfterArrow(result,'補正後防御側実数値'),level=Math.min(Math.max(num(input.attackerLevel,50),1),100);var range=rangeInfo(result,input,o),parent=parentalBondInfo(result,input,o,range),weather=weatherInfo(result,input,o),stab=stabInfo(result,input,o),typeEff=typeEffectInfo(result,input,o),other=calcOtherModifier();result.stabRate4096=stab.rate;var rates={range:range.rate,weather:weather.rate,glaiveRush:o.defenderGlaiveRush?8192:4096,critical:criticalRate(result),stab:stab.rate,type:typeEff.rate,burn:4096,other:other.rate,protect:protectRate(result)};
     result.typeRate4096=typeEff.rate;setTrace(result,'N64 ダメージ変動値','相性',typeEff.rate+'/4096 ('+(typeEff.rate/4096).toFixed(2)+'倍)',typeEff.reason);setTrace(result,'タイプ相性詳細','詳細',typeEff.details.join(' / ')||typeEff.reason,'v0.32');
     var zero=(!atk||!def||!powers.length||weather.invalid||typeEff.invalid||(result.effectiveCategory||input.move.category)==='変化');if(zero){result.rolls=[0];result.minDamage=0;result.maxDamage=0;result.minRate=0;result.maxRate=0;var reason=weather.invalid?'天候により無効':(typeEff.invalid?'タイプ相性により無効':'変化技または無効');setTrace(result,'N68 乱数','85から100','0','v0.32 最終式: '+reason);setTrace(result,'N81 無効要素','現在値',reason,'v0.32');return result;}
     var rolls=[],rollLines=[],firstDetail=[];for(var rnd=85;rnd<=100;rnd++){var total=0,parts=[];for(var i=0;i<powers.length;i++){for(var j=0;j<parent.rates.length;j++){var one=calcOne(level,powers[i],atk,def,rnd,rates,parent.rates[j]);total+=one.damage;parts.push((i+1)+'回目'+(parent.rates.length>1?'-おやこあい'+(j+1):'')+'='+one.damage);if(rnd===85&&i===0&&j===0)firstDetail=one.steps;}}rolls.push(total);rollLines.push(rnd+': '+parts.join(' + ')+' = '+total);}result.rolls=rolls;result.multiHitRolls=(powers.length>1||parent.rates.length>1)?rollLines:null;result.minDamage=Math.min.apply(null,rolls);result.maxDamage=Math.max.apply(null,rolls);var hp=result.defenderMaxHp||1;result.minRate=hp?result.minDamage/hp*100:0;result.maxRate=hp?result.maxDamage/hp*100:0;setTrace(result,'N66 ダメージ補正値','範囲から相性まで','範囲='+rates.range+' / おやこあい='+(parent.rates.length>1?'4096,1024':'4096')+' / 天候='+rates.weather+' / きょけんとつげき='+rates.glaiveRush+' / 急所='+rates.critical+' / STAB='+rates.stab+' / 相性='+rates.type+' / やけど='+rates.burn+' / その他='+rates.other+' / まもる='+rates.protect,'範囲: '+range.reason+' / おやこあい: '+parent.reason+' / 天候: '+weather.reason+' / タイプ一致: '+stab.reason+' / 相性: '+typeEff.reason+' / '+other.logs.join(' / '));setTrace(result,'N68 乱数','85から100',rolls.join(', '),'v0.32 最終式。85時1回目詳細: '+firstDetail.join(' / '));return result;};
@@ -984,27 +1095,28 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
   var C = window.DAMEKE_CALC;
   var R = window.DAMEKE_ROUNDING;
   if(!D || !C || !C.calculateDamage || !R || C.__finalDamageCorePatchedV33) return;
-  function num(v,f){var n=parseInt(v,10);return Number.isFinite(n)?n:f;}
+  var num = window.DAMEKE_CALC_SHARED.num;
   function by(list,id){return (list||[]).find(function(x){return x.id===id;}) || (list||[])[0] || {};}
-  function activeAbility(side,ab,o,result){var core=(result&&result.__coreState)||(o&&o.__coreState);if(core){var st=side==='A'?core.attackerAbilityState:core.defenderAbilityState;if(st&&st.ability&&ab&&st.ability.id===ab.id)return !!st.active;}return false;}
-  function activeItem(side,item,o,result){var core=(result&&result.__coreState)||(o&&o.__coreState);if(core){var st=side==='A'?core.attackerItemState:core.defenderItemState;var coreItem=side==='A'?core.attackerItem:core.defenderItem;if(st&&coreItem&&item&&coreItem.id===item.id)return !!st.active;}return false;}
-  function parseAfterArrow(result,label){var line=(result.trace||[]).find(x=>String(x.label).includes(label));if(!line)return null;var m=String(line.value).match(/->\s*(\d+)/);return m?num(m[1],null):null;}
+  var activeAbility = window.DAMEKE_CALC_SHARED.activeAbilityCoreOnly;
+  var activeItem = window.DAMEKE_CALC_SHARED.activeItemCoreOnly;
+  var parseAfterArrow = window.DAMEKE_CALC_SHARED.parseAfterArrow;
   function parseRateFromTrace(result,label,nameContains){var line=(result.trace||[]).find(function(x){return String(x.label).includes(label) && (!nameContains || String(x.name).includes(nameContains));});var m=line&&String(line.value||'').match(/(\d+)\/4096/);return m?num(m[1],4096):4096;}
   function getFinalPowers(result,input){var line=(result.trace||[]).find(x=>String(x.label).includes('変動後威力'));var txt=line?String(line.value):'';var re=/(\d+)回目=(\d+)/g,m,out=[];while((m=re.exec(txt)))out.push(num(m[2],0));if(out.length)return out;if(result.hitPlan&&result.hitPlan.length)return result.hitPlan.map(h=>h.basePower||input.move.power||1);return [input.move.power||1];}
-  function criticalActive(result){var line=(result.trace||[]).find(x=>String(x.label).includes('急所'));var note=String((line&&line.note)||''), val=String((line&&line.value)||'');return (val==='あり'||note.includes('急所確定')||note.includes('攻撃側条件急所'))&&!note.includes('無効')&&!note.includes('なし');}
-  function contactActive(result){var line=(result.trace||[]).find(x=>String(x.label).includes('直接攻撃判定'));return !!(line&&String(line.value).includes('直接')&&!String(line.value).includes('非直接'));}
+  function criticalActive(result){if(result&&typeof result.criticalEffective==='boolean')return result.criticalEffective;var line=(result.trace||[]).find(x=>String(x.label).includes('急所'));var note=String((line&&line.note)||''), val=String((line&&line.value)||'');return (val==='あり'||note.includes('急所確定')||note.includes('攻撃側条件急所'))&&!note.includes('無効')&&!note.includes('なし');}
+  var contactActive = window.DAMEKE_CALC_SHARED.contactActive;
   function currentHp(result){var line=(result.trace||[]).find(x=>String(x.label).includes('防御側ランク補正込み実数値'));var m=line&&String(line.value||'').match(/(\d+)\/(\d+)/);return m?{cur:num(m[1],1),max:num(m[2],1)}:{cur:1,max:1};}
-  function moveName(result,input){return result.moveName||input.move.name;}
+  var moveName = window.DAMEKE_CALC_SHARED.moveName;
+  function originalMoveName(result,input){return (result&&result.originalMoveName)||input.move.name;}
   function moveType(result,input){return result.effectiveType||input.move.type;}
   function moveCat(result,input){return result.effectiveCategory||input.move.category;}
-  function isZOrMax(result,input,o){var line=(result.trace||[]).find(x=>String(x.label).includes('Z・ダイマックス（攻撃側）'));var nm=String((line&&line.name)||''), val=String((line&&line.value)||'');return (val==='有効'&&(nm==='Zワザ'||nm==='専用Z'||nm==='ダイマックス'||nm==='キョダイマックス')) || (o.attackerSpecialState&&o.attackerSpecialState!=='none');}
+  var isZOrMax = window.DAMEKE_CALC_SHARED.isZOrMax;
   function getRangeRate(result){var line=(result.trace||[]).find(x=>String(x.label).includes('ダメージ補正値'));var m=line&&String(line.value||'').match(/範囲=(\d+)/);return m?num(m[1],4096):4096;}
   function rangeIsSpread(result){return getRangeRate(result)===3072;}
   function rateApply(state,label,rate,logs){var before=state.rate;state.rate=R.combineRateHalfUp(state.rate,rate);logs.push(label+': '+before+'->'+state.rate+' ('+rate+'/4096)');}
   function soundMove(input,result){return !!(window.DAMEKE_DATA_HELPERS.moveTag(input.move,'sound') || ['ハイパーボイス','ばくおんぱ','りんしょう','スケイルノイズ'].includes(moveName(result,input)));}
-  function protectedPierceMove(n,maxGuard){return window.DAMEKE_DATA_HELPERS.moveTagByName(n,maxGuard?'maxGuardBypass':'protectBypass');}
+  var protectedPierceMove = window.DAMEKE_CALC_SHARED.protectedPierceMove;
   function burnRate(result,input,o){var aAb=by(D.abilities,o.attackerAbilityId||'なし');if(o.attackerStatus==='やけど' && !(activeAbility('A',aAb,o,result)&&aAb.name==='こんじょう') && moveName(result,input)!=='からげんき')return {rate:2048,reason:'やけど'};return {rate:4096,reason:'なし'};}
-  function moldBreakerActive(result,input,o){var aAb=by(D.abilities,o.attackerAbilityId||'なし');var aA=activeAbility('A',aAb,o,result);var n=moveName(result,input);var moldMoves=['メテオドライブ','フォトンゲイザー','サンシャインスマッシャー','てんこがすめつぼうのひかり','キョダイコランダ'];return !!((aA&&window.DAMEKE_DATA_HELPERS.abilityTag(aAb,'moldBreakerEffect'))||(input.move&&input.move.ignoresAbilities)||window.DAMEKE_DATA_HELPERS.moveTagByName(n,'ignoresAbilities')||moldMoves.indexOf(n)>=0);}
+  function moldBreakerActive(result,input,o){var aAb=by(D.abilities,o.attackerAbilityId||'なし');var aA=activeAbility('A',aAb,o,result);var n=moveName(result,input);var moldMoves=['メテオドライブ','フォトンゲイザー','サンシャインスマッシャー','てんこがすめつぼうのひかり','キョダイコランダ'];var effMove=(result&&result.effectiveMove)||input.move;return !!((aA&&window.DAMEKE_DATA_HELPERS.abilityTag(aAb,'moldBreakerEffect'))||(effMove&&effMove.ignoresAbilities)||window.DAMEKE_DATA_HELPERS.moveTagByName(n,'ignoresAbilities')||moldMoves.indexOf(n)>=0);}
   function otherModifier(result,input,o){var aAb=by(D.abilities,o.attackerAbilityId||'なし'),dAb=by(D.abilities,o.defenderAbilityId||'なし'),aItem=by(D.items,o.attackerItemId||'none'),dItem=by(D.items,o.defenderItemId||'none');var aA=activeAbility('A',aAb,o,result),dA=activeAbility('D',dAb,o,result),aI=activeItem('A',aItem,o,result),dI=activeItem('D',dItem,o,result);var cat=moveCat(result,input),type=moveType(result,input),n=moveName(result,input),typeRate=result.typeRate4096||4096,crit=criticalActive(result),contact=contactActive(result);var state={rate:4096},logs=[];
     var screen=o.defenderScreen||'none';var wall=4096;if(!(aA&&window.DAMEKE_DATA_HELPERS.abilityTag(aAb,'screenBypass'))&&!crit){if((cat==='物理'&&(screen==='reflect'||screen==='auroraVeil'))||(cat==='特殊'&&(screen==='lightScreen'||screen==='auroraVeil')))wall=rangeIsSpread(result)?2703:2048;}if(wall!==4096)rateApply(state,'壁補正',wall,logs);
     if(aA&&window.DAMEKE_DATA_HELPERS.abilityTag(aAb,'superEffectiveBoost')&&typeRate>4096)rateApply(state,'ブレインフォース',5120,logs);
@@ -1027,7 +1139,7 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
     if(window.DAMEKE_DATA_HELPERS.moveTagByName(n,'minimizeDouble')&&o.defenderMinimized)rateApply(state,'倍ダメージ ちいさくなる',8192,logs);
     var dMaxLine=(result.trace||[]).find(x=>String(x.label).includes('ダイマックス（防御側）')||String(x.label).includes('Z・ダイマックス（防御側）'));var dMax=!!(dMaxLine&&String(dMaxLine.value).includes('有効'));if(window.DAMEKE_DATA_HELPERS.moveTagByName(n,'doubleVsDynamax')&&dMax)rateApply(state,'倍ダメージ 対ダイマックス',8192,logs);
     return {rate:state.rate,logs:logs.length?logs:['なし']};}
-  function protectInfo(result,input,o){var state=o.defenderProtectState||'none', n=moveName(result,input);if(state==='none')return {rate:4096,invalid:false,reason:'なし'};if(state==='maxGuard'){if(protectedPierceMove(n,true))return {rate:4096,invalid:false,reason:'ダイウォール例外 '+n};return {rate:0,invalid:true,reason:'ダイウォール'};}if(protectedPierceMove(n,false))return {rate:4096,invalid:false,reason:'まもる例外 '+n};if(isZOrMax(result,input,o))return {rate:1024,invalid:false,reason:'Z/ダイマ技のまもる貫通25%'};var aAb=by(D.abilities,o.attackerAbilityId||'なし');if(activeAbility('A',aAb,o,result)&&window.DAMEKE_DATA_HELPERS.abilityTag(aAb,'protectPiercingContact')&&contactActive(result))return {rate:1024,invalid:false,reason:aAb.name+'+直接攻撃'};return {rate:0,invalid:true,reason:'まもる'};}
+  var protectInfo = window.DAMEKE_CALC_SHARED.protectInfo;
   function postHitDamageAdjustment(result,input,o,hitOrdinal,damage,logs){if(hitOrdinal!==1)return damage;var dAb=by(D.abilities,o.defenderAbilityId||'なし'),dItem=by(D.items,o.defenderItemId||'none');var dA=activeAbility('D',dAb,o,result),dI=activeItem('D',dItem,o,result);var hp=currentHp(result);var n=moveName(result,input),cat=moveCat(result,input);if(dA&&dAb.name==='ばけのかわ'){var disguise=Math.floor(hp.max/8);logs.push('ばけのかわ: 1回目 '+damage+' -> '+disguise);return disguise;}if(input.defender&&input.defender.name==='コオリッポ(アイスフェイス)'&&dA&&dAb.name==='アイスフェイス'&&cat==='物理'){logs.push('アイスフェイス: 1回目 '+damage+' -> 0');return 0;}var holdBack=(n==='てかげん'||n==='みねうち');var sturdy=(dA&&dAb.name==='がんじょう'&&hp.cur===hp.max);var sash=(dI&&(dItem.name==='きあいのタスキ'||window.DAMEKE_DATA_HELPERS.itemTag(dItem,'focusSash'))&&hp.cur===hp.max);if((holdBack||sturdy||sash)&&damage>=hp.max){var adjusted=Math.max(0,hp.max-1);logs.push((holdBack?n:(sturdy?'がんじょう':'きあいのタスキ'))+': 1回目 '+damage+' -> '+adjusted);return adjusted;}return damage;}
   function calcOne(level,power,atk,def,rnd,rates,parentalRate){var a=Math.floor(level*2/5)+2,b=Math.floor(a*power*atk/def),d=Math.floor(b/50)+2;d=R.apply4096FiveDown(d,rates.range);d=R.apply4096FiveDown(d,parentalRate);d=R.apply4096FiveDown(d,rates.weather);d=R.apply4096FiveDown(d,rates.glaiveRush);d=R.apply4096FiveDown(d,rates.critical);d=Math.floor(d*rnd/100);d=R.apply4096FiveDown(d,rates.stab);d=R.apply4096Floor(d,rates.type);d=R.apply4096FiveDown(d,rates.burn);d=R.apply4096FiveDown(d,rates.other);d=R.apply4096FiveDown(d,rates.protect);return d<1?1:d;}
   function setTrace(result,label,name,value,note){var line=(result.trace||[]).find(x=>String(x.label).includes(label));if(line){line.name=name;line.value=value;if(note!=null)line.note=note;}else result.trace.push({label:label,name:name,value:value,note:note||'',implemented:true});}
@@ -1043,11 +1155,12 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
   var C = window.DAMEKE_CALC;
   var R = window.DAMEKE_ROUNDING;
   if(!D || !C || !C.calculateDamage || !R || C.__fixedDamagePatchedV34) return;
-  function num(v,f){var n=parseInt(v,10);return Number.isFinite(n)?n:f;}
+  var num = window.DAMEKE_CALC_SHARED.num;
   function by(list,id){return (list||[]).find(function(x){return x.id===id;}) || (list||[])[0] || {};}
-  function activeAbility(side,ab,o,result){var core=(result&&result.__coreState)||(o&&o.__coreState);if(core){var st=side==='A'?core.attackerAbilityState:core.defenderAbilityState;if(st&&st.ability&&ab&&st.ability.id===ab.id)return !!st.active;}return false;}
+  var activeAbility = window.DAMEKE_CALC_SHARED.activeAbilityCoreOnly;
   function hpLine(result,side){var label=side==='A'?'攻撃側ランク補正込み実数値':'防御側ランク補正込み実数値';var line=(result.trace||[]).find(function(x){return String(x.label).includes(label);});var m=line&&String(line.value||'').match(/(\d+)\/(\d+)/);return m?{cur:num(m[1],1),max:num(m[2],1)}:{cur:1,max:1};}
-  function moveName(result,input){return result.moveName||input.move.name;}
+  var moveName = window.DAMEKE_CALC_SHARED.moveName;
+  function originalMoveName(result,input){return (result&&result.originalMoveName)||input.move.name;}
   function fixedKind(result,input){var n=moveName(result,input);return window.DAMEKE_DATA_HELPERS.fixedDamageKindByName(n)||(n===input.move.name?window.DAMEKE_DATA_HELPERS.fixedDamageKind(input.move):null);}
   function fixedBaseDamage(kind,result,input,o){var aHp=hpLine(result,'A'),dHp=hpLine(result,'D');var level=Math.min(Math.max(num(input.attackerLevel,50),1),100);var taken=Math.max(0,num(o.fixedDamageTaken,0));
     if(kind==='sonicBoom')return 20;
@@ -1063,10 +1176,10 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
     if(kind==='guardian')return Math.max(1,Math.floor(dHp.cur*0.75));
     return null;
   }
-  function protectedPierceMove(n,maxGuard){return window.DAMEKE_DATA_HELPERS.moveTagByName(n,maxGuard?'maxGuardBypass':'protectBypass');}
-  function contactActive(result){var line=(result.trace||[]).find(function(x){return String(x.label).includes('直接攻撃判定');});return !!(line&&String(line.value).includes('直接')&&!String(line.value).includes('非直接'));}
-  function isZOrMax(result,o){var line=(result.trace||[]).find(function(x){return String(x.label).includes('Z・ダイマックス（攻撃側）');});var nm=String((line&&line.name)||''), val=String((line&&line.value)||'');return (val==='有効'&&(nm==='Zワザ'||nm==='専用Z'||nm==='ダイマックス'||nm==='キョダイマックス')) || (o.attackerSpecialState&&o.attackerSpecialState!=='none');}
-  function protectInfo(result,input,o){var state=o.defenderProtectState||'none', n=moveName(result,input);if(state==='none')return {rate:4096,invalid:false,reason:'なし'};if(state==='maxGuard'){if(protectedPierceMove(n,true))return {rate:4096,invalid:false,reason:'ダイウォール例外 '+n};return {rate:0,invalid:true,reason:'ダイウォール'};}if(protectedPierceMove(n,false))return {rate:4096,invalid:false,reason:'まもる例外 '+n};if(isZOrMax(result,o))return {rate:1024,invalid:false,reason:'Z/ダイマ技のまもる貫通25%'};var aAb=by(D.abilities,o.attackerAbilityId||'なし');if(activeAbility('A',aAb,o,result)&&window.DAMEKE_DATA_HELPERS.abilityTag(aAb,'protectPiercingContact')&&contactActive(result))return {rate:1024,invalid:false,reason:aAb.name+'+直接攻撃'};return {rate:0,invalid:true,reason:'まもる'};}
+  var protectedPierceMove = window.DAMEKE_CALC_SHARED.protectedPierceMove;
+  var contactActive = window.DAMEKE_CALC_SHARED.contactActive;
+  var isZOrMax = window.DAMEKE_CALC_SHARED.isZOrMax;
+  var protectInfo = window.DAMEKE_CALC_SHARED.protectInfo;
   function setTrace(result,label,name,value,note){var line=(result.trace||[]).find(function(x){return String(x.label).includes(label);});if(line){line.name=name;line.value=value;if(note!=null)line.note=note;}else result.trace.push({label:label,name:name,value:value,note:note||'',implemented:true});}
   var prev=C.calculateDamage.bind(C);
   C.calculateDamage=function(input){var result=prev(input);if(result&&result.__coreState)(input.options||(input.options={})).__coreState=result.__coreState;var o=input.options||{};var kind=fixedKind(result,input);if(!kind)return result;var base=fixedBaseDamage(kind,result,input,o);if(base==null)return result;var typeRate=result.typeRate4096==null?4096:result.typeRate4096;var protect=protectInfo(result,input,o);var out=base;var invalid='なし';
@@ -1133,7 +1246,8 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
     if(effectiveName && inputMove && effectiveName === inputMove.name) return moveTag(inputMove, tag) || moveTagByName(effectiveName, tag);
     return moveTagByName(effectiveName, tag);
   }
-  function fixedDamageKindByName(name){ var m = byMoveName(name); return m && (m.fixedDamageKind || (m.fixedDamage ? m.damageKind : null)) || null; }
+  var EXCLUDED_SIGNATURE_Z_FIXED_DAMAGE_KIND = { 'ガーディアン・デ・アローラ': 'guardian' };
+  function fixedDamageKindByName(name){ var m = byMoveName(name); if(m) return (m.fixedDamageKind || (m.fixedDamage ? m.damageKind : null)) || null; return EXCLUDED_SIGNATURE_Z_FIXED_DAMAGE_KIND[name] || null; }
   H.byMoveName = byMoveName;
   H.moveTag = H.moveTag || moveTag;
   H.moveTagByName = moveTagByName;
@@ -1265,7 +1379,7 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
   if(!C || !C.calculateDamage || C.__v063TypeZeroMultiHitFixed) return;
 
   function arr(x){ return Array.isArray(x) ? x : []; }
-  function num(v, f){ var n = parseInt(v, 10); return Number.isFinite(n) ? n : f; }
+  var num = window.DAMEKE_CALC_SHARED.num;
   function hasTag(obj, tag){ return arr(obj && obj.tags).indexOf(tag) >= 0 || arr(obj && obj.effectTags).indexOf(tag) >= 0; }
   function setTrace(result, labelPart, name, value, note){
     result.trace = arr(result.trace);
@@ -1383,9 +1497,9 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
 (function(){
   var C = window.DAMEKE_CALC || {};
   var R = window.DAMEKE_ROUNDING;
-  function num(v,d){var n=Number(v);return isFinite(n)?n:d;}
+  var num = window.DAMEKE_CALC_SHARED.num;
   function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
-  function parseAfterArrow(result,labelPart){var line=(result.trace||[]).find(function(x){return String(x.label).includes(labelPart);});if(!line)return null;var m=String(line.value).match(/->\s*(\d+)/);return m?num(m[1],null):null;}
+  var parseAfterArrow = window.DAMEKE_CALC_SHARED.parseAfterArrow;
   function calcOneKo(level,power,atk,def,rnd,rates,parentalRate){
     var a=Math.floor(level*2/5)+2,b=Math.floor(a*power*atk/def),d=Math.floor(b/50)+2;
     d=R.apply4096FiveDown(d,rates.range);

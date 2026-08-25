@@ -107,6 +107,286 @@
       moldBreaker: false, neutralizingGas: false, attackerItemSuppressed: false, defenderItemSuppressed: false
     };
   }
+  function findTraceEntry(trace, labelPart){ return (trace||[]).find(function(x){ return String(x.label||'').indexOf(labelPart) >= 0; }) || null; }
+  function findTraceEntries(trace, labelPart){ return (trace||[]).filter(function(x){ return String(x.label||'').indexOf(labelPart) >= 0; }); }
+  function rateCell(label, rawText){
+    var tr = document.createElement('tr');
+    var th = document.createElement('th'); th.textContent = label; tr.appendChild(th);
+    var td = document.createElement('td');
+    var num = parseInt(rawText, 10);
+    if(!isNaN(num)){
+      td.textContent = String(num);
+      if(num > 4096) td.className = 'v082h-rate-up';
+      else if(num < 4096) td.className = 'v082h-rate-down';
+    } else {
+      td.textContent = rawText || '-';
+    }
+    tr.appendChild(td);
+    return tr;
+  }
+  function pairedRow(label, atkText, defText){
+    var tr = document.createElement('tr');
+    var th = document.createElement('th'); th.textContent = label; tr.appendChild(th);
+    var tdA = document.createElement('td'); tdA.textContent = atkText || '-'; tr.appendChild(tdA);
+    var tdD = document.createElement('td'); tdD.textContent = defText || '-'; tr.appendChild(tdD);
+    return tr;
+  }
+  function spanRow(label, value){
+    var tr = document.createElement('tr');
+    var th = document.createElement('th'); th.textContent = label; tr.appendChild(th);
+    var td = document.createElement('td'); td.colSpan = 2; td.textContent = value || '-'; tr.appendChild(td);
+    return tr;
+  }
+  function plainRow(label, value){ return spanRow(label, value); }
+  function renderCalcTable(result){
+    var host = document.getElementById('v082hCalcTable');
+    if(!host){
+      host = document.createElement('table'); host.id = 'v082hCalcTable'; host.className = 'v082h-calc-table';
+      var traceEl = document.getElementById('trace');
+      if(traceEl && traceEl.parentNode) traceEl.parentNode.insertBefore(host, traceEl);
+    }
+    host.innerHTML = '';
+    var trace = result.trace || [];
+
+    var headerRow = document.createElement('tr');
+    ['項目','攻撃側','防御側'].forEach(function(t){ var th=document.createElement('th'); th.textContent=t; headerRow.appendChild(th); });
+    host.appendChild(headerRow);
+
+    function pairedNameRow(label, atkLabelPart, defLabelPart){
+      var a = findTraceEntry(trace, atkLabelPart);
+      var d = findTraceEntry(trace, defLabelPart);
+      host.appendChild(pairedRow(label, a ? a.name+'（'+a.value+'）' : '-', d ? d.name+'（'+d.value+'）' : '-'));
+    }
+    function itemStatusText(entry){
+      if(!entry) return '-';
+      var status = entry.value === '持ち物なし' ? '無効' : entry.value;
+      return entry.name + '（' + status + '）';
+    }
+    var itemA = findTraceEntry(trace, '00 持ち物（攻撃側）'), itemD = findTraceEntry(trace, '00 持ち物（防御側）');
+    host.appendChild(pairedRow('持ち物', itemStatusText(itemA), itemStatusText(itemD)));
+    pairedNameRow('特性', '00 特性（攻撃側）', '00 特性（防御側）');
+    var zmA = findTraceEntry(trace, '00 Z・ダイマックス（攻撃側）'), zmD = findTraceEntry(trace, '00 Z・ダイマックス（防御側）');
+    host.appendChild(pairedRow('Z・ダイマックス', zmA ? zmA.name : '-', zmD ? zmD.name : '-'));
+    var teraA = findTraceEntry(trace, '00 テラスタル（攻撃側）'), teraD = findTraceEntry(trace, '00 テラスタル（防御側）');
+    var teraAText = teraA ? teraA.value : '-';
+    if(teraA && teraA.value === 'ステラ'){
+      var stellarCountEl = document.getElementById('attackerStellarMoveCount');
+      if(stellarCountEl && stellarCountEl.selectedOptions && stellarCountEl.selectedOptions[0]) teraAText += '（' + stellarCountEl.selectedOptions[0].textContent + '）';
+    }
+    host.appendChild(pairedRow('テラスタル', teraAText, teraD ? teraD.value : '-'));
+
+    var weatherEntry = findTraceEntry(trace, '00 天候');
+    var weatherNote = weatherEntry ? String(weatherEntry.note || '') : '';
+    var wA = (weatherNote.match(/攻撃側天候=([^ /]+)/) || [])[1] || result.attackerEffectiveWeather || '-';
+    var wD = (weatherNote.match(/防御側天候=([^ /]+)/) || [])[1] || result.defenderEffectiveWeather || '-';
+    host.appendChild(pairedRow('天候（実効）', wA, wD));
+
+    var fieldEntry = findTraceEntry(trace, '00 フィールド');
+    host.appendChild(spanRow('フィールド', fieldEntry ? fieldEntry.value : '-'));
+
+    var moveEnhanceEntry = findTraceEntry(trace, '技名変換');
+    if(moveEnhanceEntry){
+      var changed = moveEnhanceEntry.name && moveEnhanceEntry.value && moveEnhanceEntry.name !== moveEnhanceEntry.value;
+      host.appendChild(spanRow('技', changed ? (moveEnhanceEntry.name + ' → ' + moveEnhanceEntry.value) : moveEnhanceEntry.value));
+    }
+
+    var calcTypeA = findTraceEntry(trace, '02 計算上タイプ（攻撃側）'), calcTypeD = findTraceEntry(trace, '02 計算上タイプ（防御側）');
+    host.appendChild(pairedRow('計算上タイプ', calcTypeA ? calcTypeA.value : '-', calcTypeD ? calcTypeD.value : '-'));
+
+    var transformEntry = findTraceEntry(trace, '02 実数値操作');
+    if(transformEntry){
+      var wonderText = String(transformEntry.note || '').match(/最終ワンダールーム=(ON|OFF)/);
+      host.appendChild(spanRow('実数値操作', '適用順：' + transformEntry.value + '　ワンダールーム：' + (wonderText ? (wonderText[1]==='ON'?'有効':'無効') : '-')));
+    }
+
+    var groundA = findTraceEntry(trace, '02 接地判定（攻撃側）'), groundD = findTraceEntry(trace, '02 接地判定（防御側）');
+    host.appendChild(pairedRow('接地判定', groundA ? groundA.value : '-', groundD ? groundD.value : '-'));
+
+    var critText = result.criticalEffective ? (result.criticalForced ? '有効（確定急所）' : '有効') : '無効';
+    host.appendChild(spanRow('急所', critText));
+
+    function formatWeightEntry(entry){
+      if(!entry) return '-';
+      var notes = String(entry.note || '').split('、');
+      var baseNote = notes[0] || '';
+      var baseM = baseNote.match(/本来=([\d.]+)kg/);
+      var base = baseM ? parseFloat(baseM[1]) : null;
+      var changeNotes = notes.slice(1);
+      if(!changeNotes.length || base == null) return entry.value + 'kg';
+      var parts = changeNotes.map(function(n){
+        var m = n.match(/^(.*?)\s*([\d.]+)kg->([\d.]+)kg$/);
+        if(m){ var delta = parseFloat(m[3]) - parseFloat(m[2]); return (delta>=0?'+':'') + delta.toFixed(1) + '（' + m[1].trim() + '）'; }
+        var m2 = n.match(/^(.*?)\s*=\s*([+-][\d.]+)kg$/);
+        if(m2) return m2[2] + '（' + m2[1].trim() + '）';
+        return n;
+      });
+      return entry.value + 'kg（' + base.toFixed(1) + parts.join('') + '）';
+    }
+
+    function formatSpeedEntry(entry){
+      if(!entry) return '-';
+      var note = String(entry.note || '');
+      var rankM = note.match(/ランク後=(-?\d+)/);
+      var afterRank = rankM ? rankM[1] : '-';
+      var mods = [];
+      var re = /([^\/]+?):\s*-?\d+->-?\d+\s*(\d+)\/4096/g, mm;
+      while((mm = re.exec(note))){
+        if(mm[2] !== '4096') mods.push(mm[1].trim() + ':' + mm[2]);
+      }
+      var paraM = note.match(/まひ=(\d+)/);
+      if(paraM && paraM[1] !== '4096') mods.push('まひ補正:' + paraM[1]);
+      if(!mods.length) return entry.value;
+      var parts = ['ランク補正込み:' + afterRank].concat(mods);
+      return entry.value + '（' + parts.join('／') + '）';
+    }
+
+    var rankA = findTraceEntry(trace, '02 実効ランク（攻撃側）'), rankD = findTraceEntry(trace, '02 実効ランク（防御側）');
+    if(rankA || rankD){
+      var rankAParts = rankA ? String(rankA.value || '').split('/') : [];
+      var rankAText = rankAParts.slice(0, 5).join('/').trim();
+      var rankDText = rankD ? rankD.value : '-';
+      host.appendChild(pairedRow('実効ランク', rankAText || '-', rankDText));
+      var hitNoteM = rankA ? String(rankA.note || '').match(/命中\d+ - 回避\d+ = -?\d+/) : null;
+      if(hitNoteM) host.appendChild(spanRow('命中/回避ランク差', hitNoteM[0]));
+    }
+
+    function formatRankedEntry(entry, side){
+      if(!entry) return '-';
+      var hpInput = document.getElementById(side === 'A' ? 'attackerCurrentHp' : 'defenderCurrentHp');
+      var manual = hpInput && hpInput.value !== '';
+      var m = String(entry.value || '').match(/^(\d+)\/(\d+)\s*\/\s*(.+)$/);
+      if(!m) return entry.value;
+      var cur = m[1], max = m[2], rest = m[3];
+      var hpText = cur + '/' + max;
+      if(cur !== max){
+        var noteM = String(entry.note || '').match(/設置技=\d+、(.+)$/);
+        var causes = [];
+        if(manual) causes.push('入力');
+        if(noteM && noteM[1] && noteM[1] !== 'なし'){
+          noteM[1].split('、').forEach(function(c){ causes.push(c.replace(/=\d+.*$/, '').trim()); });
+        }
+        if(causes.length) hpText += '（' + causes.join('、') + '）';
+      }
+      return hpText + ' / ' + rest;
+    }
+    var rankedA = findTraceEntry(trace, '02 攻撃側ランク補正込み実数値'), rankedD = findTraceEntry(trace, '02 防御側ランク補正込み実数値');
+    host.appendChild(pairedRow('ランク補正後実数値', formatRankedEntry(rankedA, 'A'), formatRankedEntry(rankedD, 'D')));
+
+    var speedA = findTraceEntry(trace, '02 すばやさ詳細（攻撃側）'), speedD = findTraceEntry(trace, '02 すばやさ詳細（防御側）');
+    host.appendChild(pairedRow('補正込みすばやさ', formatSpeedEntry(speedA), formatSpeedEntry(speedD)));
+
+    var usesWeight = result.hitPlan && result.hitPlan[0] && (result.hitPlan[0].note === '防御側計算上おもさ' || result.hitPlan[0].note === '計算上おもさ比');
+    if(usesWeight){
+      var weightA = findTraceEntry(trace, '02 計算上おもさ（攻撃側）'), weightD = findTraceEntry(trace, '02 計算上おもさ（防御側）');
+      host.appendChild(pairedRow('おもさ', formatWeightEntry(weightA), formatWeightEntry(weightD)));
+    }
+
+    var catEntry = findTraceEntry(trace, '02 物理/特殊判定');
+    host.appendChild(spanRow('技分類判定', catEntry ? catEntry.value : '-'));
+
+    var moveTypeEntry = findTraceEntry(trace, '02 技タイプ');
+    host.appendChild(spanRow('技タイプ', moveTypeEntry ? moveTypeEntry.value : '-'));
+
+    host.appendChild(spanRow('直接攻撃', result.contactEffective ? '接触' : '非接触'));
+
+    function formatPowerEntry(entry){
+      if(!entry) return '-';
+      var val = String(entry.value || '');
+      if(val === '-' || !val) return '-';
+      var note = String(entry.note || '');
+      var factorsM = note.match(/威力補正:\s*(.+)$/);
+      var factorsRaw = factorsM ? factorsM[1] : '';
+      var factorEntries = (!factorsRaw || factorsRaw === 'なし') ? [] : factorsRaw.split(' / ').map(function(f){
+        var m = f.match(/^([^:]+):\s*-?\d+->-?\d+\s*\((\d+)\/4096\)/);
+        return m ? { label: m[1].trim(), rate: m[2] } : null;
+      }).filter(function(x){ return x && x.rate !== '4096'; });
+      var factorText = factorEntries.map(function(f){ return f.rate + '（' + f.label + '）'; }).join('、');
+      var hits = val.split(' / ');
+      if(hits.length === 1 && !/回目=/.test(hits[0])) return hits[0];
+      var lines = hits.map(function(h){
+        var m = h.match(/^(\d+)回目=(\d+)（基礎(\d+)\s*補正\d+\/4096(.*)）$/);
+        if(!m) return h;
+        var idx = m[1], fin = m[2], base = m[3], extra = (m[4] || '').trim();
+        var prefix = hits.length > 1 ? idx + '回目：' : '';
+        var parts = ['基礎威力 ' + base].concat(factorText ? [factorText] : []).concat(extra ? [extra] : []);
+        return prefix + fin + '（' + parts.join('、') + '）';
+      });
+      return lines.join('／');
+    }
+    var powerEntry = findTraceEntry(trace, '変動後威力');
+    host.appendChild(spanRow('威力', formatPowerEntry(powerEntry)));
+
+    function formatStatEntry(entry, sideLabel){
+      if(!entry) return '-';
+      var val = String(entry.value || '');
+      var vm = val.match(/^(-?\d+)\s*->\s*(-?\d+)/);
+      if(!vm) return val;
+      var final = vm[2];
+      var note = String(entry.note || '');
+      var refM = note.match(/(攻撃側|防御側)ランク補正込み([ABCD])参照/);
+      var refText = refM ? (refM[1] === '攻撃側' ? '攻' : '防') + refM[2] : sideLabel;
+      var factorsM = note.match(/(?:攻撃力補正|防御力補正):\s*(.+)$/);
+      var factorsRaw = factorsM ? factorsM[1] : '';
+      var factorEntries = (!factorsRaw || factorsRaw === 'なし') ? [] : factorsRaw.split(' / ').map(function(f){
+        var m = f.match(/^([^:]+):\s*-?\d+->-?\d+\s*\((\d+)\/4096/);
+        return m ? { label: m[1].trim(), rate: m[2] } : null;
+      }).filter(function(x){ return x && x.rate !== '4096'; });
+      var factorText = factorEntries.map(function(f){ return f.rate + '（' + f.label + '）'; }).join('、');
+      var parts = [refText].concat(factorText ? [factorText] : []);
+      return final + '（' + parts.join('、') + '）';
+    }
+    var atkStatEntry = findTraceEntry(trace, '補正後攻撃側実数値');
+    var defStatEntry = findTraceEntry(trace, '補正後防御側実数値');
+    host.appendChild(pairedRow('補正後使用実数値', formatStatEntry(atkStatEntry, '攻'), formatStatEntry(defStatEntry, '防')));
+
+    if(result.stabRate4096 != null) host.appendChild(spanRow('タイプ一致判定', String(result.stabRate4096)));
+
+    if(result.typeRate4096 != null){
+      var finalMoveType = moveTypeEntry ? moveTypeEntry.value : '-';
+      var teraD = document.getElementById('defenderTeraType');
+      var teraDVal = teraD ? teraD.value : '';
+      var calcTypeDEntry = findTraceEntry(trace, '02 計算上タイプ（防御側）');
+      var defTypesUsed = (teraDVal && teraDVal !== 'なし' && teraDVal !== 'ステラ') ? teraDVal : (calcTypeDEntry ? calcTypeDEntry.value : '-');
+      host.appendChild(spanRow('タイプ相性', String(result.typeRate4096) + '（' + finalMoveType + '→' + defTypesUsed + '）'));
+    }
+
+    var damageModEntry = findTraceEntry(trace, 'N66 ダメージ補正値');
+    if(damageModEntry){
+      var rangeM = String(damageModEntry.value || '').match(/範囲=(\d+)/);
+      var rangeRate = rangeM ? rangeM[1] : '4096';
+      if(rangeRate !== '4096') host.appendChild(spanRow('範囲補正', rangeRate));
+
+      var otherM = String(damageModEntry.note || '').match(/その他:\s*(.+?)(?:\s*\/\s*まもる:|$)/);
+      var otherRaw = otherM ? otherM[1] : '';
+      if(otherRaw && otherRaw !== 'なし'){
+        var otherParts = otherRaw.split(' / ').map(function(f){
+          var m = f.match(/^([^:]+):\s*-?\d+->-?\d+\s*\((\d+)\/4096\)/);
+          return m ? { label: m[1].trim(), rate: m[2] } : null;
+        }).filter(function(x){ return x && x.rate !== '4096'; });
+        if(otherParts.length) host.appendChild(spanRow('その他補正', otherParts.map(function(f){ return f.rate + '（' + f.label + '）'; }).join('、')));
+      }
+
+      var dmText = String(damageModEntry.value || '');
+      var dmPairs = dmText.split('/').map(function(s){ return s.trim(); }).filter(Boolean);
+      var combined = 4096;
+      var dmParts = [];
+      dmPairs.forEach(function(p){
+        var m = p.match(/^([^=]+)=(.+)$/);
+        if(!m) return;
+        var label = m[1].trim(), raw = m[2].trim();
+        if(label === 'STAB') label = 'タイプ一致';
+        var rateNum = parseInt(raw, 10);
+        if(isNaN(rateNum)){
+          // e.g. おやこあい="4096,1024" -- use the first value for combination purposes only
+          rateNum = parseInt(raw.split(',')[0], 10);
+          if(isNaN(rateNum)) return;
+        }
+        combined = Math.round(combined * rateNum / 4096);
+        if(rateNum !== 4096) dmParts.push(rateNum + '（' + label + '）');
+      });
+      host.appendChild(spanRow('ダメージ補正合成', combined + '（' + dmParts.join('、') + '）'));
+    }
+  }
   function formatKoInfo(koInfo) {
     if (!koInfo) return '計算対象外';
     if (koInfo.partial) return '乱数' + koInfo.partial.hits + '発(' + (koInfo.partial.probability * 100).toFixed(2) + '%)';
@@ -118,13 +398,14 @@
     const result = CALC.calculateDamage({ attacker: byId(DATA.pokemons, el.attackerSelect.value), defender: byId(DATA.pokemons, el.defenderSelect.value), move: byId(DATA.moves, el.moveSelect.value), attackerLevel: el.attackerLevel.value, defenderLevel: el.defenderLevel.value, options: buildOptions() });
     el.summary.innerHTML = ['<strong>' + result.attackerName + '</strong> の <strong>' + result.moveName + '</strong> → <strong>' + result.defenderName + '</strong>', '判定分類: <strong>' + result.effectiveCategory + '</strong>', '技タイプ: <strong>' + result.effectiveType + '</strong>', 'ダメージ: <strong>' + result.minDamage + ' ～ ' + result.maxDamage + '</strong>', '割合: <strong>' + result.minRate.toFixed(1) + '% ～ ' + result.maxRate.toFixed(1) + '%</strong>', '防御側HP: ' + result.defenderCurrentHp + ' / ' + result.defenderMaxHp, '確定数: <strong>' + formatKoInfo(result.koInfo) + '</strong>'].join('<br>');
     el.rolls.textContent = (result.multiHitRolls && result.multiHitRolls.length) ? result.multiHitRolls.join(NL) : result.rolls.join(', ');
+    renderCalcTable(result);
     el.trace.textContent = formatTrace(result.trace);
   }
   function setHpFraction(side, denom) { const pokemon = byId(DATA.pokemons, el[side + 'Select'].value); const level = el[side + 'Level'].value; const stats = readStats(side); const maxHp = CALC.previewBaseMaxHp(pokemon, level, stats); el[side + 'CurrentHp'].value = Math.max(1, Math.floor(maxHp / denom)); calculate(); }
   async function copyTrace() { const text = el.trace.textContent || ''; if (!text) return; try { await navigator.clipboard.writeText(text); alert('計算過程をコピーしました。'); } catch { alert('コピーに失敗しました。'); } }
   function init() {
     createStatsGrid('attacker', el.attackerStatsGrid); createStatsGrid('defender', el.defenderStatsGrid);
-    fillSelect(el.attackerSelect, DATA.pokemons); fillSelect(el.defenderSelect, DATA.pokemons); fillSelect(el.moveSelect, DATA.moves); fillSelect(el.attackerItemSelect, DATA.items); fillSelect(el.defenderItemSelect, DATA.items); fillSelect(el.attackerAbilitySelect, DATA.abilities); fillSelect(el.defenderAbilitySelect, DATA.abilities); fillSelect(el.attackerSpecialState, DATA.specialStates); fillSelect(el.defenderSpecialState, specialStatesForDefender()); fillSelect(el.attackerTeraType, DATA.teraTypes); fillSelect(el.defenderTeraType, DATA.teraTypes); fillSelect(el.attackerType1, DATA.typeOptions); fillSelect(el.attackerType2, DATA.typeOptions); fillSelect(el.defenderType1, DATA.typeOptions); fillSelect(el.defenderType2, DATA.typeOptions); fillSelect(el.weatherSelect, DATA.weatherOptions); fillSelect(el.fieldSelect, DATA.fieldOptions); fillSelectBeatUpAllies();
+    fillSelect(el.attackerSelect, DATA.pokemons); fillSelect(el.defenderSelect, DATA.pokemons); fillSelect(el.moveSelect, DATA.moves.filter(function(m){ return !(DATA.isExcludedSignatureZMove && DATA.isExcludedSignatureZMove(m)); })); fillSelect(el.attackerItemSelect, DATA.items); fillSelect(el.defenderItemSelect, DATA.items); fillSelect(el.attackerAbilitySelect, DATA.abilities); fillSelect(el.defenderAbilitySelect, DATA.abilities); fillSelect(el.attackerSpecialState, DATA.specialStates); fillSelect(el.defenderSpecialState, specialStatesForDefender()); fillSelect(el.attackerTeraType, DATA.teraTypes); fillSelect(el.defenderTeraType, DATA.teraTypes); fillSelect(el.attackerType1, DATA.typeOptions); fillSelect(el.attackerType2, DATA.typeOptions); fillSelect(el.defenderType1, DATA.typeOptions); fillSelect(el.defenderType2, DATA.typeOptions); fillSelect(el.weatherSelect, DATA.weatherOptions); fillSelect(el.fieldSelect, DATA.fieldOptions); fillSelectBeatUpAllies();
     el.attackerSelect.value = 'pikachu'; el.defenderSelect.value = 'venusaur'; el.moveSelect.value = 'thunderbolt'; setTypeDefaults('attacker'); setTypeDefaults('defender');
     el.attackerSelect.addEventListener('change', () => { setTypeDefaults('attacker'); calculate(); }); el.defenderSelect.addEventListener('change', () => { setTypeDefaults('defender'); calculate(); }); document.querySelectorAll('button[data-op]').forEach(btn => btn.addEventListener('click', () => { transformOps.push(btn.dataset.op); updateOpsDisplay(); calculate(); }));
     el.resetTransformOps.addEventListener('click', () => { transformOps = []; updateOpsDisplay(); calculate(); });
@@ -219,10 +500,23 @@
 
     function positionList(){
       var r = input.getBoundingClientRect();
+      var vh = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+      var fixedBarH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--v082h-fixed-panel-h')) || 0;
+      var bottomLimit = vh - fixedBarH;
+      var spaceBelow = bottomLimit - r.bottom;
+      var spaceAbove = r.top;
       list.style.position = 'fixed';
       list.style.left = r.left + 'px';
-      list.style.top = (r.bottom + 2) + 'px';
       list.style.width = r.width + 'px';
+      if(spaceBelow < 100 && spaceAbove > spaceBelow){
+        list.style.top = 'auto';
+        list.style.bottom = (vh - r.top + 2) + 'px';
+        list.style.maxHeight = Math.max(80, Math.min(220, spaceAbove - 10)) + 'px';
+      } else {
+        list.style.bottom = 'auto';
+        list.style.top = (r.bottom + 2) + 'px';
+        list.style.maxHeight = Math.max(80, Math.min(220, spaceBelow - 10)) + 'px';
+      }
     }
     function closeList(){ list.hidden = true; }
     function renderList(query){
@@ -248,7 +542,16 @@
       items.forEach(function(li,i){ li.classList.toggle('active', i===activeIndex); });
       if(activeIndex>=0 && items[activeIndex]) items[activeIndex].scrollIntoView({block:'nearest'});
     }
-    input.addEventListener('focus', function(){ renderList(''); input.select(); });
+    var suppressScrollClose = false;
+    input.addEventListener('focus', function(){
+      renderList('');
+      input.select();
+      suppressScrollClose = true;
+      setTimeout(function(){
+        input.scrollIntoView({block:'center', behavior:'smooth'});
+        setTimeout(function(){ suppressScrollClose = false; if(!list.hidden) positionList(); }, 350);
+      }, 80);
+    });
     input.addEventListener('input', function(){ renderList(input.value); });
     input.addEventListener('blur', function(){ setTimeout(function(){ closeList(); input.value = currentText(); }, 120); });
     input.addEventListener('keydown', function(e){
@@ -261,7 +564,7 @@
     select.addEventListener('change', function(){ input.value = currentText(); });
     searchComboSyncList.push({ select: select, input: input, currentText: currentText });
     ensureSearchComboSync();
-    window.addEventListener('scroll', function(e){ if(!list.hidden && e.target !== list) closeList(); }, true);
+    window.addEventListener('scroll', function(e){ if(!list.hidden && e.target !== list && !suppressScrollClose) closeList(); }, true);
     window.addEventListener('resize', function(){ if(!list.hidden) closeList(); });
   }
   function firstTextNode(label){ if(!label) return null; for(var i=0;i<label.childNodes.length;i++){ var n=label.childNodes[i]; if(n.nodeType===3 && String(n.textContent).trim()) return n; } return null; }
@@ -486,6 +789,7 @@
     var row=make('div','v082h-stat-row');
     row.appendChild(make('span','v082h-stat-label','レベル'));
     var cell=make('span','v082h-stat-cell'); cell.appendChild(input); row.appendChild(cell);
+    attachNumberPicker(input, 1, 100);
     return row;
   }
   function addLevelIvFold(side, panel){
@@ -497,7 +801,21 @@
   }
   function statHeader(stats){ var row=make('div','v082h-stat-row v082h-stat-head'); row.appendChild(make('span','','')); stats.forEach(function(k){ row.appendChild(make('span','',labelStat(k))); }); return row; }
   function labelStat(k){ return {H:'H',A:'A',B:'B',C:'C',D:'D',S:'S',acc:'命中',eva:'回避'}[k] || k; }
-  function statRow(side,label,stats,kind){ var row=make('div','v082h-stat-row'); row.appendChild(make('span','v082h-stat-label',label)); stats.forEach(function(k){ var input=q(side+'_'+k+'_'+kind); var cell=make('span','v082h-stat-cell'); if(input) cell.appendChild(input); else cell.textContent='-'; row.appendChild(cell); }); return row; }
+  function attachNumberPicker(input, min, max){
+    if(!input || input.getAttribute('data-v082h-picker')) return;
+    input.setAttribute('data-v082h-picker', '1');
+    var sel = document.createElement('select');
+    sel.className = 'v082h-num-picker';
+    for(var v=min; v<=max; v++){
+      var op = document.createElement('option'); op.value=String(v); op.textContent=String(v);
+      sel.appendChild(op);
+    }
+    sel.value = input.value !== '' ? input.value : String(min);
+    sel.addEventListener('change', function(){ input.value = sel.value; dispatchChange(input); });
+    input.addEventListener('change', function(){ if(sel.value !== input.value && input.value !== '') sel.value = input.value; });
+    if(input.parentNode) input.parentNode.insertBefore(sel, input.nextSibling);
+  }
+  function statRow(side,label,stats,kind){ var row=make('div','v082h-stat-row'); row.appendChild(make('span','v082h-stat-label',label)); stats.forEach(function(k){ var input=q(side+'_'+k+'_'+kind); var cell=make('span','v082h-stat-cell'); if(input){ cell.appendChild(input); var mn=parseInt(input.min,10), mx=parseInt(input.max,10); if(!isNaN(mn) && !isNaN(mx)) attachNumberPicker(input, mn, mx); } else cell.textContent='-'; row.appendChild(cell); }); return row; }
 
   function setupZones(){
     if(q('v082hMoveDetails')) return;
@@ -619,7 +937,7 @@
   function valueAfter(lines,prefix){ for(var i=0;i<lines.length;i++){ if(lines[i].indexOf(prefix)===0) return lines[i].slice(prefix.length).trim(); } return ''; }
   function digits(s){ var arr=[], cur=''; s=String(s||''); for(var i=0;i<s.length;i++){ var c=s.charAt(i); if(c>='0'&&c<='9') cur+=c; else if(cur){ arr.push(Number(cur)); cur=''; } } if(cur) arr.push(Number(cur)); return arr; }
   function traceLine(key){ var lines=linesOf(q('trace')); for(var i=0;i<lines.length;i++){ if(lines[i].indexOf(key)>=0) return lines[i]; } return ''; }
-  function compactPower(line){ var txt=String(line||'').trim(); if(txt==='-') return '-'; var nums=[], re=/回目=([0-9]+)/g, m; while((m=re.exec(txt))) nums.push(m[1]); if(nums.length) return nums.join(','); m=txt.match(/最終威力:\s*([0-9]+)/); return m?m[1]:'未計算'; }
+  function compactPower(line){ var txt=String(line||'').trim(); if(txt==='-') return '-'; var nums=[], re=/回目=([0-9]+)/g, m; while((m=re.exec(txt))) nums.push(m[1]); if(nums.length) return nums.join(','); m=txt.match(/最終威力:\s*([0-9]+)/); if(m) return m[1]; if(/^[0-9]+$/.test(txt)) return txt; return '-'; }
   function cleanCurrent(s){ return String(s||'').replace(/^.*?\]\s*/,'').replace(/^現在値:\s*/,'').trim(); }
   function statText(side, key, kind) { var el = q(side+'_'+key+'_'+kind); return el ? el.value : ''; }
   function natureText(side) { var el = q(side+'_nature'); if (!el) return ''; var opt = el.options[el.selectedIndex]; return opt ? opt.textContent : ''; }
@@ -640,10 +958,9 @@
     var track = make('div','v082h-hpbar-track');
     if (!maxHp || maxHp <= 0) return track;
     function pct(v){ return Math.max(0, Math.min(100, v / maxHp * 100)); }
-    var colorClass = hpColorClass(maxRemain, maxHp);
-    var solid = make('div', 'v082h-hpbar-seg v082h-hpbar-solid ' + colorClass);
+    var solid = make('div', 'v082h-hpbar-seg v082h-hpbar-solid ' + hpColorClass(maxRemain, maxHp));
     solid.style.width = pct(maxRemain) + '%';
-    var uncertain = make('div', 'v082h-hpbar-seg v082h-hpbar-uncertain ' + colorClass);
+    var uncertain = make('div', 'v082h-hpbar-seg v082h-hpbar-uncertain ' + hpColorClass(minRemain, maxHp));
     uncertain.style.width = Math.max(0, pct(minRemain) - pct(maxRemain)) + '%';
     track.appendChild(solid);
     track.appendChild(uncertain);
@@ -653,6 +970,7 @@
   function renderResult(){
     var src=q('summary'); if(!src) return;
     var lines=summaryLines();
+    var head=lines[0]||'未計算';
     var cat=valueAfter(lines,'判定分類:');
     var type=valueAfter(lines,'技タイプ:');
     var dmg=valueAfter(lines,'ダメージ:');
@@ -661,13 +979,13 @@
     var certainty=valueAfter(lines,'確定数:')||'未計算';
     var power=compactPower(traceLine('変動後威力'));
     var priority=cleanCurrent(traceLine('優先度'))||'未計算';
-    var invalid=cleanCurrent(traceLine('無効要素'))||'なし';
     var dn=digits(dmg), hn=digits(hp);
 
     // ---- compact HP-bar summary: this is the only part pinned at the top on narrow screens ----
     var panel=q('v082hResultPanel');
     if(!panel){ panel=make('div','v082h-result-panel'); panel.id='v082hResultPanel'; src.parentNode.insertBefore(panel,src); src.classList.add('v082h-hide'); }
     panel.innerHTML='';
+    panel.appendChild(make('div','v082h-result-title', head));
     panel.appendChild(make('div','v082h-hp-infoline', dmg+'（'+rate+'）'));
     panel.appendChild(make('div','v082h-hp-infoline2', certainty+'　瀕死率:未実装'));
 
@@ -703,7 +1021,7 @@
     detail.innerHTML='';
     var grid=make('div','v082h-result-grid');
     detail.appendChild(grid);
-    [['技分類',cat],['技タイプ',type],['技威力',power],['ダメージ',dmg],['割合',rate],['確定数',certainty],['命中・必中','未計算'],['優先度',priority],['無効要素',invalid],['みがわり','未実装'],['瀕死率','未実装']].forEach(function(r){ resultRow(grid, r[0], r[1]); });
+    [['技分類',cat],['技タイプ',type],['技威力',power],['ダメージ',dmg],['割合',rate],['確定数',certainty],['命中・必中','未計算'],['優先度',priority],['みがわり','未実装'],['瀕死率','未実装']].forEach(function(r){ resultRow(grid, r[0], r[1]); });
 
     requestAnimationFrame(function(){
       document.documentElement.style.setProperty('--v082h-fixed-panel-h', panel.offsetHeight + 'px');
@@ -734,11 +1052,21 @@
       if(beatSel) attachSearchCombo('beatUpAlly'+n);
     }
   }
+  function finalizeNumberPickers(){
+    all('.v082h-box input[type="number"]').forEach(function(input){
+      if(input.getAttribute('data-v082h-picker')) return;
+      if(/CurrentHp$/.test(input.id||'')) return; // has its own quick-set buttons already
+      var mn=parseInt(input.min,10), mx=parseInt(input.max,10);
+      if(isNaN(mn) || isNaN(mx) || mx<=mn || (mx-mn)>40) return;
+      attachNumberPicker(input, mn, mx);
+    });
+  }
   function buildLayoutAndZones(){
     safeStep('installLayout', installLayout);
     safeStep('setupZones', setupZones);
     safeStep('restructureConditions', restructureConditions);
     safeStep('finalizeSearchCombos', finalizeSearchCombos);
+    safeStep('finalizeNumberPickers', finalizeNumberPickers);
   }
   function initializeLayoutAndZones(){
     buildLayoutAndZones();

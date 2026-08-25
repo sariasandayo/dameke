@@ -293,7 +293,7 @@ window.DAMEKE_DATA = {
     {pokemon:['ピカチュウ(サトシ)'],move:'10まんボルト',name:'1000まんボルト',type:'でんき',category:'特殊',power:195},
     {pokemon:['ソルガレオ','ネクロズマ(たそがれのたてがみ)'],move:'メテオドライブ',name:'サンシャインスマッシャー',type:'はがね',category:'物理',power:200,ignoresAbilities:true},
     {pokemon:['ルナアーラ','ネクロズマ(あかつきのつばさ)'],move:'シャドーレイ',name:'ムーンライトブラスター',type:'ゴースト',category:'特殊',power:200,ignoresAbilities:true},
-    {pokemon:['ネクロズマ(ウルトラネクロズマ)'],move:'フォトンゲイザー',name:'てんこがすめつぼうのひかり',type:'エスパー',category:'特殊',power:200,ignoresAbilities:true,categoryFromAC:true},
+    {pokemon:['ネクロズマ(たそがれのたてがみ(ウルトラネクロズマ))','ネクロズマ(あかつきのつばさ(ウルトラネクロズマ))'],move:'フォトンゲイザー',name:'てんこがすめつぼうのひかり',type:'エスパー',category:'特殊',power:200,ignoresAbilities:true,categoryFromAC:true},
     {pokemon:['ミミッキュ'],move:'じゃれつく',name:'ぽかぼかフレンドタイム',type:'フェアリー',category:'物理',power:190},
     {pokemon:['ルガルガン'],move:'ストーンエッジ',name:'ラジアルエッジストーム',type:'いわ',category:'物理',power:190},
     {pokemon:['ジャラランガ'],move:'スケイルノイズ',name:'ブレイジングソウルビート',type:'ドラゴン',category:'特殊',power:185}
@@ -528,8 +528,18 @@ window.DAMEKE_DATA = {
   };
   Object.keys(berryTypes).forEach(name=>upsert(D.items,{id:name,name:name,kind:'ResistBerry',type:berryTypes[name],isBerry:true}));
   function patchMove(name, props){const m=(D.moves||[]).find(x=>x.name===name); if(m) Object.assign(m,props); else upsert(D.moves,Object.assign({id:name,name:name,type:'ノーマル',category:'物理',power:1},props));}
-  ['ハイパーボイス','ばくおんぱ','りんしょう','スケイルノイズ'].forEach(n=>patchMove(n,{sound:true}));
+  ['ハイパーボイス','ばくおんぱ','りんしょう','スケイルノイズ','ブレイジングソウルビート'].forEach(n=>patchMove(n,{sound:true}));
   ['ふみつけ','のしかかり','ドラゴンダイブ','ハードローラー','ヒートスタンプ','ヘビーボンバー','フライングプレス','ハイパーダーククラッシャー','サンダーダイブ'].forEach(n=>patchMove(n,{contact:true}));
+  // 強化技(専用Z・キョダイマックス技)は、強化後の名前それぞれが独自の属性を持つ(元技からの継承ではない)。
+  // 専用Z技・キョダイ技の一部は、これまでD.movesに実体そのものが登録されておらず、
+  // タグ表(protectBypass等)に名前だけ載っていても検索不能だったため、ここで直接登録する。
+  ['ひっさつのピカチュート','しちせいだっこんたい','ほんきをだすこうげき','サンシャインスマッシャー','ぽかぼかフレンドタイム'].forEach(n=>patchMove(n,{contact:true}));
+  patchMove('キョダイコランダ',{ignoresAbilities:true});
+  patchMove('キョダイカキュウ',{ignoresAbilities:true});
+  patchMove('キョダイソゲキ',{ignoresAbilities:true});
+  patchMove('キョダイイチゲキ',{tags:['protectBypass','maxGuardBypass']});
+  patchMove('キョダイレンゲキ',{tags:['protectBypass','maxGuardBypass']});
+  patchMove('シャドーレイ',{ignoresAbilities:true});
   D.__lateDamageModifierDataPatched = true;
 })();
 
@@ -1392,9 +1402,9 @@ window.DAMEKE_DATA = {
   if(typeof originalIntegrateGeneratedMoves === 'function' && !originalIntegrateGeneratedMoves.__excludeSignatureZWrapped){
     var wrapped = function(){
       var report = originalIntegrateGeneratedMoves.apply(this, arguments);
-      if(Array.isArray(D.moves)){
-        D.moves = D.moves.filter(function(m){ return !isExcludedSignatureZMove(m); });
-      }
+      // NOTE: no longer removed from D.moves here -- these moves' data (contact,
+      // ignoresAbilities, fixedDamage, etc.) must stay lookupable internally by name.
+      // They're excluded from the move *selection dropdown* only, in app.js's fillSelect call.
       if(typeof D.normalizeCanonicalData === 'function') D.normalizeCanonicalData();
       if(report && typeof report === 'object'){
         report.currentMovesAfterSignatureZExclusion = Array.isArray(D.moves) ? D.moves.length : 0;
@@ -1406,10 +1416,7 @@ window.DAMEKE_DATA = {
     D.integrateGeneratedMoves = wrapped;
   }
 
-  // すでに v0.54 loader により統合済みの場合も、即時に除外する。
-  if(Array.isArray(D.moves)){
-    D.moves = D.moves.filter(function(m){ return !isExcludedSignatureZMove(m); });
-  }
+  // NOTE: intentionally not filtering D.moves here anymore -- see note above.
 })();
 
 
@@ -1641,6 +1648,38 @@ window.DAMEKE_DATA = {
     D.__generatedAbilitiesIntegrated = true;
     return D.generatedAbilityIntegrationReport();
   };
+
+  // Safety net: the generated (Excel-sourced) ability data has no effectTags of its own for
+  // these abilities (kind:"Generic", effectTags:[]), so they depend entirely on the merge step
+  // correctly carrying over the existing, JS-tagged entry. That merge has proven unreliable for
+  // at least ターボブレイズ/テラボルテージ (かたやぶり itself came through fine), so force these
+  // critical tags back onto D.abilities every time integration runs, regardless of the reason
+  // for the loss.
+  var CRITICAL_ABILITY_TAGS = {
+    'かたやぶり': ['moldBreakerEffect'],
+    'ターボブレイズ': ['moldBreakerEffect'],
+    'テラボルテージ': ['moldBreakerEffect']
+  };
+  function reapplyCriticalAbilityTags(){
+    (D.abilities || []).forEach(function(a){
+      var need = CRITICAL_ABILITY_TAGS[a.name];
+      if(!need) return;
+      a.effectTags = uniq(arr(a.effectTags).concat(need));
+    });
+  }
+  var originalIntegrateGeneratedAbilities = D.integrateGeneratedAbilities;
+  if(typeof originalIntegrateGeneratedAbilities === 'function' && !originalIntegrateGeneratedAbilities.__criticalTagsWrapped){
+    var wrappedAbilities = function(){
+      var report = originalIntegrateGeneratedAbilities.apply(this, arguments);
+      reapplyCriticalAbilityTags();
+      return report;
+    };
+    wrappedAbilities.__criticalTagsWrapped = true;
+    D.integrateGeneratedAbilities = wrappedAbilities;
+  }
+  // Also apply immediately in case D.abilities is already populated and integration has
+  // already run (or never runs) by the time this executes.
+  reapplyCriticalAbilityTags();
 
   D.generatedAbilityIntegrationReport = function(){
     var G = root.DAMEKE_GENERATED_DATA || {};
