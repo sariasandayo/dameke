@@ -103,7 +103,7 @@
       defenderLuckyChant: el.defenderLuckyChant.checked, defenderForesight: el.defenderForesight.checked, defenderMiracleEye: el.defenderMiracleEye.checked,
       attackerEmbargo: el.attackerEmbargo.checked, defenderEmbargo: el.defenderEmbargo.checked, attackerStealthRock: el.attackerStealthRock.checked, defenderStealthRock: el.defenderStealthRock.checked,
       attackerSpikes: el.attackerSpikes.value, defenderSpikes: el.defenderSpikes.value, attackerSteelSurge: el.attackerSteelSurge.checked, defenderSteelSurge: el.defenderSteelSurge.checked, attackerRootedSmacked: el.attackerRootedSmacked.checked, defenderRootedSmacked: el.defenderRootedSmacked.checked, attackerMagnetRise: el.attackerMagnetRise.checked, defenderMagnetRise: el.defenderMagnetRise.checked, attackerTelekinesis: el.attackerTelekinesis.checked, defenderTelekinesis: el.defenderTelekinesis.checked, attackerRoost: el.attackerRoost.checked, defenderRoost: el.defenderRoost.checked, attackerBurnUp: el.attackerBurnUp.checked, defenderBurnUp: el.defenderBurnUp.checked, attackerDoubleShock: el.attackerDoubleShock.checked, defenderDoubleShock: el.defenderDoubleShock.checked,
-      attackerCurrentHpInput: el.attackerCurrentHp.value, defenderCurrentHpInput: el.defenderCurrentHp.value, attackerStats: readStats('attacker'), defenderStats: readStats('defender'), transformOps: transformOps.slice(), attackerStatus: (document.getElementById('attackerStatus')||{}).value || 'なし', defenderStatus: (document.getElementById('defenderStatus')||{}).value || 'なし', defenderSemiInvulnerable: (document.getElementById('defenderSemiInvulnerable')||{}).value || 'なし', rolloutHit: document.getElementById('rolloutHit') ? document.getElementById('rolloutHit').value : '1', defenseCurl: !!(document.getElementById('defenseCurl') && document.getElementById('defenseCurl').checked), echoedVoiceCount: document.getElementById('echoedVoiceCount') ? document.getElementById('echoedVoiceCount').value : '1', moveOrder: document.getElementById('moveOrder') ? document.getElementById('moveOrder').value : 'first', targetSwitching: !!(document.getElementById('targetSwitching') && document.getElementById('targetSwitching').checked), faintedAllies: document.getElementById('faintedAllies') ? document.getElementById('faintedAllies').value : '0', supremeOverlordFaintedAllies: document.getElementById('supremeOverlordFaintedAllies') ? document.getElementById('supremeOverlordFaintedAllies').value : '0', friendship: document.getElementById('friendship') ? document.getElementById('friendship').value : '255', remainingPP: document.getElementById('remainingPP') ? document.getElementById('remainingPP').value : '4', lastMoveFailed: !!(document.getElementById('lastMoveFailed') && document.getElementById('lastMoveFailed').checked), userDamagedThisTurn: !!(document.getElementById('userDamagedThisTurn') && document.getElementById('userDamagedThisTurn').checked), targetDamagedThisTurn: !!(document.getElementById('targetDamagedThisTurn') && document.getElementById('targetDamagedThisTurn').checked), stockpileCount: document.getElementById('stockpileCount') ? document.getElementById('stockpileCount').value : '1', presentPower: document.getElementById('presentPower') ? document.getElementById('presentPower').value : '40', rageFistHitCount: document.getElementById('rageFistHitCount') ? document.getElementById('rageFistHitCount').value : '0', magnitudePower: document.getElementById('magnitudePower') ? document.getElementById('magnitudePower').value : '70', roundAllyUsed: !!(document.getElementById('roundAllyUsed') && document.getElementById('roundAllyUsed').checked), furyCutterCount: document.getElementById('furyCutterCount') ? document.getElementById('furyCutterCount').value : '1', psywaveMultiplier: document.getElementById('psywaveMultiplier') ? document.getElementById('psywaveMultiplier').value : '1', fixedDamageTaken: document.getElementById('fixedDamageTaken') ? document.getElementById('fixedDamageTaken').value : '0', defenderScreen: document.getElementById('defenderScreen') ? document.getElementById('defenderScreen').value : 'none', defenderFriendGuard: !!(document.getElementById('defenderFriendGuard') && document.getElementById('defenderFriendGuard').checked), defenderMinimized: !!(document.getElementById('defenderMinimized') && document.getElementById('defenderMinimized').checked), defenderProtectState: document.getElementById('defenderProtectState') ? document.getElementById('defenderProtectState').value : 'none', metronomeUseCount: document.getElementById('metronomeUseCount') ? document.getElementById('metronomeUseCount').value : '1', defenderForesight: !!(document.getElementById('defenderForesight') && document.getElementById('defenderForesight').checked), defenderMiracleEye: !!(document.getElementById('defenderMiracleEye') && document.getElementById('defenderMiracleEye').checked), defenderTarShot: !!(document.getElementById('defenderTarShot') && document.getElementById('defenderTarShot').checked), attackerStellarMoveCount: document.getElementById('attackerStellarMoveCount') ? document.getElementById('attackerStellarMoveCount').value : 'first', attackerDoubleDamage: !!(document.getElementById('attackerDoubleDamage') && document.getElementById('attackerDoubleDamage').checked), defenderGlaiveRush: !!(document.getElementById('defenderGlaiveRush') && document.getElementById('defenderGlaiveRush').checked), beadsOfRuinField: !!(document.getElementById('beadsOfRuinField') && document.getElementById('beadsOfRuinField').checked), swordOfRuinField: !!(document.getElementById('swordOfRuinField') && document.getElementById('swordOfRuinField').checked), defenderFlowerGiftSupport: !!(document.getElementById('defenderFlowerGiftSupport') && document.getElementById('defenderFlowerGiftSupport').checked), vesselOfRuinField: !!(document.getElementById('vesselOfRuinField') && document.getElementById('vesselOfRuinField').checked), tabletsOfRuinField: !!(document.getElementById('tabletsOfRuinField') && document.getElementById('tabletsOfRuinField').checked), flowerGiftSupport: !!(document.getElementById('flowerGiftSupport') && document.getElementById('flowerGiftSupport').checked), plusMinusSupport: !!(document.getElementById('plusMinusSupport') && document.getElementById('plusMinusSupport').checked), flashFireActivated: !!(document.getElementById('flashFireActivated') && document.getElementById('flashFireActivated').checked), stakeoutSwitchIn: !!(document.getElementById('stakeoutSwitchIn') && document.getElementById('stakeoutSwitchIn').checked), batterySupport: !!(document.getElementById('batterySupport') && document.getElementById('batterySupport').checked), powerSpotSupport: !!(document.getElementById('powerSpotSupport') && document.getElementById('powerSpotSupport').checked), steelSpiritCount: document.getElementById('steelSpiritCount') ? document.getElementById('steelSpiritCount').value : '0', helpingHandCount: document.getElementById('helpingHandCount') ? document.getElementById('helpingHandCount').value : '0', meFirst: !!(document.getElementById('meFirst') && document.getElementById('meFirst').checked), charge: !!(document.getElementById('charge') && document.getElementById('charge').checked), analyzeMovedLast: !!(document.getElementById('analyzeMovedLast') && document.getElementById('analyzeMovedLast').checked), fairyAuraField: !!(document.getElementById('fairyAuraField') && document.getElementById('fairyAuraField').checked), darkAuraField: !!(document.getElementById('darkAuraField') && document.getElementById('darkAuraField').checked), mudSport: !!(document.getElementById('mudSport') && document.getElementById('mudSport').checked), waterSport: !!(document.getElementById('waterSport') && document.getElementById('waterSport').checked), weatherSuppressField: !!(document.getElementById('weatherSuppressField') && document.getElementById('weatherSuppressField').checked), statDroppedThisTurn: !!(document.getElementById('statDroppedThisTurn') && document.getElementById('statDroppedThisTurn').checked), allyFaintedLastTurn: !!(document.getElementById('allyFaintedLastTurn') && document.getElementById('allyFaintedLastTurn').checked), beatUpAlly1: document.getElementById('beatUpAlly1') ? document.getElementById('beatUpAlly1').value : 'none', beatUpAlly2: document.getElementById('beatUpAlly2') ? document.getElementById('beatUpAlly2').value : 'none', beatUpAlly3: document.getElementById('beatUpAlly3') ? document.getElementById('beatUpAlly3').value : 'none', beatUpAlly4: document.getElementById('beatUpAlly4') ? document.getElementById('beatUpAlly4').value : 'none', beatUpAlly5: document.getElementById('beatUpAlly5') ? document.getElementById('beatUpAlly5').value : 'none', attackerTailwind: !!(document.getElementById('attackerTailwind') && document.getElementById('attackerTailwind').checked), defenderTailwind: !!(document.getElementById('defenderTailwind') && document.getElementById('defenderTailwind').checked), attackerSwamp: !!(document.getElementById('attackerSwamp') && document.getElementById('attackerSwamp').checked), defenderSwamp: !!(document.getElementById('defenderSwamp') && document.getElementById('defenderSwamp').checked), attackerSlowStart: !!(document.getElementById('attackerSlowStart') && document.getElementById('attackerSlowStart').checked), defenderSlowStart: !!(document.getElementById('defenderSlowStart') && document.getElementById('defenderSlowStart').checked), attackerUnburden: !!(document.getElementById('attackerUnburden') && document.getElementById('attackerUnburden').checked), defenderUnburden: !!(document.getElementById('defenderUnburden') && document.getElementById('defenderUnburden').checked), attackerParadoxBoostStat: document.getElementById('attackerParadoxBoostStat') ? document.getElementById('attackerParadoxBoostStat').value : 'none', defenderParadoxBoostStat: document.getElementById('defenderParadoxBoostStat') ? document.getElementById('defenderParadoxBoostStat').value : 'none', attackerBodyPurge: document.getElementById('attackerBodyPurge') ? document.getElementById('attackerBodyPurge').value : '0', defenderBodyPurge: document.getElementById('defenderBodyPurge') ? document.getElementById('defenderBodyPurge').value : '0',
+      attackerCurrentHpInput: el.attackerCurrentHp.value, defenderCurrentHpInput: el.defenderCurrentHp.value, attackerStats: readStats('attacker'), defenderStats: readStats('defender'), transformOps: transformOps.slice(), attackerStatus: (document.getElementById('attackerStatus')||{}).value || 'なし', defenderStatus: (document.getElementById('defenderStatus')||{}).value || 'なし', defenderSemiInvulnerable: (document.getElementById('defenderSemiInvulnerable')||{}).value || 'なし', rolloutHit: document.getElementById('rolloutHit') ? document.getElementById('rolloutHit').value : '1', defenseCurl: !!(document.getElementById('defenseCurl') && document.getElementById('defenseCurl').checked), echoedVoiceCount: document.getElementById('echoedVoiceCount') ? document.getElementById('echoedVoiceCount').value : '1', moveOrder: document.getElementById('moveOrder') ? document.getElementById('moveOrder').value : 'first', targetSwitching: !!(document.getElementById('targetSwitching') && document.getElementById('targetSwitching').checked), faintedAllies: document.getElementById('faintedAllies') ? document.getElementById('faintedAllies').value : '0', supremeOverlordFaintedAllies: document.getElementById('supremeOverlordFaintedAllies') ? document.getElementById('supremeOverlordFaintedAllies').value : '0', friendship: document.getElementById('friendship') ? document.getElementById('friendship').value : '255', remainingPP: document.getElementById('remainingPP') ? document.getElementById('remainingPP').value : '4', lastMoveFailed: !!(document.getElementById('lastMoveFailed') && document.getElementById('lastMoveFailed').checked), userDamagedThisTurn: !!(document.getElementById('userDamagedThisTurn') && document.getElementById('userDamagedThisTurn').checked), targetDamagedThisTurn: !!(document.getElementById('targetDamagedThisTurn') && document.getElementById('targetDamagedThisTurn').checked), stockpileCount: document.getElementById('stockpileCount') ? document.getElementById('stockpileCount').value : '1', presentPower: document.getElementById('presentPower') ? document.getElementById('presentPower').value : '40', rageFistHitCount: document.getElementById('rageFistHitCount') ? document.getElementById('rageFistHitCount').value : '0', magnitudePower: document.getElementById('magnitudePower') ? document.getElementById('magnitudePower').value : '70', roundAllyUsed: !!(document.getElementById('roundAllyUsed') && document.getElementById('roundAllyUsed').checked), furyCutterCount: document.getElementById('furyCutterCount') ? document.getElementById('furyCutterCount').value : '1', psywaveMultiplier: document.getElementById('psywaveMultiplier') ? document.getElementById('psywaveMultiplier').value : '1', fixedDamageTaken: document.getElementById('fixedDamageTaken') ? document.getElementById('fixedDamageTaken').value : '0', defenderScreen: document.getElementById('defenderScreen') ? document.getElementById('defenderScreen').value : 'none', defenderFriendGuard: !!(document.getElementById('defenderFriendGuard') && document.getElementById('defenderFriendGuard').checked), defenderMinimized: !!(document.getElementById('defenderMinimized') && document.getElementById('defenderMinimized').checked), defenderProtectState: document.getElementById('defenderProtectState') ? document.getElementById('defenderProtectState').value : 'none', metronomeUseCount: document.getElementById('metronomeUseCount') ? document.getElementById('metronomeUseCount').value : '1', defenderForesight: !!(document.getElementById('defenderForesight') && document.getElementById('defenderForesight').checked), defenderMiracleEye: !!(document.getElementById('defenderMiracleEye') && document.getElementById('defenderMiracleEye').checked), defenderTarShot: !!(document.getElementById('defenderTarShot') && document.getElementById('defenderTarShot').checked), attackerStellarMoveCount: document.getElementById('attackerStellarMoveCount') ? document.getElementById('attackerStellarMoveCount').value : 'first', attackerDoubleDamage: !!(document.getElementById('attackerDoubleDamage') && document.getElementById('attackerDoubleDamage').checked), defenderGlaiveRush: !!(document.getElementById('defenderGlaiveRush') && document.getElementById('defenderGlaiveRush').checked), beadsOfRuinField: !!(document.getElementById('beadsOfRuinField') && document.getElementById('beadsOfRuinField').checked), swordOfRuinField: !!(document.getElementById('swordOfRuinField') && document.getElementById('swordOfRuinField').checked), defenderFlowerGiftSupport: !!(document.getElementById('defenderFlowerGiftSupport') && document.getElementById('defenderFlowerGiftSupport').checked), vesselOfRuinField: !!(document.getElementById('vesselOfRuinField') && document.getElementById('vesselOfRuinField').checked), tabletsOfRuinField: !!(document.getElementById('tabletsOfRuinField') && document.getElementById('tabletsOfRuinField').checked), flowerGiftSupport: !!(document.getElementById('flowerGiftSupport') && document.getElementById('flowerGiftSupport').checked), plusMinusSupport: !!(document.getElementById('plusMinusSupport') && document.getElementById('plusMinusSupport').checked), flashFireActivated: !!(document.getElementById('flashFireActivated') && document.getElementById('flashFireActivated').checked), stakeoutSwitchIn: !!(document.getElementById('stakeoutSwitchIn') && document.getElementById('stakeoutSwitchIn').checked), batterySupport: !!(document.getElementById('batterySupport') && document.getElementById('batterySupport').checked), powerSpotSupport: !!(document.getElementById('powerSpotSupport') && document.getElementById('powerSpotSupport').checked), steelSpiritCount: document.getElementById('steelSpiritCount') ? document.getElementById('steelSpiritCount').value : '0', helpingHandCount: document.getElementById('helpingHandCount') ? document.getElementById('helpingHandCount').value : '0', meFirst: !!(document.getElementById('meFirst') && document.getElementById('meFirst').checked), charge: !!(document.getElementById('charge') && document.getElementById('charge').checked), analyzeMovedLast: !!(document.getElementById('analyzeMovedLast') && document.getElementById('analyzeMovedLast').checked), fairyAuraField: !!(document.getElementById('fairyAuraField') && document.getElementById('fairyAuraField').checked), darkAuraField: !!(document.getElementById('darkAuraField') && document.getElementById('darkAuraField').checked), mudSport: !!(document.getElementById('mudSport') && document.getElementById('mudSport').checked), waterSport: !!(document.getElementById('waterSport') && document.getElementById('waterSport').checked), weatherSuppressField: !!(document.getElementById('weatherSuppressField') && document.getElementById('weatherSuppressField').checked), statDroppedThisTurn: !!(document.getElementById('statDroppedThisTurn') && document.getElementById('statDroppedThisTurn').checked), allyFaintedLastTurn: !!(document.getElementById('allyFaintedLastTurn') && document.getElementById('allyFaintedLastTurn').checked), beatUpAlly1: document.getElementById('beatUpAlly1') ? document.getElementById('beatUpAlly1').value : 'none', beatUpAlly2: document.getElementById('beatUpAlly2') ? document.getElementById('beatUpAlly2').value : 'none', beatUpAlly3: document.getElementById('beatUpAlly3') ? document.getElementById('beatUpAlly3').value : 'none', beatUpAlly4: document.getElementById('beatUpAlly4') ? document.getElementById('beatUpAlly4').value : 'none', beatUpAlly5: document.getElementById('beatUpAlly5') ? document.getElementById('beatUpAlly5').value : 'none', attackerTailwind: !!(document.getElementById('attackerTailwind') && document.getElementById('attackerTailwind').checked), attackerLockOn: !!(document.getElementById('attackerLockOn') && document.getElementById('attackerLockOn').checked), attackerMicleBerry: !!(document.getElementById('attackerMicleBerry') && document.getElementById('attackerMicleBerry').checked), attackerVictoryStar: !!(document.getElementById('attackerVictoryStar') && document.getElementById('attackerVictoryStar').checked), defenderConfusion: !!(document.getElementById('defenderConfusion') && document.getElementById('defenderConfusion').checked), focusLensMoveOrder: document.getElementById('focusLensMoveOrder') ? document.getElementById('focusLensMoveOrder').value : 'first', defenderTailwind: !!(document.getElementById('defenderTailwind') && document.getElementById('defenderTailwind').checked), attackerSwamp: !!(document.getElementById('attackerSwamp') && document.getElementById('attackerSwamp').checked), defenderSwamp: !!(document.getElementById('defenderSwamp') && document.getElementById('defenderSwamp').checked), attackerSlowStart: !!(document.getElementById('attackerSlowStart') && document.getElementById('attackerSlowStart').checked), defenderSlowStart: !!(document.getElementById('defenderSlowStart') && document.getElementById('defenderSlowStart').checked), attackerUnburden: !!(document.getElementById('attackerUnburden') && document.getElementById('attackerUnburden').checked), defenderUnburden: !!(document.getElementById('defenderUnburden') && document.getElementById('defenderUnburden').checked), attackerParadoxBoostStat: document.getElementById('attackerParadoxBoostStat') ? document.getElementById('attackerParadoxBoostStat').value : 'none', defenderParadoxBoostStat: document.getElementById('defenderParadoxBoostStat') ? document.getElementById('defenderParadoxBoostStat').value : 'none', attackerBodyPurge: document.getElementById('attackerBodyPurge') ? document.getElementById('attackerBodyPurge').value : '0', defenderBodyPurge: document.getElementById('defenderBodyPurge') ? document.getElementById('defenderBodyPurge').value : '0',
       moldBreaker: false, neutralizingGas: false, attackerItemSuppressed: false, defenderItemSuppressed: false
     };
   }
@@ -289,7 +289,7 @@
 
     host.appendChild(spanRow('直接攻撃', result.contactEffective ? '接触' : '非接触'));
 
-    function formatPowerEntry(entry){
+    function formatPowerEntry(entry, moveNameForCheck, isParentalBond){
       if(!entry) return '-';
       var val = String(entry.value || '');
       if(val === '-' || !val) return '-';
@@ -303,18 +303,49 @@
       var factorText = factorEntries.map(function(f){ return f.rate + '（' + f.label + '）'; }).join('、');
       var hits = val.split(' / ');
       if(hits.length === 1 && !/回目=/.test(hits[0])) return hits[0];
-      var lines = hits.map(function(h){
+
+      var variableMoves = ['ふくろだたき', 'トリプルキック', 'トリプルアクセル'];
+      var isVariable = variableMoves.indexOf(moveNameForCheck) >= 0 || isParentalBond;
+
+      // Detailed format (from the main power-modifier layer): "N回目=FIN（基礎BASE 補正RATE/4096...）"
+      var detailedHits = hits.map(function(h){
         var m = h.match(/^(\d+)回目=(\d+)（基礎(\d+)\s*補正\d+\/4096(.*)）$/);
-        if(!m) return h;
-        var idx = m[1], fin = m[2], base = m[3], extra = (m[4] || '').trim();
-        var prefix = hits.length > 1 ? idx + '回目：' : '';
-        var parts = ['基礎威力 ' + base].concat(factorText ? [factorText] : []).concat(extra ? [extra] : []);
-        return prefix + fin + '（' + parts.join('、') + '）';
+        return m ? { idx: m[1], fin: m[2], base: m[3], extra: (m[4] || '').trim() } : null;
       });
-      return lines.join('／');
+      if(!detailedHits.some(function(p){ return !p; })){
+        if(!isVariable){
+          var p0 = detailedHits[0];
+          var parts = ['基礎威力 ' + p0.base].concat(factorText ? [factorText] : []).concat(p0.extra ? [p0.extra] : []);
+          return p0.fin + '（' + parts.join('、') + '）';
+        }
+        return detailedHits.map(function(p){
+          var parts = ['基礎威力 ' + p.base].concat(factorText ? [factorText] : []).concat(p.extra ? [p.extra] : []);
+          return p.idx + '回目=' + p.fin + '（' + parts.join('、') + '）';
+        }).join('/');
+      }
+
+      // Simpler format (from the data-driven variable-hit-count layer, e.g. Rock Blast):
+      // "N回目=VALUE（note）" with no base/rate breakdown available.
+      var simpleHits = hits.map(function(h){
+        var m = h.match(/^(\d+)回目=(\d+)/);
+        return m ? { idx: m[1], fin: m[2] } : null;
+      });
+      if(!simpleHits.some(function(p){ return !p; })){
+        var allSame = simpleHits.every(function(p){ return p.fin === simpleHits[0].fin; });
+        if(allSame && !isVariable){
+          var baseFromPlan = (result.hitPlan && result.hitPlan[0] && result.hitPlan[0].basePower != null) ? result.hitPlan[0].basePower : null;
+          return baseFromPlan != null ? (simpleHits[0].fin + '（基礎威力 ' + baseFromPlan + '）') : simpleHits[0].fin;
+        }
+        return simpleHits.map(function(p){ return p.idx + '回目=' + p.fin; }).join('/');
+      }
+
+      return hits.join('／');
     }
     var powerEntry = findTraceEntry(trace, '変動後威力');
-    host.appendChild(spanRow('威力', formatPowerEntry(powerEntry)));
+    var atkAbilityEntry = findTraceEntry(trace, '00 特性（攻撃側）');
+    var isParentalBondActive = !!(atkAbilityEntry && atkAbilityEntry.name === 'おやこあい' && atkAbilityEntry.value === '有効');
+    var currentMoveName = moveEnhanceEntry ? moveEnhanceEntry.value : '';
+    host.appendChild(spanRow('威力', formatPowerEntry(powerEntry, currentMoveName, isParentalBondActive)));
 
     function formatStatEntry(entry, sideLabel){
       if(!entry) return '-';
@@ -339,7 +370,28 @@
     var defStatEntry = findTraceEntry(trace, '補正後防御側実数値');
     host.appendChild(pairedRow('補正後使用実数値', formatStatEntry(atkStatEntry, '攻'), formatStatEntry(defStatEntry, '防')));
 
-    if(result.stabRate4096 != null) host.appendChild(spanRow('タイプ一致判定', String(result.stabRate4096)));
+    var priorityEntry = findTraceEntry(trace, 'N79 優先度');
+    host.appendChild(spanRow('優先度', priorityEntry ? priorityEntry.value : '-'));
+    host.appendChild(spanRow('無効要素', '未整理'));
+
+    if(result.moveRangeTarget != null) host.appendChild(spanRow('範囲', String(result.moveRangeTarget)));
+
+    if(result.stabRate4096 != null){
+      var stabReasonText = String(result.stabReason || '');
+      var stabParts = stabReasonText.split('+').map(function(s){
+        return s
+          .replace('テラパゴス(ステラ)', 'ステラ')
+          .replace('計算上タイプ一致', '一致')
+          .replace('計算上タイプ不一致', '不一致')
+          .replace('テラタイプかつ計算上タイプ一致', 'テラス一致、一致')
+          .replace('テラタイプまたは計算上タイプ一致', 'テラス一致または一致')
+          .replace('テラタイプのみ一致', 'テラス一致')
+          .replace('一致なし', '不一致')
+          .replace('非テラ', '')
+          .trim();
+      }).filter(Boolean);
+      host.appendChild(spanRow('タイプ一致判定', String(result.stabRate4096) + (stabParts.length ? '（' + stabParts.join('、') + '）' : '')));
+    }
 
     if(result.typeRate4096 != null){
       var finalMoveType = moveTypeEntry ? moveTypeEntry.value : '-';
@@ -352,10 +404,6 @@
 
     var damageModEntry = findTraceEntry(trace, 'N66 ダメージ補正値');
     if(damageModEntry){
-      var rangeM = String(damageModEntry.value || '').match(/範囲=(\d+)/);
-      var rangeRate = rangeM ? rangeM[1] : '4096';
-      if(rangeRate !== '4096') host.appendChild(spanRow('範囲補正', rangeRate));
-
       var otherM = String(damageModEntry.note || '').match(/その他:\s*(.+?)(?:\s*\/\s*まもる:|$)/);
       var otherRaw = otherM ? otherM[1] : '';
       if(otherRaw && otherRaw !== 'なし'){
@@ -384,8 +432,25 @@
         combined = Math.round(combined * rateNum / 4096);
         if(rateNum !== 4096) dmParts.push(rateNum + '（' + label + '）');
       });
-      host.appendChild(spanRow('ダメージ補正合成', combined + '（' + dmParts.join('、') + '）'));
+      host.appendChild(spanRow('ダメージ補正合成', combined + (dmParts.length ? '（' + dmParts.join('、') + '）' : '')));
+
+      var dmgRawMulti = result.rawMultiHitRolls;
+      var dmgText = (dmgRawMulti && dmgRawMulti.length) ? dmgRawMulti.join('／') : (result.rawRolls || result.rolls || []).join(', ');
+      host.appendChild(spanRow('ダメージ', dmgText));
+
+      var adjMulti = result.multiHitRolls;
+      var adjText = (adjMulti && adjMulti.length) ? adjMulti.join('／') : (result.rolls || []).join(', ');
+      if(adjText !== dmgText) host.appendChild(spanRow('ダメージ変更', adjText));
     }
+
+    host.appendChild(spanRow('命中判定', result.accuracyResult || '-'));
+    var accRateText = result.accuracyResult === '命中' ? formatAccuracyPercent(result.accuracyPercent) : (result.accuracyResult || '-');
+    host.appendChild(spanRow('命中率', accRateText));
+  }
+  function formatAccuracyPercent(v){
+    if(v == null) return '-';
+    var rounded = Math.round(v * 10) / 10;
+    return (Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1)) + '%';
   }
   function formatKoInfo(koInfo) {
     if (!koInfo) return '計算対象外';
@@ -396,8 +461,8 @@
   }
   function calculate() {
     const result = CALC.calculateDamage({ attacker: byId(DATA.pokemons, el.attackerSelect.value), defender: byId(DATA.pokemons, el.defenderSelect.value), move: byId(DATA.moves, el.moveSelect.value), attackerLevel: el.attackerLevel.value, defenderLevel: el.defenderLevel.value, options: buildOptions() });
-    el.summary.innerHTML = ['<strong>' + result.attackerName + '</strong> の <strong>' + result.moveName + '</strong> → <strong>' + result.defenderName + '</strong>', '判定分類: <strong>' + result.effectiveCategory + '</strong>', '技タイプ: <strong>' + result.effectiveType + '</strong>', 'ダメージ: <strong>' + result.minDamage + ' ～ ' + result.maxDamage + '</strong>', '割合: <strong>' + result.minRate.toFixed(1) + '% ～ ' + result.maxRate.toFixed(1) + '%</strong>', '防御側HP: ' + result.defenderCurrentHp + ' / ' + result.defenderMaxHp, '確定数: <strong>' + formatKoInfo(result.koInfo) + '</strong>'].join('<br>');
-    el.rolls.textContent = (result.multiHitRolls && result.multiHitRolls.length) ? result.multiHitRolls.join(NL) : result.rolls.join(', ');
+    el.summary.innerHTML = ['<strong>' + result.attackerName + '</strong> の <strong>' + result.moveName + '</strong> → <strong>' + result.defenderName + '</strong>', '判定分類: <strong>' + result.effectiveCategory + '</strong>', '技タイプ: <strong>' + result.effectiveType + '</strong>', 'ダメージ: <strong>' + result.minDamage + ' ～ ' + result.maxDamage + '</strong>', '割合: <strong>' + result.minRate.toFixed(1) + '% ～ ' + result.maxRate.toFixed(1) + '%</strong>', '防御側HP: ' + result.defenderCurrentHp + ' / ' + result.defenderMaxHp, '確定数: <strong>' + formatKoInfo(result.koInfo) + '</strong>', '命中率: <strong>' + (result.accuracyResult === '命中' ? formatAccuracyPercent(result.accuracyPercent) : result.accuracyResult) + '</strong>'].join('<br>');
+    // el.rolls (乱数 section) retired -- this data now shows as "ダメージ" in the calc-process table.
     renderCalcTable(result);
     el.trace.textContent = formatTrace(result.trace);
   }
@@ -631,7 +696,11 @@
     hideOldItemAbilityBox();
     var calc=q('calculateButton'); if(calc) calc.classList.add('v082h-hide');
     var copy=q('copyTraceButton'); var traceEl=q('trace');
-    if(copy && traceEl && traceEl.parentNode){ traceEl.parentNode.insertBefore(copy, traceEl.nextSibling); copy.classList.add('v082h-secondary-action'); }
+    if(copy) copy.classList.add('v082h-hide');
+    if(traceEl){
+      traceEl.classList.add('v082h-hide');
+      if(traceEl.previousElementSibling && traceEl.previousElementSibling.tagName==='H3') traceEl.previousElementSibling.classList.add('v082h-hide');
+    }
     var protect=labelOf('protect'); if(protect){ var p=q('protect'); if(p) p.checked=false; protect.classList.add('v082h-hide'); }
   }
   function hideOldItemAbilityBox(){
@@ -836,7 +905,7 @@
     var ability=q('v082hAbilityDetails'), defAbility=q('v082hDefenderAbilityDetails'), item=q('v082hItemDetails'), tera=q('v082hTeraDetails'), move=q('v082hMoveDetails');
     ['flashFireActivated','stakeoutSwitchIn','supremeOverlordFaintedAllies','attackerSlowStart','attackerUnburden','attackerParadoxBoostStat','analyzeMovedLast'].forEach(function(id){ moveLabel(id, ability); });
     ['defenderSlowStart','defenderUnburden','defenderParadoxBoostStat'].forEach(function(id){ moveLabel(id, defAbility); });
-    ['metronomeUseCount'].forEach(function(id){ moveLabel(id, item); });
+    ['metronomeUseCount','focusLensMoveOrder'].forEach(function(id){ moveLabel(id, item); });
     ['attackerStellarMoveCount'].forEach(function(id){ moveLabel(id, tera); });
     ['pledgeCombination','psywaveMultiplier','fixedDamageTaken','statDroppedThisTurn','allyFaintedLastTurn','beatUpAlly1','beatUpAlly2','beatUpAlly3','beatUpAlly4','beatUpAlly5','rolloutHit','defenseCurl','echoedVoiceCount','moveOrder','targetSwitching','faintedAllies','friendship','remainingPP','lastMoveFailed','userDamagedThisTurn','targetDamagedThisTurn','stockpileCount','presentPower','rageFistHitCount','magnitudePower','roundAllyUsed','furyCutterCount'].forEach(function(id){ moveLabel(id, move); });
   }
@@ -849,7 +918,7 @@
     show('flashFireActivated', ab==='もらいび'); show('stakeoutSwitchIn', ab==='はりこみ'); show('supremeOverlordFaintedAllies', ab==='そうだいしょう');
     show('attackerSlowStart', ab==='スロースタート'); show('attackerUnburden', ab==='かるわざ'); show('attackerParadoxBoostStat', ab==='こだいかっせい'||ab==='クォークチャージ'); show('analyzeMovedLast', ab==='アナライズ');
     show('defenderSlowStart', dab==='スロースタート'); show('defenderUnburden', dab==='かるわざ'); show('defenderParadoxBoostStat', dab==='こだいかっせい'||dab==='クォークチャージ');
-    show('metronomeUseCount', item==='メトロノーム'); show('attackerStellarMoveCount', tera==='ステラ');
+    show('metronomeUseCount', item==='メトロノーム'); show('focusLensMoveOrder', item==='フォーカスレンズ'); show('attackerStellarMoveCount', tera==='ステラ');
     show('pledgeCombination', ['くさのちかい','ほのおのちかい','みずのちかい','クロスサンダー','クロスフレイム'].indexOf(move)>=0);
     show('psywaveMultiplier', move==='サイコウェーブ'); show('fixedDamageTaken', ['カウンター','ミラーコート','がまん','メタルバースト','ほうふく'].indexOf(move)>=0);
     show('statDroppedThisTurn', move==='うっぷんばらし'); show('allyFaintedLastTurn', move==='かたきうち'); var beat=move==='ふくろだたき'||kind==='BeatUp'; for(var i=1;i<=5;i++) show('beatUpAlly'+i, beat);
@@ -900,13 +969,13 @@
     var field=convertToDetails(findSectionByTitle('場'),'場','sub-card v082h-section-details');
 
     var atk=buildConditionDetails('攻撃側条件',
-      ['attackerStatus','attackerEmbargo','attackerStealthRock','attackerSpikes','attackerSteelSurge','electrify','plasmaShower','charge','meFirst','attackerRootedSmacked','attackerMagnetRise','attackerTelekinesis','attackerBodyPurge','attackerTailwind'],
-      ['attackerDoubleDamage','helpingHandCount','powerSpotSupport','batterySupport','flowerGiftSupport','plusMinusSupport','steelSpiritCount','attackerSwamp']);
+      ['attackerStatus','attackerEmbargo','attackerStealthRock','attackerSpikes','attackerSteelSurge','electrify','plasmaShower','charge','meFirst','attackerRootedSmacked','attackerMagnetRise','attackerTelekinesis','attackerBodyPurge','attackerTailwind','attackerLockOn','attackerMicleBerry'],
+      ['attackerDoubleDamage','helpingHandCount','powerSpotSupport','batterySupport','flowerGiftSupport','plusMinusSupport','steelSpiritCount','attackerSwamp','attackerVictoryStar']);
 
     relabel('defenderSemiInvulnerable','姿を隠す');
     relabel('defenderProtectState','まもる');
     var def=buildConditionDetails('防御側条件',
-      ['defenderStatus','defenderEmbargo','defenderStealthRock','defenderSpikes','defenderSteelSurge','defenderScreen','defenderTarShot','defenderLuckyChant','defenderGlaiveRush','defenderMinimized','defenderSemiInvulnerable','defenderProtectState','defenderRootedSmacked','defenderMagnetRise','defenderTelekinesis','defenderForesight','defenderMiracleEye','defenderBodyPurge','defenderTailwind'],
+      ['defenderStatus','defenderConfusion','defenderEmbargo','defenderStealthRock','defenderSpikes','defenderSteelSurge','defenderScreen','defenderTarShot','defenderLuckyChant','defenderGlaiveRush','defenderMinimized','defenderSemiInvulnerable','defenderProtectState','defenderRootedSmacked','defenderMagnetRise','defenderTelekinesis','defenderForesight','defenderMiracleEye','defenderBodyPurge','defenderTailwind'],
       ['defenderFlowerGiftSupport','defenderFriendGuard','defenderSwamp']);
 
     if(field){
@@ -937,7 +1006,27 @@
   function valueAfter(lines,prefix){ for(var i=0;i<lines.length;i++){ if(lines[i].indexOf(prefix)===0) return lines[i].slice(prefix.length).trim(); } return ''; }
   function digits(s){ var arr=[], cur=''; s=String(s||''); for(var i=0;i<s.length;i++){ var c=s.charAt(i); if(c>='0'&&c<='9') cur+=c; else if(cur){ arr.push(Number(cur)); cur=''; } } if(cur) arr.push(Number(cur)); return arr; }
   function traceLine(key){ var lines=linesOf(q('trace')); for(var i=0;i<lines.length;i++){ if(lines[i].indexOf(key)>=0) return lines[i]; } return ''; }
-  function compactPower(line){ var txt=String(line||'').trim(); if(txt==='-') return '-'; var nums=[], re=/回目=([0-9]+)/g, m; while((m=re.exec(txt))) nums.push(m[1]); if(nums.length) return nums.join(','); m=txt.match(/最終威力:\s*([0-9]+)/); if(m) return m[1]; if(/^[0-9]+$/.test(txt)) return txt; return '-'; }
+  function compactPower(line){
+    var txt=String(line||'').trim();
+    if(txt==='-') return '-';
+    var nums=[], re=/(\d+)回目=([0-9]+)/g, m;
+    while((m=re.exec(txt))) nums.push({idx:m[1], val:m[2]});
+    if(nums.length){
+      if(nums.length===1) return nums[0].val;
+      var moveLine = traceLine('技名変換');
+      var moveLineClean = cleanCurrent(moveLine);
+      var moveNameNow = moveLineClean.includes(':') ? moveLineClean.split(':')[1].split('/')[0].trim() : moveLineClean;
+      var abilityLine = traceLine('特性（攻撃側）');
+      var isParental = /おやこあい/.test(abilityLine) && /有効/.test(abilityLine);
+      var variableMoves = ['ふくろだたき', 'トリプルキック', 'トリプルアクセル'];
+      var isVariable = variableMoves.indexOf(moveNameNow) >= 0 || isParental;
+      if(!isVariable) return nums[0].val;
+      return nums.map(function(n){ return n.idx+'回目='+n.val; }).join('/');
+    }
+    m=txt.match(/最終威力:\s*([0-9]+)/); if(m) return m[1];
+    if(/^[0-9]+$/.test(txt)) return txt;
+    return '-';
+  }
   function cleanCurrent(s){ return String(s||'').replace(/^.*?\]\s*/,'').replace(/^現在値:\s*/,'').trim(); }
   function statText(side, key, kind) { var el = q(side+'_'+key+'_'+kind); return el ? el.value : ''; }
   function natureText(side) { var el = q(side+'_nature'); if (!el) return ''; var opt = el.options[el.selectedIndex]; return opt ? opt.textContent : ''; }
@@ -978,12 +1067,18 @@
     var hp=valueAfter(lines,'防御側HP:');
     var certainty=valueAfter(lines,'確定数:')||'未計算';
     var power=compactPower(traceLine('変動後威力'));
-    var priority=cleanCurrent(traceLine('優先度'))||'未計算';
     var dn=digits(dmg), hn=digits(hp);
 
     // ---- compact HP-bar summary: this is the only part pinned at the top on narrow screens ----
     var panel=q('v082hResultPanel');
-    if(!panel){ panel=make('div','v082h-result-panel'); panel.id='v082hResultPanel'; src.parentNode.insertBefore(panel,src); src.classList.add('v082h-hide'); }
+    if(!panel){
+      panel=make('div','v082h-result-panel'); panel.id='v082hResultPanel'; src.parentNode.insertBefore(panel,src); src.classList.add('v082h-hide');
+      var rollsEl=document.getElementById('rolls');
+      if(rollsEl){
+        rollsEl.classList.add('v082h-hide');
+        if(rollsEl.previousElementSibling && rollsEl.previousElementSibling.tagName==='H3') rollsEl.previousElementSibling.classList.add('v082h-hide');
+      }
+    }
     panel.innerHTML='';
     panel.appendChild(make('div','v082h-result-title', head));
     panel.appendChild(make('div','v082h-hp-infoline', dmg+'（'+rate+'）'));
@@ -1021,7 +1116,8 @@
     detail.innerHTML='';
     var grid=make('div','v082h-result-grid');
     detail.appendChild(grid);
-    [['技分類',cat],['技タイプ',type],['技威力',power],['ダメージ',dmg],['割合',rate],['確定数',certainty],['命中・必中','未計算'],['優先度',priority],['みがわり','未実装'],['瀕死率','未実装']].forEach(function(r){ resultRow(grid, r[0], r[1]); });
+    var accuracyDisplay=valueAfter(lines,'命中率:')||'未計算';
+    [['技分類',cat],['技タイプ',type],['技威力',power],['ダメージ',dmg],['割合',rate],['確定数',certainty],['命中率',accuracyDisplay],['瀕死率','未実装']].forEach(function(r){ resultRow(grid, r[0], r[1]); });
 
     requestAnimationFrame(function(){
       document.documentElement.style.setProperty('--v082h-fixed-panel-h', panel.offsetHeight + 'px');

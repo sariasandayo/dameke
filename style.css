@@ -156,6 +156,7 @@ button:hover { background: #e0e7ff; }
 @media(max-width:1250px){
   .layout{grid-template-columns:1fr}
   .layout{padding-bottom:calc(var(--v082h-fixed-panel-h, 120px) + 10px);}
+  .result-card{padding-bottom:calc(var(--v082h-fixed-panel-h, 120px) + 16px);}
   #v082hResultPanel{position:fixed;bottom:0;left:0;right:0;z-index:50;margin:0;border-radius:0;box-shadow:0 -6px 16px rgba(15,23,42,.22);padding:6px 10px;max-height:none;overflow:visible;}
   #v082hResultPanel .v082h-result-title{font-size:.8rem;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   #v082hResultPanel .v082h-hp-infoline{font-size:.82rem;margin-bottom:2px;}

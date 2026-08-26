@@ -140,6 +140,7 @@
           <label class="check"><input id="powerSpotSupport" type="checkbox" />パワースポット</label>
           <label class="check"><input id="attackerDoubleDamage" type="checkbox" />ダブルダメージ</label>
           <label>メトロノーム回数<select id="metronomeUseCount"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option></select></label>
+          <label>行動順<select id="focusLensMoveOrder"><option value="first">先攻</option><option value="second">後攻</option></select></label>
           <label>サイコウェーブ倍率<input id="psywaveMultiplier" type="number" min="0.5" max="1.5" step="0.01" value="1" /></label>
           <label>被ダメ<input id="fixedDamageTaken" type="number" min="0" step="1" value="0" /></label>
           <label>ステラ技回数<select id="attackerStellarMoveCount"><option value="first">1回目</option><option value="later">2回目以降</option></select></label>
@@ -149,7 +150,10 @@
           <label class="check"><input id="charge" type="checkbox" />じゅうでん</label>
           <label class="check"><input id="analyzeMovedLast" type="checkbox" />アナライズ後攻</label>
           <label class="check"><input id="attackerTailwind" type="checkbox" />おいかぜ</label>
+          <label class="check"><input id="attackerLockOn" type="checkbox" />ロックオン</label>
+          <label class="check"><input id="attackerMicleBerry" type="checkbox" />ミクルのみ</label>
           <label class="check"><input id="attackerSwamp" type="checkbox" />しつげん</label>
+          <label class="check"><input id="attackerVictoryStar" type="checkbox" />しょうりのほし</label>
           <label class="check"><input id="attackerSlowStart" type="checkbox" />スロースタート発動</label>
           <label class="check"><input id="attackerUnburden" type="checkbox" />かるわざ発動</label>
           <label>古代/クォーク上昇<select id="attackerParadoxBoostStat"><option value="none">なし</option><option value="A">攻撃</option><option value="B">防御</option><option value="C">特攻</option><option value="D">特防</option><option value="S">素早さ</option></select></label>
@@ -175,6 +179,7 @@
           <label>防御側状態まもる<select id="defenderProtectState"><option value="none">なし</option><option value="protect">まもる</option><option value="maxGuard">ダイウォール</option></select></label>
           <label class="check"><input id="defenderEmbargo" type="checkbox" />さしおさえ</label>
           <label>状態異常<select id="defenderStatus"><option value="なし">なし</option><option value="やけど">やけど</option><option value="まひ">まひ</option><option value="どく">どく</option><option value="ねむり">ねむり</option><option value="こおり">こおり</option></select></label>
+          <label class="check"><input id="defenderConfusion" type="checkbox" />こんらん</label>
           <label>防御側状態<select id="defenderSemiInvulnerable"><option value="なし">なし</option><option value="そらをとぶ">そらをとぶ</option><option value="あなをほる">あなをほる</option><option value="ダイビング">ダイビング</option><option value="シャドーダイブ">シャドーダイブ</option></select></label>
           <label class="check"><input id="defenderStealthRock" type="checkbox" />ステルスロック</label>
           <label>まきびし<select id="defenderSpikes"><option value="0">なし</option><option value="1">1回</option><option value="2">2回</option><option value="3">3回</option></select></label>

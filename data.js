@@ -943,6 +943,10 @@ window.DAMEKE_DATA = {
     });
   }
   addMoveTags(['ほのおのパンチ','れいとうパンチ','かみなりパンチ','マッハパンチ','バレットパンチ','ドレインパンチ','グロウパンチ','メガトンパンチ','れんぞくパンチ','アームハンマー','コメットパンチ','シャドーパンチ','プラズマフィスト'], ['punch']);
+  // v0.99 ヒーリングシフト(Triage)対象タグ: 純粋な回復技＋吸収(ドレイン)技。
+  // v1.01 ヒーリングシフト(Triage)対象タグ: ユーザー確定の完全な回復技リスト(34個)のみ。
+  addMoveTags(['あさのひざし','かいふくしれい','こうごうせい','じこさいせい','すなあつめ','タマゴうみ','つきのひかり','なまける','はねやすめ','ミルクのみ','いやしのはどう','フラワーヒール','いのちのしずく','ジャングルヒール','みかづきのいのり','ウッドホーン','ギガドレイン','きゅうけつ','シャカシャカほう','すいとる','デスウイング','ドレインキッス','ドレインパンチ','パラボラチャージ','むねんのつるぎ','メガドレイン','ゆめくい','いやしのねがい','さいきのいのり','じょうか','ちからをすいとる','ねがいごと','ねむる','のみこむ','みかづきのまい'], ['healingMove']);
+  addMoveTags(['グラススライダー'], ['grassyGlide']);
   addMoveTags(['いあいぎり','きりさく','つじぎり','エアカッター','エアスラッシュ','シェルブレード','サイコカッター','リーフブレード','クロスポイズン','シザークロス','せいなるつるぎ','れんぞくぎり','むねんのつるぎ','アクアカッター'], ['cut']);
   addMoveTags(['かみつく','かみくだく','ほのおのキバ','こおりのキバ','かみなりのキバ','サイコファング','エラがみ'], ['bite']);
   addMoveTags(['あくのはどう','りゅうのはどう','みずのはどう','はどうだん','こんげんのはどう'], ['pulse']);
@@ -36159,7 +36163,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 12,
       "raw": {
         "powerModifier": "4096",
@@ -36266,7 +36270,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -36377,7 +36381,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 12,
       "raw": {
         "powerModifier": "4096",
@@ -36646,7 +36650,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 8,
       "raw": {
         "powerModifier": "4096",
@@ -36672,7 +36676,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -36949,7 +36953,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 8,
       "raw": {
         "powerModifier": "4096",
@@ -36976,7 +36980,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 8,
       "raw": {
         "powerModifier": "4096",
@@ -37003,7 +37007,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": "115",
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -37222,7 +37226,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 12,
       "raw": {
         "powerModifier": "4096",
@@ -37304,7 +37308,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 8,
       "raw": {
         "powerModifier": "4096",
@@ -37359,7 +37363,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 12,
       "raw": {
         "powerModifier": "4096",
@@ -38327,7 +38331,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -38599,7 +38603,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 16,
       "raw": {
         "powerModifier": "4096",
@@ -38735,7 +38739,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 12,
       "raw": {
         "powerModifier": "4096",
@@ -38897,7 +38901,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 12,
       "raw": {
         "powerModifier": "4096",
@@ -38923,7 +38927,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 12,
       "raw": {
         "powerModifier": "4096",
@@ -39033,7 +39037,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": "0",
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -39230,7 +39234,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -40288,7 +40292,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 16,
       "raw": {
         "powerModifier": "4096",
@@ -40513,7 +40517,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 16,
       "raw": {
         "powerModifier": "4096",
@@ -40541,7 +40545,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 8,
       "raw": {
         "powerModifier": "4096",
@@ -40840,7 +40844,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 12,
       "raw": {
         "powerModifier": "4096",
@@ -41033,7 +41037,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 16,
       "raw": {
         "powerModifier": "4096",
@@ -41085,7 +41089,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 8,
       "raw": {
         "powerModifier": "4096",
@@ -41555,7 +41559,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 12,
       "raw": {
         "powerModifier": "4096",
@@ -41832,7 +41836,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 8,
       "raw": {
         "powerModifier": "4096",
@@ -42513,7 +42517,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 16,
       "raw": {
         "powerModifier": "4096",
@@ -42645,7 +42649,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -43060,7 +43064,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 12,
       "raw": {
         "powerModifier": "4096",
@@ -43584,7 +43588,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -43838,7 +43842,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -44006,7 +44010,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 12,
       "raw": {
         "powerModifier": "4096",
@@ -44085,7 +44089,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -44165,7 +44169,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": "364",
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "-20",
+      "accuracy": "ONEHIT_KO",
       "pp": 8,
       "raw": {
         "powerModifier": "4096",
@@ -44522,7 +44526,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 12,
       "raw": {
         "powerModifier": "4096",
@@ -44602,7 +44606,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 1,
       "raw": {
         "powerModifier": "4096",
@@ -44958,7 +44962,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -45064,7 +45068,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 12,
       "raw": {
         "powerModifier": "4096",
@@ -45254,7 +45258,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": "364",
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "-20",
+      "accuracy": "ONEHIT_KO",
       "pp": 8,
       "raw": {
         "powerModifier": "4096",
@@ -45280,7 +45284,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -45748,7 +45752,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 12,
       "raw": {
         "powerModifier": "4096",
@@ -45775,7 +45779,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 2,
       "hitCountMax": 2,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 12,
       "raw": {
         "powerModifier": "4096",
@@ -46269,7 +46273,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -46489,7 +46493,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 16,
       "raw": {
         "powerModifier": "4096",
@@ -46845,7 +46849,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": "364",
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "-20",
+      "accuracy": "ONEHIT_KO",
       "pp": 8,
       "raw": {
         "powerModifier": "4096",
@@ -46902,7 +46906,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -46954,7 +46958,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -47224,7 +47228,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -47277,7 +47281,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 16,
       "raw": {
         "powerModifier": "4096",
@@ -47331,7 +47335,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -47464,7 +47468,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 16,
       "raw": {
         "powerModifier": "4096",
@@ -47516,7 +47520,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -47599,7 +47603,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -47788,7 +47792,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 8,
       "raw": {
         "powerModifier": "4096",
@@ -47841,7 +47845,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -48193,7 +48197,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 12,
       "raw": {
         "powerModifier": "4096",
@@ -48222,7 +48226,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 12,
       "raw": {
         "powerModifier": "4096",
@@ -48587,7 +48591,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 16,
       "raw": {
         "powerModifier": "4096",
@@ -48890,7 +48894,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 12,
       "raw": {
         "powerModifier": "4096",
@@ -49307,7 +49311,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -49415,7 +49419,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -49521,7 +49525,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -49600,7 +49604,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 12,
       "raw": {
         "powerModifier": "4096",
@@ -50284,7 +50288,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 12,
       "raw": {
         "powerModifier": "4096",
@@ -50368,7 +50372,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 12,
       "raw": {
         "powerModifier": "4096",
@@ -50841,7 +50845,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": "364",
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "-20",
+      "accuracy": "ONEHIT_KO",
       "pp": 8,
       "raw": {
         "powerModifier": "4096",
@@ -51037,7 +51041,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -51199,7 +51203,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 16,
       "raw": {
         "powerModifier": "4096",
@@ -51530,7 +51534,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 12,
       "raw": {
         "powerModifier": "4096",
@@ -51609,7 +51613,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 12,
       "raw": {
         "powerModifier": "4096",
@@ -51802,7 +51806,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -52328,7 +52332,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -53434,7 +53438,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 12,
       "raw": {
         "powerModifier": "4096",
@@ -53630,7 +53634,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -54239,7 +54243,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -54348,7 +54352,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -54673,7 +54677,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 8,
       "raw": {
         "powerModifier": "4096",
@@ -55158,7 +55162,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -55186,7 +55190,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": "0",
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -55240,7 +55244,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 16,
       "raw": {
         "powerModifier": "4096",
@@ -55292,7 +55296,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 20,
       "raw": {
         "powerModifier": "4096",
@@ -55958,7 +55962,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 12,
       "raw": {
         "powerModifier": "4096",
@@ -57092,7 +57096,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 8,
       "raw": {
         "powerModifier": "4096",
@@ -57340,7 +57344,7 @@ window.DAMEKE_GENERATED_DATA = {
       "fixedDamageKind": null,
       "hitCountMin": 1,
       "hitCountMax": 1,
-      "accuracy": "必中ヒッチュウ",
+      "accuracy": "必中",
       "pp": 1,
       "raw": {
         "powerModifier": "4096",
