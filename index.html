@@ -124,7 +124,7 @@
       <section class="sub-card">
         <h3>攻撃側条件</h3>
         <div class="grid four">
-          <label class="check"><input id="critical" type="checkbox" />急所</label>
+          <label>急所ランク<input id="critical" type="number" min="0" max="3" value="0" /></label>
           <label class="check"><input id="electrify" type="checkbox" />そうでん</label>
           <label class="check"><input id="pledgeCombination" type="checkbox" />コンビネーション</label>
           <label class="check"><input id="attackerEmbargo" type="checkbox" />さしおさえ</label>
@@ -150,6 +150,8 @@
           <label class="check"><input id="charge" type="checkbox" />じゅうでん</label>
           <label class="check"><input id="analyzeMovedLast" type="checkbox" />アナライズ後攻</label>
           <label class="check"><input id="attackerTailwind" type="checkbox" />おいかぜ</label>
+          <label class="check"><input id="attackerGMaxRapidStrike" type="checkbox" />キョダイシンゲキ</label>
+          <label class="check"><input id="attackerFocusEnergy" type="checkbox" />とぎすます</label>
           <label class="check"><input id="attackerLockOn" type="checkbox" />ロックオン</label>
           <label class="check"><input id="attackerMicleBerry" type="checkbox" />ミクルのみ</label>
           <label class="check"><input id="attackerSwamp" type="checkbox" />しつげん</label>
@@ -180,6 +182,7 @@
           <label class="check"><input id="defenderEmbargo" type="checkbox" />さしおさえ</label>
           <label>状態異常<select id="defenderStatus"><option value="なし">なし</option><option value="やけど">やけど</option><option value="まひ">まひ</option><option value="どく">どく</option><option value="ねむり">ねむり</option><option value="こおり">こおり</option></select></label>
           <label class="check"><input id="defenderConfusion" type="checkbox" />こんらん</label>
+          <label class="check"><input id="defenderSubstitute" type="checkbox" />みがわり</label>
           <label>防御側状態<select id="defenderSemiInvulnerable"><option value="なし">なし</option><option value="そらをとぶ">そらをとぶ</option><option value="あなをほる">あなをほる</option><option value="ダイビング">ダイビング</option><option value="シャドーダイブ">シャドーダイブ</option></select></label>
           <label class="check"><input id="defenderStealthRock" type="checkbox" />ステルスロック</label>
           <label>まきびし<select id="defenderSpikes"><option value="0">なし</option><option value="1">1回</option><option value="2">2回</option><option value="3">3回</option></select></label>
