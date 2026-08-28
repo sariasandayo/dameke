@@ -783,6 +783,7 @@ function hpBlock(side,p,stt,item,itState,ab,special,o){const prefix=side==='A'?'
     if((M('ソーラービーム')||M('ソーラーブレード'))&&['あめ','おおあめ','すなあらし','ゆき'].includes(o.attackerEffectiveWeather||o.weather))applyRate(state,'ソーラー系悪天候',2048,logs);
     if(M('Gのちから')&&o.gravity)applyRate(state,'Gのちから',6144,logs);
     if(M('はたきおとす')&&o.defenderItemId&&o.defenderItemId!=='none'&&!(D.findFormByLinkedItem&&D.findFormByLinkedItem(input.defender,dItem.name))&&!/Z$/.test(dItem.name||''))applyRate(state,'はたきおとす',6144,logs);
+    if(M('きまぐレーザー')&&(o.__forceKimagureLaserOverride==='on'||(o.__forceKimagureLaserOverride!=='off'&&o.kimagureLaserDouble)))applyRate(state,'きまぐレーザー威力2倍',8192,logs);
     if(M('ミストバースト')&&o.field==='ミストフィールド'&&isGrounded(result,'A'))applyRate(state,'ミストバースト',6144,logs);
     if(M('ワイドフォース')&&o.field==='サイコフィールド'&&isGrounded(result,'A'))applyRate(state,'ワイドフォース',6144,logs);
     if(M('ライジングボルト')&&o.field==='エレキフィールド'&&isGrounded(result,'A')&&isGrounded(result,'D')&&(o.defenderSemiInvulnerable||'なし')==='なし')applyRate(state,'ライジングボルト',8192,logs);
@@ -1385,7 +1386,7 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
   function burnRate(result,input,o){var aAb=by(D.abilities,o.attackerAbilityId||'なし');if(o.attackerStatus==='やけど' && !(activeAbility('A',aAb,o,result)&&aAb.name==='こんじょう') && moveName(result,input)!=='からげんき')return {rate:2048,reason:'やけど'};return {rate:4096,reason:'なし'};}
   function moldBreakerActive(result,input,o){var aAb=by(D.abilities,o.attackerAbilityId||'なし');var aA=activeAbility('A',aAb,o,result);var n=moveName(result,input);var moldMoves=['メテオドライブ','フォトンゲイザー','サンシャインスマッシャー','てんこがすめつぼうのひかり','キョダイコランダ'];var effMove=(result&&result.effectiveMove)||input.move;return !!((aA&&window.DAMEKE_DATA_HELPERS.abilityTag(aAb,'moldBreakerEffect'))||(effMove&&effMove.ignoresAbilities)||window.DAMEKE_DATA_HELPERS.moveTagByName(n,'ignoresAbilities')||moldMoves.indexOf(n)>=0);}
   function otherModifier(result,input,o){var aAb=by(D.abilities,o.attackerAbilityId||'なし'),dAb=by(D.abilities,o.defenderAbilityId||'なし'),aItem=by(D.items,o.attackerItemId||'none'),dItem=by(D.items,o.defenderItemId||'none');var aA=activeAbility('A',aAb,o,result),dA=activeAbility('D',dAb,o,result),aI=activeItem('A',aItem,o,result),dI=activeItem('D',dItem,o,result);var cat=moveCat(result,input),type=moveType(result,input),n=moveName(result,input),typeRate=result.typeRate4096||4096,crit=criticalActive(result),contact=contactActive(result);var state={rate:4096},logs=[];
-    var screen=o.defenderScreen||'none';var wall=4096;if(!(aA&&window.DAMEKE_DATA_HELPERS.abilityTag(aAb,'screenBypass'))&&!crit){if((cat==='物理'&&(screen==='reflect'||screen==='auroraVeil'))||(cat==='特殊'&&(screen==='lightScreen'||screen==='auroraVeil')))wall=rangeIsSpread(result)?2703:2048;}if(wall!==4096)rateApply(state,'壁補正',wall,logs);
+    var screen=o.defenderScreen||'none';var wall=4096;var wallBypassMove=['かわらわり','サイコファング','レイジングブル'].includes(n);if(!(aA&&window.DAMEKE_DATA_HELPERS.abilityTag(aAb,'screenBypass'))&&!crit&&!wallBypassMove){if((cat==='物理'&&(screen==='reflect'||screen==='auroraVeil'))||(cat==='特殊'&&(screen==='lightScreen'||screen==='auroraVeil')))wall=rangeIsSpread(result)?2703:2048;}if(wall!==4096)rateApply(state,'壁補正',wall,logs);
     if(aA&&window.DAMEKE_DATA_HELPERS.abilityTag(aAb,'superEffectiveBoost')&&typeRate>4096)rateApply(state,'ブレインフォース',5120,logs);
     if(['アクセルブレイク','イナズマドライブ'].includes(n)&&typeRate>4096)rateApply(state,'弱点強化技',5461,logs);
     if(aA&&window.DAMEKE_DATA_HELPERS.abilityTag(aAb,'criticalDamageBoost')&&crit)rateApply(state,'スナイパー',6144,logs);
@@ -1400,7 +1401,7 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
     if(aI&&window.DAMEKE_DATA_HELPERS.itemTag(aItem,'expertBelt')&&typeRate>4096)rateApply(state,'たつじんのおび',4915,logs);
     if(aI&&window.DAMEKE_DATA_HELPERS.itemTag(aItem,'metronomeItem')){var count=Math.min(Math.max(num(o.metronomeUseCount,1),1),6);var rate=R.roundHalfUp(4096*(1+0.2*(count-1)));rateApply(state,'メトロノーム '+count+'回',rate,logs);}
     if(aI&&window.DAMEKE_DATA_HELPERS.itemTag(aItem,'lifeOrb'))rateApply(state,'いのちのたま',5324,logs);
-    if(dI&&window.DAMEKE_DATA_HELPERS.itemTag(dItem,'resistBerry')){if((dItem.name==='ホズのみ'&&type==='ノーマル')||(dItem.name!=='ホズのみ'&&dItem.type===type&&typeRate>4096)){rateApply(state,dItem.name,2048,logs);}}
+    if(dI&&window.DAMEKE_DATA_HELPERS.itemTag(dItem,'resistBerry')){if((dItem.name==='ホズのみ'&&type==='ノーマル')||(dItem.name!=='ホズのみ'&&dItem.type===type&&typeRate>4096)){var ripenActive=dA&&dAb.name==='じゅくせい';rateApply(state,dItem.name+(ripenActive?'+じゅくせい':''),ripenActive?1024:2048,logs);}}
     if(['じしん','マグニチュード'].includes(n)&&o.defenderSemiInvulnerable==='あなをほる')rateApply(state,'倍ダメージ あなをほる',8192,logs);
     if(n==='なみのり'&&o.defenderSemiInvulnerable==='ダイビング')rateApply(state,'倍ダメージ ダイビング',8192,logs);
     if(window.DAMEKE_DATA_HELPERS.moveTagByName(n,'minimizeDouble')&&o.defenderMinimized&&o.defenderSpecialState!=='dynamax'&&o.defenderSpecialState!=='gmax')rateApply(state,'倍ダメージ ちいさくなる',8192,logs);
@@ -1987,6 +1988,22 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
     }
     return dists;
   }
+  // きまぐレーザー: the faint-probability calculator ignores the checkbox and always blends the
+  // real 30% chance of the power-doubling, independent of crit -- this is the only move where the
+  // UI selection and the probability model intentionally diverge (per user's explicit request).
+  var KIMAGURE_LASER_DOUBLE_RATE = 0.3;
+  function buildPerHitDistsKimagureLaser(nn, nc, cn, cc, critRate, hitCount){
+    var dists = [];
+    for(var i=0;i<hitCount;i++){
+      var getRolls = function(r){ var h=r.independentHitRolls || [r.rolls || [0]]; return h[i] || h[h.length-1] || [0]; };
+      var dNN = distFromRolls(getRolls(nn)), dNC = distFromRolls(getRolls(nc));
+      var dCN = distFromRolls(getRolls(cn)), dCC = distFromRolls(getRolls(cc));
+      var notCrit = addDist(scaleDist(dNN,1-KIMAGURE_LASER_DOUBLE_RATE), scaleDist(dNC,KIMAGURE_LASER_DOUBLE_RATE));
+      var isCrit = addDist(scaleDist(dCN,1-KIMAGURE_LASER_DOUBLE_RATE), scaleDist(dCC,KIMAGURE_LASER_DOUBLE_RATE));
+      dists.push(addDist(scaleDist(notCrit,1-critRate), scaleDist(isCrit,critRate)));
+    }
+    return dists;
+  }
 
   // みがわり: not in effect if the move is sound-tagged, the attacker has すりぬけ, or the
   // defender is Dynamax/Gigantamax -- regardless of the checkbox.
@@ -2123,11 +2140,13 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
             var w2 = hitDist[hd2];
             var newHp = hpNow-Number(hd2);
             if(newHp<=0){
-              // Keep the actual (possibly negative, i.e. overkill) remaining HP so display code
-              // can recover the true damage dealt -- collapsing this to a bare flag previously lost
-              // that and made damage look capped at current HP whenever a berry/substitute wrapper
-              // was active at all, even on hits that were never going to be survived.
-              var nkf = 'f'+newHp;
+              // Keep the actual (possibly negative, i.e. overkill) remaining HP AND whether the
+              // berry had already been consumed before this fatal hit, so display code can tell
+              // "recovery happened mid-sequence but wasn't enough" apart from "never triggered at
+              // all" -- collapsing fainted states to just 'f<hp>' previously lost the consumed
+              // flag, so a guaranteed-KO sequence with a mid-way heal looked like no recovery ever
+              // occurred.
+              var nkf = 'f'+newHp+'_'+consumed;
               next[nkf]=(next[nkf]||0)+p*w2;
               continue;
             }
@@ -2178,7 +2197,7 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
           for(var hd2 in hitDist){
             var w2 = hitDist[hd2]*accProb;
             var newHp = hpNow-Number(hd2);
-            if(newHp<=0){ var nkf='f'+newHp; next[nkf]=(next[nkf]||0)+p*w2; continue; }
+            if(newHp<=0){ var nkf='f'+newHp+'_'+consumed; next[nkf]=(next[nkf]||0)+p*w2; continue; }
             var flag = consumed;
             if(flag==='0' && berrySpec && newHp<=berrySpec.threshold){ newHp=Math.min(maxHp,newHp+berrySpec.amount); flag='1'; }
             var nk3='r'+newHp+'_'+flag;
@@ -2254,13 +2273,31 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
 
       var offOptions = Object.assign({}, o, {__forceCritOverride:'off'});
       var onOptions = Object.assign({}, o, {__forceCritOverride:'on'});
-      var normalResult = C.calculateDamage({attacker:input.attacker, defender:input.defender, move:input.move, attackerLevel:input.attackerLevel, defenderLevel:input.defenderLevel, options:offOptions});
-      var critResult = C.calculateDamage({attacker:input.attacker, defender:input.defender, move:input.move, attackerLevel:input.attackerLevel, defenderLevel:input.defenderLevel, options:onOptions});
-      var critRate = critRateFromResult(result);
+      var isKimagureLaser = moveName(result,input)==='きまぐレーザー';
+      var perHitDists;
+      if(isKimagureLaser){
+        var nnOptions = Object.assign({}, offOptions, {__forceKimagureLaserOverride:'off'});
+        var ncOptions = Object.assign({}, offOptions, {__forceKimagureLaserOverride:'on'});
+        var cnOptions = Object.assign({}, onOptions, {__forceKimagureLaserOverride:'off'});
+        var ccOptions = Object.assign({}, onOptions, {__forceKimagureLaserOverride:'on'});
+        var nnResult = C.calculateDamage({attacker:input.attacker, defender:input.defender, move:input.move, attackerLevel:input.attackerLevel, defenderLevel:input.defenderLevel, options:nnOptions});
+        var ncResult = C.calculateDamage({attacker:input.attacker, defender:input.defender, move:input.move, attackerLevel:input.attackerLevel, defenderLevel:input.defenderLevel, options:ncOptions});
+        var cnResult = C.calculateDamage({attacker:input.attacker, defender:input.defender, move:input.move, attackerLevel:input.attackerLevel, defenderLevel:input.defenderLevel, options:cnOptions});
+        var ccResult = C.calculateDamage({attacker:input.attacker, defender:input.defender, move:input.move, attackerLevel:input.attackerLevel, defenderLevel:input.defenderLevel, options:ccOptions});
+        var critRateK = critRateFromResult(result);
+        var category = getMultiHitCategory(result,input,o);
+        var maxHitsNeeded = category.type==='fixed' ? category.count : (category.type==='variable2to5'||category.type==='perHitAcc' ? category.max : 1);
+        perHitDists = buildPerHitDistsKimagureLaser(nnResult, ncResult, cnResult, ccResult, critRateK, maxHitsNeeded);
+        var normalResult = nnResult; // used below for hit-count/ability/item context only
+      } else {
+        var normalResult = C.calculateDamage({attacker:input.attacker, defender:input.defender, move:input.move, attackerLevel:input.attackerLevel, defenderLevel:input.defenderLevel, options:offOptions});
+        var critResult = C.calculateDamage({attacker:input.attacker, defender:input.defender, move:input.move, attackerLevel:input.attackerLevel, defenderLevel:input.defenderLevel, options:onOptions});
+        var critRate = critRateFromResult(result);
 
-      var category = getMultiHitCategory(result,input,o);
-      var maxHitsNeeded = category.type==='fixed' ? category.count : (category.type==='variable2to5'||category.type==='perHitAcc' ? category.max : 1);
-      var perHitDists = buildPerHitDists(normalResult, critResult, critRate, maxHitsNeeded);
+        var category = getMultiHitCategory(result,input,o);
+        var maxHitsNeeded = category.type==='fixed' ? category.count : (category.type==='variable2to5'||category.type==='perHitAcc' ? category.max : 1);
+        perHitDists = buildPerHitDists(normalResult, critResult, critRate, maxHitsNeeded);
+      }
 
       var aAb = result.__coreState && result.__coreState.attackerAbility;
       var aAbState = result.__coreState && result.__coreState.attackerAbilityState;
@@ -2331,10 +2368,13 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
       // the pre-attack HP, which the HP bar renders as a partial refill.
       var remainVals = [], canRecover = false, neverReachesBody = true;
       for(var key in oneTurnStates){
-        var remain = key.charAt(0)==='f' ? Number(key.slice(1)) : (key.charAt(0)==='r' ? Number(key.slice(1).split('_')[0]) : hpCur0);
+        var isF = key.charAt(0)==='f', isR = key.charAt(0)==='r';
+        var remain = (isF || isR) ? Number(key.slice(1).split('_')[0]) : hpCur0;
         remainVals.push(remain);
         if(key.charAt(0)!=='s') neverReachesBody = false;
-        if(key.charAt(0)==='r' && key.slice(1).split('_')[1]==='1') canRecover = true;
+        // Recovery may have triggered mid-sequence even on a path that ultimately still faints
+        // (a guaranteed-KO multi-hit sequence can still heal partway through) -- check both phases.
+        if((isF || isR) && key.slice(1).split('_')[1]==='1') canRecover = true;
       }
       result.substituteBlocksAll = subHp!=null && neverReachesBody;
       // The amount itself is a fixed constant determined by maxHP/ability (not a range) -- this

@@ -14,7 +14,7 @@
   const NATURE_OPTIONS = [["がんばりや","がんばりや 補正なし"],["さみしがり","さみしがり A↑ B↓"],["いじっぱり","いじっぱり A↑ C↓"],["やんちゃ","やんちゃ A↑ D↓"],["ゆうかん","ゆうかん A↑ S↓"],["ずぶとい","ずぶとい B↑ A↓"],["すなお","すなお 補正なし"],["わんぱく","わんぱく B↑ C↓"],["のうてんき","のうてんき B↑ D↓"],["のんき","のんき B↑ S↓"],["ひかえめ","ひかえめ C↑ A↓"],["おっとり","おっとり C↑ B↓"],["てれや","てれや 補正なし"],["うっかりや","うっかりや C↑ D↓"],["れいせい","れいせい C↑ S↓"],["おだやか","おだやか D↑ A↓"],["おとなしい","おとなしい D↑ B↓"],["しんちょう","しんちょう D↑ C↓"],["きまぐれ","きまぐれ 補正なし"],["なまいき","なまいき D↑ S↓"],["おくびょう","おくびょう S↑ A↓"],["せっかち","せっかち S↑ B↓"],["ようき","ようき S↑ C↓"],["むじゃき","むじゃき S↑ D↓"],["まじめ","まじめ 補正なし"]];
   const OP_LABELS = { attackerPowerTrick:'攻撃側パワートリック', defenderPowerTrick:'防御側パワートリック', powerShare:'パワーシェア', guardShare:'ガードシェア', speedSwap:'スピードスワップ', wonderRoom:'ワンダールーム' };
   let transformOps = [];
-  const ids = ['attackerSelect','defenderSelect','moveSelect','attackerLevel','defenderLevel','attackerSpecialState','defenderSpecialState','attackerTeraType','defenderTeraType','attackerType1','attackerType2','defenderType1','defenderType2','attackerTypeOverride','defenderTypeOverride','attackerAddType','defenderAddType','attackerItemSelect','defenderItemSelect','attackerNoItem','defenderNoItem','attackerAbilitySelect','defenderAbilitySelect','attackerNoAbility','defenderNoAbility','weatherSelect','fieldSelect','magicRoom','gravity','protect','plasmaShower','neutralizingGasField','critical','electrify','pledgeCombination','defenderLuckyChant','defenderForesight','defenderMiracleEye','attackerEmbargo','defenderEmbargo','attackerStealthRock','defenderStealthRock','attackerSpikes','defenderSpikes','attackerSteelSurge','defenderSteelSurge','attackerRootedSmacked','defenderRootedSmacked','attackerMagnetRise','defenderMagnetRise','attackerTelekinesis','defenderTelekinesis','attackerRoost','defenderRoost','attackerBurnUp','defenderBurnUp','attackerDoubleShock','defenderDoubleShock','attackerCurrentHp','defenderCurrentHp','attackerStatsGrid','defenderStatsGrid','calculateButton','copyTraceButton','summary','rolls','trace','transformOpsDisplay','resetTransformOps'];
+  const ids = ['attackerSelect','defenderSelect','moveSelect','moveShowAll','attackerLevel','defenderLevel','attackerSpecialState','defenderSpecialState','attackerTeraType','defenderTeraType','attackerType1','attackerType2','defenderType1','defenderType2','attackerTypeOverride','defenderTypeOverride','attackerAddType','defenderAddType','attackerItemSelect','defenderItemSelect','attackerNoItem','defenderNoItem','attackerAbilitySelect','defenderAbilitySelect','attackerNoAbility','defenderNoAbility','weatherSelect','fieldSelect','magicRoom','gravity','protect','plasmaShower','neutralizingGasField','critical','electrify','pledgeCombination','defenderLuckyChant','defenderForesight','defenderMiracleEye','attackerEmbargo','defenderEmbargo','attackerStealthRock','defenderStealthRock','attackerSpikes','defenderSpikes','attackerSteelSurge','defenderSteelSurge','attackerRootedSmacked','defenderRootedSmacked','attackerMagnetRise','defenderMagnetRise','attackerTelekinesis','defenderTelekinesis','attackerRoost','defenderRoost','attackerBurnUp','defenderBurnUp','attackerDoubleShock','defenderDoubleShock','attackerCurrentHp','defenderCurrentHp','attackerStatsGrid','defenderStatsGrid','calculateButton','copyTraceButton','summary','rolls','trace','transformOpsDisplay','resetTransformOps'];
   const el = {};
   ids.forEach(id => { el[id] = document.getElementById(id); });
   function genderValue(prefix){
@@ -25,8 +25,38 @@
     return 'unknown';
   }
   function fillSelect(select, items) { select.textContent = ""; for (const item of items) { const op = document.createElement('option'); op.value = item.id; op.textContent = item.name; select.appendChild(op); } }
+  function getLearnsetKey(name) {
+    var m = String(name || '').match(/^(.+?)\(([^)]+)\)$/);
+    return m ? (m[1] + '_' + m[2]) : name;
+  }
+  function getFilteredMoves() {
+    var D = window.DAMEKE_DATA;
+    var allMoves = D.moves.filter(function(m){ return !(D.isExcludedSignatureZMove && D.isExcludedSignatureZMove(m)); });
+    if (el.moveShowAll && el.moveShowAll.checked) return allMoves;
+    var attacker = byId(D.pokemons, el.attackerSelect.value);
+    var LS = window.DAMEKE_LEARNSETS;
+    if (!attacker || !LS) return allMoves;
+    var key = getLearnsetKey(attacker.name);
+    if (!LS.hasLearnset(key)) return allMoves;
+    var learned = LS.getLearnset(key);
+    var filtered = allMoves.filter(function(m){ return learned.indexOf(m.name) >= 0; });
+    return filtered.length ? filtered : allMoves;
+  }
+  function applyMoveFilter() {
+    if (!el.moveSelect) return;
+    var filtered = getFilteredMoves();
+    var prevValue = el.moveSelect.value;
+    fillSelect(el.moveSelect, filtered);
+    var stillHas = filtered.some(function(m){ return m.id === prevValue; });
+    if (stillHas) el.moveSelect.value = prevValue;
+    if (el.moveSelect._v082hRefreshOptions) el.moveSelect._v082hRefreshOptions();
+  }
+  window.__damekeApplyMoveFilter = applyMoveFilter;
   function byId(items, id) { return items.find(x => x.id === id) || items[0]; }
   function statInputId(side, key, kind) { return side + '_' + key + '_' + kind; }
+  window.__damekeStatKeys = STAT_KEYS;
+  window.__damekeStatInputId = statInputId;
+  window.__damekeGetTransformOps = function(){ return transformOps; };
   function createStatsGrid(side, host) {
     let html = '<div class="stat-row header"><span>能力</span><span>個体値</span><span>努力値</span><span>ランク</span></div>';
     html += '<div class="stat-row nature-row"><span>性格</span><select id="' + side + '_nature"></select><span>-</span><span>-</span></div>';
@@ -59,7 +89,19 @@
     }
     return out;
   }
-  function fillSelectBeatUpAllies() { for (let i = 1; i <= 5; i++) { const s = document.getElementById('beatUpAlly' + i); if (!s) continue; s.textContent = ""; const none = document.createElement('option'); none.value = 'none'; none.textContent = 'なし'; s.appendChild(none); for (const p of DATA.pokemons) { const op = document.createElement('option'); op.value = p.id; op.textContent = p.name; s.appendChild(op); } } } function setTypeDefaults(side) { const p = byId(DATA.pokemons, el[side + 'Select'].value); if (el[side + 'Type1']) el[side + 'Type1'].value = (p.types && p.types[0]) || 'なし'; if (el[side + 'Type2']) el[side + 'Type2'].value = (p.types && p.types[1]) || 'なし'; } function formatTrace(trace) {
+  function fillSelectBeatUpAllies() { for (let i = 1; i <= 5; i++) { const s = document.getElementById('beatUpAlly' + i); if (!s) continue; s.textContent = ""; const none = document.createElement('option'); none.value = 'none'; none.textContent = 'なし'; s.appendChild(none); for (const p of DATA.pokemons) { const op = document.createElement('option'); op.value = p.id; op.textContent = p.name; s.appendChild(op); } } } function setTypeDefaults(side) { const p = byId(DATA.pokemons, el[side + 'Select'].value); if (el[side + 'Type1']) el[side + 'Type1'].value = (p.types && p.types[0]) || 'なし'; if (el[side + 'Type2']) el[side + 'Type2'].value = (p.types && p.types[1]) || 'なし'; updateAllTypeColors(); }
+  const TYPE_COLOR_MAP = { 'なし':'none', 'ノーマル':'normal', 'ほのお':'fire', 'みず':'water', 'でんき':'electric', 'くさ':'grass', 'こおり':'ice', 'かくとう':'fighting', 'どく':'poison', 'じめん':'ground', 'ひこう':'flying', 'エスパー':'psychic', 'むし':'bug', 'いわ':'rock', 'ゴースト':'ghost', 'ドラゴン':'dragon', 'あく':'dark', 'はがね':'steel', 'フェアリー':'fairy', 'ステラ':'stellar' };
+  function updateTypeColor(sel) {
+    if (!sel) return;
+    sel.classList.add('dameke-type-select');
+    for (const k in TYPE_COLOR_MAP) sel.classList.remove('dameke-type-' + TYPE_COLOR_MAP[k]);
+    const suffix = TYPE_COLOR_MAP[sel.value] || 'none';
+    sel.classList.add('dameke-type-' + suffix);
+  }
+  function updateAllTypeColors() {
+    ['attackerType1', 'attackerType2', 'defenderType1', 'defenderType2', 'attackerTeraType', 'defenderTeraType'].forEach(function(id) { updateTypeColor(document.getElementById(id)); });
+  }
+  window.__damekeUpdateTypeColors = updateAllTypeColors; function formatTrace(trace) {
   const order = [
     '持ち物（攻撃側）','持ち物（防御側）','特性（攻撃側）','特性（防御側）','天候','フィールド',
     'Z・ダイマックス（攻撃側）','ダイマックス（防御側）','テラスタル（攻撃側）','テラスタル（防御側）','技名変換','強化技効果',
@@ -93,6 +135,7 @@
 }
   function specialStatesForDefender() { return DATA.specialStates.filter(s => s.kind === 'none' || s.kind === 'dynamax' || s.kind === 'gmax'); }
   function updateOpsDisplay() { el.transformOpsDisplay.textContent = transformOps.length ? transformOps.map((x, i) => (i + 1) + '. ' + OP_LABELS[x]).join(' → ') : 'なし'; }
+  window.__damekeUpdateOpsDisplay = updateOpsDisplay;
   function buildOptions() {
     return {
       attackerItemId: el.attackerItemSelect.value, defenderItemId: el.defenderItemSelect.value, attackerNoItem: el.attackerNoItem.checked, defenderNoItem: el.defenderNoItem.checked,
@@ -103,7 +146,7 @@
       defenderLuckyChant: el.defenderLuckyChant.checked, defenderForesight: el.defenderForesight.checked, defenderMiracleEye: el.defenderMiracleEye.checked,
       attackerEmbargo: el.attackerEmbargo.checked, defenderEmbargo: el.defenderEmbargo.checked, attackerStealthRock: el.attackerStealthRock.checked, defenderStealthRock: el.defenderStealthRock.checked,
       attackerSpikes: el.attackerSpikes.value, defenderSpikes: el.defenderSpikes.value, attackerSteelSurge: el.attackerSteelSurge.checked, defenderSteelSurge: el.defenderSteelSurge.checked, attackerRootedSmacked: el.attackerRootedSmacked.checked, defenderRootedSmacked: el.defenderRootedSmacked.checked, attackerMagnetRise: el.attackerMagnetRise.checked, defenderMagnetRise: el.defenderMagnetRise.checked, attackerTelekinesis: el.attackerTelekinesis.checked, defenderTelekinesis: el.defenderTelekinesis.checked, attackerRoost: el.attackerRoost.checked, defenderRoost: el.defenderRoost.checked, attackerBurnUp: el.attackerBurnUp.checked, defenderBurnUp: el.defenderBurnUp.checked, attackerDoubleShock: el.attackerDoubleShock.checked, defenderDoubleShock: el.defenderDoubleShock.checked,
-      attackerCurrentHpInput: el.attackerCurrentHp.value, defenderCurrentHpInput: el.defenderCurrentHp.value, attackerStats: readStats('attacker'), defenderStats: readStats('defender'), transformOps: transformOps.slice(), attackerStatus: (document.getElementById('attackerStatus')||{}).value || 'なし', defenderStatus: (document.getElementById('defenderStatus')||{}).value || 'なし', defenderSemiInvulnerable: (document.getElementById('defenderSemiInvulnerable')||{}).value || 'なし', rolloutHit: document.getElementById('rolloutHit') ? document.getElementById('rolloutHit').value : '1', defenseCurl: !!(document.getElementById('defenseCurl') && document.getElementById('defenseCurl').checked), echoedVoiceCount: document.getElementById('echoedVoiceCount') ? document.getElementById('echoedVoiceCount').value : '1', moveOrder: document.getElementById('moveOrder') ? document.getElementById('moveOrder').value : 'first', targetSwitching: !!(document.getElementById('targetSwitching') && document.getElementById('targetSwitching').checked), faintedAllies: document.getElementById('faintedAllies') ? document.getElementById('faintedAllies').value : '0', supremeOverlordFaintedAllies: document.getElementById('supremeOverlordFaintedAllies') ? document.getElementById('supremeOverlordFaintedAllies').value : '0', friendship: document.getElementById('friendship') ? document.getElementById('friendship').value : '255', remainingPP: document.getElementById('remainingPP') ? document.getElementById('remainingPP').value : '4', lastMoveFailed: !!(document.getElementById('lastMoveFailed') && document.getElementById('lastMoveFailed').checked), userDamagedThisTurn: !!(document.getElementById('userDamagedThisTurn') && document.getElementById('userDamagedThisTurn').checked), targetDamagedThisTurn: !!(document.getElementById('targetDamagedThisTurn') && document.getElementById('targetDamagedThisTurn').checked), stockpileCount: document.getElementById('stockpileCount') ? document.getElementById('stockpileCount').value : '1', presentPower: document.getElementById('presentPower') ? document.getElementById('presentPower').value : '40', rageFistHitCount: document.getElementById('rageFistHitCount') ? document.getElementById('rageFistHitCount').value : '0', magnitudePower: document.getElementById('magnitudePower') ? document.getElementById('magnitudePower').value : '70', roundAllyUsed: !!(document.getElementById('roundAllyUsed') && document.getElementById('roundAllyUsed').checked), furyCutterCount: document.getElementById('furyCutterCount') ? document.getElementById('furyCutterCount').value : '1', psywaveMultiplier: document.getElementById('psywaveMultiplier') ? document.getElementById('psywaveMultiplier').value : '1', fixedDamageTaken: document.getElementById('fixedDamageTaken') ? document.getElementById('fixedDamageTaken').value : '0', defenderScreen: document.getElementById('defenderScreen') ? document.getElementById('defenderScreen').value : 'none', defenderFriendGuard: !!(document.getElementById('defenderFriendGuard') && document.getElementById('defenderFriendGuard').checked), defenderMinimized: !!(document.getElementById('defenderMinimized') && document.getElementById('defenderMinimized').checked), defenderProtectState: document.getElementById('defenderProtectState') ? document.getElementById('defenderProtectState').value : 'none', metronomeUseCount: document.getElementById('metronomeUseCount') ? document.getElementById('metronomeUseCount').value : '1', defenderForesight: !!(document.getElementById('defenderForesight') && document.getElementById('defenderForesight').checked), defenderMiracleEye: !!(document.getElementById('defenderMiracleEye') && document.getElementById('defenderMiracleEye').checked), defenderTarShot: !!(document.getElementById('defenderTarShot') && document.getElementById('defenderTarShot').checked), attackerStellarMoveCount: document.getElementById('attackerStellarMoveCount') ? document.getElementById('attackerStellarMoveCount').value : 'first', attackerDoubleDamage: !!(document.getElementById('attackerDoubleDamage') && document.getElementById('attackerDoubleDamage').checked), defenderGlaiveRush: !!(document.getElementById('defenderGlaiveRush') && document.getElementById('defenderGlaiveRush').checked), beadsOfRuinField: !!(document.getElementById('beadsOfRuinField') && document.getElementById('beadsOfRuinField').checked), swordOfRuinField: !!(document.getElementById('swordOfRuinField') && document.getElementById('swordOfRuinField').checked), defenderFlowerGiftSupport: !!(document.getElementById('defenderFlowerGiftSupport') && document.getElementById('defenderFlowerGiftSupport').checked), vesselOfRuinField: !!(document.getElementById('vesselOfRuinField') && document.getElementById('vesselOfRuinField').checked), tabletsOfRuinField: !!(document.getElementById('tabletsOfRuinField') && document.getElementById('tabletsOfRuinField').checked), flowerGiftSupport: !!(document.getElementById('flowerGiftSupport') && document.getElementById('flowerGiftSupport').checked), plusMinusSupport: !!(document.getElementById('plusMinusSupport') && document.getElementById('plusMinusSupport').checked), flashFireActivated: !!(document.getElementById('flashFireActivated') && document.getElementById('flashFireActivated').checked), stakeoutSwitchIn: !!(document.getElementById('stakeoutSwitchIn') && document.getElementById('stakeoutSwitchIn').checked), batterySupport: !!(document.getElementById('batterySupport') && document.getElementById('batterySupport').checked), powerSpotSupport: !!(document.getElementById('powerSpotSupport') && document.getElementById('powerSpotSupport').checked), steelSpiritCount: document.getElementById('steelSpiritCount') ? document.getElementById('steelSpiritCount').value : '0', helpingHandCount: document.getElementById('helpingHandCount') ? document.getElementById('helpingHandCount').value : '0', meFirst: !!(document.getElementById('meFirst') && document.getElementById('meFirst').checked), charge: !!(document.getElementById('charge') && document.getElementById('charge').checked), analyzeMovedLast: !!(document.getElementById('analyzeMovedLast') && document.getElementById('analyzeMovedLast').checked), fairyAuraField: !!(document.getElementById('fairyAuraField') && document.getElementById('fairyAuraField').checked), darkAuraField: !!(document.getElementById('darkAuraField') && document.getElementById('darkAuraField').checked), mudSport: !!(document.getElementById('mudSport') && document.getElementById('mudSport').checked), waterSport: !!(document.getElementById('waterSport') && document.getElementById('waterSport').checked), weatherSuppressField: !!(document.getElementById('weatherSuppressField') && document.getElementById('weatherSuppressField').checked), statDroppedThisTurn: !!(document.getElementById('statDroppedThisTurn') && document.getElementById('statDroppedThisTurn').checked), allyFaintedLastTurn: !!(document.getElementById('allyFaintedLastTurn') && document.getElementById('allyFaintedLastTurn').checked), beatUpAlly1: document.getElementById('beatUpAlly1') ? document.getElementById('beatUpAlly1').value : 'none', beatUpAlly2: document.getElementById('beatUpAlly2') ? document.getElementById('beatUpAlly2').value : 'none', beatUpAlly3: document.getElementById('beatUpAlly3') ? document.getElementById('beatUpAlly3').value : 'none', beatUpAlly4: document.getElementById('beatUpAlly4') ? document.getElementById('beatUpAlly4').value : 'none', beatUpAlly5: document.getElementById('beatUpAlly5') ? document.getElementById('beatUpAlly5').value : 'none', attackerTailwind: !!(document.getElementById('attackerTailwind') && document.getElementById('attackerTailwind').checked), attackerLockOn: !!(document.getElementById('attackerLockOn') && document.getElementById('attackerLockOn').checked), attackerMicleBerry: !!(document.getElementById('attackerMicleBerry') && document.getElementById('attackerMicleBerry').checked), attackerVictoryStar: !!(document.getElementById('attackerVictoryStar') && document.getElementById('attackerVictoryStar').checked), defenderConfusion: !!(document.getElementById('defenderConfusion') && document.getElementById('defenderConfusion').checked), defenderSubstitute: !!(document.getElementById('defenderSubstitute') && document.getElementById('defenderSubstitute').checked), focusLensMoveOrder: document.getElementById('focusLensMoveOrder') ? document.getElementById('focusLensMoveOrder').value : 'first', defenderTailwind: !!(document.getElementById('defenderTailwind') && document.getElementById('defenderTailwind').checked), attackerSwamp: !!(document.getElementById('attackerSwamp') && document.getElementById('attackerSwamp').checked), defenderSwamp: !!(document.getElementById('defenderSwamp') && document.getElementById('defenderSwamp').checked), attackerSlowStart: !!(document.getElementById('attackerSlowStart') && document.getElementById('attackerSlowStart').checked), defenderSlowStart: !!(document.getElementById('defenderSlowStart') && document.getElementById('defenderSlowStart').checked), attackerUnburden: !!(document.getElementById('attackerUnburden') && document.getElementById('attackerUnburden').checked), defenderUnburden: !!(document.getElementById('defenderUnburden') && document.getElementById('defenderUnburden').checked), attackerParadoxBoostStat: document.getElementById('attackerParadoxBoostStat') ? document.getElementById('attackerParadoxBoostStat').value : 'none', defenderParadoxBoostStat: document.getElementById('defenderParadoxBoostStat') ? document.getElementById('defenderParadoxBoostStat').value : 'none', attackerBodyPurge: document.getElementById('attackerBodyPurge') ? document.getElementById('attackerBodyPurge').value : '0', defenderBodyPurge: document.getElementById('defenderBodyPurge') ? document.getElementById('defenderBodyPurge').value : '0',
+      attackerCurrentHpInput: el.attackerCurrentHp.value, defenderCurrentHpInput: el.defenderCurrentHp.value, attackerStats: readStats('attacker'), defenderStats: readStats('defender'), transformOps: transformOps.slice(), attackerStatus: (document.getElementById('attackerStatus')||{}).value || 'なし', defenderStatus: (document.getElementById('defenderStatus')||{}).value || 'なし', defenderSemiInvulnerable: (document.getElementById('defenderSemiInvulnerable')||{}).value || 'なし', rolloutHit: document.getElementById('rolloutHit') ? document.getElementById('rolloutHit').value : '1', defenseCurl: !!(document.getElementById('defenseCurl') && document.getElementById('defenseCurl').checked), echoedVoiceCount: document.getElementById('echoedVoiceCount') ? document.getElementById('echoedVoiceCount').value : '1', moveOrder: document.getElementById('moveOrder') ? document.getElementById('moveOrder').value : 'first', targetSwitching: !!(document.getElementById('targetSwitching') && document.getElementById('targetSwitching').checked), faintedAllies: document.getElementById('faintedAllies') ? document.getElementById('faintedAllies').value : '0', supremeOverlordFaintedAllies: document.getElementById('supremeOverlordFaintedAllies') ? document.getElementById('supremeOverlordFaintedAllies').value : '0', friendship: document.getElementById('friendship') ? document.getElementById('friendship').value : '255', remainingPP: document.getElementById('remainingPP') ? document.getElementById('remainingPP').value : '4', lastMoveFailed: !!(document.getElementById('lastMoveFailed') && document.getElementById('lastMoveFailed').checked), userDamagedThisTurn: !!(document.getElementById('userDamagedThisTurn') && document.getElementById('userDamagedThisTurn').checked), targetDamagedThisTurn: !!(document.getElementById('targetDamagedThisTurn') && document.getElementById('targetDamagedThisTurn').checked), stockpileCount: document.getElementById('stockpileCount') ? document.getElementById('stockpileCount').value : '1', presentPower: document.getElementById('presentPower') ? document.getElementById('presentPower').value : '40', rageFistHitCount: document.getElementById('rageFistHitCount') ? document.getElementById('rageFistHitCount').value : '0', magnitudePower: document.getElementById('magnitudePower') ? document.getElementById('magnitudePower').value : '70', roundAllyUsed: !!(document.getElementById('roundAllyUsed') && document.getElementById('roundAllyUsed').checked), furyCutterCount: document.getElementById('furyCutterCount') ? document.getElementById('furyCutterCount').value : '1', psywaveMultiplier: document.getElementById('psywaveMultiplier') ? document.getElementById('psywaveMultiplier').value : '1', kimagureLaserDouble: !!(document.getElementById('kimagureLaserDouble') && document.getElementById('kimagureLaserDouble').checked), fixedDamageTaken: document.getElementById('fixedDamageTaken') ? document.getElementById('fixedDamageTaken').value : '0', defenderScreen: document.getElementById('defenderScreen') ? document.getElementById('defenderScreen').value : 'none', defenderFriendGuard: !!(document.getElementById('defenderFriendGuard') && document.getElementById('defenderFriendGuard').checked), defenderMinimized: !!(document.getElementById('defenderMinimized') && document.getElementById('defenderMinimized').checked), defenderProtectState: document.getElementById('defenderProtectState') ? document.getElementById('defenderProtectState').value : 'none', metronomeUseCount: document.getElementById('metronomeUseCount') ? document.getElementById('metronomeUseCount').value : '1', defenderForesight: !!(document.getElementById('defenderForesight') && document.getElementById('defenderForesight').checked), defenderMiracleEye: !!(document.getElementById('defenderMiracleEye') && document.getElementById('defenderMiracleEye').checked), defenderTarShot: !!(document.getElementById('defenderTarShot') && document.getElementById('defenderTarShot').checked), attackerStellarMoveCount: document.getElementById('attackerStellarMoveCount') ? document.getElementById('attackerStellarMoveCount').value : 'first', attackerDoubleDamage: !!(document.getElementById('attackerDoubleDamage') && document.getElementById('attackerDoubleDamage').checked), defenderGlaiveRush: !!(document.getElementById('defenderGlaiveRush') && document.getElementById('defenderGlaiveRush').checked), beadsOfRuinField: !!(document.getElementById('beadsOfRuinField') && document.getElementById('beadsOfRuinField').checked), swordOfRuinField: !!(document.getElementById('swordOfRuinField') && document.getElementById('swordOfRuinField').checked), defenderFlowerGiftSupport: !!(document.getElementById('defenderFlowerGiftSupport') && document.getElementById('defenderFlowerGiftSupport').checked), vesselOfRuinField: !!(document.getElementById('vesselOfRuinField') && document.getElementById('vesselOfRuinField').checked), tabletsOfRuinField: !!(document.getElementById('tabletsOfRuinField') && document.getElementById('tabletsOfRuinField').checked), flowerGiftSupport: !!(document.getElementById('flowerGiftSupport') && document.getElementById('flowerGiftSupport').checked), plusMinusSupport: !!(document.getElementById('plusMinusSupport') && document.getElementById('plusMinusSupport').checked), flashFireActivated: !!(document.getElementById('flashFireActivated') && document.getElementById('flashFireActivated').checked), stakeoutSwitchIn: !!(document.getElementById('stakeoutSwitchIn') && document.getElementById('stakeoutSwitchIn').checked), batterySupport: !!(document.getElementById('batterySupport') && document.getElementById('batterySupport').checked), powerSpotSupport: !!(document.getElementById('powerSpotSupport') && document.getElementById('powerSpotSupport').checked), steelSpiritCount: document.getElementById('steelSpiritCount') ? document.getElementById('steelSpiritCount').value : '0', helpingHandCount: document.getElementById('helpingHandCount') ? document.getElementById('helpingHandCount').value : '0', meFirst: !!(document.getElementById('meFirst') && document.getElementById('meFirst').checked), charge: !!(document.getElementById('charge') && document.getElementById('charge').checked), analyzeMovedLast: !!(document.getElementById('analyzeMovedLast') && document.getElementById('analyzeMovedLast').checked), fairyAuraField: !!(document.getElementById('fairyAuraField') && document.getElementById('fairyAuraField').checked), darkAuraField: !!(document.getElementById('darkAuraField') && document.getElementById('darkAuraField').checked), mudSport: !!(document.getElementById('mudSport') && document.getElementById('mudSport').checked), waterSport: !!(document.getElementById('waterSport') && document.getElementById('waterSport').checked), weatherSuppressField: !!(document.getElementById('weatherSuppressField') && document.getElementById('weatherSuppressField').checked), statDroppedThisTurn: !!(document.getElementById('statDroppedThisTurn') && document.getElementById('statDroppedThisTurn').checked), allyFaintedLastTurn: !!(document.getElementById('allyFaintedLastTurn') && document.getElementById('allyFaintedLastTurn').checked), beatUpAlly1: document.getElementById('beatUpAlly1') ? document.getElementById('beatUpAlly1').value : 'none', beatUpAlly2: document.getElementById('beatUpAlly2') ? document.getElementById('beatUpAlly2').value : 'none', beatUpAlly3: document.getElementById('beatUpAlly3') ? document.getElementById('beatUpAlly3').value : 'none', beatUpAlly4: document.getElementById('beatUpAlly4') ? document.getElementById('beatUpAlly4').value : 'none', beatUpAlly5: document.getElementById('beatUpAlly5') ? document.getElementById('beatUpAlly5').value : 'none', attackerTailwind: !!(document.getElementById('attackerTailwind') && document.getElementById('attackerTailwind').checked), attackerLockOn: !!(document.getElementById('attackerLockOn') && document.getElementById('attackerLockOn').checked), attackerMicleBerry: !!(document.getElementById('attackerMicleBerry') && document.getElementById('attackerMicleBerry').checked), attackerVictoryStar: !!(document.getElementById('attackerVictoryStar') && document.getElementById('attackerVictoryStar').checked), defenderConfusion: !!(document.getElementById('defenderConfusion') && document.getElementById('defenderConfusion').checked), defenderSubstitute: !!(document.getElementById('defenderSubstitute') && document.getElementById('defenderSubstitute').checked), focusLensMoveOrder: document.getElementById('focusLensMoveOrder') ? document.getElementById('focusLensMoveOrder').value : 'first', defenderTailwind: !!(document.getElementById('defenderTailwind') && document.getElementById('defenderTailwind').checked), attackerSwamp: !!(document.getElementById('attackerSwamp') && document.getElementById('attackerSwamp').checked), defenderSwamp: !!(document.getElementById('defenderSwamp') && document.getElementById('defenderSwamp').checked), attackerSlowStart: !!(document.getElementById('attackerSlowStart') && document.getElementById('attackerSlowStart').checked), defenderSlowStart: !!(document.getElementById('defenderSlowStart') && document.getElementById('defenderSlowStart').checked), attackerUnburden: !!(document.getElementById('attackerUnburden') && document.getElementById('attackerUnburden').checked), defenderUnburden: !!(document.getElementById('defenderUnburden') && document.getElementById('defenderUnburden').checked), attackerParadoxBoostStat: document.getElementById('attackerParadoxBoostStat') ? document.getElementById('attackerParadoxBoostStat').value : 'none', defenderParadoxBoostStat: document.getElementById('defenderParadoxBoostStat') ? document.getElementById('defenderParadoxBoostStat').value : 'none', attackerBodyPurge: document.getElementById('attackerBodyPurge') ? document.getElementById('attackerBodyPurge').value : '0', defenderBodyPurge: document.getElementById('defenderBodyPurge') ? document.getElementById('defenderBodyPurge').value : '0',
       moldBreaker: false, neutralizingGas: false, attackerItemSuppressed: false, defenderItemSuppressed: false
     };
   }
@@ -480,13 +523,16 @@
     renderCalcTable(result);
     el.trace.textContent = formatTrace(result.trace);
   }
+  window.__damekeCalculate = calculate;
   function setHpFraction(side, denom) { const pokemon = byId(DATA.pokemons, el[side + 'Select'].value); const level = el[side + 'Level'].value; const stats = readStats(side); const maxHp = CALC.previewBaseMaxHp(pokemon, level, stats); el[side + 'CurrentHp'].value = Math.max(1, Math.floor(maxHp / denom)); calculate(); }
   async function copyTrace() { const text = el.trace.textContent || ''; if (!text) return; try { await navigator.clipboard.writeText(text); alert('計算過程をコピーしました。'); } catch { alert('コピーに失敗しました。'); } }
   function init() {
     createStatsGrid('attacker', el.attackerStatsGrid); createStatsGrid('defender', el.defenderStatsGrid);
     fillSelect(el.attackerSelect, DATA.pokemons); fillSelect(el.defenderSelect, DATA.pokemons); fillSelect(el.moveSelect, DATA.moves.filter(function(m){ return !(DATA.isExcludedSignatureZMove && DATA.isExcludedSignatureZMove(m)); })); fillSelect(el.attackerItemSelect, DATA.items); fillSelect(el.defenderItemSelect, DATA.items); fillSelect(el.attackerAbilitySelect, DATA.abilities); fillSelect(el.defenderAbilitySelect, DATA.abilities); fillSelect(el.attackerSpecialState, DATA.specialStates); fillSelect(el.defenderSpecialState, specialStatesForDefender()); fillSelect(el.attackerTeraType, DATA.teraTypes); fillSelect(el.defenderTeraType, DATA.teraTypes); fillSelect(el.attackerType1, DATA.typeOptions); fillSelect(el.attackerType2, DATA.typeOptions); fillSelect(el.defenderType1, DATA.typeOptions); fillSelect(el.defenderType2, DATA.typeOptions); fillSelect(el.weatherSelect, DATA.weatherOptions); fillSelect(el.fieldSelect, DATA.fieldOptions); fillSelectBeatUpAllies();
-    el.attackerSelect.value = 'pikachu'; el.defenderSelect.value = 'venusaur'; el.moveSelect.value = 'thunderbolt'; setTypeDefaults('attacker'); setTypeDefaults('defender');
-    el.attackerSelect.addEventListener('change', () => { setTypeDefaults('attacker'); calculate(); }); el.defenderSelect.addEventListener('change', () => { setTypeDefaults('defender'); calculate(); }); document.querySelectorAll('button[data-op]').forEach(btn => btn.addEventListener('click', () => { transformOps.push(btn.dataset.op); updateOpsDisplay(); calculate(); }));
+    el.attackerSelect.value = 'pikachu'; el.defenderSelect.value = 'venusaur'; applyMoveFilter(); el.moveSelect.value = 'thunderbolt'; setTypeDefaults('attacker'); setTypeDefaults('defender');
+    ['attackerType1', 'attackerType2', 'defenderType1', 'defenderType2', 'attackerTeraType', 'defenderTeraType'].forEach(function(id) { var e = document.getElementById(id); if (e) e.addEventListener('change', updateAllTypeColors); });
+    el.attackerSelect.addEventListener('change', () => { applyMoveFilter(); setTypeDefaults('attacker'); calculate(); }); el.defenderSelect.addEventListener('change', () => { setTypeDefaults('defender'); calculate(); }); document.querySelectorAll('button[data-op]').forEach(btn => btn.addEventListener('click', () => { transformOps.push(btn.dataset.op); updateOpsDisplay(); calculate(); }));
+    if (el.moveShowAll) el.moveShowAll.addEventListener('change', () => { applyMoveFilter(); calculate(); });
     el.resetTransformOps.addEventListener('click', () => { transformOps = []; updateOpsDisplay(); calculate(); });
     el.calculateButton.addEventListener('click', calculate); el.copyTraceButton.addEventListener('click', copyTrace);
     document.querySelectorAll('button[data-hp-side]').forEach(btn => btn.addEventListener('click', () => setHpFraction(btn.dataset.hpSide, Number(btn.dataset.hpRate))));
@@ -576,6 +622,10 @@
 
     var options = Array.prototype.map.call(select.options, function(o){ return { value:o.value, text:o.textContent, norm:kanaNormalize(o.textContent) }; });
     var activeIndex = -1;
+    select._v082hRefreshOptions = function(){
+      options = Array.prototype.map.call(select.options, function(o){ return { value:o.value, text:o.textContent, norm:kanaNormalize(o.textContent) }; });
+      input.value = currentText();
+    };
 
     function positionList(){
       var r = input.getBoundingClientRect();
@@ -616,6 +666,7 @@
     function choose(o){
       select.value = o.value; input.value = o.text; closeList();
       dispatchChange(select);
+      input.blur();
     }
     function updateActive(items){
       items.forEach(function(li,i){ li.classList.toggle('active', i===activeIndex); });
@@ -743,7 +794,7 @@
     moveLabel(side+'TeraType', specialGrid);
     if(isAttack){ var teraZone=make('div','v082h-zone'); teraZone.id='v082hAttackerTeraZone'; dest.appendChild(teraZone); }
     addStatsPanel(side, dest);
-    if(isAttack){ moveLabel('moveSelect', dest); relabel('moveSelect','技'); var moveLabelEl=labelOf('moveSelect'); if(moveLabelEl){ moveLabelEl.classList.add('dameke-main-control-label'); } attachSearchCombo('moveSelect'); var moveZone=make('div','v082h-zone'); moveZone.id='v082hMoveZone'; dest.appendChild(moveZone); moveLabel('critical', dest); }
+    if(isAttack){ moveLabel('moveSelect', dest); relabel('moveSelect','技'); var moveLabelEl=labelOf('moveSelect'); if(moveLabelEl){ moveLabelEl.classList.add('dameke-main-control-label'); } attachSearchCombo('moveSelect'); var moveZone=make('div','v082h-zone'); moveZone.id='v082hMoveZone'; dest.appendChild(moveZone); moveLabel('moveShowAll', dest); moveLabel('critical', dest); }
   }
 
   function addAbilityPanel(side, dest){
@@ -921,7 +972,7 @@
     ['defenderSlowStart','defenderUnburden','defenderParadoxBoostStat'].forEach(function(id){ moveLabel(id, defAbility); });
     ['metronomeUseCount','focusLensMoveOrder'].forEach(function(id){ moveLabel(id, item); });
     ['attackerStellarMoveCount'].forEach(function(id){ moveLabel(id, tera); });
-    ['pledgeCombination','psywaveMultiplier','fixedDamageTaken','statDroppedThisTurn','allyFaintedLastTurn','beatUpAlly1','beatUpAlly2','beatUpAlly3','beatUpAlly4','beatUpAlly5','rolloutHit','defenseCurl','echoedVoiceCount','moveOrder','targetSwitching','faintedAllies','friendship','remainingPP','lastMoveFailed','userDamagedThisTurn','targetDamagedThisTurn','stockpileCount','presentPower','rageFistHitCount','magnitudePower','roundAllyUsed','furyCutterCount'].forEach(function(id){ moveLabel(id, move); });
+    ['pledgeCombination','psywaveMultiplier','kimagureLaserDouble','fixedDamageTaken','statDroppedThisTurn','allyFaintedLastTurn','beatUpAlly1','beatUpAlly2','beatUpAlly3','beatUpAlly4','beatUpAlly5','rolloutHit','defenseCurl','echoedVoiceCount','moveOrder','targetSwitching','faintedAllies','friendship','remainingPP','lastMoveFailed','userDamagedThisTurn','targetDamagedThisTurn','stockpileCount','presentPower','rageFistHitCount','magnitudePower','roundAllyUsed','furyCutterCount'].forEach(function(id){ moveLabel(id, move); });
   }
 
   function show(id, visible){ var l=labelOf(id); if(l) l.style.display=visible?'':'none'; }
@@ -934,7 +985,7 @@
     show('defenderSlowStart', dab==='スロースタート'); show('defenderUnburden', dab==='かるわざ'); show('defenderParadoxBoostStat', dab==='こだいかっせい'||dab==='クォークチャージ');
     show('metronomeUseCount', item==='メトロノーム'); show('focusLensMoveOrder', item==='フォーカスレンズ'); show('attackerStellarMoveCount', tera==='ステラ');
     show('pledgeCombination', ['くさのちかい','ほのおのちかい','みずのちかい','クロスサンダー','クロスフレイム'].indexOf(move)>=0);
-    show('psywaveMultiplier', move==='サイコウェーブ'); show('fixedDamageTaken', ['カウンター','ミラーコート','がまん','メタルバースト','ほうふく'].indexOf(move)>=0);
+    show('psywaveMultiplier', move==='サイコウェーブ'); show('kimagureLaserDouble', move==='きまぐレーザー'); show('fixedDamageTaken', ['カウンター','ミラーコート','がまん','メタルバースト','ほうふく'].indexOf(move)>=0);
     show('statDroppedThisTurn', move==='うっぷんばらし'); show('allyFaintedLastTurn', move==='かたきうち'); var beat=move==='ふくろだたき'||kind==='BeatUp'; for(var i=1;i<=5;i++) show('beatUpAlly'+i, beat);
     show('rolloutHit', kind==='Rollout'); show('defenseCurl', kind==='Rollout'); show('echoedVoiceCount', kind==='EchoedVoice'); show('moveOrder', kind==='DoubleIfFirst'||kind==='DoubleIfMovedSecond'); show('targetSwitching', kind==='Pursuit'); show('faintedAllies', kind==='LastRespects'); show('friendship', kind==='Friendship'||kind==='Frustration'); show('remainingPP', kind==='TrumpCard'); show('lastMoveFailed', kind==='DoubleIfLastMoveFailed'); show('userDamagedThisTurn', kind==='DoubleIfUserDamaged'); show('targetDamagedThisTurn', kind==='DoubleIfTargetDamaged'); show('stockpileCount', kind==='SpitUp'); show('presentPower', kind==='Present'); show('rageFistHitCount', kind==='RageFist'); show('magnitudePower', kind==='Magnitude'); show('roundAllyUsed', kind==='Round'); show('furyCutterCount', kind==='FuryCutter');
     ['v082hAbilityDetails','v082hDefenderAbilityDetails','v082hItemDetails','v082hDefenderItemDetails','v082hTeraDetails','v082hMoveDetails'].forEach(detailVisible);
@@ -1012,8 +1063,101 @@
     if(moveSpecific) moveSpecific.classList.add('v082h-hide');
   }
 
-  function swapValue(a,b){ var ea=q(a), eb=q(b); if(!ea||!eb) return; var av=ea.type==='checkbox'?ea.checked:ea.value; var bv=eb.type==='checkbox'?eb.checked:eb.value; if(ea.type==='checkbox') ea.checked=bv; else ea.value=bv; if(eb.type==='checkbox') eb.checked=av; else eb.value=av; }
-  function swapSides(){ var pairs=[['attackerSelect','defenderSelect'],['attackerLevel','defenderLevel'],['attackerSpecialState','defenderSpecialState'],['attackerTeraType','defenderTeraType'],['attackerGender','defenderGender'],['attackerType1','defenderType1'],['attackerType2','defenderType2'],['attackerTypeOverride','defenderTypeOverride'],['attackerAddType','defenderAddType'],['attackerItemSelect','defenderItemSelect'],['attackerNoItem','defenderNoItem'],['attackerAbilitySelect','defenderAbilitySelect'],['attackerNoAbility','defenderNoAbility'],['attackerCurrentHp','defenderCurrentHp'],['attackerStatus','defenderStatus']]; pairs.forEach(function(p){ swapValue(p[0],p[1]); }); ['H','A','B','C','D','S','acc','eva'].forEach(function(k){ ['iv','ev','rank'].forEach(function(kind){ swapValue('attacker_'+k+'_'+kind,'defender_'+k+'_'+kind); }); }); swapValue('attacker_nature','defender_nature'); ['attackerSelect','defenderSelect','attackerAbilitySelect','defenderAbilitySelect','attackerItemSelect','defenderItemSelect','moveSelect'].forEach(function(id){ dispatchChange(q(id)); }); refreshAll(); }
+  // Every input whose state should swap sides symmetrically. Left column is the attacker-side id,
+  // right column is its defender-side counterpart. Kept as a flat list (not nested per-category)
+  // so audit/testing can iterate it directly; see the chat report for the full classification.
+  const SYMMETRIC_PAIRS = [
+    ['attackerSelect','defenderSelect'], ['attackerLevel','defenderLevel'],
+    ['attackerSpecialState','defenderSpecialState'], ['attackerTeraType','defenderTeraType'],
+    ['attackerSexSelect','defenderSexSelect'], // the field genderValue() actually reads; the static
+    // attackerGender/defenderGender selects are dead UI (unused by buildOptions) and are left alone.
+    ['attackerType1','defenderType1'], ['attackerType2','defenderType2'],
+    ['attackerTypeOverride','defenderTypeOverride'], ['attackerAddType','defenderAddType'],
+    ['attackerItemSelect','defenderItemSelect'], ['attackerNoItem','defenderNoItem'],
+    ['attackerAbilitySelect','defenderAbilitySelect'], ['attackerNoAbility','defenderNoAbility'],
+    ['attackerCurrentHp','defenderCurrentHp'], ['attackerStatus','defenderStatus'],
+    ['attackerEmbargo','defenderEmbargo'], ['attackerStealthRock','defenderStealthRock'],
+    ['attackerSpikes','defenderSpikes'], ['attackerSteelSurge','defenderSteelSurge'],
+    ['attackerTailwind','defenderTailwind'], ['attackerSwamp','defenderSwamp'],
+    ['attackerSlowStart','defenderSlowStart'], ['attackerUnburden','defenderUnburden'],
+    ['attackerParadoxBoostStat','defenderParadoxBoostStat'],
+    ['attackerRootedSmacked','defenderRootedSmacked'], ['attackerMagnetRise','defenderMagnetRise'],
+    ['attackerTelekinesis','defenderTelekinesis'], ['attackerRoost','defenderRoost'],
+    ['attackerBurnUp','defenderBurnUp'], ['attackerDoubleShock','defenderDoubleShock'],
+    ['attackerBodyPurge','defenderBodyPurge'],
+  ];
+  function statSymmetricPairs(){
+    var out = [];
+    var keys = window.__damekeStatKeys || ['H','A','B','C','D','S','acc','eva'];
+    var idFn = window.__damekeStatInputId || function(side,key,kind){ return side+'_'+key+'_'+kind; };
+    keys.forEach(function(key){
+      if(key !== 'acc' && key !== 'eva') out.push([idFn('attacker',key,'iv'), idFn('defender',key,'iv')]);
+      if(key !== 'acc' && key !== 'eva') out.push([idFn('attacker',key,'ev'), idFn('defender',key,'ev')]);
+      if(key !== 'H') out.push([idFn('attacker',key,'rank'), idFn('defender',key,'rank')]);
+    });
+    out.push(['attacker_nature','defender_nature']);
+    return out;
+  }
+  // Role-only conditions: these have no symmetric counterpart, so instead of leaving them
+  // untouched (which would let one pokemon's leftover attacker-only settings silently carry over
+  // to whichever unrelated pokemon takes the attacker role next), each swap stashes the outgoing
+  // side's values into a shadow slot and restores whatever was stashed there last time -- so the
+  // visible fields always reflect "this role's own history", not whichever pokemon is unrelated.
+  const ATTACKER_ROLE_ONLY_IDS = ['moveSelect','moveShowAll','critical','attackerFocusEnergy','attackerGMaxRapidStrike','attackerLockOn','attackerMicleBerry','attackerVictoryStar','attackerStellarMoveCount','charge','pledgeCombination','meFirst','helpingHandCount','batterySupport','powerSpotSupport','flowerGiftSupport','plusMinusSupport','flashFireActivated','stakeoutSwitchIn','attackerDoubleDamage','metronomeUseCount','focusLensMoveOrder','steelSpiritCount','analyzeMovedLast','supremeOverlordFaintedAllies','beatUpAlly1','beatUpAlly2','beatUpAlly3','beatUpAlly4','beatUpAlly5','allyFaintedLastTurn','defenseCurl','echoedVoiceCount','moveOrder','targetSwitching','faintedAllies','friendship','remainingPP','lastMoveFailed','userDamagedThisTurn','targetDamagedThisTurn','stockpileCount','presentPower','rageFistHitCount','magnitudePower','roundAllyUsed','furyCutterCount','psywaveMultiplier','kimagureLaserDouble','fixedDamageTaken','statDroppedThisTurn','electrify'];
+  const DEFENDER_ROLE_ONLY_IDS = ['defenderConfusion','defenderForesight','defenderMiracleEye','defenderTarShot','defenderScreen','defenderFriendGuard','defenderMinimized','defenderProtectState','defenderSemiInvulnerable','defenderGlaiveRush','defenderFlowerGiftSupport','defenderSubstitute','defenderLuckyChant','protect'];
+  var attackerRoleShadow = {};
+  var defenderRoleShadow = {};
+  function swapWithShadow(ids, shadow){
+    ids.forEach(function(id){
+      var elm = q(id);
+      if(!elm) return;
+      var current = readField(elm);
+      if(Object.prototype.hasOwnProperty.call(shadow, id)) writeField(elm, shadow[id]);
+      shadow[id] = current;
+    });
+  }
+  function readField(elm){ if(!elm) return undefined; return elm.type==='checkbox' ? elm.checked : elm.value; }
+  function writeField(elm, v){ if(!elm || v===undefined) return; if(elm.type==='checkbox') elm.checked = v; else elm.value = v; }
+  function swapSides(){
+    var pairs = SYMMETRIC_PAIRS.concat(statSymmetricPairs());
+    // 1) Snapshot every symmetric pair's current value up front, so writing side A doesn't affect
+    //    the value read for side B later in the same pass.
+    var snapshot = pairs.map(function(p){ return [q(p[0]), q(p[1]), readField(q(p[0])), readField(q(p[1]))]; });
+    // 2) Write the swap in one pass.
+    snapshot.forEach(function(s){
+      var ea=s[0], eb=s[1], av=s[2], bv=s[3];
+      if(!ea || !eb) return;
+      writeField(ea, bv); writeField(eb, av);
+    });
+    // 3) transformOps: only the role-relative Power Trick operations flip; powerShare/guardShare/
+    //    speedSwap/wonderRoom act on both sides already and keep their position and identity.
+    //    transformOps itself lives in a different closure (IIFE #1) -- mutate the array in place
+    //    via the exposed getter rather than reassigning, so the change is visible there too.
+    var ops = window.__damekeGetTransformOps ? window.__damekeGetTransformOps() : null;
+    if(ops){
+      for(var i=0;i<ops.length;i++){
+        if(ops[i]==='attackerPowerTrick') ops[i]='defenderPowerTrick';
+        else if(ops[i]==='defenderPowerTrick') ops[i]='attackerPowerTrick';
+      }
+    }
+    if(window.__damekeUpdateOpsDisplay) window.__damekeUpdateOpsDisplay();
+    // Role-only conditions: swap each side's visible values with what's stashed in its shadow
+    // (see ATTACKER_ROLE_ONLY_IDS/DEFENDER_ROLE_ONLY_IDS above) instead of leaving them as-is.
+    swapWithShadow(ATTACKER_ROLE_ONLY_IDS, attackerRoleShadow);
+    swapWithShadow(DEFENDER_ROLE_ONLY_IDS, defenderRoleShadow);
+    // 4) Sync display-only state that mirrors the swapped selects (search-box text, ability
+    //    chips) WITHOUT dispatching 'change' -- a real 'change' event on attacker/defenderSelect
+    //    would run the species-default handler (setTypeDefaults) and overwrite the type values
+    //    we just swapped in step 2.
+    ['attackerSelect','defenderSelect','attackerItemSelect','defenderItemSelect','attackerAbilitySelect','defenderAbilitySelect','moveSelect'].forEach(function(id){
+      var elm = q(id);
+      if(elm && elm._v082hRefreshOptions) elm._v082hRefreshOptions();
+    });
+    if(window.__damekeApplyMoveFilter) window.__damekeApplyMoveFilter(); // new attacker's learnset may differ
+    if(window.__damekeUpdateTypeColors) window.__damekeUpdateTypeColors();
+    refreshAll(); // rebuilds ability chips for both sides + re-renders the last computed result
+    if(window.__damekeCalculate) window.__damekeCalculate(); // the one recalculation for this swap
+  }
 
   function summaryLines(){ var src=q('summary'); if(!src) return []; var html=String(src.innerHTML||'').split('<br>').join('\n').split('<br/>').join('\n').split('<br />').join('\n'); var div=document.createElement('div'); div.innerHTML=html; return String(div.textContent||'').split('\n').map(function(x){return x.trim();}).filter(Boolean); }
   function linesOf(el){ return el ? String(el.innerText || el.textContent || '').split('\n').map(function(x){return x.trim();}).filter(Boolean) : []; }
@@ -1057,6 +1201,53 @@
     if (remainHp > quarter) return 'v082h-hp-yellow';
     return 'v082h-hp-red';
   }
+  // For forms whose sprite likely doesn't exist yet (very new/rare Terastal or transformed
+  // states), fall back to showing the pre-transformation form instead of nothing.
+  var PRE_TRANSFORM_FALLBACK = {
+    'ネクロズマ(ウルトラネクロズマ)':'ネクロズマ',
+    'テラパゴス(テラスタル)':'テラパゴス',
+    'オーガポン(いしずえ)':'オーガポン(みどり)',
+    'オーガポン(いど)':'オーガポン(みどり)',
+    'オーガポン(かまど)':'オーガポン(みどり)',
+  };
+  function buildPokemonThumb(japaneseName, side) {
+    var wrap = make('div', 'v082h-pokemon-thumb v082h-pokemon-thumb-' + side);
+    var map = window.DAMEKE_POKEMON_IMAGE_IDS;
+    var numId = map ? map[japaneseName] : null;
+    if (!numId && PRE_TRANSFORM_FALLBACK[japaneseName]) {
+      numId = map ? map[PRE_TRANSFORM_FALLBACK[japaneseName]] : null;
+    }
+    if (numId) {
+      var img = document.createElement('img');
+      var primaryUrl = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/' + numId + '.png';
+      // Pokemon HOME renders (still small, ordinary sprites -- not official artwork) sometimes
+      // cover very recently added forms the primary sprite set hasn't caught up on yet.
+      var fallbackUrl = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/' + numId + '.png';
+      // If both the exact form's sprite paths fail, and a pre-transformation fallback id exists
+      // and hasn't been tried yet, fall through to that as a final attempt.
+      var preTransformId = PRE_TRANSFORM_FALLBACK[japaneseName] && map ? map[PRE_TRANSFORM_FALLBACK[japaneseName]] : null;
+      img.src = primaryUrl;
+      img.alt = japaneseName;
+      img.loading = 'lazy';
+      img.onerror = function () {
+        if (!img.dataset.triedFallback) {
+          img.dataset.triedFallback = '1';
+          img.src = fallbackUrl;
+          return;
+        }
+        if (!img.dataset.triedPreTransform && preTransformId && preTransformId !== numId) {
+          img.dataset.triedPreTransform = '1';
+          img.src = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/' + preTransformId + '.png';
+          return;
+        }
+        wrap.classList.add('v082h-pokemon-thumb-missing'); wrap.innerHTML = '';
+      };
+      wrap.appendChild(img);
+    } else {
+      wrap.classList.add('v082h-pokemon-thumb-missing');
+    }
+    return wrap;
+  }
   function buildHpBar(maxHp, minRemain, maxRemain) {
     var track = make('div','v082h-hpbar-track');
     if (!maxHp || maxHp <= 0) return track;
@@ -1097,9 +1288,18 @@
       }
     }
     panel.innerHTML='';
-    panel.appendChild(make('div','v082h-result-title', head));
-    panel.appendChild(make('div','v082h-hp-infoline', dmg+'（'+rate+'）'+(recoveryText?'　回復:'+recoveryText:'')));
-    panel.appendChild(make('div','v082h-hp-infoline2', certainty+'　瀕死率:'+faintRate));
+    var headParts = String(head||'').split(' → ');
+    var attackerNamePart = (headParts[0]||'').split(' の ')[0].trim();
+    var defenderNamePart = (headParts[1]||'').trim();
+    var headerRow = make('div','v082h-result-header-row');
+    headerRow.appendChild(buildPokemonThumb(attackerNamePart, 'left'));
+    var textCol = make('div','v082h-result-text-col');
+    textCol.appendChild(make('div','v082h-result-title', head));
+    textCol.appendChild(make('div','v082h-hp-infoline', dmg+'（'+rate+'）'+(recoveryText?'　回復:'+recoveryText:'')));
+    textCol.appendChild(make('div','v082h-hp-infoline2', certainty+'　瀕死率:'+faintRate));
+    headerRow.appendChild(textCol);
+    headerRow.appendChild(buildPokemonThumb(defenderNamePart, 'right'));
+    panel.appendChild(headerRow);
 
     var maxHp=0;
     if (dn.length>=2 && hn.length>=2) {
@@ -1255,13 +1455,13 @@
 
   function arr(x){ return Array.isArray(x) ? x : []; }
   function norm(x){ return x == null ? '' : String(x).trim(); }
-  function byId(id){ return document.getElementById(id); }
   function sidePrefix(side){ return side === 'A' ? 'attacker' : 'defender'; }
-  function pokemonSelect(side){ return byId(sidePrefix(side) + 'Select'); }
-  function itemSelect(side){ return byId(sidePrefix(side) + 'ItemSelect'); }
-  function abilitySelect(side){ return byId(sidePrefix(side) + 'AbilitySelect'); }
-  function moveSelect(){ return byId('moveSelect'); }
-  function sexSelect(side){ return byId(sidePrefix(side) + 'SexSelect'); }
+  function byIdLocal(id){ return document.getElementById(id); }
+  function pokemonSelect(side){ return byIdLocal(sidePrefix(side) + 'Select'); }
+  function itemSelect(side){ return byIdLocal(sidePrefix(side) + 'ItemSelect'); }
+  function abilitySelect(side){ return byIdLocal(sidePrefix(side) + 'AbilitySelect'); }
+  function moveSelect(){ return byIdLocal('moveSelect'); }
+  function sexSelect(side){ return byIdLocal(sidePrefix(side) + 'SexSelect'); }
   function optionText(sel){
     if(!sel) return '';
     var opt = sel.options && sel.options[sel.selectedIndex];
@@ -1327,7 +1527,7 @@
     var p = sidePrefix(side);
     var exact = [p + 'TeraTypeSelect', p + 'TeraSelect', p + '_tera', p + 'TeraType', p + 'TerastalSelect'];
     for(var x=0;x<exact.length;x++){
-      var el = byId(exact[x]);
+      var el = byIdLocal(exact[x]);
       if(el && !isForbiddenTeraSelect(el, side)) return el;
     }
     var root = sideCard(side) || document;
@@ -1360,7 +1560,7 @@
   }
   function ensureSexField(side){
     var id = sidePrefix(side) + 'SexSelect';
-    var sel = byId(id);
+    var sel = byIdLocal(id);
     var field = sel && sel.closest('.v091-sex-field');
     if(!field){
       field = document.createElement('label');
@@ -1414,16 +1614,17 @@
     setSelectSilent(pokemonSelect(side), p.name);
     // The form-change runtime is the single owner of displayed base-type updates after Pokemon or form changes.
     var prefix = sidePrefix(side);
-    var t1 = byId(prefix + 'Type1');
-    var t2 = byId(prefix + 'Type2');
+    var t1 = byIdLocal(prefix + 'Type1');
+    var t2 = byIdLocal(prefix + 'Type2');
     var types = Array.isArray(p.types) ? p.types : [];
     if(t1) setSelectSilent(t1, types[0] || 'なし');
     if(t2) setSelectSilent(t2, types[1] || 'なし');
     if(withLinked) applyLinked(side, p);
+    if(typeof window.__damekeUpdateTypeColors === 'function') window.__damekeUpdateTypeColors();
     setDefaultAbility(side, p);
     // Refresh visible ability chips when a form button commits a new Pokemon.
     // Keep the ability buttons synchronized with the committed Pokemon.
-    var abilityHost = byId('v082hAbilityButtons_' + prefix) || byId('v082gAbilityButtons_' + prefix) || byId('v082fAbilityButtons_' + prefix);
+    var abilityHost = byIdLocal('v082hAbilityButtons_' + prefix) || byIdLocal('v082gAbilityButtons_' + prefix) || byIdLocal('v082fAbilityButtons_' + prefix);
     if(abilityHost){
       abilityHost.innerHTML = '';
       var names = [];
@@ -1453,6 +1654,7 @@
       abilityHost.dataset.v103iSynced = '1';
     }
     syncing = false;
+    if(side === 'A' && typeof window.__damekeApplyMoveFilter === 'function') window.__damekeApplyMoveFilter();
     renderSoon();
     scheduleRecalc();
     return true;
@@ -1465,11 +1667,11 @@
   function ensurePanel(side){
     var id = side === 'A' ? 'attackerFormPanelV091' : 'defenderFormPanelV091';
     var oldId = side === 'A' ? 'attackerFormPanelV090' : 'defenderFormPanelV090';
-    var old = byId(oldId);
+    var old = byIdLocal(oldId);
     if(old) old.remove();
     var anchor = anchorAfterPokemon(side);
     if(!anchor) return null;
-    var panel = byId(id);
+    var panel = byIdLocal(id);
     if(!panel){
       panel = document.createElement('details');
       panel.id = id;

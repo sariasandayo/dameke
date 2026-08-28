@@ -24464,11 +24464,36 @@ window.DAMEKE_GENERATED_DATA = {
       "excelMarker": "☆"
     },
     {
-      "id": "メガニャオニクス",
-      "name": "メガニャオニクス",
-      "speciesKey": "メガニャオニクス",
-      "formKey": "メガニャオニクス",
-      "baseSpecies": "メガニャオニクス",
+      "id": "メガニャオニクス(オス)",
+      "name": "メガニャオニクス(オス)",
+      "speciesKey": "メガニャオニクス(オス)",
+      "formKey": "メガニャオニクス(オス)",
+      "baseSpecies": "メガニャオニクス(オス)",
+      "types": [
+        "エスパー"
+      ],
+      "abilities": [
+        "トレース"
+      ],
+      "baseStats": {
+        "H": 74,
+        "A": 48,
+        "B": 76,
+        "C": 143,
+        "D": 101,
+        "S": 124
+      },
+      "weight": 10.1,
+      "canEvolve": false,
+      "cannotDynamax": false,
+      "excelMarker": "☆"
+    },
+    {
+      "id": "メガニャオニクス(メス)",
+      "name": "メガニャオニクス(メス)",
+      "speciesKey": "メガニャオニクス(メス)",
+      "formKey": "メガニャオニクス(メス)",
+      "baseSpecies": "メガニャオニクス(メス)",
       "types": [
         "エスパー"
       ],
@@ -32716,11 +32741,11 @@ window.DAMEKE_GENERATED_DATA = {
       "excelMarker": ""
     },
     {
-      "id": "ジオツム",
-      "name": "ジオツム",
-      "speciesKey": "ジオツム",
-      "formKey": "ジオツム",
-      "baseSpecies": "ジオツム",
+      "id": "ジオヅム",
+      "name": "ジオヅム",
+      "speciesKey": "ジオヅム",
+      "formKey": "ジオヅム",
+      "baseSpecies": "ジオヅム",
       "types": [
         "いわ"
       ],
@@ -46049,7 +46074,7 @@ window.DAMEKE_GENERATED_DATA = {
         "description": null
       }
     },
-{
+    {
       "id": "たてこもる",
       "name": "たてこもる",
       "type": "はがね",
@@ -48058,7 +48083,7 @@ window.DAMEKE_GENERATED_DATA = {
         "description": null
       }
     },
-{
+    {
       "id": "どくのいと",
       "name": "どくのいと",
       "type": "どく",

@@ -21,6 +21,7 @@
           <label>防御側ポケモン<select id="defenderSelect"></select></label>
           <label>技<select id="moveSelect"></select></label>
         </div>
+        <label class="check dameke-move-filter-toggle"><input id="moveShowAll" type="checkbox" />全技</label>
       </section>
       <div class="side-by-side">
         <section class="sub-card side-panel">
@@ -142,6 +143,7 @@
           <label>メトロノーム回数<select id="metronomeUseCount"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option></select></label>
           <label>行動順<select id="focusLensMoveOrder"><option value="first">先攻</option><option value="second">後攻</option></select></label>
           <label>サイコウェーブ倍率<input id="psywaveMultiplier" type="number" min="0.5" max="1.5" step="0.01" value="1" /></label>
+          <label class="check"><input id="kimagureLaserDouble" type="checkbox" />威力2倍</label>
           <label>被ダメ<input id="fixedDamageTaken" type="number" min="0" step="1" value="0" /></label>
           <label>ステラ技回数<select id="attackerStellarMoveCount"><option value="first">1回目</option><option value="later">2回目以降</option></select></label>
           <label>はがねのせいしん<select id="steelSpiritCount"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
@@ -246,9 +248,12 @@
       <pre id="rolls" class="output"></pre>
       <h3>計算過程</h3>
       <pre id="trace" class="output trace"></pre>
+      <p class="dameke-image-credit">ポケモンの画像はPokéAPI（https://pokeapi.co）経由で参照しています。ポケモンおよび関連の著作権は任天堂・クリーチャーズ・ゲームフリークに帰属します。本ツールは非公式・非営利のファン制作物であり、画像ファイルの独自保存・改変は行っていません。</p>
     </section>
   </main>
 <script src="data.js"></script>
+<script src="data_learnsets.js"></script>
+<script src="data_pokemon_images.js"></script>
 <script src="calc.js"></script>
   
 <script src="app.js"></script>
