@@ -160,14 +160,15 @@ button:hover { background: #e0e7ff; }
   .layout{padding-bottom:calc(var(--v082h-fixed-panel-h, 120px) + 10px);}
   .result-card{padding-bottom:calc(var(--v082h-fixed-panel-h, 120px) + 16px);}
   #v082hResultPanel{position:fixed;bottom:0;left:0;right:0;z-index:50;margin:0;border-radius:0;box-shadow:0 -6px 16px rgba(15,23,42,.22);padding:6px 10px;max-height:none;overflow:visible;}
-  #v082hResultPanel .v082h-result-title{font-size:.8rem;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #v082hResultPanel .v082h-result-title{font-size:.8rem;margin-bottom:2px;}
+  #v082hResultPanel .v082h-result-move-line{font-size:.76rem;margin-bottom:3px;}
   #v082hResultPanel .v082h-hp-infoline{font-size:.82rem;margin-bottom:2px;}
   #v082hResultPanel .v082h-hp-infoline2{font-size:.78rem;color:#334155;margin-bottom:4px;}
   #v082hResultPanel .v082h-result-sidegrid{gap:0 6px;margin-top:4px;}
   #v082hResultPanel .v082h-result-item{padding:1px 0;}
   #v082hResultPanel .v082h-result-key{font-size:.68rem;}
   #v082hResultPanel .v082h-result-value{font-size:.72rem;}
-  #v082hResultPanel .v082h-pokemon-thumb,#v082hResultPanel .v082h-pokemon-thumb-missing{width:52px;height:52px;}
+  #v082hResultPanel .v082h-pokemon-thumb,#v082hResultPanel .v082h-pokemon-thumb-missing{width:60px;height:60px;}
 }
 @media(max-width:760px){
   body{font-size:15px;}
@@ -215,8 +216,9 @@ select.dameke-type-fairy{background:linear-gradient(90deg,#fce3ee,#f2accf);color
 select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 select.dameke-type-stellar{background:linear-gradient(90deg,#fbd9e6,#c4ecec,#fbe28f);color:#111827;}
 .dameke-image-credit{margin-top:16px;font-size:.68rem;line-height:1.5;color:#9ca3af;}
-.v082h-result-header-row{display:flex;align-items:center;gap:8px;margin-bottom:2px;}
-.v082h-result-text-col{flex:1;min-width:0;text-align:center;}
+.v082h-result-header-row{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:2px;}
+.v082h-result-text-col{flex:0 1 auto;min-width:0;max-width:60%;text-align:center;}
+.v082h-result-move-line{font-weight:700;font-size:.88rem;color:#374151;margin-bottom:6px;}
 .v082h-pokemon-thumb{flex:0 0 auto;width:68px;height:68px;display:flex;align-items:center;justify-content:center;}
 .v082h-pokemon-thumb img{max-width:100%;max-height:100%;image-rendering:pixelated;}
 .v082h-pokemon-thumb-missing{width:68px;height:68px;border-radius:50%;background:#e5e7eb;}

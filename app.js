@@ -1289,12 +1289,17 @@
     }
     panel.innerHTML='';
     var headParts = String(head||'').split(' → ');
-    var attackerNamePart = (headParts[0]||'').split(' の ')[0].trim();
+    var attackerMovePart = (headParts[0]||'').split(' の ');
+    var attackerNamePart = (attackerMovePart[0]||'').trim();
+    var moveNamePart = (attackerMovePart[1]||'').trim();
     var defenderNamePart = (headParts[1]||'').trim();
     var headerRow = make('div','v082h-result-header-row');
     headerRow.appendChild(buildPokemonThumb(attackerNamePart, 'left'));
     var textCol = make('div','v082h-result-text-col');
-    textCol.appendChild(make('div','v082h-result-title', head));
+    var namesLine = make('div','v082h-result-title', attackerNamePart+' → '+defenderNamePart);
+    var moveLine = make('div','v082h-result-move-line', moveNamePart);
+    textCol.appendChild(namesLine);
+    textCol.appendChild(moveLine);
     textCol.appendChild(make('div','v082h-hp-infoline', dmg+'（'+rate+'）'+(recoveryText?'　回復:'+recoveryText:'')));
     textCol.appendChild(make('div','v082h-hp-infoline2', certainty+'　瀕死率:'+faintRate));
     headerRow.appendChild(textCol);
@@ -1869,7 +1874,7 @@
       legacyPanelsAbsent: forms.legacyPanelCount === 0
     };
     return {
-      version: 'v1.0.3',
+      version: 'v1.1.0',
       loaded: true,
       initialization: initialization,
       ui: ui,
