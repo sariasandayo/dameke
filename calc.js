@@ -285,7 +285,7 @@
   const PLEDGE_MOVES = new Set(['くさのちかい','ほのおのちかい','みずのちかい']);
   const hiddenPowerTypes = ['かくとう','ひこう','どく','じめん','いわ','むし','ゴースト','はがね','ほのお','みず','くさ','でんき','エスパー','こおり','ドラゴン','あく'];
   function i(v,f){const n=parseInt(v,10);return Number.isFinite(n)?n:f;} function fl(v){return window.DAMEKE_ROUNDING.floor(v);} function cl(v,a,b){return Math.min(Math.max(v,a),b);} function st(label,name,value,note='',implemented=true){return{label,name,value,note,implemented};} function pend(label,name,note){return st(label,name,'未反映',note||'未実装枠',false);} function by(list,id){return list.find(x=>x.id===id)||list[0];} function formatRate(r){return r+'/4096 ('+(r/4096).toFixed(2)+'倍)';}
-  function spToEv(sp){sp=cl(i(sp,0),0,32);return sp<=0?0:(sp===32?252:4+(sp-1)*8);} function norm(src){const o={ivs:{},evs:{},ranks:{}};let total=0;src=src||{};for(const k of ['H','A','B','C','D','S']){o.ivs[k]=cl(i(src.ivs&&src.ivs[k],31),0,31);const raw=cl(i(src.evs&&src.evs[k],0),0,32);const use=Math.min(raw,Math.max(0,66-total));o.evs[k]=use;total+=use;}for(const k of ['A','B','C','D','S','acc','eva'])o.ranks[k]=cl(i(src.ranks&&src.ranks[k],0),-6,6);o.totalEv=total;return o;} function stat(base,level,iv,sp,hp){const ev=spToEv(sp);return hp?fl(((2*base+iv+fl(ev/4))*level)/100)+level+10:fl(((2*base+iv+fl(ev/4))*level)/100)+5;} function getActualStats(p,level,input){const n=norm(input),b=p.baseStats,o={input:n};for(const k of ['H','A','B','C','D','S']){o[k]=stat(b[k],level,n.ivs[k],n.evs[k],k==='H');if(k==='H'&&window.DAMEKE_DATA_HELPERS.pokemonMatches(p,'ヌケニン'))o[k]=1;if(k!=='H')o[k]=window.DAMEKE_NATURE.apply(o[k],k,input||{});}return o;} function previewBaseMaxHp(p,level,input){return getActualStats(p,cl(i(level,50),1,100),input).H;} function cloneStats(s){return Object.assign({},s,{input:s.input});}
+  function spToEv(sp){sp=cl(i(sp,0),0,32);return sp<=0?0:(sp===32?252:4+(sp-1)*8);} function norm(src){const o={ivs:{},evs:{},ranks:{}};let total=0;src=src||{};for(const k of ['H','A','B','C','D','S']){o.ivs[k]=cl(i(src.ivs&&src.ivs[k],31),0,31);const raw=cl(i(src.evs&&src.evs[k],0),0,32);const use=Math.min(raw,Math.max(0,66-total));o.evs[k]=use;total+=use;}for(const k of ['A','B','C','D','S','acc','eva'])o.ranks[k]=cl(i(src.ranks&&src.ranks[k],0),-6,6);o.totalEv=total;return o;} function stat(base,level,iv,sp,hp){const ev=spToEv(sp);return hp?fl(((2*base+iv+fl(ev/4))*level)/100)+level+10:fl(((2*base+iv+fl(ev/4))*level)/100)+5;} function getActualStats(p,level,input){level=cl(i(level,50),1,100);const n=norm(input),b=p.baseStats,o={input:n};for(const k of ['H','A','B','C','D','S']){o[k]=stat(b[k],level,n.ivs[k],n.evs[k],k==='H');if(k==='H'&&window.DAMEKE_DATA_HELPERS.pokemonMatches(p,'ヌケニン'))o[k]=1;if(k!=='H')o[k]=window.DAMEKE_NATURE.apply(o[k],k,input||{});}return o;} function previewBaseMaxHp(p,level,input){return getActualStats(p,cl(i(level,50),1,100),input).H;} function cloneStats(s){return Object.assign({},s,{input:s.input});}
   var rank = window.DAMEKE_CALC_SHARED.rank; function typeRate(t,dt){return (DATA.typeChart4096[t]||{})[dt]??4096;} function combo(t,types){let r=4096,details=[];for(const dt of types){const single=typeRate(t,dt),before=r;r=fl(r*single/4096);details.push({attackType:t,defenseType:dt,single,before,after:r});}return{rate:r,details};} function stab(t,types){return types.includes(t)?6144:4096;} function mod(v,r){return fl(v*r/4096);} function baseDamage(level,power,atk,def){if(!power||def<=0)return 0;return fl(fl((fl(2*level/5)+2)*power*atk/def)/50)+2;}
   function maxPower(p){
     var z = (window.DAMEKE_DATA && window.DAMEKE_DATA.zMax) || (typeof DATA !== 'undefined' && DATA.zMax) || {};
@@ -438,7 +438,7 @@ function hpBlock(side,p,stt,item,itState,ab,special,o){const prefix=side==='A'?'
   function baseDamage(level,power,atk,def){if(!power||def<=0)return 0;return fl(fl((fl(2*level/5)+2)*power*atk/def)/50)+2;}
   function weightPower(w){w=Number(w||100);if(w<10)return 20;if(w<25)return 40;if(w<50)return 60;if(w<100)return 80;if(w<200)return 100;return 120;}
   function heavySlamPower(a,d){a=Number(a||100);d=Number(d||100);if(d<=a/5)return 120;if(d<=a/4)return 100;if(d<=a/3)return 80;if(d<=a/2)return 60;return 40;}
-  function positiveRankSum(r){let s=0;for(const k of ['A','B','C','D','S','acc','eva'])if((r[k]||0)>0)s+=r[k];return s;}
+  function positiveRankSum(r){let s=0;for(const k of ['A','B','C','D','S','acc','eva']){var v=Number(r[k]);if(!isNaN(v)&&v>0)s+=v;}return s;}
   function currentHp(max,input){return input===''||input==null?max:clamp(int(input,max),1,max);}
   function reversalPower(cur,max){const x=fl(cur*48/max);if(x>=33)return 20;if(x>=17)return 40;if(x>=10)return 80;if(x>=5)return 100;if(x>=2)return 150;return 200;}
   function speedValue(st){return rank(st.S, st.input.ranks.S||0);}
@@ -1344,7 +1344,7 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
       var ngActive=aItemOk.active || (aItem.isBerry && String(aItemOk.reason||'').includes('きんちょうかん'));
       if(!ngActive||!aItem.isBerry) return {invalid:true,reason:'しぜんのめぐみは有効なきのみが必要'};
     }
-    if(n==='ポルターガイスト' && !dItemOk.active) return {invalid:true,reason:'ポルターガイストは相手が持ち物を持っていないと無効'};
+    if(n==='ポルターガイスト' && (!dItem || dItem.id==='none' || o.defenderNoItem)) return {invalid:true,reason:'ポルターガイストは相手が持ち物を持っていないと無効'};
 
     if(n==='いびき' && o.attackerStatus!=='ねむり') return {invalid:true,reason:'いびきは眠り状態でないと使用不可'};
     if(n==='ゆめくい' && o.defenderStatus!=='ねむり') return {invalid:true,reason:'ゆめくいは相手が眠り状態でないと無効'};
@@ -1396,6 +1396,7 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
     if(dA&&dAb.name==='パンクロック'&&soundMove(input,result))rateApply(state,'防御側パンクロック',2048,logs);
     var hp=currentHp(result);if(dA&&['ファントムガード','マルチスケイル'].includes(dAb.name)&&hp.cur===hp.max)rateApply(state,dAb.name,2048,logs);
     if(dA&&dAb.name==='もふもふ'&&contact)rateApply(state,'もふもふ 接触',2048,logs);
+    if(dA&&dAb.name==='ぼうごのはどう'&&contact)rateApply(state,'ぼうごのはどう',2048,logs);
     if(dA&&['ハードロック','フィルター','プリズムアーマー'].includes(dAb.name)&&typeRate>4096)rateApply(state,dAb.name,3072,logs);
     if(o.defenderFriendGuard&&!moldBreakerActive(result,input,o))rateApply(state,'フレンドガード',3072,logs);else if(o.defenderFriendGuard&&moldBreakerActive(result,input,o))logs.push('フレンドガード: かたやぶり効果により4096');
     if(aI&&window.DAMEKE_DATA_HELPERS.itemTag(aItem,'expertBelt')&&typeRate>4096)rateApply(state,'たつじんのおび',4915,logs);

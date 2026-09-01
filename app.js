@@ -150,6 +150,7 @@
       moldBreaker: false, neutralizingGas: false, attackerItemSuppressed: false, defenderItemSuppressed: false
     };
   }
+  window.__damekeBuildOptions = buildOptions;
   function findTraceEntry(trace, labelPart){ return (trace||[]).find(function(x){ return String(x.label||'').indexOf(labelPart) >= 0; }) || null; }
   function findTraceEntries(trace, labelPart){ return (trace||[]).filter(function(x){ return String(x.label||'').indexOf(labelPart) >= 0; }); }
   function rateCell(label, rawText){
@@ -517,8 +518,7 @@
     try { faintPct = CALC.computeFaintProbability ? CALC.computeFaintProbability(inputArgs, result) : null; } catch(e) { faintPct = null; }
     const faintText = faintPct == null ? '計算不可' : faintPct.toFixed(2) + '%';
     const subLine = result.substituteActive ? (result.substituteMaxHp + '/' + result.substituteMinRemaining + '/' + result.substituteMaxRemaining) : '';
-    const recoveryLine = result.recoveryAmount > 0 ? String(result.recoveryAmount) : '';
-    el.summary.innerHTML = ['<strong>' + result.attackerName + '</strong> の <strong>' + result.moveName + '</strong> → <strong>' + result.defenderName + '</strong>', '判定分類: <strong>' + result.effectiveCategory + '</strong>', '技タイプ: <strong>' + result.effectiveType + '</strong>', 'ダメージ: <strong>' + result.minDamage + ' ～ ' + result.maxDamage + '</strong>', '割合: <strong>' + result.minRate.toFixed(1) + '% ～ ' + result.maxRate.toFixed(1) + '%</strong>', '防御側HP: ' + result.defenderCurrentHp + ' / ' + result.defenderMaxHp, '確定数: <strong>' + formatKoInfo(result.koInfo, result.maxDamage, result.substituteBlocksAll) + '</strong>', '命中率: <strong>' + (result.accuracyResult === '命中' ? formatAccuracyPercent(result.accuracyPercent) : result.accuracyResult) + '</strong>', '瀕死率: <strong>' + faintText + '</strong>', 'みがわり: ' + subLine, '回復量: ' + recoveryLine].join('<br>');
+    el.summary.innerHTML = ['<strong>' + result.attackerName + '</strong> の <strong>' + result.moveName + '</strong> → <strong>' + result.defenderName + '</strong>', '判定分類: <strong>' + result.effectiveCategory + '</strong>', '技タイプ: <strong>' + result.effectiveType + '</strong>', 'ダメージ: <strong>' + result.minDamage + ' ～ ' + result.maxDamage + '</strong>', '割合: <strong>' + result.minRate.toFixed(1) + '% ～ ' + result.maxRate.toFixed(1) + '%</strong>', '防御側HP: ' + result.defenderCurrentHp + ' / ' + result.defenderMaxHp, '確定数: <strong>' + formatKoInfo(result.koInfo, result.maxDamage, result.substituteBlocksAll) + '</strong>', '命中率: <strong>' + (result.accuracyResult === '命中' ? formatAccuracyPercent(result.accuracyPercent) : result.accuracyResult) + '</strong>', '瀕死率: <strong>' + faintText + '</strong>', 'みがわり: ' + subLine].join('<br>');
     // el.rolls (乱数 section) retired -- this data now shows as "ダメージ" in the calc-process table.
     renderCalcTable(result);
     el.trace.textContent = formatTrace(result.trace);
@@ -526,6 +526,17 @@
   window.__damekeCalculate = calculate;
   function setHpFraction(side, denom) { const pokemon = byId(DATA.pokemons, el[side + 'Select'].value); const level = el[side + 'Level'].value; const stats = readStats(side); const maxHp = CALC.previewBaseMaxHp(pokemon, level, stats); el[side + 'CurrentHp'].value = Math.max(1, Math.floor(maxHp / denom)); calculate(); }
   async function copyTrace() { const text = el.trace.textContent || ''; if (!text) return; try { await navigator.clipboard.writeText(text); alert('計算過程をコピーしました。'); } catch { alert('コピーに失敗しました。'); } }
+  // If the browser window/tab itself loses focus (switching to another app or tab), release
+  // focus from whatever input was active -- otherwise a still-focused text field can prevent
+  // other in-page controls (e.g. form-change buttons) from visibly taking effect afterward.
+  window.addEventListener('blur', function () {
+    var ae = document.activeElement;
+    if (ae && typeof ae.blur === 'function' && ae !== document.body) ae.blur();
+  });
+  window.addEventListener('resize', function(){
+    var panel = document.getElementById('v082hResultPanel');
+    if(panel) document.documentElement.style.setProperty('--v082h-fixed-panel-h', panel.offsetHeight + 'px');
+  });
   function init() {
     createStatsGrid('attacker', el.attackerStatsGrid); createStatsGrid('defender', el.defenderStatsGrid);
     fillSelect(el.attackerSelect, DATA.pokemons); fillSelect(el.defenderSelect, DATA.pokemons); fillSelect(el.moveSelect, DATA.moves.filter(function(m){ return !(DATA.isExcludedSignatureZMove && DATA.isExcludedSignatureZMove(m)); })); fillSelect(el.attackerItemSelect, DATA.items); fillSelect(el.defenderItemSelect, DATA.items); fillSelect(el.attackerAbilitySelect, DATA.abilities); fillSelect(el.defenderAbilitySelect, DATA.abilities); fillSelect(el.attackerSpecialState, DATA.specialStates); fillSelect(el.defenderSpecialState, specialStatesForDefender()); fillSelect(el.attackerTeraType, DATA.teraTypes); fillSelect(el.defenderTeraType, DATA.teraTypes); fillSelect(el.attackerType1, DATA.typeOptions); fillSelect(el.attackerType2, DATA.typeOptions); fillSelect(el.defenderType1, DATA.typeOptions); fillSelect(el.defenderType2, DATA.typeOptions); fillSelect(el.weatherSelect, DATA.weatherOptions); fillSelect(el.fieldSelect, DATA.fieldOptions); fillSelectBeatUpAllies();
@@ -536,7 +547,7 @@
     el.resetTransformOps.addEventListener('click', () => { transformOps = []; updateOpsDisplay(); calculate(); });
     el.calculateButton.addEventListener('click', calculate); el.copyTraceButton.addEventListener('click', copyTrace);
     document.querySelectorAll('button[data-hp-side]').forEach(btn => btn.addEventListener('click', () => setHpFraction(btn.dataset.hpSide, Number(btn.dataset.hpRate))));
-    document.addEventListener('change', function(e){ var t=e.target; if(t && t.matches && t.matches('input,select')) calculate(); });
+    document.addEventListener('change', function(e){ var t=e.target; if(t && t.matches && t.matches('input,select')){ calculate(); if(window.__damekeRefreshAll) window.__damekeRefreshAll(); } });
     updateOpsDisplay(); calculate();
   }
   window.__damekeInitV084 = init;
@@ -697,6 +708,7 @@
     window.addEventListener('scroll', function(e){ if(!list.hidden && e.target !== list && !suppressScrollClose) closeList(); }, true);
     window.addEventListener('resize', function(){ if(!list.hidden) closeList(); });
   }
+  window.__damekeAttachSearchCombo = attachSearchCombo;
   function firstTextNode(label){ if(!label) return null; for(var i=0;i<label.childNodes.length;i++){ var n=label.childNodes[i]; if(n.nodeType===3 && String(n.textContent).trim()) return n; } return null; }
   function relabel(id, text){
     var l=labelOf(id); if(!l) return;
@@ -717,7 +729,27 @@
   function selectByText(selectId, label){ var s=q(selectId); if(!s) return false; for(var i=0;i<s.options.length;i++){ if(s.options[i].textContent===label || s.options[i].value===label){ s.value=s.options[i].value; dispatchChange(s); return true; } } return false; }
 
   function details(title, cls, open){ var d=document.createElement('details'); d.className=cls||'v082h-details'; d.open=!!open; d.appendChild(make('summary','',title)); return d; }
-  function box(title, cls){ var s=make('section','sub-card v082h-box '+(cls||'')); s.appendChild(make('h3','',title)); return s; }
+  function box(title, cls, side){
+    var s=make('section','sub-card v082h-box '+(cls||''));
+    var head=make('div','v082h-box-head');
+    head.appendChild(make('h3','',title));
+    if(side){
+      var group=make('div','dameke-btn-group dameke-btn-group-poke');
+      group.appendChild(make('span','dameke-btn-group-label','ポケ管理'));
+      var row=make('div','dameke-btn-group-buttons');
+      var saveBtn=make('button','dameke-btn-group-btn dameke-btn-group-save','保存');
+      saveBtn.type='button';
+      saveBtn.addEventListener('click', function(){ if(window.__damekeSavePokemonFromSide) window.__damekeSavePokemonFromSide(side); });
+      var loadBtn=make('button','dameke-btn-group-btn dameke-btn-group-load','呼び出し');
+      loadBtn.type='button';
+      loadBtn.addEventListener('click', function(){ if(window.__damekeShowPanel) window.__damekeShowPanel('pokemon'); });
+      row.appendChild(saveBtn); row.appendChild(loadBtn);
+      group.appendChild(row);
+      head.appendChild(group);
+    }
+    s.appendChild(head);
+    return s;
+  }
   function zone(id, title){ var d=details(title,'v082h-details v082h-trigger-details',false); d.id=id; return d; }
 
   function setActiveSide(side){
@@ -745,14 +777,14 @@
     root.classList.add('v082h-root-basic');
 
     var toolbar=make('div','v082h-toolbar'); toolbar.id='v082hToolbar';
-    var swap=make('button','v082h-primary','攻防交代'); swap.type='button'; swap.addEventListener('click', swapSides);
+    var swap=make('button','dameke-toolbar-btn dameke-toolbar-btn-swap','攻防交代'); swap.type='button'; swap.id='v082hSwapBtn'; swap.addEventListener('click', swapSides);
     toolbar.appendChild(swap);
     root.appendChild(toolbar);
 
     root.appendChild(buildSideTabs());
     var grid=make('div','v082h-basic-grid'); grid.id='v082hBasicGrid'; root.appendChild(grid);
-    var atk=box('攻撃側','v082h-attacker');
-    var def=box('防御側','v082h-defender');
+    var atk=box('攻撃側','v082h-attacker','attacker');
+    var def=box('防御側','v082h-defender','defender');
     grid.appendChild(atk); grid.appendChild(def);
     buildSide('attacker', atk, true);
     buildSide('defender', def, false);
@@ -853,6 +885,32 @@
     dispatchChange(input);
   }
 
+  function readOnlyStatRow(side,label,stats,idPrefix){
+    var row=make('div','v082h-stat-row');
+    row.appendChild(make('span','v082h-stat-label',label));
+    stats.forEach(function(k){
+      var cell=make('span','v082h-stat-cell v082h-stat-readonly');
+      cell.id = idPrefix+'_'+side+'_'+k;
+      row.appendChild(cell);
+    });
+    return row;
+  }
+  function updateReadOnlyStatRows(side){
+    var C=window.DAMEKE_CALC, p=currentPokemon(side);
+    if(!p) return;
+    ['H','A','B','C','D','S'].forEach(function(k){
+      var baseCell=q('v082hBaseStat_'+side+'_'+k);
+      if(baseCell) baseCell.textContent = (p.baseStats && p.baseStats[k]!=null) ? p.baseStats[k] : '-';
+    });
+    if(!C || !C.getActualStats) return;
+    var level=valueOf(side+'Level');
+    var actual = C.getActualStats(p, level, statsSnapshot(side));
+    ['H','A','B','C','D','S'].forEach(function(k){
+      var cell=q('v082hActualNoRank_'+side+'_'+k);
+      if(cell) cell.textContent = actual ? actual[k] : '-';
+    });
+  }
+
   function addStatsPanel(side, dest){
     var panel=make('div','v082h-stats-panel'); panel.id='v082hStatsPanel_'+side;
     dest.appendChild(panel);
@@ -862,13 +920,22 @@
 
     var visible=make('div','v082h-stat-table'); panel.appendChild(visible);
     visible.appendChild(statHeader(['H','A','B','C','D','S']));
+    visible.appendChild(readOnlyStatRow(side,'種族値',['H','A','B','C','D','S'],'v082hBaseStat'));
     visible.appendChild(statRow(side,'努力値',['H','A','B','C','D','S'],'ev'));
+    visible.appendChild(readOnlyStatRow(side,'実数値',['H','A','B','C','D','S'],'v082hActualNoRank'));
     visible.appendChild(statRow(side,'ランク',['H','A','B','C','D','S'],'rank'));
 
     var accEva=make('div','v082h-stat-table v082h-rank-sub'); panel.appendChild(accEva);
     accEva.appendChild(statHeader(['acc','eva']));
     accEva.appendChild(statRow(side,'ランク',['acc','eva'],'rank'));
 
+    var levelInputEl = q(side+'Level');
+    if(levelInputEl){
+      levelInputEl.addEventListener('input', function(){ updateReadOnlyStatRows(side); });
+      levelInputEl.addEventListener('change', function(){ updateReadOnlyStatRows(side); });
+    }
+
+    addRemainingEvDisplay(side, panel);
     addEvPreset(side, panel);
     addHpPreset(side, panel);
     addLevelIvFold(side, panel);
@@ -882,6 +949,33 @@
     lbl.appendChild(document.createTextNode('性格'));
     lbl.appendChild(sel);
     panel.appendChild(lbl);
+    sel.addEventListener('change', function(){ updateNatureStatColors(side); updateReadOnlyStatRows(side); });
+    setTimeout(function(){ updateNatureStatColors(side); updateReadOnlyStatRows(side); }, 0);
+  }
+  function updateRemainingEvDisplay(side){
+    var wrap = q('v082hEvRemaining_'+side);
+    if(!wrap) return;
+    var total = 0;
+    ['H','A','B','C','D','S'].forEach(function(k){ var e=q(side+'_'+k+'_ev'); total += e ? (parseInt(e.value,10)||0) : 0; });
+    var remaining = 66 - total;
+    wrap.textContent = '残り努力値：' + remaining;
+    wrap.classList.toggle('v082h-ev-remaining-over', remaining < 0);
+  }
+  function addRemainingEvDisplay(side, panel){
+    var wrap = make('div', 'v082h-ev-remaining');
+    wrap.id = 'v082hEvRemaining_'+side;
+    panel.appendChild(wrap);
+    function update(){
+      updateRemainingEvDisplay(side);
+      updateReadOnlyStatRows(side);
+    }
+    ['H','A','B','C','D','S'].forEach(function(k){
+      var e = q(side+'_'+k+'_ev');
+      if(e){ e.addEventListener('input', update); e.addEventListener('change', update); }
+      var iv = q(side+'_'+k+'_iv');
+      if(iv){ iv.addEventListener('input', function(){ updateReadOnlyStatRows(side); }); iv.addEventListener('change', function(){ updateReadOnlyStatRows(side); }); }
+    });
+    update();
   }
   function addEvPreset(side, panel){
     var wrap=make('div','v082h-ev-preset');
@@ -933,8 +1027,20 @@
     ivTable.appendChild(statHeader(['H','A','B','C','D','S']));
     ivTable.appendChild(statRow(side,'個体値',['H','A','B','C','D','S'],'iv'));
   }
-  function statHeader(stats){ var row=make('div','v082h-stat-row v082h-stat-head'); row.appendChild(make('span','','')); stats.forEach(function(k){ row.appendChild(make('span','',labelStat(k))); }); return row; }
+  function statHeader(stats){ var row=make('div','v082h-stat-row v082h-stat-head'); row.appendChild(make('span','','')); stats.forEach(function(k){ var cell=make('span','',labelStat(k)); cell.setAttribute('data-stat-key', k); row.appendChild(cell); }); return row; }
   function labelStat(k){ return {H:'H',A:'A',B:'B',C:'C',D:'D',S:'S',acc:'命中',eva:'回避'}[k] || k; }
+  function updateNatureStatColors(side){
+    var natureSel = q(side+'_nature');
+    if(!natureSel || !window.DAMEKE_NATURE) return;
+    var pair = window.DAMEKE_NATURE.naturePair({nature: natureSel.value});
+    var panel = q('v082hStatsPanel_'+side);
+    if(!panel) return;
+    panel.querySelectorAll('[data-stat-key]').forEach(function(cell){
+      var k = cell.getAttribute('data-stat-key');
+      cell.classList.toggle('v082h-stat-boost', k === pair.up);
+      cell.classList.toggle('v082h-stat-drop', k === pair.down);
+    });
+  }
   function attachNumberPicker(input, min, max){
     if(!input || input.getAttribute('data-v082h-picker')) return;
     input.setAttribute('data-v082h-picker', '1');
@@ -949,6 +1055,7 @@
     input.addEventListener('change', function(){ if(sel.value !== input.value && input.value !== '') sel.value = input.value; });
     if(input.parentNode) input.parentNode.insertBefore(sel, input.nextSibling);
   }
+  window.__damekeAttachNumberPicker = attachNumberPicker;
   function statRow(side,label,stats,kind){ var row=make('div','v082h-stat-row'); row.appendChild(make('span','v082h-stat-label',label)); stats.forEach(function(k){ var input=q(side+'_'+k+'_'+kind); var cell=make('span','v082h-stat-cell'); if(input){ cell.appendChild(input); var mn=parseInt(input.min,10), mx=parseInt(input.max,10); if(!isNaN(mn) && !isNaN(mx)) attachNumberPicker(input, mn, mx); } else cell.textContent='-'; row.appendChild(cell); }); return row; }
 
   function setupZones(){
@@ -1085,6 +1192,9 @@
     ['attackerTelekinesis','defenderTelekinesis'], ['attackerRoost','defenderRoost'],
     ['attackerBurnUp','defenderBurnUp'], ['attackerDoubleShock','defenderDoubleShock'],
     ['attackerBodyPurge','defenderBodyPurge'],
+    ['v082hEvPreset_attacker','v082hEvPreset_defender'], // the quick-preset dropdown's own displayed
+    // selection isn't derived from the EV values -- it's independent "what was last picked" state,
+    // so it needs its own explicit swap entry alongside the underlying EV inputs above.
   ];
   function statSymmetricPairs(){
     var out = [];
@@ -1204,7 +1314,8 @@
   // For forms whose sprite likely doesn't exist yet (very new/rare Terastal or transformed
   // states), fall back to showing the pre-transformation form instead of nothing.
   var PRE_TRANSFORM_FALLBACK = {
-    'ネクロズマ(ウルトラネクロズマ)':'ネクロズマ',
+    'ネクロズマ(たそがれのたてがみ(ウルトラネクロズマ))':'ネクロズマ(たそがれのたてがみ)',
+    'ネクロズマ(あかつきのつばさ(ウルトラネクロズマ))':'ネクロズマ(あかつきのつばさ)',
     'テラパゴス(テラスタル)':'テラパゴス',
     'オーガポン(いしずえ)':'オーガポン(みどり)',
     'オーガポン(いど)':'オーガポン(みどり)',
@@ -1273,7 +1384,6 @@
     var certainty=valueAfter(lines,'確定数:')||'未計算';
     var faintRate=valueAfter(lines,'瀕死率:')||'未計算';
     var subLineText=valueAfter(lines,'みがわり:')||'';
-    var recoveryText=valueAfter(lines,'回復量:')||'';
     var power=compactPower(traceLine('変動後威力'));
     var dn=digits(dmg), hn=digits(hp);
 
@@ -1300,7 +1410,7 @@
     var moveLine = make('div','v082h-result-move-line', moveNamePart);
     textCol.appendChild(namesLine);
     textCol.appendChild(moveLine);
-    textCol.appendChild(make('div','v082h-hp-infoline', dmg+'（'+rate+'）'+(recoveryText?'　回復:'+recoveryText:'')));
+    textCol.appendChild(make('div','v082h-hp-infoline', dmg+'（'+rate+'）'));
     textCol.appendChild(make('div','v082h-hp-infoline2', certainty+'　瀕死率:'+faintRate));
     headerRow.appendChild(textCol);
     headerRow.appendChild(buildPokemonThumb(defenderNamePart, 'right'));
@@ -1350,14 +1460,38 @@
     var grid=make('div','v082h-result-grid');
     detail.appendChild(grid);
     var accuracyDisplay=valueAfter(lines,'命中率:')||'未計算';
-    [['技分類',cat],['技タイプ',type],['技威力',power],['ダメージ',dmg],['割合',rate],['回復量',recoveryText||'なし'],['確定数',certainty],['命中率',accuracyDisplay],['瀕死率',faintRate]].forEach(function(r){ resultRow(grid, r[0], r[1]); });
+    [['技分類',cat],['技タイプ',type],['技威力',power],['ダメージ',dmg],['割合',rate],['確定数',certainty],['命中率',accuracyDisplay],['瀕死率',faintRate]].forEach(function(r){ resultRow(grid, r[0], r[1]); });
 
     requestAnimationFrame(function(){
       document.documentElement.style.setProperty('--v082h-fixed-panel-h', panel.offsetHeight + 'px');
     });
+    // Pokemon sprite images inside the panel load asynchronously (fetched from PokeAPI), so the
+    // panel's true height can still grow after the first measurement above -- re-measure a
+    // couple more times to catch that, rather than leaving stale (too-small) padding underneath.
+    [150, 500, 1200].forEach(function(delay){
+      setTimeout(function(){
+        document.documentElement.style.setProperty('--v082h-fixed-panel-h', panel.offsetHeight + 'px');
+      }, delay);
+    });
+    // Safety net beyond the staggered re-measures above: a ResizeObserver fires whenever the
+    // fixed panel's actual rendered height changes for ANY reason (content, font/image load,
+    // viewport-driven wrapping), so a stale (too-small) padding value can't persist -- this is
+    // what self-heals the "can't scroll all the way down" symptom without needing a panel
+    // switch or page refresh. Guarded to attach only once (renderResult reuses the same panel
+    // element on every call, it doesn't recreate it).
+    if(window.ResizeObserver && !panel.getAttribute('data-dameke-resize-observed')){
+      panel.setAttribute('data-dameke-resize-observed', '1');
+      var ro = new ResizeObserver(function(entries){
+        entries.forEach(function(entry){
+          document.documentElement.style.setProperty('--v082h-fixed-panel-h', entry.target.offsetHeight + 'px');
+        });
+      });
+      ro.observe(panel);
+    }
   }
   function setupResult(){ var s=q('summary'), t=q('trace'); if(!s) return; var obs=new MutationObserver(renderResult); obs.observe(s,{childList:true,subtree:true,characterData:true}); if(t) obs.observe(t,{childList:true,subtree:true,characterData:true}); setTimeout(renderResult,0); }
-  function refreshAll(){ updateAbilityButtons('attacker'); updateAbilityButtons('defender'); updateConditional(); renderResult(); }
+  function refreshAll(){ updateAbilityButtons('attacker'); updateAbilityButtons('defender'); updateConditional(); renderResult(); updateNatureStatColors('attacker'); updateNatureStatColors('defender'); updateReadOnlyStatRows('attacker'); updateReadOnlyStatRows('defender'); updateRemainingEvDisplay('attacker'); updateRemainingEvDisplay('defender'); }
+  window.__damekeRefreshAll = refreshAll;
   function bind(){ ['attackerSelect','defenderSelect'].forEach(function(id){ var e=q(id); if(e) e.addEventListener('change',function(){ setTimeout(refreshAll,0); }); }); ['moveSelect','attackerAbilitySelect','defenderAbilitySelect','attackerItemSelect','attackerTeraType'].forEach(function(id){ var e=q(id); if(e) e.addEventListener('change',function(){ setTimeout(updateConditional,0); }); }); }
 
   function safeStep(name, fn){ try{ fn(); }catch(e){ if(window.console && console.error) console.error('[v082h] '+name+' failed:', e); } }
@@ -1874,7 +2008,7 @@
       legacyPanelsAbsent: forms.legacyPanelCount === 0
     };
     return {
-      version: 'v1.1.0',
+      version: 'v1.2.0',
       loaded: true,
       initialization: initialization,
       ui: ui,

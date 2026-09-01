@@ -3,14 +3,24 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>だめけー Web v1.1.0</title>
+  <title>だめけー Web v1.2.0</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header class="app-header">
-    <h1>だめけー Web v1.1.0</h1>
+    <button type="button" id="damekeMenuBtn" class="dameke-menu-btn" aria-label="メニュー">
+      <span></span><span></span><span></span>
+    </button>
+    <h1>だめけー Web v1.2.0</h1>
     <p>for Pokémon Champions</p>
+    <nav id="damekeMenuNav" class="dameke-menu-nav" hidden>
+      <button type="button" class="dameke-menu-item" data-panel="calculator">ダメージ計算</button>
+      <button type="button" class="dameke-menu-item" data-panel="history">計算履歴</button>
+      <button type="button" class="dameke-menu-item" data-panel="pokemon">ポケモン管理</button>
+      <button type="button" class="dameke-menu-item" data-panel="party">パーティ管理</button>
+    </nav>
   </header>
+  <div id="panel-calculator" class="dameke-tool-panel">
   <main class="layout">
     <section class="card input-card">
       <h2>入力</h2>
@@ -251,12 +261,45 @@
       <p class="dameke-image-credit">ポケモンの画像はPokéAPI（https://pokeapi.co）経由で参照しています。ポケモンおよび関連の著作権は任天堂・クリーチャーズ・ゲームフリークに帰属します。本ツールは非公式・非営利のファン制作物であり、画像ファイルの独自保存・改変は行っていません。</p>
     </section>
   </main>
+  </div>
+  <div id="panel-history" class="dameke-tool-panel" hidden>
+    <main class="layout">
+      <section class="card">
+        <h2>計算履歴</h2>
+        <div id="damekeHistoryList" class="dameke-history-list"></div>
+      </section>
+    </main>
+  </div>
+  <div id="panel-pokemon" class="dameke-tool-panel" hidden>
+    <main class="layout">
+      <section class="card">
+        <h2>ポケモン管理</h2>
+        <div class="dameke-pokemon-panel-toolbar">
+          <button type="button" id="damekePokemonNewBtn" class="dameke-toolbar-btn dameke-toolbar-btn-new">新規作成</button>
+          <button type="button" id="damekePartyNewFromPokemonBtn" class="dameke-toolbar-btn dameke-toolbar-btn-party">パーティ作成</button>
+        </div>
+        <div id="damekePokemonList" class="dameke-pokemon-list"></div>
+        <div id="damekePokemonEditHost" class="dameke-pokemon-edit-host" hidden></div>
+      </section>
+    </main>
+  </div>
+  <div id="panel-party" class="dameke-tool-panel" hidden>
+    <main class="layout">
+      <section class="card">
+        <h2>パーティ管理</h2>
+        <button type="button" id="damekePartyNewBtn" class="dameke-toolbar-btn dameke-toolbar-btn-new">新規作成</button>
+        <div id="damekePartyList" class="dameke-party-list"></div>
+        <div id="damekePartySelectorHost" class="dameke-party-selector-host" hidden></div>
+      </section>
+    </main>
+  </div>
 <script src="data.js"></script>
 <script src="data_learnsets.js"></script>
 <script src="data_pokemon_images.js"></script>
 <script src="calc.js"></script>
   
 <script src="app.js"></script>
+<script src="app_tools.js"></script>
   
 </body>
 </html>

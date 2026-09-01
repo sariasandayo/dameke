@@ -4,7 +4,7 @@ body { margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Se
 .app-header { padding: 18px 24px; background: #111827; color: #fff; }
 .app-header h1 { margin: 0 0 4px; font-size: 22px; }
 .app-header p { margin: 0; color: #d1d5db; }
-.layout { display: grid; grid-template-columns: 700px 700px; gap: 16px; padding: 16px; align-items: start; }
+.layout { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; padding: 16px; align-items: start; }
 body:not(.v082h-ready) .layout { visibility: hidden; }
 .card,.sub-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; box-shadow: 0 1px 3px rgba(15,23,42,.08); }
 .card { padding: 16px; }
@@ -50,9 +50,11 @@ button:hover { background: #e0e7ff; }
 .v082h-side-tabs{display:none;gap:6px;margin-bottom:8px;box-sizing:border-box;width:100%;max-width:320px;min-width:0;}
 .v082h-side-tabs button{box-sizing:border-box;flex:1 1 0;width:0;min-width:0;padding:6px;border-radius:8px;font-weight:700;font-size:.82rem;background:#f1f5f9;border:1px solid #cbd5e1;color:#475569;}
 .v082h-side-tabs button.active{background:#2563eb;border-color:#2563eb;color:#fff;}
-.v082h-root-basic{overflow-x:auto;}
-.v082h-basic-grid{display:grid;grid-template-columns:320px 320px;width:652px;gap:12px;margin-top:10px;}
+.v082h-root-basic{overflow-x:auto;width:100%;box-sizing:border-box;}
+.v082h-basic-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);width:100%;box-sizing:border-box;gap:10px;margin-top:10px;}
 .v082h-box{margin:0;width:320px;}
+.v082h-box-head{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.v082h-box-head h3{margin:0;}
 .v082h-attacker,.v082h-section-details.v082h-attacker{background:#fff8f8;border-color:#f1d8d8;}
 .v082h-defender,.v082h-section-details.v082h-defender{background:#f7faff;border-color:#d7e3f4;}
 .v082h-attacker .v082h-ability-panel,.v082h-attacker .v082h-stats-panel,.v082h-attacker .v082h-double-fold{background:#fff8f8;border-color:#f1d8d8;}
@@ -71,8 +73,33 @@ button:hover { background: #e0e7ff; }
 .v082h-type-effects{font-size:.86rem;opacity:.82;padding:6px 8px;background:#fbfdff;}
 .v082h-type-effects>summary{font-weight:600;color:#64748b;}
 .v082h-zone label{margin-top:8px;}
-.v082h-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0 12px;}
-.v082h-primary{border-radius:999px;padding:8px 14px;font-weight:700;}
+.v082h-toolbar{display:flex;gap:10px;align-items:stretch;justify-content:space-between;flex-wrap:wrap;width:100%;box-sizing:border-box;margin:8px 0 12px;}
+
+/* 攻防交代 button: pill shape, gradient, subtle depth */
+.dameke-toolbar-btn{border-radius:999px;padding:0 20px;font-size:.88rem;font-weight:700;color:#fff;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;min-height:38px;}
+.dameke-toolbar-btn-swap{background:linear-gradient(135deg,#2563eb,#1d4ed8);box-shadow:0 2px 6px rgba(37,99,235,.35);transition:transform .12s,box-shadow .12s;}
+.dameke-toolbar-btn-swap::before{content:'⇄';font-size:1rem;}
+.dameke-toolbar-btn-swap:hover{background:linear-gradient(135deg,#2563eb,#1d4ed8);transform:translateY(-1px);box-shadow:0 4px 10px rgba(37,99,235,.45);}
+.dameke-toolbar-btn-swap:active{transform:translateY(0);box-shadow:0 1px 3px rgba(37,99,235,.35);}
+
+.dameke-toolbar-btn-new{background:linear-gradient(135deg,#059669,#047857);box-shadow:0 2px 6px rgba(5,150,105,.35);transition:transform .12s,box-shadow .12s;margin-bottom:12px;}
+.dameke-toolbar-btn-new::before{content:'+';font-size:1.1rem;font-weight:800;}
+.dameke-toolbar-btn-new:hover{background:linear-gradient(135deg,#059669,#047857);transform:translateY(-1px);box-shadow:0 4px 10px rgba(5,150,105,.45);}
+.dameke-toolbar-btn-new:active{transform:translateY(0);box-shadow:0 1px 3px rgba(5,150,105,.35);}
+
+/* Grouped 2-button frames (履歴 / ポケ管理): small label + segmented-control pair */
+.dameke-btn-group{display:inline-flex;flex-direction:column;gap:3px;align-items:flex-start;}
+.dameke-btn-group-label{font-size:.62rem;font-weight:700;color:#9ca3af;letter-spacing:.04em;padding-left:2px;}
+.dameke-btn-group-buttons{display:flex;box-shadow:0 1px 4px rgba(15,23,42,.18);border:1px solid rgba(15,23,42,.06);border-radius:999px;}
+.dameke-btn-group-btn{border:none;padding:7px 8px;font-size:.8rem;font-weight:700;cursor:pointer;color:#fff;width:76px;text-align:center;transition:transform .12s,box-shadow .12s;position:relative;box-sizing:border-box;white-space:nowrap;}
+.dameke-btn-group-btn:first-child{border-radius:999px 0 0 999px;}
+.dameke-btn-group-btn:last-child{border-radius:0 999px 999px 0;}
+.dameke-btn-group-save{background:#059669;}
+.dameke-btn-group-load{background:#0891b2;}
+.dameke-btn-group-save:hover{background:#059669;}
+.dameke-btn-group-load:hover{background:#0891b2;}
+.dameke-btn-group-btn:hover{transform:translateY(-1px);box-shadow:0 3px 8px rgba(15,23,42,.28);z-index:1;}
+.dameke-btn-group-btn:active{transform:translateY(0);box-shadow:none;}
 .v082h-muted{font-size:.86rem;opacity:.72;}
 .v082h-secondary-action{opacity:.62;font-size:.9rem;padding:6px 9px;margin-top:16px;display:inline-block;}
 .v082h-ability-panel{border:1px solid #e5e7eb;border-radius:12px;padding:8px 10px;margin:8px 0;background:#fff;}
@@ -85,6 +112,8 @@ button:hover { background: #e0e7ff; }
 .v082h-stats-panel>label{margin:0 0 8px;grid-template-columns:1fr;}
 .v082h-nature-field{display:flex;align-items:center;gap:6px;margin:0 0 8px;font-size:12px;color:inherit;}
 .v082h-nature-field select{width:190px;max-width:190px;padding:2px 5px;font-size:12px;}
+.v082h-ev-remaining{font-size:.8rem;font-weight:700;color:#166534;margin-top:6px;}
+.v082h-ev-remaining-over{color:#dc2626;}
 .v082h-ev-preset{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0;}
 .v082h-ev-select{max-width:78px;font-size:.8rem;padding:5px 4px;}
 .v082h-hp-row{margin:8px 0;align-items:start;grid-template-columns:130px 1fr;}
@@ -93,10 +122,13 @@ button:hover { background: #e0e7ff; }
 .v082h-hp-buttons button{padding:3px 5px;font-size:.72rem;}
 .v082h-stat-table{display:grid;gap:4px;margin-bottom:8px;}
 .v082h-stat-row{display:grid;grid-template-columns:40px repeat(6,32px);gap:2px;align-items:center;}
+.v082h-stat-boost{color:#dc2626 !important;font-weight:800;}
+.v082h-stat-drop{color:#2563eb !important;font-weight:800;}
 .v082h-rank-sub .v082h-stat-row{grid-template-columns:40px repeat(2,32px);}
 .v082h-stat-head span{font-size:.72rem;font-weight:700;color:#64748b;text-align:center;}
 .v082h-stat-label{font-size:.72rem;font-weight:700;color:#475569;white-space:nowrap;}
 .v082h-stat-cell{min-width:0;}
+.v082h-stat-readonly{display:flex;align-items:center;justify-content:center;font-size:.7rem;color:#6b7280;background:#f3f4f6;border-radius:3px;min-height:1.6em;}
 .v082h-stat-cell input,.v082h-stat-cell select{width:100%;min-width:0;padding:2px 1px;font-size:.7rem;text-align:center;}
 .v082h-num-picker{display:none;}
 .v082h-cond-wrap-outer{margin:0;}
@@ -115,7 +147,7 @@ button:hover { background: #e0e7ff; }
 .v082h-double-fold>summary{font-size:.85rem;font-weight:600;}
 .v082h-result-panel{background:#f9fafb;border:1px solid #e5e7eb;border-radius:14px;padding:12px;margin-bottom:12px;}
 .v082h-hp-infoline{font-weight:800;font-size:.92rem;color:#1f2937;margin-bottom:6px;}
-.v082h-result-sidegrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 10px;margin-top:8px;}
+.v082h-result-sidegrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));justify-items:center;gap:0 10px;margin-top:8px;}
 .v082h-result-col{display:flex;flex-direction:column;}
 .v082h-hpbar-wrap{margin:8px 0 10px;}
 .v082h-subbar-outer{display:flex;justify-content:flex-end;margin-bottom:3px;}
@@ -157,8 +189,8 @@ button:hover { background: #e0e7ff; }
 
 @media(max-width:1250px){
   .layout{grid-template-columns:1fr}
-  .layout{padding-bottom:calc(var(--v082h-fixed-panel-h, 120px) + 10px);}
-  .result-card{padding-bottom:calc(var(--v082h-fixed-panel-h, 120px) + 16px);}
+  .layout{padding-bottom:calc(var(--v082h-fixed-panel-h, 180px) + 24px);}
+  .result-card{padding-bottom:calc(var(--v082h-fixed-panel-h, 180px) + 30px);}
   #v082hResultPanel{position:fixed;bottom:0;left:0;right:0;z-index:50;margin:0;border-radius:0;box-shadow:0 -6px 16px rgba(15,23,42,.22);padding:6px 10px;max-height:none;overflow:visible;}
   #v082hResultPanel .v082h-result-title{font-size:.8rem;margin-bottom:2px;}
   #v082hResultPanel .v082h-result-move-line{font-size:.76rem;margin-bottom:3px;}
@@ -222,3 +254,152 @@ select.dameke-type-stellar{background:linear-gradient(90deg,#fbd9e6,#c4ecec,#fbe
 .v082h-pokemon-thumb{flex:0 0 auto;width:68px;height:68px;display:flex;align-items:center;justify-content:center;}
 .v082h-pokemon-thumb img{max-width:100%;max-height:100%;image-rendering:pixelated;}
 .v082h-pokemon-thumb-missing{width:68px;height:68px;border-radius:50%;background:#e5e7eb;}
+.app-header{position:relative;}
+.dameke-menu-btn{position:absolute;top:12px;right:16px;width:44px;height:40px;background:transparent;border:none;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;padding:0;}
+.dameke-menu-btn span{display:block;width:26px;height:3px;background:#fff;border-radius:2px;flex-shrink:0;}
+.dameke-menu-nav{position:absolute;top:52px;right:16px;background:#1f2937;border:1px solid rgba(255,255,255,.15);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.35);z-index:100;display:flex;flex-direction:column;min-width:160px;overflow:hidden;}
+.dameke-menu-nav[hidden]{display:none;}
+.dameke-menu-item{background:transparent;border:none;color:#fff;text-align:left;padding:10px 14px;font-size:.92rem;cursor:pointer;}
+.dameke-menu-item:hover{background:rgba(255,255,255,.1);}
+.dameke-menu-item.dameke-menu-item-active{background:rgba(255,255,255,.16);font-weight:700;}
+.dameke-tool-panel[hidden]{display:none;}
+.dameke-history-hint{font-size:.85rem;color:#6b7280;margin:0 0 16px;line-height:1.6;}
+.dameke-history-list{display:flex;flex-direction:column;gap:12px;}
+.dameke-history-card{border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;background:#fafafa;}
+.dameke-history-card-meta{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;}
+.dameke-history-card-sub{font-size:.8rem;color:#6b7280;}
+.dameke-history-card-actions{display:flex;gap:6px;flex:0 0 auto;}
+.dameke-history-card-actions button{border:1px solid #d1d5db;background:#fff;border-radius:6px;padding:6px 10px;font-size:.8rem;cursor:pointer;transition:transform .12s,box-shadow .12s;}
+.dameke-history-card-actions button:hover{transform:translateY(-1px);box-shadow:0 3px 8px rgba(15,23,42,.22);}
+.dameke-history-card-actions button.dameke-history-load{background:#111827;color:#fff;border-color:#111827;}
+.dameke-history-empty{color:#9ca3af;font-size:.88rem;}
+.dameke-history-preview{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;}
+.dameke-history-preview-unavailable{color:#9ca3af;font-size:.85rem;text-align:center;padding:16px 8px;}
+.dameke-history-header-row{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:2px;}
+.dameke-history-text-col{flex:0 1 auto;min-width:0;max-width:60%;text-align:center;}
+.dameke-history-title{font-weight:800;font-size:.92rem;color:#111827;line-height:1.4;}
+.dameke-history-move-line{font-weight:700;font-size:.8rem;color:#374151;margin-bottom:4px;}
+.dameke-history-infoline{font-weight:800;font-size:.84rem;color:#1f2937;margin-bottom:2px;}
+.dameke-history-infoline2{font-size:.76rem;color:#334155;}
+.dameke-history-thumb{flex:0 0 auto;width:48px;height:48px;display:flex;align-items:center;justify-content:center;}
+.dameke-history-thumb img{max-width:100%;max-height:100%;image-rendering:pixelated;}
+.dameke-history-thumb-missing{width:48px;height:48px;border-radius:50%;background:#e5e7eb;}
+.dameke-history-hpbar-wrap{margin-top:8px;}
+.dameke-history-hpbar-track{position:relative;height:12px;border-radius:6px;background:#3f3f46;overflow:hidden;display:flex;}
+.dameke-history-hpbar-seg{height:100%;}
+.dameke-history-hpbar-uncertain{opacity:.45;}
+.dameke-history-hpbar-nums{font-size:.72rem;color:#6b7280;margin-top:3px;text-align:right;}
+.dameke-history-stat-focus{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));justify-items:center;gap:0 10px;margin-top:8px;}
+.dameke-history-focus-row{display:grid;grid-template-columns:74px minmax(0,1fr);gap:8px;padding:3px 0;font-size:.74rem;color:#4b5563;border-bottom:1px dashed #e5e7eb;}
+.dameke-history-focus-label{color:#6b7280;}
+.dameke-history-detail{margin-top:8px;border-top:1px dashed #e5e7eb;padding-top:6px;}
+.dameke-history-detail summary{cursor:pointer;font-size:.8rem;color:#2563eb;font-weight:700;}
+.dameke-history-detail-list{margin-top:6px;display:flex;flex-direction:column;gap:3px;}
+.dameke-history-detail-item{font-size:.76rem;color:#374151;}
+.dameke-history-detail-empty{color:#9ca3af;}
+.dameke-pokemon-list{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
+.dameke-pokemon-card{border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;display:flex;align-items:flex-start;gap:12px;background:#fafafa;}
+.dameke-pokemon-detail-grid{margin-top:6px;display:flex;flex-direction:column;gap:2px;}
+.dameke-pokemon-detail-row{display:grid;grid-template-columns:64px minmax(0,1fr);gap:8px;font-size:.78rem;color:#4b5563;}
+.dameke-pokemon-detail-label{color:#9ca3af;font-weight:600;}
+.dameke-pokemon-moves-value{display:flex;flex-wrap:wrap;gap:0 6px;}
+.dameke-pokemon-move-name{white-space:nowrap;}
+.dameke-pokemon-card-thumb{flex:0 0 auto;width:52px;height:52px;display:flex;align-items:center;justify-content:center;}
+.dameke-pokemon-card-thumb img{max-width:100%;max-height:100%;image-rendering:pixelated;}
+.dameke-pokemon-card-thumb-missing{width:52px;height:52px;border-radius:50%;background:#e5e7eb;}
+.dameke-pokemon-card-main{flex:1;min-width:0;}
+.dameke-pokemon-card-title{font-weight:800;font-size:.94rem;color:#111827;}
+.dameke-pokemon-card-sub{font-size:.78rem;color:#6b7280;margin-top:2px;line-height:1.5;}
+.dameke-pokemon-card-notes{font-size:.76rem;color:#9ca3af;margin-top:2px;font-style:italic;}
+.dameke-pokemon-card-actions{display:flex;flex-direction:column;gap:6px;flex:0 0 auto;}
+.dameke-pokemon-card-actions button{border:1px solid #d1d5db;background:#fff;border-radius:6px;padding:6px 10px;font-size:.8rem;cursor:pointer;box-sizing:border-box;height:30px;transition:transform .12s,box-shadow .12s;}
+.dameke-pokemon-card-actions button:hover{transform:translateY(-1px);box-shadow:0 3px 8px rgba(15,23,42,.22);}
+.dameke-pokemon-card-actions button.dameke-pokemon-edit{background:#111827;color:#fff;border-color:#111827;}
+.dameke-pokemon-empty{color:#9ca3af;font-size:.88rem;margin-top:8px;}
+
+.dameke-pokemon-edit-host[hidden]{display:none;}
+.dameke-pokemon-edit-form{border:1px solid #e5e7eb;border-radius:12px;padding:14px;margin-top:12px;background:#fff;}
+.dameke-pokemon-edit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px;}
+.dameke-pokemon-edit-grid label{display:flex;flex-direction:column;gap:3px;font-size:.82rem;color:#374151;}
+.dameke-pokemon-edit-grid label span{font-weight:600;}
+.dameke-pokemon-edit-grid select,.dameke-pokemon-edit-grid input,.dameke-pokemon-edit-grid textarea{font:inherit;border:1px solid #d1d5db;border-radius:8px;padding:6px 8px;}
+.dameke-pokemon-edit-fullwidth{grid-column:1/-1;}
+.dameke-pokemon-edit-stat-table{display:grid;grid-template-columns:2.4em minmax(0,1fr);gap:4px 8px;font-size:.78rem;align-items:center;margin-top:4px;}
+
+/* Combined 努力値/実数値 table: corner cell + 6 stat-name headers, then a 努力値 row and a 実数値 row */
+.dameke-pokemon-combined-stat-table{display:grid;grid-template-columns:3.4em repeat(6,minmax(0,1fr));gap:4px 6px;font-size:.76rem;align-items:center;margin-top:12px;}
+.dameke-pokemon-combined-stat-table input{width:100%;box-sizing:border-box;text-align:center;padding:5px 2px;}
+.dameke-pokemon-actual-stat-cell{text-align:center;font-weight:700;color:#166534;}
+.dameke-pokemon-base-stat-cell{text-align:center;color:#6b7280;}
+.dameke-pokemon-combined-stat-table-readonly{font-size:.74rem;}
+.dameke-pokemon-combined-stat-table-readonly span{text-align:center;}
+.dameke-pokemon-ev-remaining{font-size:.8rem;font-weight:700;color:#166534;margin-top:6px;}
+.dameke-pokemon-ev-remaining-over{color:#dc2626;}
+.dameke-pokemon-ev-preset{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px;}
+.dameke-pokemon-ev-preset select{font:inherit;border:1px solid #d1d5db;border-radius:8px;padding:5px 8px;}
+.dameke-pokemon-ev-reset{border:1px solid #d1d5db;background:#fff;border-radius:6px;padding:5px 10px;font-size:.78rem;cursor:pointer;}
+
+.dameke-pokemon-edit-levelfold{margin-top:12px;border:1px solid #e5e7eb;border-radius:10px;padding:6px 10px;background:#f9fafb;}
+.dameke-pokemon-edit-levelfold summary{cursor:pointer;font-size:.82rem;color:#6b7280;font-weight:600;}
+.dameke-pokemon-edit-levelfold .dameke-pokemon-edit-grid{margin-top:8px;}
+.dameke-pokemon-level-input{max-width:70px;}
+.dameke-pokemon-edit-iv-table{margin-bottom:4px;}
+.dameke-pokemon-move-grid{margin-top:14px;}
+.dameke-pokemon-showall-label{font-size:.76rem;color:#6b7280;display:flex;gap:4px;align-items:center;margin-top:6px;}
+.dameke-pokemon-notes-wrap{margin-top:18px;}
+.dameke-pokemon-stat-head{font-weight:700;text-align:center;}
+.dameke-pokemon-edit-actions{display:flex;gap:10px;margin-top:16px;}
+.dameke-pokemon-edit-actions button{border-radius:8px;padding:10px 18px;font-size:.9rem;font-weight:700;cursor:pointer;border:none;}
+.dameke-pokemon-edit-save{background:#059669;color:#fff;}
+.dameke-pokemon-edit-cancel{background:#e5e7eb;color:#111827;}
+
+/* 320px-wide side box headers need a more compact button group */
+.dameke-btn-group-poke .dameke-btn-group-btn{padding:5px 9px;font-size:.7rem;min-width:48px;}
+.dameke-btn-group-poke .dameke-btn-group-label{font-size:.58rem;}
+
+/* Pokemon management card: load-into-side buttons, placed left of edit/delete */
+.dameke-pokemon-card-loadbtns{display:flex;flex-direction:column;gap:6px;flex:0 0 auto;}
+.dameke-pokemon-card-loadbtns button{border:none;border-radius:6px;padding:6px 9px;font-size:.72rem;font-weight:700;color:#fff;cursor:pointer;white-space:nowrap;box-sizing:border-box;height:30px;transition:transform .12s,box-shadow .12s;}
+.dameke-pokemon-load-attacker{background:#dc2626;}
+.dameke-pokemon-load-defender{background:#2563eb;}
+.dameke-pokemon-card-loadbtns button:hover{transform:translateY(-1px);box-shadow:0 3px 8px rgba(15,23,42,.28);}
+.dameke-pokemon-load-attacker:hover{background:#dc2626;}
+.dameke-pokemon-load-defender:hover{background:#2563eb;}
+
+/* ==================== パーティ管理 ==================== */
+.dameke-pokemon-panel-toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+.dameke-toolbar-btn-new,.dameke-toolbar-btn-party{height:38px;box-sizing:border-box;}
+.dameke-toolbar-btn-party{background:linear-gradient(135deg,#7c3aed,#6d28d9);box-shadow:0 2px 6px rgba(124,58,237,.35);transition:transform .12s,box-shadow .12s;}
+.dameke-toolbar-btn-party::before{content:'⛨';font-size:1rem;}
+.dameke-toolbar-btn-party:hover{background:linear-gradient(135deg,#7c3aed,#6d28d9);transform:translateY(-1px);box-shadow:0 4px 10px rgba(124,58,237,.45);}
+.dameke-toolbar-btn-party:active{transform:translateY(0);box-shadow:0 1px 3px rgba(124,58,237,.35);}
+
+.dameke-party-list{display:flex;flex-direction:column;gap:16px;margin-top:8px;}
+.dameke-party-card{border:1px solid #e5e7eb;border-radius:10px;padding:12px;background:#fafafa;}
+.dameke-party-card-title{font-weight:800;font-size:1rem;color:#111827;margin-bottom:6px;}
+.dameke-party-name-field{display:flex;flex-direction:column;gap:3px;font-size:.82rem;color:#374151;margin:8px 0;max-width:320px;}
+.dameke-party-name-field input{font:inherit;border:1px solid #d1d5db;border-radius:8px;padding:6px 8px;}
+.dameke-party-member-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
+.dameke-party-member-card{border:1px solid #e5e7eb;border-radius:8px;padding:8px;background:#fff;font-size:.72rem;}
+.dameke-party-member-empty{display:flex;align-items:center;justify-content:center;color:#d1d5db;min-height:120px;font-size:.78rem;}
+.dameke-party-member-head{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+.dameke-party-member-head .dameke-pokemon-card-thumb{width:36px;height:36px;}
+.dameke-party-member-head .dameke-pokemon-card-title{font-size:.8rem;}
+.dameke-party-member-head .dameke-pokemon-card-sub{font-size:.68rem;}
+.dameke-party-member-card .dameke-pokemon-detail-grid{gap:1px;}
+.dameke-party-member-card .dameke-pokemon-detail-row{grid-template-columns:52px minmax(0,1fr);font-size:.68rem;}
+.dameke-stat-boost{color:#dc2626 !important;}
+.dameke-stat-drop{color:#2563eb !important;}
+.dameke-party-member-moves{margin-top:4px;font-size:.68rem;color:#374151;line-height:1.5;}
+
+.dameke-party-selector-host[hidden]{display:none;}
+.dameke-party-selector-form{border:1px solid #e5e7eb;border-radius:12px;padding:14px;margin-top:12px;background:#fff;}
+.dameke-party-selector-count{font-size:.82rem;font-weight:700;color:#166534;margin:6px 0 10px;}
+.dameke-party-selector-list{display:flex;flex-direction:column;gap:10px;max-height:70vh;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px;padding:10px;}
+.dameke-pokemon-card-selectable{cursor:pointer;position:relative;transition:border-color .12s,box-shadow .12s;}
+.dameke-pokemon-card-selectable:hover{border-color:#9ca3af;}
+.dameke-pokemon-card-selected{border:2px solid #059669;box-shadow:0 0 0 2px rgba(5,150,105,.15);background:#f0fdf4;}
+.dameke-pokemon-card-select-badge{position:absolute;top:8px;right:8px;font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:999px;background:#e5e7eb;color:#4b5563;}
+.dameke-pokemon-card-selected .dameke-pokemon-card-select-badge{background:#059669;color:#fff;}
+.dameke-party-selector-row{display:flex;align-items:center;gap:8px;font-size:.84rem;padding:4px 2px;cursor:pointer;}
+.dameke-party-selector-row:hover{background:#f9fafb;}
