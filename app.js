@@ -612,71 +612,6 @@
       });
     }, 400);
   }
-  // On touch-capable, narrow-viewport devices, the inline floating dropdown (positioned via
-  // getBoundingClientRect + scrollIntoView against a viewport the on-screen keyboard is actively
-  // resizing) turned out to be fundamentally unreliable: the auto-scroll target could land under
-  // the status bar or keyboard, the dropdown could end up positioned wrong afterward, and taps
-  // could flash-then-close the list. None of this happens on desktop, where there's no keyboard
-  // reshaping the viewport underneath the calculation. Rather than continuing to chase individual
-  // timing symptoms, mobile gets a completely different, much simpler pattern: a full-screen
-  // overlay with its own search input pinned at the top and results filling the rest of the
-  // screen. This sidesteps viewport math entirely -- the overlay just fills whatever visible
-  // space remains once the keyboard has taken its share, without ever needing to calculate where
-  // that space is.
-  var useMobileSearchOverlay = (('ontouchstart' in window) || navigator.maxTouchPoints > 0) && window.innerWidth <= 760;
-  var mobileOverlayEls = null;
-  function getMobileSearchOverlay(){
-    if(mobileOverlayEls) return mobileOverlayEls;
-    var overlay = make('div','v082h-mobile-search-overlay');
-    overlay.hidden = true;
-    var header = make('div','v082h-mobile-search-header');
-    var input = document.createElement('input');
-    input.type = 'text'; input.className = 'v082h-mobile-search-input'; input.autocomplete = 'off';
-    var closeBtn = make('button','v082h-mobile-search-close','閉じる');
-    closeBtn.type = 'button';
-    header.appendChild(input); header.appendChild(closeBtn);
-    var list = document.createElement('ul');
-    list.className = 'v082h-mobile-search-list';
-    overlay.appendChild(header); overlay.appendChild(list);
-    document.body.appendChild(overlay);
-    mobileOverlayEls = { overlay: overlay, input: input, list: list, closeBtn: closeBtn };
-    return mobileOverlayEls;
-  }
-  function openMobileSearchOverlay(options, currentText, onChoose){
-    var els = getMobileSearchOverlay();
-    var activeIndex = -1;
-    function render(query){
-      var nq = kanaNormalize(query);
-      var matches = nq ? options.filter(function(o){ return o.norm.indexOf(nq) === 0; }) : options;
-      els.list.innerHTML = '';
-      activeIndex = -1;
-      matches.forEach(function(o){
-        var li = document.createElement('li');
-        li.textContent = o.text; li.className = 'v082h-search-item';
-        li.addEventListener('click', function(){ close(); onChoose(o); });
-        els.list.appendChild(li);
-      });
-    }
-    function close(){
-      els.overlay.hidden = true;
-      els.input.removeEventListener('input', onInput);
-      els.closeBtn.removeEventListener('click', close);
-      document.removeEventListener('keydown', onKeydown, true);
-    }
-    function onInput(){ render(els.input.value); }
-    function onKeydown(e){ if(e.key === 'Escape') close(); }
-    els.overlay.hidden = false;
-    els.input.value = '';
-    render('');
-    els.input.addEventListener('input', onInput);
-    els.closeBtn.addEventListener('click', close);
-    document.addEventListener('keydown', onKeydown, true);
-    // A short delay before focusing lets the overlay actually paint first -- focusing
-    // immediately on the same tap that opened it can otherwise have the keyboard animation and
-    // the overlay's own appearance fight each other on some mobile browsers.
-    setTimeout(function(){ els.input.focus(); }, 50);
-  }
-
   function attachSearchCombo(selectId){
     var select = q(selectId);
     if(!select || select.getAttribute('data-v082h-search')) return;
@@ -685,13 +620,17 @@
     var wrap = make('div','v082h-search-combo');
     var input = document.createElement('input');
     input.type = 'text'; input.className = 'v082h-search-input'; input.autocomplete = 'off';
-    if(useMobileSearchOverlay) input.readOnly = true; // tapping still focuses/opens the overlay, but doesn't itself summon the keyboard for this (about-to-be-hidden) field
     var list = document.createElement('ul');
     list.className = 'v082h-search-list'; list.hidden = true;
-    document.body.appendChild(list);
-
+    // The dropdown is a normal-flow child of the input's own (position:relative) wrapper,
+    // positioned with plain CSS (top:100%/bottom:100%, see style.css) rather than
+    // position:fixed plus JS-computed pixel coordinates. This is the standard, robust way to
+    // build this kind of control: since the browser itself keeps an absolutely-positioned
+    // element glued to its normal-flow parent through scrolling, zooming, and on-screen-keyboard
+    // viewport resizing, there's no JS position math to keep in sync with any of that, and
+    // nothing to get out of sync in the first place.
     select.parentNode.insertBefore(wrap, select);
-    wrap.appendChild(input); wrap.appendChild(select);
+    wrap.appendChild(input); wrap.appendChild(list); wrap.appendChild(select);
     select.classList.add('v082h-hide');
 
     function currentText(){ var o=select.options[select.selectedIndex]; return o ? o.textContent : ''; }
@@ -703,51 +642,7 @@
       options = Array.prototype.map.call(select.options, function(o){ return { value:o.value, text:o.textContent, norm:kanaNormalize(o.textContent) }; });
       input.value = currentText();
     };
-    function chooseMobile(o){
-      select.value = o.value; input.value = o.text;
-      dispatchChange(select);
-    }
-    if(useMobileSearchOverlay){
-      input.addEventListener('focus', function(){
-        input.blur();
-        openMobileSearchOverlay(options, currentText(), chooseMobile);
-      });
-      select.addEventListener('change', function(){ input.value = currentText(); });
-      searchComboSyncList.push({ select: select, input: input, currentText: currentText });
-      ensureSearchComboSync();
-      return;
-    }
 
-    function positionList(){
-      var r = input.getBoundingClientRect();
-      var vv = window.visualViewport;
-      // getBoundingClientRect() is always relative to the layout viewport, but position:fixed
-      // elements align to the *visual* viewport on mobile -- these two normally share the same
-      // origin, except when a mobile keyboard has panned the visual viewport away from it
-      // (visualViewport.offsetTop/offsetLeft become non-zero). Subtracting that offset converts
-      // the rect into the same coordinate space position:fixed actually uses, which is what was
-      // causing the list to render offset from the input specifically on mobile.
-      var offsetX = vv ? vv.offsetLeft : 0;
-      var offsetY = vv ? vv.offsetTop : 0;
-      var top = r.top - offsetY, bottom = r.bottom - offsetY, left = r.left - offsetX;
-      var vh = (vv ? vv.height : window.innerHeight);
-      var fixedBarH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--v082h-fixed-panel-h')) || 0;
-      var bottomLimit = vh - fixedBarH;
-      var spaceBelow = bottomLimit - bottom;
-      var spaceAbove = top;
-      list.style.position = 'fixed';
-      list.style.left = left + 'px';
-      list.style.width = r.width + 'px';
-      if(spaceBelow < 100 && spaceAbove > spaceBelow){
-        list.style.top = 'auto';
-        list.style.bottom = (vh - top + 2) + 'px';
-        list.style.maxHeight = Math.max(80, Math.min(220, spaceAbove - 10)) + 'px';
-      } else {
-        list.style.bottom = 'auto';
-        list.style.top = (bottom + 2) + 'px';
-        list.style.maxHeight = Math.max(80, Math.min(220, spaceBelow - 10)) + 'px';
-      }
-    }
     function closeList(){ list.hidden = true; }
     function renderList(query){
       var nq = kanaNormalize(query);
@@ -761,7 +656,14 @@
         li.addEventListener('mousedown', function(e){ e.preventDefault(); choose(o); });
         list.appendChild(li);
       });
-      positionList();
+      // One-time, approximate up/down choice made when the list opens -- not continuously
+      // recalculated, since the CSS positioning above already keeps the list glued to the input
+      // regardless of what the viewport does afterward. Getting this direction slightly wrong in
+      // an edge case (e.g. the keyboard eating more space than expected) just means the user
+      // scrolls a little to see the rest of the list, the same as any ordinary autocomplete.
+      var r = input.getBoundingClientRect();
+      var vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+      list.classList.toggle('v082h-search-list-up', r.bottom > vh * 0.6);
       list.hidden = false;
     }
     function choose(o){
@@ -773,37 +675,16 @@
       items.forEach(function(li,i){ li.classList.toggle('active', i===activeIndex); });
       if(activeIndex>=0 && items[activeIndex]) items[activeIndex].scrollIntoView({block:'nearest'});
     }
-    var suppressScrollClose = false;
-    var suppressTimer = null;
-    function extendSuppress(ms){
-      suppressScrollClose = true;
-      if(suppressTimer) clearTimeout(suppressTimer);
-      suppressTimer = setTimeout(function(){ suppressScrollClose = false; if(!list.hidden) positionList(); }, ms);
-    }
     input.addEventListener('focus', function(){
       renderList('');
       input.select();
-      // Covers the 80ms delay below plus a generous buffer for the smooth-scroll animation
-      // itself (which can run well past 350ms depending on distance/browser) -- the scroll
-      // listener further down re-extends this on every scroll event while it's active, so this
-      // initial value only needs to bridge the gap until that animation's own scroll events
-      // start arriving, not last for the animation's entire duration.
-      extendSuppress(700);
-      setTimeout(function(){
-        input.scrollIntoView({block:'center', behavior:'smooth'});
-      }, 80);
+      // A light nudge so the input (and the dropdown right below/above it) isn't left under the
+      // keyboard -- unlike before, this doesn't need to be precisely timed against anything,
+      // since it's not feeding a position calculation; worst case it's a little off and the
+      // browser's own keyboard-avoidance behavior (most mobile browsers already do this
+      // natively for focused inputs) covers the rest.
+      setTimeout(function(){ input.scrollIntoView({block:'center', behavior:'smooth'}); }, 80);
     });
-    // Mobile virtual keyboards can take a variable amount of time to appear/resize the viewport
-    // (depending on device/browser), which can leave the dropdown misaligned if positionList()
-    // ran too early, or -- worse -- have the scroll-to-close listener below dismiss the list
-    // before the user even sees it, if the keyboard is still settling past the fixed timeout.
-    // Listening directly to visualViewport's own resize/scroll events (when available) re-aligns
-    // the list whenever the keyboard-driven layout actually changes, and re-extends the
-    // suppression window each time, rather than relying on a single guessed duration.
-    if(window.visualViewport){
-      window.visualViewport.addEventListener('resize', function(){ if(!list.hidden){ extendSuppress(350); positionList(); } });
-      window.visualViewport.addEventListener('scroll', function(){ if(!list.hidden) positionList(); });
-    }
     input.addEventListener('input', function(){ renderList(input.value); });
     input.addEventListener('blur', function(){ setTimeout(function(){ closeList(); input.value = currentText(); }, 120); });
     input.addEventListener('keydown', function(e){
@@ -816,18 +697,6 @@
     select.addEventListener('change', function(){ input.value = currentText(); });
     searchComboSyncList.push({ select: select, input: input, currentText: currentText });
     ensureSearchComboSync();
-    // While suppressed (i.e. during our own programmatic scrollIntoView call, which fires a
-    // stream of scroll events over its animation), each scroll event re-extends the suppression
-    // window instead of just checking it -- so the list survives animations of any length rather
-    // than being closed the instant a single fixed timeout elapses mid-scroll. Once scrolling
-    // genuinely goes quiet, suppression lapses on its own and a real user-initiated scroll closes
-    // the list as before.
-    window.addEventListener('scroll', function(e){
-      if(list.hidden || e.target === list) return;
-      if(suppressScrollClose){ extendSuppress(250); positionList(); return; }
-      closeList();
-    }, true);
-    window.addEventListener('resize', function(){ if(!list.hidden) closeList(); });
   }
   window.__damekeAttachSearchCombo = attachSearchCombo;
   function firstTextNode(label){ if(!label) return null; for(var i=0;i<label.childNodes.length;i++){ var n=label.childNodes[i]; if(n.nodeType===3 && String(n.textContent).trim()) return n; } return null; }
