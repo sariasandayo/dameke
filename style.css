@@ -165,7 +165,7 @@ button:hover { background: #e0e7ff; }
 .v082h-hpbar-nums{font-size:.78rem;color:#334155;margin-top:3px;font-weight:600;}
 .v082h-result-title{font-weight:800;font-size:1.02rem;margin-bottom:8px;line-height:1.45;}
 .v082h-result-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 10px;}
-.v082h-result-item{display:grid;grid-template-columns:86px minmax(0,1fr);gap:8px;align-items:start;padding:3px 0;border-bottom:1px dashed #e5e7eb;}
+.v082h-result-item{display:grid;grid-template-columns:104px minmax(0,1fr);gap:8px;align-items:start;padding:3px 0;border-bottom:1px dashed #e5e7eb;}
 .v082h-result-key{font-size:.78rem;color:#64748b;}
 .v082h-result-value{font-weight:700;word-break:break-word;}
 
@@ -215,7 +215,7 @@ button:hover { background: #e0e7ff; }
   .dameke-pokemon-card-thumb{order:1;}
   .dameke-pokemon-card-main{order:2;width:100%;flex:1 1 100% !important;}
   .dameke-pokemon-card-loadbtns{order:3;display:grid !important;grid-template-columns:1fr 1fr;gap:6px;width:100%;}
-  .dameke-pokemon-card-actions{order:4;display:grid !important;grid-template-columns:1fr 1fr;gap:6px;width:100%;}
+  .dameke-pokemon-card-actions{order:4;display:grid !important;grid-template-columns:1fr 1fr;gap:6px;width:100%;margin-top:-6px;}
 
   /* Party member grid: kept at 2 columns even on narrow screens -- the member card itself has
      been made compact enough (chips instead of full labeled rows, a 2x2 move grid) that 2
@@ -240,7 +240,7 @@ button:hover { background: #e0e7ff; }
   .grid.four{grid-template-columns:repeat(2,minmax(0,1fr));}
   .v082h-cond-grid.v082h-cond-grid-cols-4{grid-template-columns:repeat(2,minmax(0,1fr));}
   .v082h-result-grid{grid-template-columns:1fr;}
-  .v082h-result-item{grid-template-columns:74px minmax(0,1fr);}
+  .v082h-result-item{grid-template-columns:88px minmax(0,1fr);}
 
   .dameke-pokemon-detail-row{grid-template-columns:80px minmax(0,1fr) !important;}
   .dameke-pokemon-combined-stat-table{font-size:.72rem !important;gap:3px 4px !important;}
@@ -257,27 +257,27 @@ label:has(input[type="checkbox"]){justify-self:start;width:fit-content;}
 .dameke-move-filter-toggle{font-size:.7rem;color:#94a3b8;min-height:auto;margin-top:2px;gap:4px;opacity:.75;}
 .dameke-move-filter-toggle input{width:12px;height:12px;}
 select.dameke-type-select{transition:background-color .15s,color .15s;}
-.dameke-type-none{background:linear-gradient(90deg,#eef0f3,#d1d5db);color:#111827;}
-.dameke-type-normal{background:linear-gradient(90deg,#e2e2cf,#c8c8a8);color:#111827;}
-.dameke-type-fire{background:linear-gradient(90deg,#fac7a5,#f29a5c);color:#111827;}
-.dameke-type-water{background:linear-gradient(90deg,#bcd3fa,#7ea3ee);color:#111827;}
-.dameke-type-electric{background:linear-gradient(90deg,#fdeba8,#f7d34e);color:#111827;}
-.dameke-type-grass{background:linear-gradient(90deg,#c3e8b3,#8ecf6b);color:#111827;}
-.dameke-type-ice{background:linear-gradient(90deg,#d6f2f2,#96dede);color:#111827;}
-.dameke-type-fighting{background:linear-gradient(90deg,#e8a9a5,#cc6f69);color:#111827;}
-.dameke-type-poison{background:linear-gradient(90deg,#ddb4dd,#b876b8);color:#111827;}
-.dameke-type-ground{background:linear-gradient(90deg,#f2e4bd,#dfc274);color:#111827;}
-.dameke-type-flying{background:linear-gradient(90deg,#ddd3fa,#b3a0ee);color:#111827;}
-.dameke-type-psychic{background:linear-gradient(90deg,#fcc0d3,#f77fa1);color:#111827;}
-.dameke-type-bug{background:linear-gradient(90deg,#dbe3a3,#b8c95a);color:#111827;}
-.dameke-type-rock{background:linear-gradient(90deg,#e6d6a5,#c9ac5e);color:#111827;}
-.dameke-type-ghost{background:linear-gradient(90deg,#8d7ea6,#5f5178);color:#ffffff;}
-.dameke-type-dragon{background:linear-gradient(90deg,#9880ee,#6647d4);color:#ffffff;}
-.dameke-type-dark{background:linear-gradient(90deg,#8c7c70,#5c4f45);color:#ffffff;}
-.dameke-type-steel{background:linear-gradient(90deg,#e6e6f0,#c2c2d8);color:#111827;}
-.dameke-type-fairy{background:linear-gradient(90deg,#fce3ee,#f2accf);color:#111827;}
+.dameke-type-none{background:linear-gradient(90deg,#eef0f3,#d1d5db);color:#111827 !important;}
+.dameke-type-normal{background:linear-gradient(90deg,#e2e2cf,#c8c8a8);color:#111827 !important;}
+.dameke-type-fire{background:linear-gradient(90deg,#fac7a5,#f29a5c);color:#111827 !important;}
+.dameke-type-water{background:linear-gradient(90deg,#bcd3fa,#7ea3ee);color:#111827 !important;}
+.dameke-type-electric{background:linear-gradient(90deg,#fdeba8,#f7d34e);color:#111827 !important;}
+.dameke-type-grass{background:linear-gradient(90deg,#c3e8b3,#8ecf6b);color:#111827 !important;}
+.dameke-type-ice{background:linear-gradient(90deg,#d6f2f2,#96dede);color:#111827 !important;}
+.dameke-type-fighting{background:linear-gradient(90deg,#e8a9a5,#cc6f69);color:#111827 !important;}
+.dameke-type-poison{background:linear-gradient(90deg,#ddb4dd,#b876b8);color:#111827 !important;}
+.dameke-type-ground{background:linear-gradient(90deg,#f2e4bd,#dfc274);color:#111827 !important;}
+.dameke-type-flying{background:linear-gradient(90deg,#ddd3fa,#b3a0ee);color:#111827 !important;}
+.dameke-type-psychic{background:linear-gradient(90deg,#fcc0d3,#f77fa1);color:#111827 !important;}
+.dameke-type-bug{background:linear-gradient(90deg,#dbe3a3,#b8c95a);color:#111827 !important;}
+.dameke-type-rock{background:linear-gradient(90deg,#e6d6a5,#c9ac5e);color:#111827 !important;}
+.dameke-type-ghost{background:linear-gradient(90deg,#8d7ea6,#5f5178);color:#ffffff !important;}
+.dameke-type-dragon{background:linear-gradient(90deg,#9880ee,#6647d4);color:#ffffff !important;}
+.dameke-type-dark{background:linear-gradient(90deg,#8c7c70,#5c4f45);color:#ffffff !important;}
+.dameke-type-steel{background:linear-gradient(90deg,#e6e6f0,#c2c2d8);color:#111827 !important;}
+.dameke-type-fairy{background:linear-gradient(90deg,#fce3ee,#f2accf);color:#111827 !important;}
 select.dameke-type-select option{background-color:#ffffff;color:#111827;}
-.dameke-type-stellar{background:linear-gradient(90deg,#fbd9e6,#c4ecec,#fbe28f);color:#111827;}
+.dameke-type-stellar{background:linear-gradient(90deg,#fbd9e6,#c4ecec,#fbe28f);color:#111827 !important;}
 .dameke-image-credit{margin-top:16px;font-size:.68rem;line-height:1.5;color:#9ca3af;}
 .v082h-result-header-row{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:2px;}
 .v082h-result-text-col{flex:0 1 auto;min-width:0;max-width:60%;text-align:center;}
@@ -340,6 +340,11 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-pokemon-card-thumb-missing{width:52px;height:52px;border-radius:50%;background:#e5e7eb;}
 .dameke-pokemon-card-main{flex:1;min-width:0;}
 .dameke-pokemon-card-head{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+.dameke-pokemon-card-head-large{gap:14px;margin-bottom:10px;}
+.dameke-pokemon-card-head-large .dameke-pokemon-card-thumb{width:64px;height:64px;}
+.dameke-pokemon-card-head-large .dameke-pokemon-card-thumb-missing{width:64px;height:64px;}
+.dameke-pokemon-card-head-large .dameke-pokemon-card-title{font-size:1.05rem;}
+.dameke-pokemon-card-head-large .dameke-pokemon-card-sub{font-size:.8rem;gap:6px;}
 .dameke-pokemon-card-title{font-weight:800;font-size:.94rem;color:#111827;}
 .dameke-pokemon-card-sub{font-size:.78rem;color:#6b7280;margin-top:2px;line-height:1.5;}
 .dameke-pokemon-card-notes{font-size:.76rem;color:#9ca3af;margin-top:2px;font-style:italic;}
@@ -351,6 +356,10 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 
 .dameke-pokemon-edit-host[hidden]{display:none;}
 .dameke-pokemon-edit-form{border:1px solid #e5e7eb;border-radius:12px;padding:14px;margin-top:12px;background:#fff;}
+.dameke-pokemon-edit-heading-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.dameke-pokemon-edit-heading-row h3{margin:0;}
+.dameke-pokemon-edit-copy-btn{background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;border:none;border-radius:999px;padding:6px 14px;font-size:.78rem;font-weight:700;cursor:pointer;box-shadow:0 2px 6px rgba(8,145,178,.35);transition:transform .12s,box-shadow .12s;}
+.dameke-pokemon-edit-copy-btn:hover{background:linear-gradient(135deg,#0891b2,#0e7490);transform:translateY(-1px);box-shadow:0 4px 10px rgba(8,145,178,.45);}
 .dameke-pokemon-edit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px;}
 .dameke-pokemon-edit-grid label{display:flex;flex-direction:column;gap:3px;font-size:.82rem;color:#374151;}
 .dameke-pokemon-edit-grid label span{font-weight:600;}
@@ -400,11 +409,15 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 
 /* ==================== パーティ管理 ==================== */
 .dameke-pokemon-panel-toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
-.dameke-toolbar-btn-new,.dameke-toolbar-btn-party{height:38px;box-sizing:border-box;}
+.dameke-toolbar-btn-new,.dameke-toolbar-btn-party,.dameke-toolbar-btn-copy{height:38px;box-sizing:border-box;}
 .dameke-toolbar-btn-party{background:linear-gradient(135deg,#7c3aed,#6d28d9);box-shadow:0 2px 6px rgba(124,58,237,.35);transition:transform .12s,box-shadow .12s;}
 .dameke-toolbar-btn-party::before{content:'⛨';font-size:1rem;}
 .dameke-toolbar-btn-party:hover{background:linear-gradient(135deg,#7c3aed,#6d28d9);transform:translateY(-1px);box-shadow:0 4px 10px rgba(124,58,237,.45);}
 .dameke-toolbar-btn-party:active{transform:translateY(0);box-shadow:0 1px 3px rgba(124,58,237,.35);}
+.dameke-toolbar-btn-copy{background:linear-gradient(135deg,#0891b2,#0e7490);box-shadow:0 2px 6px rgba(8,145,178,.35);transition:transform .12s,box-shadow .12s;}
+.dameke-toolbar-btn-copy::before{content:'⧉';font-size:1rem;}
+.dameke-toolbar-btn-copy:hover{background:linear-gradient(135deg,#0891b2,#0e7490);transform:translateY(-1px);box-shadow:0 4px 10px rgba(8,145,178,.45);}
+.dameke-toolbar-btn-copy:active{transform:translateY(0);box-shadow:0 1px 3px rgba(8,145,178,.35);}
 
 .dameke-party-list{display:flex;flex-direction:column;gap:16px;margin-top:8px;}
 .dameke-party-card{border:1px solid #e5e7eb;border-radius:10px;padding:12px;background:#fafafa;}
@@ -426,6 +439,8 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
    2x2 move grid below, is what makes a compact 2-column x 3-row party layout possible. */
 .dameke-party-chip-row{display:flex;flex-direction:column;gap:2px;margin:3px 0;}
 .dameke-party-chip{display:block;border:1px solid #e5e7eb;border-radius:5px;padding:1px 4px;font-size:.6rem;color:#374151;background:#f9fafb;overflow-wrap:break-word;}
+.dameke-party-tera-row{display:flex;align-items:center;gap:4px;padding:1px 0;font-size:.6rem;color:#374151;}
+.dameke-party-tera-row b{color:#9ca3af;font-weight:700;}
 .dameke-party-chip b{color:#9ca3af;font-weight:700;}
 .dameke-party-type-badge{display:inline-block;border-radius:4px;padding:0 5px;font-size:.58rem;font-weight:700;margin-right:3px;}
 
@@ -434,6 +449,14 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
    4-row layout the way stacking every move on its own line would. */
 .dameke-party-move-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 4px;margin:3px 0;}
 .dameke-party-move-cell{font-size:.62rem;line-height:1.25;border:1px solid #f1f5f9;border-radius:4px;padding:1px 3px;overflow-wrap:break-word;}
+/* ポケモン管理画面(一覧を縦一列で表示する、より余裕のあるコンテキスト)では、特性・持ち物・
+   テラスタイプ・技のフォントを、統合表の「種族値」等ラベルと同じ.76remまで拡大する。パーティ
+   管理側(.dameke-party-member-card、複数カードを詰めて並べる必要がある)は元のサイズのまま。 */
+.dameke-pokemon-card .dameke-party-chip{font-size:.76rem;padding:3px 6px;}
+.dameke-pokemon-card .dameke-party-tera-row{font-size:.76rem;}
+.dameke-pokemon-card .dameke-party-move-cell{font-size:.76rem;padding:3px 6px;}
+.dameke-pokemon-card .dameke-pokemon-combined-stat-table{border:1px solid #e5e7eb;border-radius:6px;padding:6px;}
+.dameke-pokemon-card .dameke-party-type-badge{font-size:.72rem;padding:1px 7px;}
 .dameke-party-member-card .dameke-pokemon-combined-stat-table{grid-template-columns:3.4em repeat(6,minmax(0,1fr)) !important;font-size:.6rem !important;gap:2px 2px !important;margin-top:4px;}
 
 .dameke-party-selector-host[hidden]{display:none;}
@@ -445,5 +468,14 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-pokemon-card-selected{border:2px solid #059669;box-shadow:0 0 0 2px rgba(5,150,105,.15);background:#f0fdf4;}
 .dameke-pokemon-card-select-badge{position:absolute;top:8px;right:8px;font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:999px;background:#e5e7eb;color:#4b5563;}
 .dameke-pokemon-card-selected .dameke-pokemon-card-select-badge{background:#059669;color:#fff;}
+
+/* "新規作成" now leads into a copy-or-blank choice: a banner above the list plus the existing
+   cards themselves becoming clickable copy sources, rather than opening a separate screen that
+   just shows the same cards again. */
+.dameke-pokemon-create-banner{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;border:1px solid #a7f3d0;background:#ecfdf5;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:.86rem;color:#065f46;}
+.dameke-pokemon-create-banner-actions{display:flex;gap:8px;flex:0 0 auto;}
+.dameke-pokemon-create-banner-actions button{border-radius:8px;padding:7px 14px;font-size:.82rem;font-weight:700;cursor:pointer;border:none;}
+.dameke-pokemon-card-copyable{cursor:pointer;border:1px dashed #059669;transition:border-color .12s,box-shadow .12s,background .12s;}
+.dameke-pokemon-card-copyable:hover{background:#f0fdf4;box-shadow:0 0 0 2px rgba(5,150,105,.15);}
 .dameke-party-selector-row{display:flex;align-items:center;gap:8px;font-size:.84rem;padding:4px 2px;cursor:pointer;}
 .dameke-party-selector-row:hover{background:#f9fafb;}

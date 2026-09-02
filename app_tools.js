@@ -89,7 +89,15 @@
     var ids = [];
     if(!panel) return ids;
     panel.querySelectorAll('input, select, textarea').forEach(function(el){
-      if(el.id && el.offsetParent !== null) ids.push(el.id);
+      if(!el.id) return;
+      // A select wrapped by the calculator's own search-combo UI (ability/item/move/pokemon
+      // fields) is deliberately hidden via CSS -- the visible element is its paired <input>
+      // sibling inside the same .v082h-search-combo wrapper instead. Checking the select's own
+      // offsetParent would always read as "hidden" for these, wrongly excluding them from 詳細
+      // even when they held a genuinely meaningful value -- checking the wrapper's visibility
+      // covers what the user actually saw on screen.
+      var checkEl = (el.tagName === 'SELECT' && el.getAttribute('data-v082h-search')) ? el.closest('.v082h-search-combo') : el;
+      if(checkEl && checkEl.offsetParent !== null) ids.push(el.id);
     });
     return ids;
   }
@@ -784,7 +792,6 @@
   function buildPokemonCardInfo(entry, card){
     var pokemon = findPokemonById(entry.pokemonId);
     var pokemonName = pokemon ? pokemon.name : (entry.pokemonId || '(不明なポケモン)');
-    var types = pokemon && Array.isArray(pokemon.types) ? pokemon.types.join('・') : '-';
     var ability = entry.abilityId && entry.abilityId!=='none' ? entry.abilityId : 'なし';
     var item = entry.itemId && entry.itemId!=='none' ? entry.itemId : 'なし';
     var tera = entry.teraType || 'なし';
@@ -793,35 +800,79 @@
     var main = document.createElement('div');
     main.className = 'dameke-pokemon-card-main';
 
-    // Thumbnail + name + type share a head row (rather than the thumbnail sitting alone beside
-    // a separately-stacked name, and type repeated again further down in the detail list) --
-    // this cuts one full detail row and keeps related, always-relevant info together, shortening
-    // the card's overall height, which matters most on narrow screens where cards stack in a
-    // single column.
+    // Same head-row pattern as the party member card (thumbnail + name + type badges + gender
+    // together), but kept at a larger size here -- this is the vertically-listed, one-per-row
+    // management screen rather than a tightly packed multi-column party grid, so there's no
+    // need to shrink this area down as far.
     var head = document.createElement('div');
-    head.className = 'dameke-pokemon-card-head';
+    head.className = 'dameke-pokemon-card-head dameke-pokemon-card-head-large';
     head.appendChild(buildPokemonThumbFor(pokemonName));
     var titleWrap = document.createElement('div');
     var title = document.createElement('div');
     title.className = 'dameke-pokemon-card-title';
     title.textContent = entry.nickname ? (entry.nickname + '（' + pokemonName + '）') : pokemonName;
     titleWrap.appendChild(title);
-    var typeSub = document.createElement('div');
-    typeSub.className = 'dameke-pokemon-card-sub';
-    typeSub.textContent = types;
-    titleWrap.appendChild(typeSub);
+    var sub = document.createElement('div');
+    sub.className = 'dameke-pokemon-card-sub';
+    var pokeTypes = pokemon && Array.isArray(pokemon.types) ? pokemon.types : [];
+    pokeTypes.forEach(function(t){
+      var badge = document.createElement('span');
+      badge.className = 'dameke-party-type-badge ' + typeColorClass(t);
+      badge.textContent = t;
+      sub.appendChild(badge);
+    });
+    if(entry.gender){
+      var genderSpan = document.createElement('span');
+      genderSpan.textContent = genderDisplayText(entry.gender);
+      sub.appendChild(genderSpan);
+    }
+    titleWrap.appendChild(sub);
     head.appendChild(titleWrap);
     main.appendChild(head);
 
-    var detailGrid = document.createElement('div');
-    detailGrid.className = 'dameke-pokemon-detail-grid';
-    detailGrid.appendChild(buildLabeledRow('性別', genderDisplayText(entry.gender) || '指定なし'));
-    detailGrid.appendChild(buildLabeledRow('特性', ability));
-    detailGrid.appendChild(buildLabeledRow('持ち物', item));
-    detailGrid.appendChild(buildLabeledRow('テラスタイプ', tera));
-    var moveNames = (entry.moves||[]).map(function(id){ var m=id?findMoveById(id):null; return m ? m.name : '(未設定)'; });
-    detailGrid.appendChild(buildMovesRow('技', moveNames));
-    main.appendChild(detailGrid);
+    // 特性/持ち物/テラスタイプ as full-label chips, one per row -- same pattern as the party
+    // member card.
+    var chipRow = document.createElement('div');
+    chipRow.className = 'dameke-party-chip-row';
+    function addChip(label, value){
+      var chip = document.createElement('div');
+      chip.className = 'dameke-party-chip';
+      var pre = document.createElement('b'); pre.textContent = label + '：';
+      chip.appendChild(pre);
+      chip.appendChild(document.createTextNode(value));
+      chipRow.appendChild(chip);
+    }
+    // テラスタイプ specifically shows the type as a colored badge (matching the type badges
+    // used for the Pokemon's own types) rather than a plain bordered chip -- the color itself
+    // conveys the type at a glance, in addition to the text.
+    function addTeraChip(value){
+      var chip = document.createElement('div');
+      chip.className = 'dameke-party-tera-row';
+      var pre = document.createElement('b'); pre.textContent = 'テラスタイプ：';
+      chip.appendChild(pre);
+      var badge = document.createElement('span');
+      badge.className = 'dameke-party-type-badge ' + typeColorClass(value);
+      badge.textContent = value;
+      chip.appendChild(badge);
+      chipRow.appendChild(chip);
+    }
+    addChip('特性', ability);
+    addChip('持ち物', item);
+    addTeraChip(tera);
+    main.appendChild(chipRow);
+
+    // Moves as a 2x2 grid, colored by each move's own type -- same as the party member card.
+    var moves = (entry.moves||[]).map(function(id){ return id ? findMoveById(id) : null; });
+    var moveGrid = document.createElement('div');
+    moveGrid.className = 'dameke-party-move-grid';
+    moves.forEach(function(m){
+      var cell = document.createElement('div');
+      cell.className = 'dameke-party-move-cell ' + typeColorClass(m ? m.type : 'なし');
+      cell.textContent = m ? m.name : '(未設定)';
+      moveGrid.appendChild(cell);
+    });
+    main.appendChild(moveGrid);
+
     main.appendChild(buildCombinedStatTable(entry, actual));
 
     if(entry.notes){
@@ -833,10 +884,21 @@
     return main;
   }
 
-  function buildPokemonCard(entry){
+  function buildPokemonCard(entry, onPickForCopy){
     var card = document.createElement('div');
     card.className = 'dameke-pokemon-card';
     var main = buildPokemonCardInfo(entry, card);
+    card.appendChild(main);
+
+    if(onPickForCopy){
+      // While picking a copy source, the normal edit/delete/load buttons aren't relevant --
+      // leaving them out (rather than keeping them and having to stop click-propagation on each
+      // one) keeps it unambiguous that clicking anywhere on the card now means "use this as the
+      // copy source", not "open its edit screen".
+      card.classList.add('dameke-pokemon-card-copyable');
+      card.addEventListener('click', function(){ onPickForCopy(entry); });
+      return card;
+    }
 
     var loadBtns = document.createElement('div');
     loadBtns.className = 'dameke-pokemon-card-loadbtns';
@@ -863,7 +925,6 @@
     });
     actions.appendChild(editBtn); actions.appendChild(delBtn);
 
-    card.appendChild(main);
     card.appendChild(loadBtns);
     card.appendChild(actions);
     return card;
@@ -953,7 +1014,24 @@
       var stillHas = filtered.some(function(m){ return m.id===prev; });
       sel.value = stillHas ? prev : 'none';
       if(sel._v082hRefreshOptions) sel._v082hRefreshOptions();
+      updateMoveSelectColor(i);
     }
+  }
+
+  // Colors each move select's own (visible) search-combo input by the currently selected move's
+  // type -- same gradient scheme as the calculator's own move field and the type selects,
+  // reusing the shared CSS classes. Only the input itself is colored, never the dropdown's
+  // candidate items, matching how the type selects' own <option> list stays plain.
+  function updateMoveSelectColor(i){
+    var sel = q('damekePokeEdit_move'+i);
+    if(!sel) return;
+    var wrap = sel.closest('.v082h-search-combo');
+    var input = wrap ? wrap.querySelector('.v082h-search-input') : null;
+    if(!input) return;
+    var move = findMoveById(sel.value);
+    input.classList.add('dameke-type-select');
+    Object.keys(TYPE_COLOR_MAP).forEach(function(k){ input.classList.remove('dameke-type-' + TYPE_COLOR_MAP[k]); });
+    input.classList.add(typeColorClass(move ? move.type : 'なし'));
   }
 
   // Limits the ability select to whatever the selected Pokemon can actually have, falling back
@@ -984,9 +1062,18 @@
     host.innerHTML = '';
     var form = document.createElement('div');
     form.className = 'dameke-pokemon-edit-form';
+    var headingRow = document.createElement('div');
+    headingRow.className = 'dameke-pokemon-edit-heading-row';
     var heading = document.createElement('h3');
     heading.textContent = entry.id ? 'ポケモンを編集' : '新規作成';
-    form.appendChild(heading);
+    var copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.className = 'dameke-pokemon-edit-copy-btn';
+    copyBtn.textContent = 'コピー';
+    copyBtn.addEventListener('click', function(){ openCopyPickerInEditForm(entry); });
+    headingRow.appendChild(heading);
+    headingRow.appendChild(copyBtn);
+    form.appendChild(headingRow);
 
     var grid = document.createElement('div');
     grid.className = 'dameke-pokemon-edit-grid';
@@ -1203,6 +1290,10 @@
       for(var mi3=1;mi3<=4;mi3++){ var s=q('damekePokeEdit_move'+mi3); if(s && s._v082hRefreshOptions) s._v082hRefreshOptions(); }
       if(abilitySel._v082hRefreshOptions) abilitySel._v082hRefreshOptions();
     }
+    for(var mi4=1;mi4<=4;mi4++){
+      updateMoveSelectColor(mi4);
+      (function(idx){ q('damekePokeEdit_move'+idx).addEventListener('change', function(){ updateMoveSelectColor(idx); }); })(mi4);
+    }
     pokemonSel.addEventListener('change', function(){
       refreshAbilityOptionsInEditForm();
       refreshMoveOptionsInEditForm();
@@ -1302,6 +1393,59 @@
     q('damekePokemonEditHost').innerHTML = '';
     q('damekePokemonList').hidden = false;
     q('damekePokemonNewBtn').hidden = false;
+    // Rebuilds the list back to its normal state -- without this, if the last thing rendered
+    // into #damekePokemonList was the copy-picker's banner+clickable cards (see
+    // openCopyPickerInEditForm), simply un-hiding it left that stale copy-mode content visible
+    // instead of the normal edit/delete/load card list.
+    renderPokemonList();
+  }
+
+  // Opened from the "コピー" button inside the edit form itself (top-right of the heading) --
+  // shows the same saved-Pokemon cards as the main list, but clickable as copy sources. Picking
+  // one rebuilds the edit form with that Pokemon's values, while keeping baseEntry's own id/
+  // savedAt -- so if this was an edit of an existing saved Pokemon, saving still updates that
+  // same record with the copied values, rather than creating a separate new one. Cancelling
+  // returns to the edit form as it was when "コピー" was pressed.
+  // Reuses the actual main list element itself (the same one the user was already browsing)
+  // rather than building a separate wrapper/screen with its own duplicate set of cards -- the
+  // edit form is simply hidden while the list (now with a small banner, and cards clickable as
+  // copy sources) is shown in its place.
+  function openCopyPickerInEditForm(baseEntry){
+    var host = q('damekePokemonEditHost');
+    host.hidden = true;
+    var listHost = q('damekePokemonList');
+    listHost.hidden = false;
+    listHost.innerHTML = '';
+
+    var banner = document.createElement('div');
+    banner.className = 'dameke-pokemon-create-banner';
+    var list = loadPokemonList();
+    var bannerText = document.createElement('span');
+    bannerText.textContent = list.length
+      ? 'コピー元にするポケモンのカードを下から選んでください。'
+      : 'コピーできる保存済みポケモンがまだありません。';
+    banner.appendChild(bannerText);
+    var cancelBtn = document.createElement('button');
+    cancelBtn.type='button'; cancelBtn.className='dameke-pokemon-edit-cancel'; cancelBtn.textContent='キャンセル';
+    // A single cancel here backs all the way out (same as the edit form's own キャンセル would),
+    // rather than just returning to the edit form -- while picking a copy source, this is the
+    // only キャンセル the user can actually see/reach, so it needs to be able to abandon the
+    // whole create/edit session, not just the copy step.
+    cancelBtn.addEventListener('click', closePokemonEditor);
+    banner.appendChild(cancelBtn);
+    listHost.appendChild(banner);
+
+    list.forEach(function(pickEntry){
+      listHost.appendChild(buildPokemonCard(pickEntry, function(picked){
+        var merged = JSON.parse(JSON.stringify(picked));
+        merged.id = baseEntry.id || null;
+        merged.savedAt = baseEntry.savedAt || null;
+        listHost.hidden = true;
+        host.hidden = false;
+        buildEditForm(merged);
+        requestAnimationFrame(function(){ host.scrollIntoView({behavior:'smooth', block:'start'}); });
+      }));
+    });
   }
 
   function newBlankEntry(){
@@ -1532,9 +1676,20 @@
       chip.appendChild(document.createTextNode(value));
       chipRow.appendChild(chip);
     }
+    function addTeraChip(value){
+      var chip = document.createElement('div');
+      chip.className = 'dameke-party-tera-row';
+      var pre = document.createElement('b'); pre.textContent = 'テラスタイプ：';
+      chip.appendChild(pre);
+      var badge = document.createElement('span');
+      badge.className = 'dameke-party-type-badge ' + typeColorClass(value);
+      badge.textContent = value;
+      chip.appendChild(badge);
+      chipRow.appendChild(chip);
+    }
     addChip('特性', entry.abilityId && entry.abilityId!=='none' ? entry.abilityId : 'なし');
     addChip('持ち物', entry.itemId && entry.itemId!=='none' ? entry.itemId : 'なし');
-    addChip('テラスタイプ', entry.teraType || 'なし');
+    addTeraChip(entry.teraType || 'なし');
     card.appendChild(chipRow);
 
     // Moves as a 2x2 grid (not a single wrapped line) -- each cell can still wrap to two lines
@@ -1573,9 +1728,6 @@
     sub.textContent = formatSavedAtLocal(party.savedAt);
     var actions = document.createElement('div');
     actions.className = 'dameke-history-card-actions';
-    var imgBtn = document.createElement('button');
-    imgBtn.type='button'; imgBtn.textContent='画像出力';
-    imgBtn.addEventListener('click', function(){ exportPartyImage(party); });
     var editBtn = document.createElement('button');
     editBtn.type='button'; editBtn.className='dameke-history-load'; editBtn.textContent='編集';
     editBtn.addEventListener('click', function(){ openPartySelector(party); });
@@ -1584,7 +1736,7 @@
     delBtn.addEventListener('click', function(){
       if(window.confirm('このパーティを削除しますか？')) deleteParty(party.id);
     });
-    actions.appendChild(imgBtn); actions.appendChild(editBtn); actions.appendChild(delBtn);
+    actions.appendChild(editBtn); actions.appendChild(delBtn);
     meta.appendChild(sub); meta.appendChild(actions);
     card.appendChild(meta);
 
@@ -1613,129 +1765,6 @@
       return;
     }
     list.forEach(function(party){ host.appendChild(buildPartyCard(party)); });
-  }
-
-  // ---- Image export: renders the party onto a canvas (readable at mobile width) and offers it
-  // via the Web Share API (so on mobile, "Save to Photos"/camera roll is one of the share
-  // options) with a plain download link as a fallback for browsers without share support.
-  function exportPartyImage(party){
-    // Render a fresh copy of the actual on-screen card (not a hand-drawn approximation), so the
-    // exported image matches what's shown in the browser. The action buttons (編集/削除/画像出力)
-    // are stripped since they don't belong in a shareable image.
-    var card = buildPartyCard(party);
-    var actionsEl = card.querySelector('.dameke-history-card-actions');
-    if(actionsEl) actionsEl.remove();
-    card.style.width = '640px';
-
-    // Off-screen but laid-out host, so offsetWidth/offsetHeight and image loading are accurate.
-    var host = document.createElement('div');
-    host.style.cssText = 'position:fixed;top:0;left:0;width:640px;background:#fff;visibility:hidden;z-index:-1;pointer-events:none;';
-    host.appendChild(card);
-    document.body.appendChild(host);
-
-    var thumbs = card.querySelectorAll('img');
-    thumbs.forEach(function(img){ img.crossOrigin = 'anonymous'; });
-
-    function cleanupHost(){ if(host.parentNode) host.parentNode.removeChild(host); }
-
-    function afterImagesSettled(cb){
-      var pending = Array.prototype.filter.call(thumbs, function(img){ return !img.complete; });
-      if(!pending.length){ cb(); return; }
-      var remaining = pending.length;
-      pending.forEach(function(img){
-        function done(){ remaining--; if(remaining<=0) cb(); }
-        img.addEventListener('load', done, { once:true });
-        img.addEventListener('error', done, { once:true });
-      });
-    }
-
-    function collectStyleText(){
-      var text = '';
-      Array.prototype.forEach.call(document.styleSheets, function(sheet){
-        try{
-          Array.prototype.forEach.call(sheet.cssRules || [], function(rule){ text += rule.cssText + '\n'; });
-        } catch(e){ /* cross-origin stylesheet -- skip, nothing we control lives there */ }
-      });
-      return text;
-    }
-
-    function render(stripImages){
-      var cardHtml = card.outerHTML;
-      if(stripImages){
-        var tmp = document.createElement('div');
-        tmp.innerHTML = cardHtml;
-        tmp.querySelectorAll('img').forEach(function(img){ img.remove(); });
-        cardHtml = tmp.innerHTML;
-      }
-      var w = card.offsetWidth || 640, h = card.offsetHeight || 400;
-      var styleText = collectStyleText();
-      var xml = '<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'">' +
-        '<foreignObject width="100%" height="100%">' +
-        '<div xmlns="http://www.w3.org/1999/xhtml" style="width:'+w+'px;">' +
-        '<style>'+styleText+'</style>' + cardHtml +
-        '</div></foreignObject></svg>';
-      var svgBlob = new Blob([xml], { type:'image/svg+xml;charset=utf-8' });
-      var svgUrl = URL.createObjectURL(svgBlob);
-      var img = new Image();
-      img.onload = function(){
-        var scale = 2; // export at 2x for readability when viewed/printed
-        var canvas = document.createElement('canvas');
-        canvas.width = w*scale; canvas.height = h*scale;
-        var ctx = canvas.getContext('2d');
-        ctx.scale(scale, scale);
-        ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,w,h);
-        try{
-          ctx.drawImage(img, 0, 0, w, h);
-          URL.revokeObjectURL(svgUrl);
-          canvas.toBlob(function(blob){
-            cleanupHost();
-            if(!blob){ window.alert('画像の生成に失敗しました。'); return; }
-            saveOrShareBlob(blob, (party.name||'party')+'.png');
-          }, 'image/png');
-        } catch(e){
-          URL.revokeObjectURL(svgUrl);
-          // Cross-origin sprite images can taint the canvas even with CORS set, since the SVG
-          // foreignObject route is treated more strictly by some browsers -- retry once with the
-          // sprite images stripped out, so the text content still exports successfully.
-          if(!stripImages){
-            render(true);
-          } else {
-            cleanupHost();
-            window.alert('画像の生成に失敗しました。');
-          }
-        }
-      };
-      img.onerror = function(){
-        URL.revokeObjectURL(svgUrl);
-        if(!stripImages){ render(true); }
-        else { cleanupHost(); window.alert('画像の生成に失敗しました。'); }
-      };
-      img.src = svgUrl;
-    }
-
-    afterImagesSettled(function(){ render(false); });
-  }
-
-  // Download is the primary, always-available path (works well on PC and Android/desktop
-  // browsers). On platforms where the Web Share API can share files (mainly iOS/Android), an
-  // additional share option is offered via a follow-up confirm, since that's the closest a web
-  // page can get to a direct "save to camera roll" flow -- true silent camera-roll writes aren't
-  // possible from a web page for security reasons.
-  function saveOrShareBlob(blob, filename){
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
-
-    if(navigator.canShare){
-      var file = new File([blob], filename, { type: 'image/png' });
-      if(navigator.canShare({ files: [file] })){
-        if(window.confirm('画像をダウンロードしました。共有シート（写真アプリへの保存など）も開きますか？')){
-          navigator.share({ files: [file] }).catch(function(){});
-        }
-      }
-    }
   }
 
   function initPartyPanel(){

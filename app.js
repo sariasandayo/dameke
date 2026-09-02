@@ -101,6 +101,25 @@
   function updateAllTypeColors() {
     ['attackerType1', 'attackerType2', 'defenderType1', 'defenderType2', 'attackerTeraType', 'defenderTeraType'].forEach(function(id) { updateTypeColor(document.getElementById(id)); });
   }
+  // moveSelect is wrapped by the search-combo UI (it needs search, unlike the fixed-19-option
+  // type selects above), so the element actually visible on screen is its paired .v082h-search-input
+  // sibling, not the (deliberately hidden) <select> itself -- the color has to go on that input
+  // to be seen. The dropdown's own candidate items are intentionally left uncolored, matching how
+  // the type selects' own <option> list is forced back to plain white/black (see .dameke-type-select
+  // option in style.css) rather than inheriting the gradient.
+  function updateMoveTypeColor(){
+    var sel = document.getElementById('moveSelect');
+    if(!sel) return;
+    var input = sel.closest('.v082h-search-combo');
+    input = input ? input.querySelector('.v082h-search-input') : null;
+    if(!input) return;
+    var move = DATA.moves.find(function(m){ return m.id === sel.value; });
+    input.classList.add('dameke-type-select');
+    for (const k in TYPE_COLOR_MAP) input.classList.remove('dameke-type-' + TYPE_COLOR_MAP[k]);
+    var suffix = TYPE_COLOR_MAP[move ? move.type : 'なし'] || 'none';
+    input.classList.add('dameke-type-' + suffix);
+  }
+  window.__damekeUpdateMoveTypeColor = updateMoveTypeColor;
   window.__damekeUpdateTypeColors = updateAllTypeColors; function formatTrace(trace) {
   const order = [
     '持ち物（攻撃側）','持ち物（防御側）','特性（攻撃側）','特性（防御側）','天候','フィールド',
@@ -522,6 +541,11 @@
     // el.rolls (乱数 section) retired -- this data now shows as "ダメージ" in the calc-process table.
     renderCalcTable(result);
     el.trace.textContent = formatTrace(result.trace);
+    // Exposed so renderResult() (a separate IIFE, driven by a MutationObserver on #summary/#trace
+    // rather than a direct call from here) can read the same structured trace entries the calc-
+    // process table itself uses for 特性/持ち物, instead of re-parsing the rendered trace text
+    // (which also carries each entry's note, and was producing "有効 / 有効"-style duplicates).
+    window.__damekeLastTrace = result.trace;
   }
   window.__damekeCalculate = calculate;
   function setHpFraction(side, denom) { const pokemon = byId(DATA.pokemons, el[side + 'Select'].value); const level = el[side + 'Level'].value; const stats = readStats(side); const maxHp = CALC.previewBaseMaxHp(pokemon, level, stats); el[side + 'CurrentHp'].value = Math.max(1, Math.floor(maxHp / denom)); calculate(); }
@@ -675,7 +699,12 @@
     function choose(o){
       select.value = o.value; input.value = o.text; closeList();
       dispatchChange(select);
-      input.blur();
+      // Deferred rather than called synchronously here: mousedown's preventDefault() (see the
+      // list item's own listener below) keeps the input focused through the click so the list
+      // doesn't close early, but that same suppression means an immediate .blur() here can get
+      // silently overridden once the click gesture finishes and the browser re-affirms focus on
+      // whatever was focused going in -- deferring past that point makes the blur stick.
+      setTimeout(function(){ input.blur(); }, 0);
     }
     function updateActive(items){
       items.forEach(function(li,i){ li.classList.toggle('active', i===activeIndex); });
@@ -1460,13 +1489,43 @@
     sideGrid.appendChild(atkCol); sideGrid.appendChild(defCol);
     resultRow(atkCol, '性格', natureText('attacker'));
     resultRow(defCol, '性格', natureText('defender'));
+    // A positive rank value is shown with an explicit "+" (matching how the calculator marks
+    // boosts elsewhere) -- negative values already carry their own "-", so only >0 needs it added.
+    function signedRank(side, key){
+      var v = statText(side, key, 'rank');
+      var n = parseInt(v, 10);
+      return (Number.isFinite(n) && n > 0) ? ('+'+v) : v;
+    }
     if (cat !== '変化') {
       var atkSideJp = atkRef.side==='attacker' ? '攻' : '防';
-      resultRow(atkCol, '努力値('+atkSideJp+atkRef.key+')', statText(atkRef.side, atkRef.key, 'ev'));
-      resultRow(defCol, '努力値(H/'+defRef.key+')', statText('defender','H','ev')+' / '+statText('defender',defRef.key,'ev'));
-      resultRow(atkCol, 'ランク('+atkSideJp+atkRef.key+')', statText(atkRef.side, atkRef.key, 'rank'));
-      resultRow(defCol, 'ランク('+defRef.key+')', statText('defender',defRef.key,'rank'));
+      resultRow(atkCol, '努力値/ランク('+atkSideJp+atkRef.key+')', statText(atkRef.side, atkRef.key, 'ev')+' / '+signedRank(atkRef.side, atkRef.key));
+      // The defender's EV figure is H/X (both always shown), but rank only applies to X itself --
+      // so the two get their own parenthesized reference rather than sharing one, e.g.
+      // "努力値(H/B)/ランク(B)" instead of a single "努力値/ランク(H/B)" that would misleadingly
+      // suggest a rank for H too.
+      resultRow(defCol, '努力値(H/'+defRef.key+')/ランク('+defRef.key+')', statText('defender','H','ev')+' / '+statText('defender',defRef.key,'ev')+' / '+signedRank('defender', defRef.key));
     }
+    // 特性/持ち物: reuses the exact same structured trace lookup and formatting the 計算過程
+    // column itself uses (renderCalcTable's pairedNameRow/itemStatusText), rather than
+    // re-parsing the rendered trace *text* -- that text also carries each entry's note appended
+    // after the value, which is what was producing "有効 / 有効"-style duplicates here before.
+    var lastTrace = window.__damekeLastTrace || [];
+    function findTrace(labelPart){ return lastTrace.find(function(x){ return String(x.label||'').indexOf(labelPart) >= 0; }) || null; }
+    function abilityDisplay(labelPart){
+      var e = findTrace(labelPart);
+      if(!e) return '-';
+      return e.value === '有効' ? e.name : (e.name + '（' + e.value + '）');
+    }
+    function itemDisplay(labelPart){
+      var e = findTrace(labelPart);
+      if(!e) return '-';
+      var status = e.value === '持ち物なし' ? '無効' : e.value;
+      return status === '有効' ? e.name : (e.name + '（' + status + '）');
+    }
+    resultRow(atkCol, '特性', abilityDisplay('特性（攻撃側）'));
+    resultRow(defCol, '特性', abilityDisplay('特性（防御側）'));
+    resultRow(atkCol, '持ち物', itemDisplay('持ち物（攻撃側）'));
+    resultRow(defCol, '持ち物', itemDisplay('持ち物（防御側）'));
 
     // ---- full detail panel + rolls/trace: restored as-is, normal flow, not pinned ----
     var detail=q('v082hResultDetailPanel');
@@ -1505,7 +1564,7 @@
     }
   }
   function setupResult(){ var s=q('summary'), t=q('trace'); if(!s) return; var obs=new MutationObserver(renderResult); obs.observe(s,{childList:true,subtree:true,characterData:true}); if(t) obs.observe(t,{childList:true,subtree:true,characterData:true}); setTimeout(renderResult,0); }
-  function refreshAll(){ updateAbilityButtons('attacker'); updateAbilityButtons('defender'); updateConditional(); renderResult(); updateNatureStatColors('attacker'); updateNatureStatColors('defender'); updateReadOnlyStatRows('attacker'); updateReadOnlyStatRows('defender'); updateRemainingEvDisplay('attacker'); updateRemainingEvDisplay('defender'); }
+  function refreshAll(){ updateAbilityButtons('attacker'); updateAbilityButtons('defender'); updateConditional(); renderResult(); updateNatureStatColors('attacker'); updateNatureStatColors('defender'); updateReadOnlyStatRows('attacker'); updateReadOnlyStatRows('defender'); updateRemainingEvDisplay('attacker'); updateRemainingEvDisplay('defender'); if(window.__damekeUpdateMoveTypeColor) window.__damekeUpdateMoveTypeColor(); }
   window.__damekeRefreshAll = refreshAll;
   function bind(){ ['attackerSelect','defenderSelect'].forEach(function(id){ var e=q(id); if(e) e.addEventListener('change',function(){ setTimeout(refreshAll,0); }); }); ['moveSelect','attackerAbilitySelect','defenderAbilitySelect','attackerItemSelect','attackerTeraType'].forEach(function(id){ var e=q(id); if(e) e.addEventListener('change',function(){ setTimeout(updateConditional,0); }); }); }
 
