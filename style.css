@@ -217,11 +217,10 @@ button:hover { background: #e0e7ff; }
   .dameke-pokemon-card-loadbtns{order:3;display:grid !important;grid-template-columns:1fr 1fr;gap:6px;width:100%;}
   .dameke-pokemon-card-actions{order:4;display:grid !important;grid-template-columns:1fr 1fr;gap:6px;width:100%;}
 
-  /* Party member grid: 2 columns is too narrow per-member below this width (the internal stat
-     table alone needs 7 columns) -- stack members in a single column instead, same 6-member
-     content, just full width each so the detail rows and stat table have room to lay out
-     normally. */
-  .dameke-party-member-grid{grid-template-columns:1fr !important;}
+  /* Party member grid: kept at 2 columns even on narrow screens -- the member card itself has
+     been made compact enough (chips instead of full labeled rows, a 2x2 move grid) that 2
+     columns x 3 rows fits, which matters since the goal here is a whole party visible on one
+     screen without scrolling. */
 }
 @media(max-width:760px){
   body{font-size:15px;}
@@ -244,8 +243,9 @@ button:hover { background: #e0e7ff; }
   .v082h-result-item{grid-template-columns:74px minmax(0,1fr);}
 
   .dameke-pokemon-detail-row{grid-template-columns:80px minmax(0,1fr) !important;}
-  .dameke-party-member-card .dameke-pokemon-detail-row{grid-template-columns:56px minmax(0,1fr) !important;font-size:.74rem !important;}
   .dameke-pokemon-combined-stat-table{font-size:.72rem !important;gap:3px 4px !important;}
+  .dameke-party-card{padding:8px !important;}
+  .dameke-party-list{gap:12px !important;}
 }
 label:has(> #critical){margin-top:10px;}
 /* Checkbox labels were stretching to fill their grid cell / flex container width (the default
@@ -411,18 +411,29 @@ select.dameke-type-stellar{background:linear-gradient(90deg,#fbd9e6,#c4ecec,#fbe
 .dameke-party-card-title{font-weight:800;font-size:1rem;color:#111827;margin-bottom:6px;}
 .dameke-party-name-field{display:flex;flex-direction:column;gap:3px;font-size:.82rem;color:#374151;margin:8px 0;max-width:320px;}
 .dameke-party-name-field input{font:inherit;border:1px solid #d1d5db;border-radius:8px;padding:6px 8px;}
-.dameke-party-member-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
-.dameke-party-member-card{border:1px solid #e5e7eb;border-radius:8px;padding:8px;background:#fff;font-size:.72rem;}
+.dameke-party-member-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;}
+.dameke-party-member-card{border:1px solid #e5e7eb;border-radius:8px;padding:6px;background:#fff;font-size:.72rem;}
 .dameke-party-member-empty{display:flex;align-items:center;justify-content:center;color:#d1d5db;min-height:120px;font-size:.78rem;}
-.dameke-party-member-head{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
-.dameke-party-member-head .dameke-pokemon-card-thumb{width:36px;height:36px;}
-.dameke-party-member-head .dameke-pokemon-card-title{font-size:.8rem;}
-.dameke-party-member-head .dameke-pokemon-card-sub{font-size:.68rem;}
-.dameke-party-member-card .dameke-pokemon-detail-grid{gap:1px;}
-.dameke-party-member-card .dameke-pokemon-detail-row{grid-template-columns:52px minmax(0,1fr);font-size:.68rem;}
+.dameke-party-member-head{display:flex;align-items:center;gap:5px;margin-bottom:3px;}
+.dameke-party-member-head .dameke-pokemon-card-thumb{width:30px;height:30px;}
+.dameke-party-member-head .dameke-pokemon-card-title{font-size:.74rem;line-height:1.2;}
+.dameke-party-member-head .dameke-pokemon-card-sub{font-size:.62rem;line-height:1.2;}
 .dameke-stat-boost{color:#dc2626 !important;}
 .dameke-stat-drop{color:#2563eb !important;}
-.dameke-party-member-moves{margin-top:4px;font-size:.68rem;color:#374151;line-height:1.5;}
+
+/* 特性/持ち物/テラスタイプ as small bordered chips (no full label -- a single boldface prefix
+   character stands in for it) instead of three separate labeled rows. This, together with the
+   2x2 move grid below, is what makes a compact 2-column x 3-row party layout possible. */
+.dameke-party-chip-row{display:flex;flex-wrap:wrap;gap:3px;margin:3px 0;}
+.dameke-party-chip{display:inline-flex;align-items:center;gap:2px;border:1px solid #e5e7eb;border-radius:5px;padding:1px 4px;font-size:.6rem;color:#374151;background:#f9fafb;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.dameke-party-chip b{color:#9ca3af;font-weight:700;flex:0 0 auto;}
+
+/* Moves as a 2x2 grid rather than a single wrapped line -- each cell can still wrap to two
+   lines on its own for an unusually long move name, without pushing the whole card to a taller
+   4-row layout the way stacking every move on its own line would. */
+.dameke-party-move-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 4px;margin:3px 0;}
+.dameke-party-move-cell{font-size:.62rem;line-height:1.25;color:#374151;border:1px solid #f1f5f9;border-radius:4px;padding:1px 3px;overflow-wrap:break-word;}
+.dameke-party-member-card .dameke-pokemon-combined-stat-table{grid-template-columns:2.2em repeat(6,minmax(0,1fr)) !important;font-size:.6rem !important;gap:2px 3px !important;margin-top:4px;}
 
 .dameke-party-selector-host[hidden]{display:none;}
 .dameke-party-selector-form{border:1px solid #e5e7eb;border-radius:12px;padding:14px;margin-top:12px;background:#fff;}

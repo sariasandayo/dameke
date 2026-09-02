@@ -728,7 +728,11 @@
 
   // Forces ♂/♀ to render as text/symbol glyphs rather than color emoji glyphs wherever a
   // stored gender value is shown as display text (the stored value itself stays plain).
-  function genderDisplayText(g){ return (g==='♂'||g==='♀') ? g+'\uFE0E' : g; }
+  function genderDisplayText(g){
+    if(g==='♂'||g==='♀') return g+'\uFE0E';
+    if(g==='不明') return '性別不明';
+    return g;
+  }
 
   function buildLabeledRow(label, value){
     var row = document.createElement('div');
@@ -1499,14 +1503,40 @@
     head.appendChild(titleWrap);
     card.appendChild(head);
 
-    var detailGrid = document.createElement('div');
-    detailGrid.className = 'dameke-pokemon-detail-grid';
-    detailGrid.appendChild(buildLabeledRow('特性', entry.abilityId && entry.abilityId!=='none' ? entry.abilityId : 'なし'));
-    detailGrid.appendChild(buildLabeledRow('持ち物', entry.itemId && entry.itemId!=='none' ? entry.itemId : 'なし'));
-    detailGrid.appendChild(buildLabeledRow('テラスタル', entry.teraType || 'なし'));
+    // 特性/持ち物/テラスタイプ share one row of small bordered chips instead of three separate
+    // labeled rows -- a single boldface prefix character stands in for the full label (特/物/テ),
+    // which reads fine once the pattern is familiar and saves two full rows per card. This is
+    // what actually makes a 2-column x 3-row layout fit a phone screen without cutting any of
+    // the underlying information.
+    var chipRow = document.createElement('div');
+    chipRow.className = 'dameke-party-chip-row';
+    function addChip(prefix, value){
+      var chip = document.createElement('span');
+      chip.className = 'dameke-party-chip';
+      var pre = document.createElement('b'); pre.textContent = prefix;
+      chip.appendChild(pre);
+      chip.appendChild(document.createTextNode(value));
+      chipRow.appendChild(chip);
+    }
+    addChip('特', entry.abilityId && entry.abilityId!=='none' ? entry.abilityId : 'なし');
+    addChip('物', entry.itemId && entry.itemId!=='none' ? entry.itemId : 'なし');
+    addChip('テ', entry.teraType || 'なし');
+    card.appendChild(chipRow);
+
+    // Moves as a 2x2 grid (not a single wrapped line) -- each cell can still wrap to two lines
+    // on its own for an unusually long move name, without forcing the *other* three moves down
+    // onto extra rows the way a strict "2 per line" text layout would once the longest names
+    // don't both fit on one line.
     var moveNames = (entry.moves||[]).map(function(id){ var m=id?findMoveById(id):null; return m ? m.name : '(未設定)'; });
-    detailGrid.appendChild(buildMovesRow('技', moveNames));
-    card.appendChild(detailGrid);
+    var moveGrid = document.createElement('div');
+    moveGrid.className = 'dameke-party-move-grid';
+    moveNames.forEach(function(name){
+      var cell = document.createElement('div');
+      cell.className = 'dameke-party-move-cell';
+      cell.textContent = name;
+      moveGrid.appendChild(cell);
+    });
+    card.appendChild(moveGrid);
 
     card.appendChild(buildCombinedStatTable(entry, actual));
     return card;

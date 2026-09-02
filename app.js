@@ -644,6 +644,11 @@
     };
 
     function closeList(){ list.hidden = true; }
+    function updateListDirection(){
+      var r = input.getBoundingClientRect();
+      var vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+      list.classList.toggle('v082h-search-list-up', r.bottom > vh * 0.6);
+    }
     function renderList(query){
       var nq = kanaNormalize(query);
       var matches = nq ? options.filter(function(o){ return o.norm.indexOf(nq) === 0; }) : options;
@@ -656,14 +661,15 @@
         li.addEventListener('mousedown', function(e){ e.preventDefault(); choose(o); });
         list.appendChild(li);
       });
-      // One-time, approximate up/down choice made when the list opens -- not continuously
-      // recalculated, since the CSS positioning above already keeps the list glued to the input
-      // regardless of what the viewport does afterward. Getting this direction slightly wrong in
-      // an edge case (e.g. the keyboard eating more space than expected) just means the user
-      // scrolls a little to see the rest of the list, the same as any ordinary autocomplete.
-      var r = input.getBoundingClientRect();
-      var vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-      list.classList.toggle('v082h-search-list-up', r.bottom > vh * 0.6);
+      // Made every time the list (re)renders, using the input's *current* position -- this
+      // matters because on first open, the up/down choice runs before the auto-scroll below has
+      // had a chance to move the input, so it can end up based on a position (near the bottom of
+      // the screen) that's no longer accurate once the input settles nearer the top. Typing
+      // anything re-triggers this via the 'input' listener, which is why the list would
+      // self-correct back to "below" once the user typed a character -- the fix below just also
+      // re-checks once after the scroll itself finishes, so it's already correct without
+      // requiring that extra keystroke.
+      updateListDirection();
       list.hidden = false;
     }
     function choose(o){
@@ -693,6 +699,10 @@
         var vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
         var targetY = window.pageYOffset + rect.top - vh * 0.2;
         window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+        // Re-check the up/down direction once the smooth scroll above has had time to finish --
+        // see the comment in renderList() for why this is needed rather than relying on the
+        // decision made at the very start of this focus handler.
+        setTimeout(function(){ if(!list.hidden) updateListDirection(); }, 450);
       }, 80);
     });
     input.addEventListener('input', function(){ renderList(input.value); });
