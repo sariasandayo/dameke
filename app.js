@@ -612,6 +612,71 @@
       });
     }, 400);
   }
+  // On touch-capable, narrow-viewport devices, the inline floating dropdown (positioned via
+  // getBoundingClientRect + scrollIntoView against a viewport the on-screen keyboard is actively
+  // resizing) turned out to be fundamentally unreliable: the auto-scroll target could land under
+  // the status bar or keyboard, the dropdown could end up positioned wrong afterward, and taps
+  // could flash-then-close the list. None of this happens on desktop, where there's no keyboard
+  // reshaping the viewport underneath the calculation. Rather than continuing to chase individual
+  // timing symptoms, mobile gets a completely different, much simpler pattern: a full-screen
+  // overlay with its own search input pinned at the top and results filling the rest of the
+  // screen. This sidesteps viewport math entirely -- the overlay just fills whatever visible
+  // space remains once the keyboard has taken its share, without ever needing to calculate where
+  // that space is.
+  var useMobileSearchOverlay = (('ontouchstart' in window) || navigator.maxTouchPoints > 0) && window.innerWidth <= 760;
+  var mobileOverlayEls = null;
+  function getMobileSearchOverlay(){
+    if(mobileOverlayEls) return mobileOverlayEls;
+    var overlay = make('div','v082h-mobile-search-overlay');
+    overlay.hidden = true;
+    var header = make('div','v082h-mobile-search-header');
+    var input = document.createElement('input');
+    input.type = 'text'; input.className = 'v082h-mobile-search-input'; input.autocomplete = 'off';
+    var closeBtn = make('button','v082h-mobile-search-close','閉じる');
+    closeBtn.type = 'button';
+    header.appendChild(input); header.appendChild(closeBtn);
+    var list = document.createElement('ul');
+    list.className = 'v082h-mobile-search-list';
+    overlay.appendChild(header); overlay.appendChild(list);
+    document.body.appendChild(overlay);
+    mobileOverlayEls = { overlay: overlay, input: input, list: list, closeBtn: closeBtn };
+    return mobileOverlayEls;
+  }
+  function openMobileSearchOverlay(options, currentText, onChoose){
+    var els = getMobileSearchOverlay();
+    var activeIndex = -1;
+    function render(query){
+      var nq = kanaNormalize(query);
+      var matches = nq ? options.filter(function(o){ return o.norm.indexOf(nq) === 0; }) : options;
+      els.list.innerHTML = '';
+      activeIndex = -1;
+      matches.forEach(function(o){
+        var li = document.createElement('li');
+        li.textContent = o.text; li.className = 'v082h-search-item';
+        li.addEventListener('click', function(){ close(); onChoose(o); });
+        els.list.appendChild(li);
+      });
+    }
+    function close(){
+      els.overlay.hidden = true;
+      els.input.removeEventListener('input', onInput);
+      els.closeBtn.removeEventListener('click', close);
+      document.removeEventListener('keydown', onKeydown, true);
+    }
+    function onInput(){ render(els.input.value); }
+    function onKeydown(e){ if(e.key === 'Escape') close(); }
+    els.overlay.hidden = false;
+    els.input.value = '';
+    render('');
+    els.input.addEventListener('input', onInput);
+    els.closeBtn.addEventListener('click', close);
+    document.addEventListener('keydown', onKeydown, true);
+    // A short delay before focusing lets the overlay actually paint first -- focusing
+    // immediately on the same tap that opened it can otherwise have the keyboard animation and
+    // the overlay's own appearance fight each other on some mobile browsers.
+    setTimeout(function(){ els.input.focus(); }, 50);
+  }
+
   function attachSearchCombo(selectId){
     var select = q(selectId);
     if(!select || select.getAttribute('data-v082h-search')) return;
@@ -620,6 +685,7 @@
     var wrap = make('div','v082h-search-combo');
     var input = document.createElement('input');
     input.type = 'text'; input.className = 'v082h-search-input'; input.autocomplete = 'off';
+    if(useMobileSearchOverlay) input.readOnly = true; // tapping still focuses/opens the overlay, but doesn't itself summon the keyboard for this (about-to-be-hidden) field
     var list = document.createElement('ul');
     list.className = 'v082h-search-list'; list.hidden = true;
     document.body.appendChild(list);
@@ -637,6 +703,20 @@
       options = Array.prototype.map.call(select.options, function(o){ return { value:o.value, text:o.textContent, norm:kanaNormalize(o.textContent) }; });
       input.value = currentText();
     };
+    function chooseMobile(o){
+      select.value = o.value; input.value = o.text;
+      dispatchChange(select);
+    }
+    if(useMobileSearchOverlay){
+      input.addEventListener('focus', function(){
+        input.blur();
+        openMobileSearchOverlay(options, currentText(), chooseMobile);
+      });
+      select.addEventListener('change', function(){ input.value = currentText(); });
+      searchComboSyncList.push({ select: select, input: input, currentText: currentText });
+      ensureSearchComboSync();
+      return;
+    }
 
     function positionList(){
       var r = input.getBoundingClientRect();

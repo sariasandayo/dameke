@@ -427,3 +427,15 @@ select.dameke-type-stellar{background:linear-gradient(90deg,#fbd9e6,#c4ecec,#fbe
 .dameke-pokemon-card-selected .dameke-pokemon-card-select-badge{background:#059669;color:#fff;}
 .dameke-party-selector-row{display:flex;align-items:center;gap:8px;font-size:.84rem;padding:4px 2px;cursor:pointer;}
 .dameke-party-selector-row:hover{background:#f9fafb;}
+
+/* Mobile full-screen search overlay: replaces the floating dropdown on touch-capable narrow
+   viewports, where positioning a small dropdown against a viewport the on-screen keyboard is
+   actively resizing turned out to be unreliable. This sidesteps all of that -- it just fills
+   whatever visible space remains once the keyboard has taken its share. */
+.v082h-mobile-search-overlay{position:fixed;inset:0;z-index:9999;background:#fff;display:flex;flex-direction:column;}
+.v082h-mobile-search-header{display:flex;gap:8px;align-items:center;padding:10px;padding-top:calc(10px + env(safe-area-inset-top, 0px));border-bottom:1px solid #e5e7eb;flex:0 0 auto;background:#fff;}
+.v082h-mobile-search-input{flex:1;min-width:0;font-size:16px;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;}
+.v082h-mobile-search-close{flex:0 0 auto;padding:10px 14px;border:none;background:#111827;color:#fff;border-radius:8px;font-size:.85rem;cursor:pointer;}
+.v082h-mobile-search-list{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;margin:0;padding:0;list-style:none;}
+.v082h-mobile-search-list .v082h-search-item{padding:14px 16px;border-bottom:1px solid #f1f5f9;font-size:.95rem;}
+.v082h-mobile-search-list .v082h-search-item:active{background:#f3f4f6;}
