@@ -257,27 +257,27 @@ label:has(input[type="checkbox"]){justify-self:start;width:fit-content;}
 .dameke-move-filter-toggle{font-size:.7rem;color:#94a3b8;min-height:auto;margin-top:2px;gap:4px;opacity:.75;}
 .dameke-move-filter-toggle input{width:12px;height:12px;}
 select.dameke-type-select{transition:background-color .15s,color .15s;}
-select.dameke-type-none{background:linear-gradient(90deg,#eef0f3,#d1d5db);color:#111827;}
-select.dameke-type-normal{background:linear-gradient(90deg,#e2e2cf,#c8c8a8);color:#111827;}
-select.dameke-type-fire{background:linear-gradient(90deg,#fac7a5,#f29a5c);color:#111827;}
-select.dameke-type-water{background:linear-gradient(90deg,#bcd3fa,#7ea3ee);color:#111827;}
-select.dameke-type-electric{background:linear-gradient(90deg,#fdeba8,#f7d34e);color:#111827;}
-select.dameke-type-grass{background:linear-gradient(90deg,#c3e8b3,#8ecf6b);color:#111827;}
-select.dameke-type-ice{background:linear-gradient(90deg,#d6f2f2,#96dede);color:#111827;}
-select.dameke-type-fighting{background:linear-gradient(90deg,#e8a9a5,#cc6f69);color:#111827;}
-select.dameke-type-poison{background:linear-gradient(90deg,#ddb4dd,#b876b8);color:#111827;}
-select.dameke-type-ground{background:linear-gradient(90deg,#f2e4bd,#dfc274);color:#111827;}
-select.dameke-type-flying{background:linear-gradient(90deg,#ddd3fa,#b3a0ee);color:#111827;}
-select.dameke-type-psychic{background:linear-gradient(90deg,#fcc0d3,#f77fa1);color:#111827;}
-select.dameke-type-bug{background:linear-gradient(90deg,#dbe3a3,#b8c95a);color:#111827;}
-select.dameke-type-rock{background:linear-gradient(90deg,#e6d6a5,#c9ac5e);color:#111827;}
-select.dameke-type-ghost{background:linear-gradient(90deg,#8d7ea6,#5f5178);color:#ffffff;}
-select.dameke-type-dragon{background:linear-gradient(90deg,#9880ee,#6647d4);color:#ffffff;}
-select.dameke-type-dark{background:linear-gradient(90deg,#8c7c70,#5c4f45);color:#ffffff;}
-select.dameke-type-steel{background:linear-gradient(90deg,#e6e6f0,#c2c2d8);color:#111827;}
-select.dameke-type-fairy{background:linear-gradient(90deg,#fce3ee,#f2accf);color:#111827;}
+.dameke-type-none{background:linear-gradient(90deg,#eef0f3,#d1d5db);color:#111827;}
+.dameke-type-normal{background:linear-gradient(90deg,#e2e2cf,#c8c8a8);color:#111827;}
+.dameke-type-fire{background:linear-gradient(90deg,#fac7a5,#f29a5c);color:#111827;}
+.dameke-type-water{background:linear-gradient(90deg,#bcd3fa,#7ea3ee);color:#111827;}
+.dameke-type-electric{background:linear-gradient(90deg,#fdeba8,#f7d34e);color:#111827;}
+.dameke-type-grass{background:linear-gradient(90deg,#c3e8b3,#8ecf6b);color:#111827;}
+.dameke-type-ice{background:linear-gradient(90deg,#d6f2f2,#96dede);color:#111827;}
+.dameke-type-fighting{background:linear-gradient(90deg,#e8a9a5,#cc6f69);color:#111827;}
+.dameke-type-poison{background:linear-gradient(90deg,#ddb4dd,#b876b8);color:#111827;}
+.dameke-type-ground{background:linear-gradient(90deg,#f2e4bd,#dfc274);color:#111827;}
+.dameke-type-flying{background:linear-gradient(90deg,#ddd3fa,#b3a0ee);color:#111827;}
+.dameke-type-psychic{background:linear-gradient(90deg,#fcc0d3,#f77fa1);color:#111827;}
+.dameke-type-bug{background:linear-gradient(90deg,#dbe3a3,#b8c95a);color:#111827;}
+.dameke-type-rock{background:linear-gradient(90deg,#e6d6a5,#c9ac5e);color:#111827;}
+.dameke-type-ghost{background:linear-gradient(90deg,#8d7ea6,#5f5178);color:#ffffff;}
+.dameke-type-dragon{background:linear-gradient(90deg,#9880ee,#6647d4);color:#ffffff;}
+.dameke-type-dark{background:linear-gradient(90deg,#8c7c70,#5c4f45);color:#ffffff;}
+.dameke-type-steel{background:linear-gradient(90deg,#e6e6f0,#c2c2d8);color:#111827;}
+.dameke-type-fairy{background:linear-gradient(90deg,#fce3ee,#f2accf);color:#111827;}
 select.dameke-type-select option{background-color:#ffffff;color:#111827;}
-select.dameke-type-stellar{background:linear-gradient(90deg,#fbd9e6,#c4ecec,#fbe28f);color:#111827;}
+.dameke-type-stellar{background:linear-gradient(90deg,#fbd9e6,#c4ecec,#fbe28f);color:#111827;}
 .dameke-image-credit{margin-top:16px;font-size:.68rem;line-height:1.5;color:#9ca3af;}
 .v082h-result-header-row{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:2px;}
 .v082h-result-text-col{flex:0 1 auto;min-width:0;max-width:60%;text-align:center;}
@@ -424,16 +424,17 @@ select.dameke-type-stellar{background:linear-gradient(90deg,#fbd9e6,#c4ecec,#fbe
 /* 特性/持ち物/テラスタイプ as small bordered chips (no full label -- a single boldface prefix
    character stands in for it) instead of three separate labeled rows. This, together with the
    2x2 move grid below, is what makes a compact 2-column x 3-row party layout possible. */
-.dameke-party-chip-row{display:flex;flex-wrap:wrap;gap:3px;margin:3px 0;}
-.dameke-party-chip{display:inline-flex;align-items:center;gap:2px;border:1px solid #e5e7eb;border-radius:5px;padding:1px 4px;font-size:.6rem;color:#374151;background:#f9fafb;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.dameke-party-chip b{color:#9ca3af;font-weight:700;flex:0 0 auto;}
+.dameke-party-chip-row{display:flex;flex-direction:column;gap:2px;margin:3px 0;}
+.dameke-party-chip{display:block;border:1px solid #e5e7eb;border-radius:5px;padding:1px 4px;font-size:.6rem;color:#374151;background:#f9fafb;overflow-wrap:break-word;}
+.dameke-party-chip b{color:#9ca3af;font-weight:700;}
+.dameke-party-type-badge{display:inline-block;border-radius:4px;padding:0 5px;font-size:.58rem;font-weight:700;margin-right:3px;}
 
 /* Moves as a 2x2 grid rather than a single wrapped line -- each cell can still wrap to two
    lines on its own for an unusually long move name, without pushing the whole card to a taller
    4-row layout the way stacking every move on its own line would. */
 .dameke-party-move-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 4px;margin:3px 0;}
-.dameke-party-move-cell{font-size:.62rem;line-height:1.25;color:#374151;border:1px solid #f1f5f9;border-radius:4px;padding:1px 3px;overflow-wrap:break-word;}
-.dameke-party-member-card .dameke-pokemon-combined-stat-table{grid-template-columns:2.2em repeat(6,minmax(0,1fr)) !important;font-size:.6rem !important;gap:2px 3px !important;margin-top:4px;}
+.dameke-party-move-cell{font-size:.62rem;line-height:1.25;border:1px solid #f1f5f9;border-radius:4px;padding:1px 3px;overflow-wrap:break-word;}
+.dameke-party-member-card .dameke-pokemon-combined-stat-table{grid-template-columns:3.4em repeat(6,minmax(0,1fr)) !important;font-size:.6rem !important;gap:2px 2px !important;margin-top:4px;}
 
 .dameke-party-selector-host[hidden]{display:none;}
 .dameke-party-selector-form{border:1px solid #e5e7eb;border-radius:12px;padding:14px;margin-top:12px;background:#fff;}

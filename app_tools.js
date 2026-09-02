@@ -1479,6 +1479,12 @@
   // used for the compact party-member card, where horizontal space is at a premium.
   // ---- Compact member card for the party list/export (smaller thumb, fewer detail rows, moves
   // wrapped to 2 lines, vertical stat table).
+  // Same type-to-color-suffix mapping the calculator itself uses for its type-colored selects
+  // (see app.js's TYPE_COLOR_MAP) -- duplicated here since app_tools.js can't reach across to
+  // app.js's own scope, but the actual gradient CSS (.dameke-type-xxx) is shared/reused as-is.
+  var TYPE_COLOR_MAP = { 'なし':'none', 'ノーマル':'normal', 'ほのお':'fire', 'みず':'water', 'でんき':'electric', 'くさ':'grass', 'こおり':'ice', 'かくとう':'fighting', 'どく':'poison', 'じめん':'ground', 'ひこう':'flying', 'エスパー':'psychic', 'むし':'bug', 'いわ':'rock', 'ゴースト':'ghost', 'ドラゴン':'dragon', 'あく':'dark', 'はがね':'steel', 'フェアリー':'fairy', 'ステラ':'stellar' };
+  function typeColorClass(typeName){ return 'dameke-type-' + (TYPE_COLOR_MAP[typeName] || 'none'); }
+
   function buildCompactMemberCard(entry){
     var card = document.createElement('div');
     card.className = 'dameke-party-member-card';
@@ -1497,43 +1503,52 @@
     titleWrap.appendChild(title);
     var sub = document.createElement('div');
     sub.className = 'dameke-pokemon-card-sub';
-    var types = pokemon && Array.isArray(pokemon.types) ? pokemon.types.join('・') : '-';
-    sub.textContent = entry.gender ? (types + '　' + genderDisplayText(entry.gender)) : types;
+    var pokeTypes = pokemon && Array.isArray(pokemon.types) ? pokemon.types : [];
+    pokeTypes.forEach(function(t){
+      var badge = document.createElement('span');
+      badge.className = 'dameke-party-type-badge ' + typeColorClass(t);
+      badge.textContent = t;
+      sub.appendChild(badge);
+    });
+    if(entry.gender){
+      var genderSpan = document.createElement('span');
+      genderSpan.textContent = genderDisplayText(entry.gender);
+      sub.appendChild(genderSpan);
+    }
     titleWrap.appendChild(sub);
     head.appendChild(titleWrap);
     card.appendChild(head);
 
-    // 特性/持ち物/テラスタイプ share one row of small bordered chips instead of three separate
-    // labeled rows -- a single boldface prefix character stands in for the full label (特/物/テ),
-    // which reads fine once the pattern is familiar and saves two full rows per card. This is
-    // what actually makes a 2-column x 3-row layout fit a phone screen without cutting any of
-    // the underlying information.
+    // 特性/持ち物/テラスタイプ each get their own full-width row with the full label -- letting
+    // them wrap freely by available width (the earlier 1-character-prefix version) made the row
+    // count vary unpredictably depending on how long each value happened to be.
     var chipRow = document.createElement('div');
     chipRow.className = 'dameke-party-chip-row';
-    function addChip(prefix, value){
-      var chip = document.createElement('span');
+    function addChip(label, value){
+      var chip = document.createElement('div');
       chip.className = 'dameke-party-chip';
-      var pre = document.createElement('b'); pre.textContent = prefix;
+      var pre = document.createElement('b'); pre.textContent = label + '：';
       chip.appendChild(pre);
       chip.appendChild(document.createTextNode(value));
       chipRow.appendChild(chip);
     }
-    addChip('特', entry.abilityId && entry.abilityId!=='none' ? entry.abilityId : 'なし');
-    addChip('物', entry.itemId && entry.itemId!=='none' ? entry.itemId : 'なし');
-    addChip('テ', entry.teraType || 'なし');
+    addChip('特性', entry.abilityId && entry.abilityId!=='none' ? entry.abilityId : 'なし');
+    addChip('持ち物', entry.itemId && entry.itemId!=='none' ? entry.itemId : 'なし');
+    addChip('テラスタイプ', entry.teraType || 'なし');
     card.appendChild(chipRow);
 
     // Moves as a 2x2 grid (not a single wrapped line) -- each cell can still wrap to two lines
     // on its own for an unusually long move name, without forcing the *other* three moves down
     // onto extra rows the way a strict "2 per line" text layout would once the longest names
-    // don't both fit on one line.
-    var moveNames = (entry.moves||[]).map(function(id){ var m=id?findMoveById(id):null; return m ? m.name : '(未設定)'; });
+    // don't both fit on one line. Each cell's background is a gradient of the move's own type,
+    // reusing the same type-color scheme as the calculator's type selects.
+    var moves = (entry.moves||[]).map(function(id){ return id ? findMoveById(id) : null; });
     var moveGrid = document.createElement('div');
     moveGrid.className = 'dameke-party-move-grid';
-    moveNames.forEach(function(name){
+    moves.forEach(function(m){
       var cell = document.createElement('div');
-      cell.className = 'dameke-party-move-cell';
-      cell.textContent = name;
+      cell.className = 'dameke-party-move-cell ' + typeColorClass(m ? m.type : 'なし');
+      cell.textContent = m ? m.name : '(未設定)';
       moveGrid.appendChild(cell);
     });
     card.appendChild(moveGrid);
