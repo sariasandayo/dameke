@@ -982,7 +982,12 @@
   function applyEvPreset(side, preset){
     ['H','A','B','C','D','S'].forEach(function(k){ var e=q(side+'_'+k+'_ev'); if(e) e.value='0'; });
     if(preset && preset!=='選択なし') preset.split('').forEach(function(k){ var e=q(side+'_'+k+'_ev'); if(e) e.value='32'; });
-    dispatchChange(q(side+'_H_ev'));
+    // Each EV input has its own companion number-picker <select> (the one actually visible on
+    // mobile, since the raw <input> is hidden there) that only re-syncs its displayed value on
+    // that specific input's own 'change' event -- dispatching it for just one field (as before)
+    // left the other five pickers showing stale values even though the underlying inputs were
+    // correctly updated.
+    ['H','A','B','C','D','S'].forEach(function(k){ dispatchChange(q(side+'_'+k+'_ev')); });
   }
   function addHpPreset(side, panel){
     var row=make('div','v082h-mini-grid v082h-hp-row');

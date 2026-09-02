@@ -1076,6 +1076,15 @@
     function applyEvPreset(preset){
       STAT_KEYS_ALL.forEach(function(k){ var e=q('damekePokeEdit_ev_'+k); if(e) e.value='0'; });
       if(preset && preset!=='選択なし') preset.split('').forEach(function(k){ var e=q('damekePokeEdit_ev_'+k); if(e) e.value='32'; });
+      // Each EV input has its own companion number-picker <select> (the one actually visible on
+      // mobile, since the raw <input> is hidden there) that only re-syncs its displayed value on
+      // that specific input's own 'change' event -- without dispatching it here at all, none of
+      // the pickers reflected the preset even though the underlying inputs were correctly
+      // updated.
+      STAT_KEYS_ALL.forEach(function(k){
+        var e = q('damekePokeEdit_ev_'+k);
+        if(e) e.dispatchEvent(new Event('change', {bubbles:true}));
+      });
       updateEvRemaining();
       updateStatsPreview();
     }
