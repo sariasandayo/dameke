@@ -89,7 +89,7 @@
     }
     return out;
   }
-  function fillSelectBeatUpAllies() { for (let i = 1; i <= 5; i++) { const s = document.getElementById('beatUpAlly' + i); if (!s) continue; s.textContent = ""; const none = document.createElement('option'); none.value = 'none'; none.textContent = 'なし'; s.appendChild(none); for (const p of DATA.pokemons) { const op = document.createElement('option'); op.value = p.id; op.textContent = p.name; s.appendChild(op); } } } function setTypeDefaults(side) { const p = byId(DATA.pokemons, el[side + 'Select'].value); if (el[side + 'Type1']) el[side + 'Type1'].value = (p.types && p.types[0]) || 'なし'; if (el[side + 'Type2']) el[side + 'Type2'].value = (p.types && p.types[1]) || 'なし'; updateAllTypeColors(); }
+  function fillSelectBeatUpAllies() { for (let i = 1; i <= 5; i++) { const s = document.getElementById('beatUpAlly' + i); if (!s) continue; s.textContent = ""; const none = document.createElement('option'); none.value = 'none'; none.textContent = 'なし'; s.appendChild(none); for (const p of DATA.pokemons) { const op = document.createElement('option'); op.value = p.id; op.textContent = p.name; s.appendChild(op); } } } function setTypeDefaults(side) { const p = byId(DATA.pokemons, el[side + 'Select'].value); if (el[side + 'Type1']) el[side + 'Type1'].value = (p.types && p.types[0]) || 'なし'; if (el[side + 'Type2']) el[side + 'Type2'].value = (p.types && p.types[1]) || 'なし'; updateAllTypeColors(); if (p && p.fixedGender) { const sexSel = document.getElementById(side + 'SexSelect'); if (sexSel) { sexSel.value = p.fixedGender; sexSel.dispatchEvent(new Event('change', {bubbles:true})); } } }
   const TYPE_COLOR_MAP = { 'なし':'none', 'ノーマル':'normal', 'ほのお':'fire', 'みず':'water', 'でんき':'electric', 'くさ':'grass', 'こおり':'ice', 'かくとう':'fighting', 'どく':'poison', 'じめん':'ground', 'ひこう':'flying', 'エスパー':'psychic', 'むし':'bug', 'いわ':'rock', 'ゴースト':'ghost', 'ドラゴン':'dragon', 'あく':'dark', 'はがね':'steel', 'フェアリー':'fairy', 'ステラ':'stellar' };
   function updateTypeColor(sel) {
     if (!sel) return;
@@ -684,15 +684,36 @@
       if(activeIndex>=0 && items[activeIndex]) items[activeIndex].scrollIntoView({block:'nearest'});
     }
     var suppressScrollClose = false;
+    var suppressTimer = null;
+    function extendSuppress(ms){
+      suppressScrollClose = true;
+      if(suppressTimer) clearTimeout(suppressTimer);
+      suppressTimer = setTimeout(function(){ suppressScrollClose = false; if(!list.hidden) positionList(); }, ms);
+    }
     input.addEventListener('focus', function(){
       renderList('');
       input.select();
-      suppressScrollClose = true;
+      // Covers the 80ms delay below plus a generous buffer for the smooth-scroll animation
+      // itself (which can run well past 350ms depending on distance/browser) -- the scroll
+      // listener further down re-extends this on every scroll event while it's active, so this
+      // initial value only needs to bridge the gap until that animation's own scroll events
+      // start arriving, not last for the animation's entire duration.
+      extendSuppress(700);
       setTimeout(function(){
         input.scrollIntoView({block:'center', behavior:'smooth'});
-        setTimeout(function(){ suppressScrollClose = false; if(!list.hidden) positionList(); }, 350);
       }, 80);
     });
+    // Mobile virtual keyboards can take a variable amount of time to appear/resize the viewport
+    // (depending on device/browser), which can leave the dropdown misaligned if positionList()
+    // ran too early, or -- worse -- have the scroll-to-close listener below dismiss the list
+    // before the user even sees it, if the keyboard is still settling past the fixed timeout.
+    // Listening directly to visualViewport's own resize/scroll events (when available) re-aligns
+    // the list whenever the keyboard-driven layout actually changes, and re-extends the
+    // suppression window each time, rather than relying on a single guessed duration.
+    if(window.visualViewport){
+      window.visualViewport.addEventListener('resize', function(){ if(!list.hidden){ extendSuppress(350); positionList(); } });
+      window.visualViewport.addEventListener('scroll', function(){ if(!list.hidden) positionList(); });
+    }
     input.addEventListener('input', function(){ renderList(input.value); });
     input.addEventListener('blur', function(){ setTimeout(function(){ closeList(); input.value = currentText(); }, 120); });
     input.addEventListener('keydown', function(e){
@@ -705,7 +726,17 @@
     select.addEventListener('change', function(){ input.value = currentText(); });
     searchComboSyncList.push({ select: select, input: input, currentText: currentText });
     ensureSearchComboSync();
-    window.addEventListener('scroll', function(e){ if(!list.hidden && e.target !== list && !suppressScrollClose) closeList(); }, true);
+    // While suppressed (i.e. during our own programmatic scrollIntoView call, which fires a
+    // stream of scroll events over its animation), each scroll event re-extends the suppression
+    // window instead of just checking it -- so the list survives animations of any length rather
+    // than being closed the instant a single fixed timeout elapses mid-scroll. Once scrolling
+    // genuinely goes quiet, suppression lapses on its own and a real user-initiated scroll closes
+    // the list as before.
+    window.addEventListener('scroll', function(e){
+      if(list.hidden || e.target === list) return;
+      if(suppressScrollClose){ extendSuppress(250); positionList(); return; }
+      closeList();
+    }, true);
     window.addEventListener('resize', function(){ if(!list.hidden) closeList(); });
   }
   window.__damekeAttachSearchCombo = attachSearchCombo;
@@ -1736,7 +1767,9 @@
     if(!p) return;
     if(p.formLinkedItem1) setSelectSilent(itemSelect(side), p.formLinkedItem1);
     if(p.formLinkedTerastal) setSelectSilent(teraSelect(side), p.formLinkedTerastal);
-    if(p.formLinkedSex) setSelectSilent(ensureSexField(side), p.formLinkedSex);
+    // Gender auto-fill is now handled uniformly via p.fixedGender (see commitPokemon/
+    // setTypeDefaults), which also covers Pokemon management -- the old formLinkedSex-driven
+    // logic that used to live here has been folded into that single mechanism.
   }
   function scheduleRecalc(){
     if(recalcTimer) clearTimeout(recalcTimer);
@@ -1758,6 +1791,10 @@
     var types = Array.isArray(p.types) ? p.types : [];
     if(t1) setSelectSilent(t1, types[0] || 'なし');
     if(t2) setSelectSilent(t2, types[1] || 'なし');
+    if(p.fixedGender){
+      var sexSelForCommit = byIdLocal(prefix + 'SexSelect');
+      if(sexSelForCommit) setSelectSilent(sexSelForCommit, p.fixedGender);
+    }
     if(withLinked) applyLinked(side, p);
     if(typeof window.__damekeUpdateTypeColors === 'function') window.__damekeUpdateTypeColors();
     setDefaultAbility(side, p);
@@ -1873,7 +1910,10 @@
     var target = null;
     if(kind === 'item' && D.findFormByLinkedItem) target = D.findFormByLinkedItem(p, optionText(itemSelect(side)));
     if(kind === 'tera' && D.findFormByLinkedTerastal) target = D.findFormByLinkedTerastal(p, optionText(teraSelect(side)));
-    if(kind === 'sex' && D.findFormByLinkedSex) target = D.findFormByLinkedSex(p, optionText(ensureSexField(side)));
+    // Note: gender no longer drives a form switch here -- p.fixedGender (see
+    // commitPokemon/setTypeDefaults) auto-fills gender FROM the selected Pokemon/form, but
+    // manually changing gender doesn't switch the Pokemon anymore. This mirrors how Pokemon
+    // management now handles the same species, instead of two different behaviors.
     if(target && target.name !== p.name){
       commitPokemon(side, target, false);
       return;
@@ -1882,7 +1922,6 @@
       var lost = false;
       if((p.formLinkedItem1 || p.formLinkedItem2) && optionText(itemSelect(side)) !== p.formLinkedItem1 && optionText(itemSelect(side)) !== p.formLinkedItem2) lost = true;
       if(p.formLinkedTerastal && optionText(teraSelect(side)) !== p.formLinkedTerastal) lost = true;
-      if(p.formLinkedSex && optionText(ensureSexField(side)) !== p.formLinkedSex) lost = true;
       if(lost){
         var base = D.getFormDefaultPokemon(p);
         if(base && base.name !== p.name) commitPokemon(side, base, false);

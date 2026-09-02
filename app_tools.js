@@ -190,8 +190,10 @@
     var overflowed = list.length > MAX_HISTORY;
     if(overflowed) list = list.slice(0, MAX_HISTORY);
     saveHistoryList(list);
-    if(overflowed) window.alert('計算履歴が上限（' + MAX_HISTORY + '件）に達したため、最も古い履歴を1件削除しました。');
     if(q('panel-history') && !q('panel-history').hidden) renderHistoryList();
+    var msg = '計算内容を履歴に保存しました。「計算履歴」から確認・呼び出しできます。';
+    if(overflowed) msg += '\n（計算履歴が上限（' + MAX_HISTORY + '件）に達したため、最も古い履歴を1件削除しました。）';
+    window.alert(msg);
   }
 
   function deleteHistoryEntry(id){
@@ -986,7 +988,7 @@
     [['','指定なし'], ['♂','♂'], ['♀','♀'], ['不明','性別不明']].forEach(function(x){
       var op = document.createElement('option'); op.value = x[0]; op.textContent = x[1]; genderSel.appendChild(op);
     });
-    genderSel.value = entry.gender || '';
+    genderSel.value = entry.gender || (findPokemonById(pokemonSel.value) && findPokemonById(pokemonSel.value).fixedGender) || '';
     grid.appendChild(makeField('性別', genderSel));
 
     // 3. Ability -- limited to this Pokemon's own possible abilities (D.abilities already
@@ -1172,6 +1174,8 @@
       refreshAbilityOptionsInEditForm();
       refreshMoveOptionsInEditForm();
       if(pokemonSel._v082hRefreshOptions) pokemonSel._v082hRefreshOptions();
+      var selectedForGender = findPokemonById(pokemonSel.value);
+      if(selectedForGender && selectedForGender.fixedGender) genderSel.value = selectedForGender.fixedGender;
       updateStatsPreview();
     });
     showAllCb.addEventListener('change', refreshMoveOptionsInEditForm);
@@ -1461,7 +1465,7 @@
     var sub = document.createElement('div');
     sub.className = 'dameke-pokemon-card-sub';
     var types = pokemon && Array.isArray(pokemon.types) ? pokemon.types.join('・') : '-';
-    sub.textContent = types + '　' + (entry.gender || '指定なし');
+    sub.textContent = entry.gender ? (types + '　' + entry.gender) : types;
     titleWrap.appendChild(sub);
     head.appendChild(titleWrap);
     card.appendChild(head);
