@@ -786,22 +786,35 @@
     var tera = entry.teraType || 'なし';
     var actual = computeActualStatsFor(entry);
 
-    card.appendChild(buildPokemonThumbFor(pokemonName));
-
     var main = document.createElement('div');
     main.className = 'dameke-pokemon-card-main';
+
+    // Thumbnail + name + type share a head row (rather than the thumbnail sitting alone beside
+    // a separately-stacked name, and type repeated again further down in the detail list) --
+    // this cuts one full detail row and keeps related, always-relevant info together, shortening
+    // the card's overall height, which matters most on narrow screens where cards stack in a
+    // single column.
+    var head = document.createElement('div');
+    head.className = 'dameke-pokemon-card-head';
+    head.appendChild(buildPokemonThumbFor(pokemonName));
+    var titleWrap = document.createElement('div');
     var title = document.createElement('div');
     title.className = 'dameke-pokemon-card-title';
     title.textContent = entry.nickname ? (entry.nickname + '（' + pokemonName + '）') : pokemonName;
-    main.appendChild(title);
+    titleWrap.appendChild(title);
+    var typeSub = document.createElement('div');
+    typeSub.className = 'dameke-pokemon-card-sub';
+    typeSub.textContent = types;
+    titleWrap.appendChild(typeSub);
+    head.appendChild(titleWrap);
+    main.appendChild(head);
 
     var detailGrid = document.createElement('div');
     detailGrid.className = 'dameke-pokemon-detail-grid';
-    detailGrid.appendChild(buildLabeledRow('タイプ', types));
     detailGrid.appendChild(buildLabeledRow('性別', genderDisplayText(entry.gender) || '指定なし'));
     detailGrid.appendChild(buildLabeledRow('特性', ability));
     detailGrid.appendChild(buildLabeledRow('持ち物', item));
-    detailGrid.appendChild(buildLabeledRow('テラスタル', tera));
+    detailGrid.appendChild(buildLabeledRow('テラスタイプ', tera));
     var moveNames = (entry.moves||[]).map(function(id){ var m=id?findMoveById(id):null; return m ? m.name : '(未設定)'; });
     detailGrid.appendChild(buildMovesRow('技', moveNames));
     main.appendChild(detailGrid);

@@ -243,11 +243,17 @@ button:hover { background: #e0e7ff; }
   .v082h-result-grid{grid-template-columns:1fr;}
   .v082h-result-item{grid-template-columns:74px minmax(0,1fr);}
 
-  .dameke-pokemon-detail-row{grid-template-columns:56px minmax(0,1fr) !important;}
+  .dameke-pokemon-detail-row{grid-template-columns:80px minmax(0,1fr) !important;}
   .dameke-party-member-card .dameke-pokemon-detail-row{grid-template-columns:56px minmax(0,1fr) !important;font-size:.74rem !important;}
   .dameke-pokemon-combined-stat-table{font-size:.72rem !important;gap:3px 4px !important;}
 }
 label:has(> #critical){margin-top:10px;}
+/* Checkbox labels were stretching to fill their grid cell / flex container width (the default
+   for a grid/flex item), making the whole empty space to the right of the visible text
+   clickable too -- not just the checkbox and its label text. Constraining these to their own
+   content width fixes that, on both the calculator's condition checkboxes (a grid) and
+   standalone ones elsewhere (a flex container), without needing to special-case each context. */
+label:has(input[type="checkbox"]){justify-self:start;width:fit-content;}
 .dameke-move-filter-toggle{font-size:.7rem;color:#94a3b8;min-height:auto;margin-top:2px;gap:4px;opacity:.75;}
 .dameke-move-filter-toggle input{width:12px;height:12px;}
 select.dameke-type-select{transition:background-color .15s,color .15s;}
@@ -325,7 +331,7 @@ select.dameke-type-stellar{background:linear-gradient(90deg,#fbd9e6,#c4ecec,#fbe
 .dameke-pokemon-list{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
 .dameke-pokemon-card{border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;display:flex;align-items:flex-start;gap:12px;background:#fafafa;}
 .dameke-pokemon-detail-grid{margin-top:6px;display:flex;flex-direction:column;gap:2px;}
-.dameke-pokemon-detail-row{display:grid;grid-template-columns:64px minmax(0,1fr);gap:8px;font-size:.78rem;color:#4b5563;}
+.dameke-pokemon-detail-row{display:grid;grid-template-columns:72px minmax(0,1fr);gap:8px;font-size:.78rem;color:#4b5563;}
 .dameke-pokemon-detail-label{color:#9ca3af;font-weight:600;}
 .dameke-pokemon-moves-value{display:flex;flex-wrap:wrap;gap:0 6px;}
 .dameke-pokemon-move-name{white-space:nowrap;}
@@ -333,6 +339,7 @@ select.dameke-type-stellar{background:linear-gradient(90deg,#fbd9e6,#c4ecec,#fbe
 .dameke-pokemon-card-thumb img{max-width:100%;max-height:100%;image-rendering:pixelated;}
 .dameke-pokemon-card-thumb-missing{width:52px;height:52px;border-radius:50%;background:#e5e7eb;}
 .dameke-pokemon-card-main{flex:1;min-width:0;}
+.dameke-pokemon-card-head{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
 .dameke-pokemon-card-title{font-weight:800;font-size:.94rem;color:#111827;}
 .dameke-pokemon-card-sub{font-size:.78rem;color:#6b7280;margin-top:2px;line-height:1.5;}
 .dameke-pokemon-card-notes{font-size:.76rem;color:#9ca3af;margin-top:2px;font-style:italic;}

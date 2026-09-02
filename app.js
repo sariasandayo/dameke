@@ -683,7 +683,17 @@
       // since it's not feeding a position calculation; worst case it's a little off and the
       // browser's own keyboard-avoidance behavior (most mobile browsers already do this
       // natively for focused inputs) covers the rest.
-      setTimeout(function(){ input.scrollIntoView({block:'center', behavior:'smooth'}); }, 80);
+      setTimeout(function(){
+        // Centering the input (the old block:'center') puts it right where a mobile keyboard
+        // (which eats roughly the bottom half of the screen) covers it. scrollIntoView doesn't
+        // support an arbitrary target offset, so this computes a scroll position that lands the
+        // input nearer the top of the visible area instead, comfortably above where the
+        // keyboard will end up.
+        var rect = input.getBoundingClientRect();
+        var vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        var targetY = window.pageYOffset + rect.top - vh * 0.2;
+        window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+      }, 80);
     });
     input.addEventListener('input', function(){ renderList(input.value); });
     input.addEventListener('blur', function(){ setTimeout(function(){ closeList(); input.value = currentText(); }, 120); });
