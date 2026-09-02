@@ -726,6 +726,10 @@
     } catch(e){ return null; }
   }
 
+  // Forces ♂/♀ to render as text/symbol glyphs rather than color emoji glyphs wherever a
+  // stored gender value is shown as display text (the stored value itself stays plain).
+  function genderDisplayText(g){ return (g==='♂'||g==='♀') ? g+'\uFE0E' : g; }
+
   function buildLabeledRow(label, value){
     var row = document.createElement('div');
     row.className = 'dameke-pokemon-detail-row';
@@ -794,7 +798,7 @@
     var detailGrid = document.createElement('div');
     detailGrid.className = 'dameke-pokemon-detail-grid';
     detailGrid.appendChild(buildLabeledRow('タイプ', types));
-    detailGrid.appendChild(buildLabeledRow('性別', entry.gender || '指定なし'));
+    detailGrid.appendChild(buildLabeledRow('性別', genderDisplayText(entry.gender) || '指定なし'));
     detailGrid.appendChild(buildLabeledRow('特性', ability));
     detailGrid.appendChild(buildLabeledRow('持ち物', item));
     detailGrid.appendChild(buildLabeledRow('テラスタル', tera));
@@ -983,9 +987,12 @@
     nickInput.value = entry.nickname || '';
     grid.appendChild(makeField('ニックネーム', nickInput));
 
-    // 2b. Gender (same options as the calculator's own gender select)
+    // 2b. Gender (same options as the calculator's own gender select). The trailing \uFE0E on
+    // the label forces ♂/♀ to render as text/symbol glyphs rather than color emoji glyphs on
+    // mobile platforms that would otherwise substitute a lower-sitting, differently-shaped emoji
+    // glyph for these two characters specifically -- the stored value stays plain ('♂'/'♀').
     var genderSel = document.createElement('select'); genderSel.id = 'damekePokeEdit_gender';
-    [['','指定なし'], ['♂','♂'], ['♀','♀'], ['不明','性別不明']].forEach(function(x){
+    [['','指定なし'], ['♂','♂\uFE0E'], ['♀','♀\uFE0E'], ['不明','性別不明']].forEach(function(x){
       var op = document.createElement('option'); op.value = x[0]; op.textContent = x[1]; genderSel.appendChild(op);
     });
     genderSel.value = entry.gender || (findPokemonById(pokemonSel.value) && findPokemonById(pokemonSel.value).fixedGender) || '';
@@ -1465,7 +1472,7 @@
     var sub = document.createElement('div');
     sub.className = 'dameke-pokemon-card-sub';
     var types = pokemon && Array.isArray(pokemon.types) ? pokemon.types.join('・') : '-';
-    sub.textContent = entry.gender ? (types + '　' + entry.gender) : types;
+    sub.textContent = entry.gender ? (types + '　' + genderDisplayText(entry.gender)) : types;
     titleWrap.appendChild(sub);
     head.appendChild(titleWrap);
     card.appendChild(head);

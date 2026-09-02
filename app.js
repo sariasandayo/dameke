@@ -640,21 +640,31 @@
 
     function positionList(){
       var r = input.getBoundingClientRect();
-      var vh = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+      var vv = window.visualViewport;
+      // getBoundingClientRect() is always relative to the layout viewport, but position:fixed
+      // elements align to the *visual* viewport on mobile -- these two normally share the same
+      // origin, except when a mobile keyboard has panned the visual viewport away from it
+      // (visualViewport.offsetTop/offsetLeft become non-zero). Subtracting that offset converts
+      // the rect into the same coordinate space position:fixed actually uses, which is what was
+      // causing the list to render offset from the input specifically on mobile.
+      var offsetX = vv ? vv.offsetLeft : 0;
+      var offsetY = vv ? vv.offsetTop : 0;
+      var top = r.top - offsetY, bottom = r.bottom - offsetY, left = r.left - offsetX;
+      var vh = (vv ? vv.height : window.innerHeight);
       var fixedBarH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--v082h-fixed-panel-h')) || 0;
       var bottomLimit = vh - fixedBarH;
-      var spaceBelow = bottomLimit - r.bottom;
-      var spaceAbove = r.top;
+      var spaceBelow = bottomLimit - bottom;
+      var spaceAbove = top;
       list.style.position = 'fixed';
-      list.style.left = r.left + 'px';
+      list.style.left = left + 'px';
       list.style.width = r.width + 'px';
       if(spaceBelow < 100 && spaceAbove > spaceBelow){
         list.style.top = 'auto';
-        list.style.bottom = (vh - r.top + 2) + 'px';
+        list.style.bottom = (vh - top + 2) + 'px';
         list.style.maxHeight = Math.max(80, Math.min(220, spaceAbove - 10)) + 'px';
       } else {
         list.style.bottom = 'auto';
-        list.style.top = (r.bottom + 2) + 'px';
+        list.style.top = (bottom + 2) + 'px';
         list.style.maxHeight = Math.max(80, Math.min(220, spaceBelow - 10)) + 'px';
       }
     }
@@ -1744,7 +1754,13 @@
       field.appendChild(sel);
     }
     var current = sel.value;
-    var specs = [['','指定なし'], ['♂','♂'], ['♀','♀'], ['不明','性別不明']];
+    // The trailing \uFE0E (text-presentation variation selector) on the *label* only forces
+    // ♂/♀ to render as plain text/symbol glyphs rather than color emoji glyphs -- some mobile
+    // platforms otherwise substitute an emoji glyph for these two characters specifically, which
+    // has different vertical metrics (sits lower, gets clipped) and a different overall look
+    // than the desktop text glyph. The underlying value stays plain ('♂'/'♀', no selector) since
+    // that's compared elsewhere in the code and stored as saved Pokemon data.
+    var specs = [['','指定なし'], ['♂','♂\uFE0E'], ['♀','♀\uFE0E'], ['不明','性別不明']];
     if(sel.options.length !== specs.length){
       sel.innerHTML = '';
       specs.forEach(function(x){

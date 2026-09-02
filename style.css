@@ -170,7 +170,8 @@ button:hover { background: #e0e7ff; }
 
 /* ==== pokemon form-change UI (sex field / form chips) ==== */
 .v091-sex-field{margin-top:6px;display:flex;align-items:center;gap:6px;font-size:12px;color:inherit}
-.v091-sex-select{width:98px;max-width:98px;padding:2px 5px;border-radius:8px;border:1px solid rgba(125,125,125,.25);background:rgba(255,255,255,.85);font-size:12px}
+.v091-sex-select{width:98px;max-width:98px;padding:2px 5px;border-radius:8px;border:1px solid rgba(125,125,125,.25);background:rgba(255,255,255,.85);font-size:12px;line-height:1.6;}
+#damekePokeEdit_gender{line-height:1.6;}
 .v091-form-panel{position:relative;z-index:5;display:block;margin:6px 0 10px;padding:5px 7px;border:1px solid rgba(125,125,125,.22);border-radius:10px;background:rgba(127,127,127,.045)}
 .v091-form-panel-empty{display:none!important}
 .v091-form-panel-title{font-size:11px;color:#687282;font-weight:600;cursor:pointer;list-style:none}
@@ -201,6 +202,25 @@ button:hover { background: #e0e7ff; }
   #v082hResultPanel .v082h-result-key{font-size:.68rem;}
   #v082hResultPanel .v082h-result-value{font-size:.72rem;}
   #v082hResultPanel .v082h-pokemon-thumb,#v082hResultPanel .v082h-pokemon-thumb-missing{width:60px;height:60px;}
+
+  /* ポケモン管理・パーティ管理: below 1250px (this app's existing "narrow layout" breakpoint,
+     matching where .layout itself drops to a single column) the fixed-width button columns
+     beside the card's main content squeeze it into a column too narrow for the detail rows/stat
+     table to wrap sensibly (text was breaking every 1-2 characters, or the button columns
+     themselves ended up stacking into 4 separate rows instead of a 2x2 grid). Stack the buttons
+     below the content instead, so the text gets the full card width to work with -- same
+     information, just rearranged rather than shown side-by-side. */
+  .dameke-pokemon-card{flex-wrap:wrap;}
+  .dameke-pokemon-card-thumb{order:1;}
+  .dameke-pokemon-card-main{order:2;width:100%;flex:1 1 100% !important;}
+  .dameke-pokemon-card-loadbtns{order:3;display:grid !important;grid-template-columns:1fr 1fr;gap:6px;width:100%;}
+  .dameke-pokemon-card-actions{order:4;display:grid !important;grid-template-columns:1fr 1fr;gap:6px;width:100%;}
+
+  /* Party member grid: 2 columns is too narrow per-member below this width (the internal stat
+     table alone needs 7 columns) -- stack members in a single column instead, same 6-member
+     content, just full width each so the detail rows and stat table have room to lay out
+     normally. */
+  .dameke-party-member-grid{grid-template-columns:1fr !important;}
 }
 @media(max-width:760px){
   body{font-size:15px;}
@@ -222,25 +242,9 @@ button:hover { background: #e0e7ff; }
   .v082h-result-grid{grid-template-columns:1fr;}
   .v082h-result-item{grid-template-columns:74px minmax(0,1fr);}
 
-  /* ポケモン管理・パーティ管理: on narrow screens the fixed-width button columns beside the
-     card's main content squeeze it into a column too narrow for the detail rows/stat table to
-     wrap sensibly (text was breaking every 1-2 characters). Stack the buttons below the content
-     instead, so the text gets the full card width to work with -- same information, just
-     rearranged rather than shown side-by-side. */
-  .dameke-pokemon-card{flex-wrap:wrap;}
-  .dameke-pokemon-card-thumb{order:1;}
-  .dameke-pokemon-card-main{order:2;width:100%;flex:1 1 100%;}
-  .dameke-pokemon-card-loadbtns{order:3;display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%;}
-  .dameke-pokemon-card-actions{order:4;display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%;}
-
-  /* Party member grid: 2 columns is too narrow per-member on mobile (the internal stat table
-     alone needs 7 columns) -- stack members in a single column instead, same 6-member content,
-     just full width each so the detail rows and stat table have room to lay out normally. */
-  .dameke-party-member-grid{grid-template-columns:1fr;}
-
-  .dameke-pokemon-detail-row{grid-template-columns:56px minmax(0,1fr);}
-  .dameke-party-member-card .dameke-pokemon-detail-row{grid-template-columns:56px minmax(0,1fr);font-size:.74rem;}
-  .dameke-pokemon-combined-stat-table{font-size:.72rem;gap:3px 4px;}
+  .dameke-pokemon-detail-row{grid-template-columns:56px minmax(0,1fr) !important;}
+  .dameke-party-member-card .dameke-pokemon-detail-row{grid-template-columns:56px minmax(0,1fr) !important;font-size:.74rem !important;}
+  .dameke-pokemon-combined-stat-table{font-size:.72rem !important;gap:3px 4px !important;}
 }
 label:has(> #critical){margin-top:10px;}
 .dameke-move-filter-toggle{font-size:.7rem;color:#94a3b8;min-height:auto;margin-top:2px;gap:4px;opacity:.75;}
