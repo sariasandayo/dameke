@@ -23,6 +23,7 @@
       <button type="button" class="dameke-menu-item" data-panel="history">計算履歴</button>
       <button type="button" class="dameke-menu-item" data-panel="pokemon">ポケモン管理</button>
       <button type="button" class="dameke-menu-item" data-panel="party">パーティ管理</button>
+      <button type="button" class="dameke-menu-item" data-panel="adjust">攻撃・防御調整</button>
     </nav>
   </header>
   <div id="panel-calculator" class="dameke-tool-panel">
@@ -40,7 +41,7 @@
       </section>
       <div class="side-by-side">
         <section class="sub-card side-panel">
-          <h3>攻撃側ステータス</h3>
+          <h3>攻撃側ステータス <button type="button" id="damekeGoAdjustAttackerBtn" class="dameke-adjust-jump-btn">攻撃側調整</button></h3>
           <div class="grid two compact-grid">
             <label>レベル<input id="attackerLevel" type="number" min="1" max="100" value="50" /></label>
             <label>Z・ダイマ<select id="attackerSpecialState"></select></label>
@@ -62,7 +63,7 @@
           </div>
         </section>
         <section class="sub-card side-panel">
-          <h3>防御側ステータス</h3>
+          <h3>防御側ステータス <button type="button" id="damekeGoAdjustDefenderBtn" class="dameke-adjust-jump-btn">防御側調整</button></h3>
           <div class="grid two compact-grid">
             <label>レベル<input id="defenderLevel" type="number" min="1" max="100" value="50" /></label>
             <label>ダイマ<select id="defenderSpecialState"></select></label>
@@ -298,6 +299,29 @@
       </section>
     </main>
   </div>
+  <div id="panel-adjust" class="dameke-tool-panel" hidden>
+    <main class="layout">
+      <section class="card">
+        <h2>攻撃・防御調整</h2>
+        <div class="dameke-adjust-toolbar">
+          <div class="dameke-adjust-mode-tabs">
+            <button type="button" id="damekeAdjustModeAttacker" class="dameke-adjust-mode-btn">攻撃側調整</button>
+            <button type="button" id="damekeAdjustModeDefender" class="dameke-adjust-mode-btn">防御側調整</button>
+          </div>
+          <button type="button" id="damekeAdjustGoCalcBtn" class="dameke-toolbar-btn">条件変更</button>
+        </div>
+        <div id="damekeAdjustSummary" class="dameke-adjust-summary"></div>
+        <div id="damekeAdjustEvSpec" class="dameke-adjust-evspec"></div>
+        <div id="damekeAdjustNatureSelect" class="dameke-adjust-nature-select"></div>
+        <div id="damekeAdjustGraphHost" class="dameke-adjust-graph-host"></div>
+        <div class="dameke-adjust-threshold-header">
+          <h3>必要努力値の一覧</h3>
+          <button type="button" id="damekeAdjustSaveBtn" class="dameke-adjust-save-btn" disabled>保存</button>
+        </div>
+        <div id="damekeAdjustThresholdHost" class="dameke-adjust-threshold-host"></div>
+      </section>
+    </main>
+  </div>
 <script src="data.js"></script>
 <script src="data_learnsets.js"></script>
 <script src="data_pokemon_images.js"></script>
@@ -305,6 +329,7 @@
   
 <script src="app.js"></script>
 <script src="app_tools.js"></script>
+<script src="app_adjust.js"></script>
   
 </body>
 </html>

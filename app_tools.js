@@ -49,6 +49,7 @@
     if(panelName === 'history') renderHistoryList();
     if(panelName === 'pokemon' && window.__damekeRenderPokemonList) window.__damekeRenderPokemonList();
     if(panelName === 'party' && window.__damekeRenderPartyList) window.__damekeRenderPartyList();
+    if(panelName === 'adjust' && window.__damekeRenderAdjustPanel) window.__damekeRenderAdjustPanel();
   }
   window.__damekeShowPanel = showPanel;
 
@@ -1776,6 +1777,13 @@
   }
 
   window.__damekeRenderPokemonList = renderPokemonList;
+  // For the 攻撃・防御調整 tool's 保存 button: opens the edit form pre-filled with a custom
+  // entry object (same shape as newBlankEntry()/openCopySelector's picks), rather than the
+  // calculator's own currently-selected side (which is what __damekeSavePokemonFromSide saves).
+  window.__damekeOpenPokemonEditorWithEntry = function(entry){
+    if(window.__damekeShowPanel) window.__damekeShowPanel('pokemon');
+    openPokemonEditor(entry);
+  };
   window.__damekeInitPokemonPanel = initPokemonPanel;
   window.__damekeRenderPartyList = renderPartyList;
   window.__damekeInitPartyPanel = initPartyPanel;

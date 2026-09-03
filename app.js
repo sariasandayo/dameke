@@ -170,6 +170,20 @@
     };
   }
   window.__damekeBuildOptions = buildOptions;
+  // For the 攻撃・防御調整 tool: it needs the calculator's full current input snapshot
+  // without duplicating buildOptions()'s DOM-reading logic in a second file. buildOptions()
+  // already calls readStats() internally for both sides (options.attackerStats/defenderStats),
+  // so this single call captures everything needed.
+  window.__damekeSnapshotCalculatorInput = function(){
+    return {
+      attacker: byId(DATA.pokemons, el.attackerSelect.value),
+      defender: byId(DATA.pokemons, el.defenderSelect.value),
+      move: byId(DATA.moves, el.moveSelect.value),
+      attackerLevel: el.attackerLevel.value,
+      defenderLevel: el.defenderLevel.value,
+      options: buildOptions()
+    };
+  };
   function findTraceEntry(trace, labelPart){ return (trace||[]).find(function(x){ return String(x.label||'').indexOf(labelPart) >= 0; }) || null; }
   function findTraceEntries(trace, labelPart){ return (trace||[]).filter(function(x){ return String(x.label||'').indexOf(labelPart) >= 0; }); }
   function rateCell(label, rawText){
@@ -704,7 +718,12 @@
       // doesn't close early, but that same suppression means an immediate .blur() here can get
       // silently overridden once the click gesture finishes and the browser re-affirms focus on
       // whatever was focused going in -- deferring past that point makes the blur stick.
-      setTimeout(function(){ input.blur(); }, 0);
+      // Blurs document.activeElement rather than this closure's own `input` specifically: for
+      // fields whose change (e.g. picking a Pokemon) triggers a larger rebuild elsewhere on the
+      // page, `input` can already be a stale, detached reference by the time this timeout fires,
+      // which silently blurs nothing -- activeElement always refers to whatever is actually
+      // focused at that later point, rebuilt or not.
+      setTimeout(function(){ if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); }, 0);
     }
     function updateActive(items){
       items.forEach(function(li,i){ li.classList.toggle('active', i===activeIndex); });
@@ -953,7 +972,19 @@
   function addStatsPanel(side, dest){
     var panel=make('div','v082h-stats-panel'); panel.id='v082hStatsPanel_'+side;
     dest.appendChild(panel);
-    panel.appendChild(make('div','v082h-minititle','詳細ステータス'));
+    var titleRow = make('div','v082h-minititle-row');
+    titleRow.appendChild(make('div','v082h-minititle','詳細ステータス'));
+    // "調整": jumps to the 攻撃・防御調整 tool (see app_adjust.js), preset to this side's mode.
+    var adjustBtn = document.createElement('button');
+    adjustBtn.type = 'button';
+    adjustBtn.className = 'v082h-stats-adjust-btn v082h-stats-adjust-btn-'+side;
+    adjustBtn.textContent = '調整';
+    adjustBtn.addEventListener('click', function(){
+      if(window.__damekeShowPanel) window.__damekeShowPanel('adjust');
+      if(window.__damekeSetAdjustMode) window.__damekeSetAdjustMode(side === 'attacker' ? 'attacker' : 'defender');
+    });
+    titleRow.appendChild(adjustBtn);
+    panel.appendChild(titleRow);
 
     addNatureField(side, panel);
 
@@ -992,17 +1023,20 @@
     setTimeout(function(){ updateNatureStatColors(side); updateReadOnlyStatRows(side); }, 0);
   }
   function updateRemainingEvDisplay(side){
-    var wrap = q('v082hEvRemaining_'+side);
-    if(!wrap) return;
+    var textEl = q('v082hEvRemainingText_'+side);
+    if(!textEl) return;
     var total = 0;
     ['H','A','B','C','D','S'].forEach(function(k){ var e=q(side+'_'+k+'_ev'); total += e ? (parseInt(e.value,10)||0) : 0; });
     var remaining = 66 - total;
-    wrap.textContent = '残り努力値：' + remaining;
-    wrap.classList.toggle('v082h-ev-remaining-over', remaining < 0);
+    textEl.textContent = '残り努力値：' + remaining;
+    textEl.classList.toggle('v082h-ev-remaining-over', remaining < 0);
   }
   function addRemainingEvDisplay(side, panel){
     var wrap = make('div', 'v082h-ev-remaining');
     wrap.id = 'v082hEvRemaining_'+side;
+    var textEl = document.createElement('span');
+    textEl.id = 'v082hEvRemainingText_'+side;
+    wrap.appendChild(textEl);
     panel.appendChild(wrap);
     function update(){
       updateRemainingEvDisplay(side);
