@@ -527,7 +527,8 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 
 /* 努力値指定・防御側ステータス（計算機の詳細ステータス表と同じ見た目のグリッド表） */
 .dameke-adjust-evspec{margin-bottom:14px;}
-.dameke-adjust-evspec-remaining{margin-top:6px;font-size:.8rem;font-weight:700;color:#166534;text-align:center;}
+.dameke-adjust-evspec-wrapper{width:fit-content;margin:0 auto;}
+.dameke-adjust-evspec-remaining{margin-top:6px;font-size:.8rem;font-weight:700;color:#166534;text-align:left;}
 .dameke-adjust-evspec-remaining-over{color:#dc2626;}
 .dameke-adjust-evspec-table{display:grid;justify-content:center;gap:5px 8px;align-items:center;margin-top:6px;}
 .dameke-adjust-evspec-head{font-size:.72rem;font-weight:700;color:#6b7280;text-align:center;}
@@ -558,10 +559,11 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-speed-rank-label select{padding:3px 6px;}
 .dameke-speed-summary{border:1px solid #e5e7eb;background:#f9fafb;border-radius:10px;padding:10px 14px;margin-bottom:14px;}
 .dameke-speed-base-line{font-size:.74rem;color:#4b5563;margin-top:2px;}
+.dameke-speed-summary .dameke-history-text-col{max-width:none;}
 .dameke-speed-roster-header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;}
 .dameke-speed-roster-header h3{margin:0;font-size:.9rem;}
 .dameke-speed-roster-host{max-height:65vh;overflow-y:auto;border:1px solid #e5e7eb;border-radius:10px;}
-.dameke-speed-roster-row{display:grid;grid-template-columns:3.4em 1fr 6em 6em;gap:6px;align-items:start;padding:6px 8px;border-bottom:2px solid #cbd5e1;font-size:.76rem;}
+.dameke-speed-roster-row{display:grid;grid-template-columns:3.6em 1fr 6.4em 6.4em;gap:6px;align-items:start;padding:6px 8px;border-bottom:2px solid #cbd5e1;font-size:.76rem;}
 .dameke-speed-roster-row:last-child{border-bottom:none;}
 .dameke-speed-roster-headerrow{position:sticky;top:0;background:#f9fafb;font-weight:700;color:#374151;font-size:.68rem;text-align:center;z-index:1;align-items:center;}
 .dameke-speed-roster-row-outsped{background:#ecfdf5;}
@@ -572,11 +574,12 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-speed-roster-col-value{text-align:center;font-weight:800;color:#111827;align-self:center;}
 .dameke-speed-roster-col-ev{text-align:center;font-weight:700;color:#111827;align-self:center;}
 .dameke-speed-roster-row-outsped .dameke-speed-roster-col-ev{color:#059669;}
+.dameke-speed-roster-name-chip{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;}
 .dameke-speed-roster-thumb{flex:0 0 auto;width:24px;height:24px;display:flex;align-items:center;justify-content:center;}
 .dameke-speed-roster-thumb img{max-width:100%;max-height:100%;}
 .dameke-speed-roster-thumb-missing{border-radius:50%;background:#e5e7eb;}
 .dameke-speed-roster-name-text{font-weight:700;color:#111827;font-size:.74rem;}
 .dameke-speed-roster-labels{flex-basis:100%;font-size:.7rem;font-weight:700;color:#4b5563;}
 @media(max-width:640px){
-  .dameke-speed-roster-row{grid-template-columns:2.6em 1fr 4.4em 4.4em;font-size:.66rem;padding:5px 5px;}
+  .dameke-speed-roster-row{grid-template-columns:3em 1fr 6.6em 6.6em;font-size:.66rem;padding:5px 5px;}
 }

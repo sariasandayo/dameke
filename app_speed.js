@@ -277,7 +277,7 @@
     var firstReachableIdx = -1;
     var html = groups.map(function(g, i){
       var subHtml = g.subGroups.map(function(sub){
-        var namesHtml = sub.pokemons.map(function(p){ return buildMiniThumb(p.name) + '<span class="dameke-speed-roster-name-text">'+p.name+'</span>'; }).join('');
+        var namesHtml = sub.pokemons.map(function(p){ return '<span class="dameke-speed-roster-name-chip">'+buildMiniThumb(p.name)+'<span class="dameke-speed-roster-name-text">'+p.name+'</span></span>'; }).join('');
         return '<div class="dameke-speed-roster-subgroup"><div class="dameke-speed-roster-labels">'+sub.label+'</div>'+namesHtml+'</div>';
       }).join('');
 

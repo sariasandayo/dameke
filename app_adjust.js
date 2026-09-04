@@ -423,11 +423,14 @@
       cell.appendChild(input);
       table.appendChild(cell);
     });
-    host.appendChild(table);
+    var wrapper = document.createElement('div');
+    wrapper.className = 'dameke-adjust-evspec-wrapper';
+    wrapper.appendChild(table);
 
     var remainingEl = document.createElement('div');
     remainingEl.className = 'dameke-adjust-evspec-remaining';
-    host.appendChild(remainingEl);
+    wrapper.appendChild(remainingEl);
+    host.appendChild(wrapper);
     function updateRemaining(){
       var total = 0;
       STAT_KEYS.forEach(function(k){ total += spec[k] != null ? spec[k] : 0; });
