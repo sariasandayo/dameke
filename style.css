@@ -379,10 +379,13 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-pokemon-combined-stat-table{display:grid;grid-template-columns:3.4em repeat(6,minmax(0,4.4em));justify-content:center;gap:4px 6px;font-size:.76rem;align-items:center;margin-top:12px;}
 .dameke-pokemon-combined-stat-table input{width:100%;box-sizing:border-box;text-align:center;padding:5px 2px;}
 .dameke-pokemon-actual-stat-cell{text-align:center;font-weight:700;color:#166534;}
+/* 実数値入力欄は努力値入力欄と同じ .dameke-pokemon-combined-stat-table input ルールに任せ、
+   見た目を統一する（個別の枠線・背景色は付けない）。 */
 .dameke-pokemon-base-stat-cell{text-align:center;color:#6b7280;}
 .dameke-pokemon-combined-stat-table-readonly{font-size:.74rem;}
 .dameke-pokemon-combined-stat-table-readonly span{text-align:center;}
-.dameke-pokemon-ev-remaining{font-size:.8rem;font-weight:700;color:#166534;margin-top:6px;}
+.dameke-pokemon-stat-wrapper{width:fit-content;margin:0 auto;}
+.dameke-pokemon-ev-remaining{font-size:.8rem;font-weight:700;color:#166534;margin-top:6px;text-align:left;}
 .dameke-pokemon-ev-remaining-over{color:#dc2626;}
 .dameke-pokemon-ev-preset{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px;}
 .dameke-pokemon-ev-preset select{font:inherit;border:1px solid #d1d5db;border-radius:8px;padding:5px 8px;}
@@ -583,3 +586,26 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 @media(max-width:640px){
   .dameke-speed-roster-row{grid-template-columns:3em 1fr 6.6em 6.6em;font-size:.66rem;padding:5px 5px;}
 }
+
+/* ==================== 努力値最適化ツール ==================== */
+.dameke-evopt-pokemon-row{display:flex;align-items:flex-start;gap:14px;margin-bottom:10px;flex-wrap:wrap;}
+.dameke-evopt-pokemon-select-col{flex:1 1 200px;display:flex;flex-direction:column;gap:8px;min-width:160px;}
+#damekeBulkNature{max-width:160px;}
+.dameke-evopt-pokemon-select-col .dameke-toolbar-btn{align-self:flex-start;}
+.dameke-evopt-image-host{flex:0 0 auto;width:96px;height:96px;display:flex;align-items:center;justify-content:center;}
+.dameke-evopt-image-host img{max-width:100%;max-height:100%;}
+.dameke-evopt-picker-host{margin-bottom:14px;border:1px solid #e5e7eb;border-radius:10px;padding:10px;background:#f9fafb;}
+.dameke-evopt-nature-row{margin-top:14px;margin-bottom:10px;max-width:220px;}
+.dameke-evopt-table-host{margin-bottom:16px;}
+.dameke-evopt-table-host .dameke-adjust-evspec-input{max-width:46px;}
+.dameke-evopt-levelfold{max-width:360px;}
+.dameke-evopt-input-box{margin-bottom:14px;border:1px solid #e5e7eb;background:#f9fafb;border-radius:10px;padding:12px 14px;}
+.dameke-evopt-input-box h3{margin:0 0 10px;font-size:.9rem;color:#374151;}
+.dameke-evopt-result-box{margin-bottom:8px;border:1px solid #d1fae5;background:#f0fdf4;border-radius:10px;padding:12px 14px;}
+.dameke-evopt-result-header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;}
+.dameke-evopt-result-header h3{margin:0;font-size:.9rem;}
+.dameke-evopt-result-host{}
+.dameke-evopt-result-host .dameke-adjust-evspec-input{max-width:46px;}
+.dameke-evopt-already-optimal{text-align:center;font-weight:700;color:#059669;font-size:.92rem;padding:8px 0;}
+.dameke-evopt-stat-up{color:#dc2626 !important;}
+.dameke-evopt-stat-down{color:#2563eb !important;}

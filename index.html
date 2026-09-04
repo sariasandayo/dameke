@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>だめけー Web v1.3.0</title>
+  <title>だめけー Web v1.4.0</title>
   <link rel="icon" href="./icon/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="32x32" href="./icon/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./icon/apple-touch-icon.png">
@@ -16,13 +16,14 @@
     <button type="button" id="damekeMenuBtn" class="dameke-menu-btn" aria-label="メニュー">
       <span></span><span></span><span></span>
     </button>
-    <h1>だめけー Web v1.3.0</h1>
+    <h1>だめけー Web v1.4.0</h1>
     <p>for Pokémon Champions</p>
     <nav id="damekeMenuNav" class="dameke-menu-nav" hidden>
       <button type="button" class="dameke-menu-item" data-panel="calculator">ダメージ計算</button>
       <button type="button" class="dameke-menu-item" data-panel="history">計算履歴</button>
       <button type="button" class="dameke-menu-item" data-panel="adjust">攻撃・防御調整</button>
       <button type="button" class="dameke-menu-item" data-panel="speed">素早さ調整</button>
+      <button type="button" class="dameke-menu-item" data-panel="evopt">努力値最適化</button>
       <button type="button" class="dameke-menu-item" data-panel="pokemon">ポケモン管理</button>
       <button type="button" class="dameke-menu-item" data-panel="party">パーティ管理</button>
     </nav>
@@ -321,6 +322,31 @@
         </div>
         <div id="damekeAdjustThresholdHost" class="dameke-adjust-threshold-host"></div>
       </section>
+      <section class="card" id="damekeBulkSection" hidden>
+        <h2>耐久最大化調整</h2>
+        <div class="dameke-evopt-input-box">
+          <h3>入力</h3>
+          <div class="dameke-evopt-pokemon-row">
+            <div class="dameke-evopt-pokemon-select-col">
+              <div id="damekeBulkPokemonName" class="dameke-history-title"></div>
+              <label>性格
+                <select id="damekeBulkNature">
+                  <option value="">指定なし（自動）</option>
+                </select>
+              </label>
+            </div>
+            <div id="damekeBulkImageHost" class="dameke-evopt-image-host"></div>
+          </div>
+          <div id="damekeBulkTable" class="dameke-evopt-table-host"></div>
+        </div>
+        <div class="dameke-evopt-result-box">
+          <div class="dameke-evopt-result-header">
+            <h3>最大化結果</h3>
+            <button type="button" id="damekeBulkSaveBtn" class="dameke-adjust-save-btn" disabled>保存</button>
+          </div>
+          <div id="damekeBulkResultHost" class="dameke-evopt-result-host"></div>
+        </div>
+      </section>
     </main>
   </div>
   <div id="panel-speed" class="dameke-tool-panel" hidden>
@@ -364,6 +390,42 @@
       </section>
     </main>
   </div>
+  <div id="panel-evopt" class="dameke-tool-panel" hidden>
+    <main class="layout">
+      <section class="card">
+        <h2>努力値最適化</h2>
+        <div class="dameke-evopt-input-box">
+          <h3>入力</h3>
+          <div class="dameke-evopt-pokemon-row">
+            <div class="dameke-evopt-pokemon-select-col">
+              <label>ポケモン<select id="damekeEvoptPokemon"></select></label>
+              <button type="button" id="damekeEvoptLoadBtn" class="dameke-toolbar-btn dameke-toolbar-btn-party">呼び出し</button>
+            </div>
+            <div id="damekeEvoptImageHost" class="dameke-evopt-image-host"></div>
+          </div>
+          <div id="damekeEvoptPickerHost" class="dameke-evopt-picker-host" hidden></div>
+          <div class="dameke-evopt-nature-row">
+            <label>性格<select id="damekeEvoptNature"></select></label>
+          </div>
+          <div id="damekeEvoptMainTable" class="dameke-evopt-table-host"></div>
+          <details class="dameke-pokemon-edit-levelfold dameke-evopt-levelfold">
+            <summary>レベル・個体値</summary>
+            <div class="dameke-pokemon-edit-grid">
+              <label>レベル<input id="damekeEvoptLevel" type="number" min="1" max="100" value="50" /></label>
+            </div>
+            <div id="damekeEvoptIvTable" class="dameke-pokemon-combined-stat-table dameke-pokemon-edit-iv-table"></div>
+          </details>
+        </div>
+        <div class="dameke-evopt-result-box">
+          <div class="dameke-evopt-result-header">
+            <h3>出力</h3>
+            <button type="button" id="damekeEvoptSaveBtn" class="dameke-adjust-save-btn" disabled>保存</button>
+          </div>
+          <div id="damekeEvoptResultHost" class="dameke-evopt-result-host"></div>
+        </div>
+      </section>
+    </main>
+  </div>
 <script src="data.js"></script>
 <script src="data_learnsets.js"></script>
 <script src="data_pokemon_images.js"></script>
@@ -373,6 +435,7 @@
 <script src="app_tools.js"></script>
 <script src="app_adjust.js"></script>
 <script src="app_speed.js"></script>
+<script src="app_evopt.js"></script>
   
 </body>
 </html>

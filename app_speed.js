@@ -204,17 +204,17 @@
       // can't also hold こだわりスカーフ -- its held-item slot is already spoken for.
       var hasLinkedItem = !!p.formLinkedItem1;
       var variants = [
-        { label: '最速', nature: 'ようき', ev: 32, itemId: 'none' },
-        { label: '準速', nature: 'まじめ', ev: 32, itemId: 'none' },
-        { label: '最速+スカーフ', nature: 'ようき', ev: 32, itemId: 'こだわりスカーフ' },
-        { label: '準速+スカーフ', nature: 'まじめ', ev: 32, itemId: 'こだわりスカーフ' }
+        { label: '最速', itemSuffix: '', nature: 'ようき', ev: 32, itemId: 'none' },
+        { label: '準速', itemSuffix: '', nature: 'まじめ', ev: 32, itemId: 'none' },
+        { label: '最速', itemSuffix: '+スカーフ', nature: 'ようき', ev: 32, itemId: 'こだわりスカーフ' },
+        { label: '準速', itemSuffix: '+スカーフ', nature: 'まじめ', ev: 32, itemId: 'こだわりスカーフ' }
       ];
       // 族 groups by base Speed stat (the standard "100族"-style convention), not by species
       // name -- two different Pokemon sharing both a base Speed stat and the same variant/
       // ability end up in the exact same group, since nothing else affects this calculation.
       function addEntry(v, abilitySuffix, opts){
         var val = computeSpeedValue(p, v.nature, v.ev, 0, opts);
-        var label = v.label + p.baseStats.S + '族' + abilitySuffix;
+        var label = v.label + p.baseStats.S + '族' + v.itemSuffix + abilitySuffix;
         if(!byValue[val]) byValue[val] = {};
         if(!byValue[val][label]) byValue[val][label] = { label: label, pokemons: [] };
         byValue[val][label].pokemons.push(p);
@@ -315,7 +315,7 @@
   function init(){
     fillSelect(q('damekeSpeedPokemon'), [{id:'',name:'指定なし'}].concat(DATA.pokemons));
     ensureAbilityOptionsForPokemon(null);
-    fillSelect(q('damekeSpeedItem'), [{id:'none',name:'なし'}].concat(DATA.items));
+    fillSelect(q('damekeSpeedItem'), DATA.items); // already includes a "なし" (id:'none') entry
 
     if(window.__damekeAttachSearchCombo){
       window.__damekeAttachSearchCombo('damekeSpeedPokemon');

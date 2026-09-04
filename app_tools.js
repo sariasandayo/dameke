@@ -51,6 +51,7 @@
     if(panelName === 'party' && window.__damekeRenderPartyList) window.__damekeRenderPartyList();
     if(panelName === 'adjust' && window.__damekeRenderAdjustPanel) window.__damekeRenderAdjustPanel();
     if(panelName === 'speed' && window.__damekeRenderSpeedPanel) window.__damekeRenderSpeedPanel();
+    if(panelName === 'evopt' && window.__damekeRenderEvoptPanel) window.__damekeRenderEvoptPanel();
   }
   window.__damekeShowPanel = showPanel;
 
@@ -1155,16 +1156,19 @@
     var statRowLabel = document.createElement('span'); statRowLabel.className='dameke-pokemon-stat-head'; statRowLabel.textContent='実数値';
     combinedTable.appendChild(statRowLabel);
     STAT_KEYS_ALL.forEach(function(k){
-      var s = document.createElement('span'); s.id = 'damekePokeEdit_actual_'+k; s.className='dameke-pokemon-actual-stat-cell';
+      var s = document.createElement('input'); s.type='number'; s.id = 'damekePokeEdit_actual_'+k; s.className='dameke-pokemon-actual-stat-cell dameke-pokemon-actual-stat-input';
       combinedTable.appendChild(s);
     });
-    form.appendChild(combinedTable);
+    var statWrapper = document.createElement('div');
+    statWrapper.className = 'dameke-pokemon-stat-wrapper';
+    statWrapper.appendChild(combinedTable);
 
     // Remaining EV (out of 66, matching this app's own 0-32-scale total cap), live-updating.
     var evRemaining = document.createElement('div');
     evRemaining.id = 'damekePokeEdit_evRemaining';
     evRemaining.className = 'dameke-pokemon-ev-remaining';
-    form.appendChild(evRemaining);
+    statWrapper.appendChild(evRemaining);
+    form.appendChild(statWrapper);
 
     // Same EV quick-preset UI as the calculator itself: pick a pair of stats to max out (32),
     // everything else reset to 0.
@@ -1321,7 +1325,18 @@
       var actual = computeActualStatsFor(previewEntry);
       STAT_KEYS_ALL.forEach(function(k){
         var cell = q('damekePokeEdit_actual_'+k);
-        if(cell) cell.textContent = actual ? actual[k] : '-';
+        if(!cell) return;
+        // Restrict the achievable range to this stat's own EV0-EV32 span (current nature/IV/
+        // level), same as the other adjustment tools already do -- values outside it simply
+        // can't be reached at all.
+        var loEntry = Object.assign({}, previewEntry, { evs: Object.assign({}, previewEntry.evs) }); loEntry.evs[k] = '0';
+        var hiEntry = Object.assign({}, previewEntry, { evs: Object.assign({}, previewEntry.evs) }); hiEntry.evs[k] = '32';
+        var loActual = computeActualStatsFor(loEntry), hiActual = computeActualStatsFor(hiEntry);
+        if(loActual) cell.min = String(loActual[k]);
+        if(hiActual) cell.max = String(hiActual[k]);
+        // Skip the field the user is actively typing in, so a live update from another field
+        // (nature/level/IV) doesn't clobber what they're mid-way through entering here.
+        if(document.activeElement !== cell) cell.value = actual ? actual[k] : '';
       });
       var selectedPokemon = findPokemonById(pokemonSel.value);
       STAT_KEYS_ALL.forEach(function(k){
@@ -1343,6 +1358,38 @@
       [ivEl, evEl].forEach(function(el){ el.addEventListener('change', updateStatsPreview); el.addEventListener('input', updateStatsPreview); });
       evEl.addEventListener('change', updateEvRemaining);
       evEl.addEventListener('input', updateEvRemaining);
+
+      // Reverse EV lookup: typing a target 実数値 finds the minimum EV (0-32) whose actual value
+      // reaches it, using this stat's own current nature/IV/level -- same "at least this much"
+      // convention the other adjustment tools already use, so a target below EV0's own value or
+      // above EV32's is simply clamped to whichever end is closest.
+      var actualEl = q('damekePokeEdit_actual_'+k);
+      if(actualEl){
+        actualEl.addEventListener('change', function(){
+          var probeEntry = { pokemonId: pokemonSel.value, level: levelInput.value, nature: natureSel.value, ivs:{}, evs:{} };
+          STAT_KEYS_ALL.forEach(function(kk){
+            probeEntry.ivs[kk] = q('damekePokeEdit_iv_'+kk).value;
+            probeEntry.evs[kk] = (kk===k) ? '0' : q('damekePokeEdit_ev_'+kk).value;
+          });
+          function actualAt(ev){
+            var e = Object.assign({}, probeEntry, { evs: Object.assign({}, probeEntry.evs) });
+            e.evs[k] = String(ev);
+            var result = computeActualStatsFor(e);
+            return result ? result[k] : 0;
+          }
+          var lo = actualAt(0), hi = actualAt(32);
+          var target = parseInt(actualEl.value, 10);
+          if(isNaN(target)) target = lo;
+          target = Math.max(lo, Math.min(hi, target));
+          var chosenEv = 32;
+          for(var ev=0; ev<=32; ev++){
+            if(actualAt(ev) >= target){ chosenEv = ev; break; }
+          }
+          evEl.value = chosenEv;
+          updateStatsPreview();
+          updateEvRemaining();
+        });
+      }
     });
     updateStatsPreview();
     updateEvRemaining();
@@ -1786,6 +1833,11 @@
     openPokemonEditor(entry);
   };
   window.__damekeInitPokemonPanel = initPokemonPanel;
+  // For the 努力値最適化 tool: lets it read the full saved roster (for its own "呼び出し" card
+  // picker and for its save-time exact-match check) and render the same card look used
+  // elsewhere, without duplicating either piece here.
+  window.__damekeLoadPokemonList = loadPokemonList;
+  window.__damekeBuildPokemonCard = buildPokemonCard;
   window.__damekeRenderPartyList = renderPartyList;
   window.__damekeInitPartyPanel = initPartyPanel;
 })();

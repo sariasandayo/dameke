@@ -258,14 +258,19 @@
 
   var NATURE_COLORS = ['#2563eb', '#dc2626', '#059669', '#d97706', '#7c3aed', '#0891b2'];
   function renderSweepGraph(host, lines, natures, hpRef, range, statKey){
-    var w = 640, h = 340, padL = 52, padR = 16, padT = 16, padB = 36;
+    var w = 640, h = 340, padL = 68, padR = 16, padT = 16, padB = 36;
     var innerW = w - padL - padR, innerH = h - padT - padB;
     var evSpan = Math.max(1, range.max - range.start);
 
     var maxDamage = 0;
     natures.forEach(function(n){ (lines[n]||[]).forEach(function(p){ if(p.maxDamage > maxDamage) maxDamage = p.maxDamage; }); });
-    var hpCeiling = hpRef.kind === 'band' ? hpRef.max : hpRef.value;
-    var yMax = Math.max(maxDamage, hpCeiling) * 1.08;
+    // The Y-axis is scaled to the actual damage line data only -- not to the full HP-based
+    // reference (確定1発ライン etc.), which could be many times larger than what's actually
+    // being swept (e.g. a 確定5発 matchup) and would otherwise squash the real data into a
+    // sliver at the bottom. Reference lines that fall outside the resulting range are simply
+    // skipped below (see the existing "if(val > yMax) return" checks) rather than forcing the
+    // axis to stretch to include them.
+    var yMax = maxDamage * 1.08;
     if(yMax <= 0) yMax = 10;
 
     function xPos(ev){ return padL + ((ev-range.start)/evSpan) * innerW; }
@@ -279,6 +284,7 @@
       svg += '<line x1="'+padL+'" y1="'+y+'" x2="'+(w-padR)+'" y2="'+y+'" class="dameke-adjust-grid"/>';
       svg += '<text x="'+(padL-6)+'" y="'+(y+3)+'" text-anchor="end" class="dameke-adjust-axis-label">'+val+'</text>';
     }
+    svg += '<text x="16" y="'+(padT+innerH/2)+'" text-anchor="middle" class="dameke-adjust-axis-title" transform="rotate(-90 16 '+(padT+innerH/2)+')">ダメージ量</text>';
     var xTicks = [];
     for(var t=0;t<=4;t++) xTicks.push(Math.round(range.start + evSpan*t/4));
     xTicks.forEach(function(ev){
@@ -287,8 +293,22 @@
     });
     svg += '<text x="'+(w/2)+'" y="'+(h-4)+'" text-anchor="middle" class="dameke-adjust-axis-title">'+statKey+'努力値 ('+range.start+'-'+range.max+')</text>';
 
+    // 確定n発ライン/帯: rather than a fixed n=1..4, find the smallest n whose reference value
+    // actually falls at or below yMax (so at least one is always visible, even when the sweep is
+    // a severe underkill or overkill relative to HP), then show a handful of consecutive n from
+    // there -- this is what lets very high n (well past 4) show up when the graph's own scale
+    // calls for it, and guarantees a line is never simply absent.
+    function visibleNRange(referenceHp){
+      if(referenceHp <= 0 || yMax <= 0) return [];
+      var nMin = Math.max(1, Math.ceil(referenceHp / yMax));
+      var count = 4;
+      var result = [];
+      for(var n=nMin; n<nMin+count; n++) result.push(n);
+      return result;
+    }
+
     if(hpRef.kind === 'exact' && hpRef.value > 0){
-      [1,2,3,4].forEach(function(n){
+      visibleNRange(hpRef.value).forEach(function(n){
         var val = hpRef.value / n;
         if(val > yMax) return;
         var y = yPos(val);
@@ -296,7 +316,7 @@
         svg += '<text x="'+(w-padR-4)+'" y="'+(y-3)+'" text-anchor="end" class="dameke-adjust-hp-label">確定'+n+'発ライン</text>';
       });
     } else if(hpRef.kind === 'band' && hpRef.max > 0){
-      [1,2,3,4].forEach(function(n){
+      visibleNRange(hpRef.min).forEach(function(n){
         var valLo = hpRef.min / n, valHi = hpRef.max / n;
         if(valLo > yMax) return;
         var yHi = yPos(Math.min(valHi, yMax)), yLo = yPos(valLo);
@@ -322,7 +342,7 @@
       return '<span class="dameke-adjust-legend-item"><span class="dameke-adjust-legend-swatch" style="background:'+color+'"></span>'+natureName+'（実線=最高乱数, 破線=最低乱数）</span>';
     }).join('') + '</div>';
     if(hpRef.kind === 'band'){
-      legend += '<div class="dameke-adjust-band-note">確定n発の帯は、HPに投資できる努力値の範囲（「努力値指定」で指定した場合はその値以上、指定していない場合は0以上）に応じて、確定n発ラインが取りうる範囲を暫定的に示したものです。正確な必要努力値は、下の一覧表をご覧ください。</div>';
+      legend += '<div class="dameke-adjust-band-note">確定n発の帯は、HPに振れる努力値の範囲（「努力値指定」で指定した場合はその値以上、指定していない場合は0以上）に応じて、確定n発ラインが取りうる範囲を暫定的に示したものです。正確な必要努力値は、下の一覧表をご覧ください。</div>';
     }
     host.innerHTML = svg + legend;
   }
@@ -605,6 +625,226 @@
     if(window.__damekeOpenPokemonEditorWithEntry) window.__damekeOpenPokemonEditorWithEntry(entry);
   }
 
+  // ==================== 耐久最大化調整 (defender mode only) ====================
+  // Maximizes 総合耐久指数 = H * B * D / (B + D), a standard combined physical+special bulk
+  // metric (harmonic-mean-shaped in B and D). For fixed H and B, this is strictly increasing in
+  // D (d/dD [D/(B+D)] = B/(B+D)^2 > 0), so -- exactly like the main defender search above --
+  // the optimal D always just uses whatever EV remains, cutting the search down to 2 dimensions
+  // (H x B) instead of 3.
+  var bulkNature = ''; // '' = auto (try both B-boost and D-boost candidates, keep the better one)
+  var bulkEvSpec = { H: 0, A: 0, B: 0, C: 0, D: 0, S: 0 };
+  var lastBulkResult = null; // { nature, evs:{H,B,D}, actual:{H,B,D}, index, remaining } | null
+
+  function computeDefenderActualStat(snapshot, statKey, ev, natureName, evSpec){
+    var CALC = window.DAMEKE_CALC;
+    var baseStats = snapshot.options.defenderStats;
+    var evs = buildEvs(statKey, ev, evSpec);
+    var input = { ivs: baseStats.ivs, evs: evs, ranks: { A:0,B:0,C:0,D:0,S:0,acc:0,eva:0 }, nature: natureName };
+    return CALC.getActualStats(snapshot.defender, snapshot.defenderLevel, input)[statKey];
+  }
+  function bulkIndexOf(h, b, d){ return (b+d) > 0 ? (h*b*d)/(b+d) : 0; }
+  // Same convention already used for the main defender-mode default nature picker: which exact
+  // B-boosting (or D-boosting) nature is reported doesn't change this formula's result at all
+  // (A/C/S never appear in it), so the choice is standardized the same way for consistency.
+  function bBoostNatureFor(defenderPokemon){
+    return defenderPokemon.baseStats.A > defenderPokemon.baseStats.C ? 'わんぱく' : 'ずぶとい';
+  }
+  function dBoostNatureFor(defenderPokemon){
+    return defenderPokemon.baseStats.A > defenderPokemon.baseStats.C ? 'しんちょう' : 'おだやか';
+  }
+  // 2D search (H x B, D takes the remainder) for a single fixed nature. Ties in 総合耐久指数
+  // break toward the higher D 実数値, per request.
+  function computeBulkOptimalForNature(snapshot, natureName){
+    var spec = bulkEvSpec;
+    var hMin = spec.H != null ? spec.H : 0, bMin = spec.B != null ? spec.B : 0, dMin = spec.D != null ? spec.D : 0;
+    // A/C/S don't affect this formula at all, so they're never searched -- whatever's entered
+    // for them is simply spent as a fixed cost, reducing the budget left for H/B/D.
+    var otherFixedSum = (spec.A||0) + (spec.C||0) + (spec.S||0);
+    var hMax = Math.min(32, 66 - bMin - dMin - otherFixedSum);
+    if(hMax < hMin) hMax = hMin;
+    var hpArr = {};
+    for(var hEv=hMin; hEv<=hMax; hEv++) hpArr[hEv] = computeDefenderActualStat(snapshot, 'H', hEv, natureName, spec);
+    var bMaxGlobal = Math.min(32, 66 - hMin - dMin - otherFixedSum);
+    if(bMaxGlobal < bMin) bMaxGlobal = bMin;
+    var bArr = {};
+    for(var bEv=bMin; bEv<=bMaxGlobal; bEv++) bArr[bEv] = computeDefenderActualStat(snapshot, 'B', bEv, natureName, spec);
+    var dMaxGlobal = Math.min(32, 66 - hMin - bMin - otherFixedSum);
+    if(dMaxGlobal < dMin) dMaxGlobal = dMin;
+    var dArr = {};
+    for(var dEv=dMin; dEv<=dMaxGlobal; dEv++) dArr[dEv] = computeDefenderActualStat(snapshot, 'D', dEv, natureName, spec);
+
+    var acsActual = {
+      A: computeDefenderActualStat(snapshot, 'A', spec.A||0, natureName, spec),
+      C: computeDefenderActualStat(snapshot, 'C', spec.C||0, natureName, spec),
+      S: computeDefenderActualStat(snapshot, 'S', spec.S||0, natureName, spec)
+    };
+    var best = null;
+    for(var h=hMin; h<=hMax; h++){
+      var bCap = Math.min(bMaxGlobal, 66 - otherFixedSum - h - dMin);
+      if(bCap < bMin) continue;
+      for(var b=bMin; b<=bCap; b++){
+        var d = Math.min(dMaxGlobal, 66 - otherFixedSum - h - b);
+        if(d < dMin) continue;
+        var idx = bulkIndexOf(hpArr[h], bArr[b], dArr[d]);
+        if(!best || idx > best.index || (idx === best.index && dArr[d] > best.actual.D)){
+          best = {
+            nature: natureName,
+            evs: { H:h, A:spec.A||0, B:b, C:spec.C||0, D:d, S:spec.S||0 },
+            actual: { H:hpArr[h], A:acsActual.A, B:bArr[b], C:acsActual.C, D:dArr[d], S:acsActual.S },
+            index: idx
+          };
+        }
+      }
+    }
+    return best;
+  }
+  function optimizeBulk(snapshot){
+    if(!snapshot || !snapshot.defender) return null;
+    if(bulkNature){
+      return computeBulkOptimalForNature(snapshot, bulkNature);
+    }
+    var candB = computeBulkOptimalForNature(snapshot, bBoostNatureFor(snapshot.defender));
+    var candD = computeBulkOptimalForNature(snapshot, dBoostNatureFor(snapshot.defender));
+    if(!candB) return candD;
+    if(!candD) return candB;
+    // Tie -> D-boost candidate wins, per request.
+    return candD.index >= candB.index ? candD : candB;
+  }
+
+  // ---- 耐久最大化調整 UI ----
+  var BULK_STAT_KEYS = STAT_KEYS; // H/A/B/C/D/S -- A/C/S shown too, since they can eat into the budget
+  function renderBulkInputTable(snapshot){
+    var host = q('damekeBulkTable');
+    host.innerHTML = '';
+    var table = document.createElement('div');
+    table.className = 'dameke-adjust-evspec-table';
+    table.style.gridTemplateColumns = '3.4em repeat(6,minmax(2.6em,3.6em))';
+    var corner = document.createElement('div'); table.appendChild(corner);
+    BULK_STAT_KEYS.forEach(function(k){ var h=document.createElement('div'); h.className='dameke-adjust-evspec-head'; h.textContent=k; table.appendChild(h); });
+
+    var baseLabel = document.createElement('div'); baseLabel.className='dameke-adjust-evspec-rowlabel'; baseLabel.textContent='種族値'; table.appendChild(baseLabel);
+    BULK_STAT_KEYS.forEach(function(k){ var c=document.createElement('div'); c.className='dameke-adjust-evspec-cell'; c.textContent=snapshot.defender.baseStats[k]; table.appendChild(c); });
+
+    var displayNature = bulkNature || bBoostNatureFor(snapshot.defender); // just for showing a plausible 実数値 while typing; doesn't affect optimization
+
+    var evLabel = document.createElement('div'); evLabel.className='dameke-adjust-evspec-rowlabel'; evLabel.textContent='努力値'; table.appendChild(evLabel);
+    BULK_STAT_KEYS.forEach(function(k){
+      var cell = document.createElement('div'); cell.className='dameke-adjust-evspec-cell';
+      var input = document.createElement('input');
+      input.type='number'; input.min='0'; input.max='32';
+      input.className='dameke-adjust-evspec-input';
+      input.value = bulkEvSpec[k] || 0;
+      input.addEventListener('change', function(){
+        bulkEvSpec[k] = Math.max(0, Math.min(32, parseInt(input.value,10)||0));
+        renderBulkAll(snapshot);
+      });
+      cell.appendChild(input);
+      table.appendChild(cell);
+    });
+
+    var actualLabel = document.createElement('div'); actualLabel.className='dameke-adjust-evspec-rowlabel'; actualLabel.textContent='実数値'; table.appendChild(actualLabel);
+    BULK_STAT_KEYS.forEach(function(k){
+      var cell = document.createElement('div'); cell.className='dameke-adjust-evspec-cell';
+      var input = document.createElement('input');
+      input.type='number';
+      var lo = computeDefenderActualStat(snapshot, k, 0, displayNature, bulkEvSpec);
+      var hi = computeDefenderActualStat(snapshot, k, 32, displayNature, bulkEvSpec);
+      input.min = String(lo); input.max = String(hi);
+      input.className='dameke-adjust-evspec-input';
+      input.value = computeDefenderActualStat(snapshot, k, bulkEvSpec[k]||0, displayNature, bulkEvSpec);
+      input.addEventListener('change', function(){
+        var target = Math.max(lo, Math.min(hi, parseInt(input.value,10)||lo));
+        for(var ev=0; ev<=32; ev++){
+          if(computeDefenderActualStat(snapshot, k, ev, displayNature, bulkEvSpec) >= target){ bulkEvSpec[k] = ev; break; }
+          if(ev===32) bulkEvSpec[k] = 32;
+        }
+        renderBulkAll(snapshot);
+      });
+      cell.appendChild(input);
+      table.appendChild(cell);
+    });
+
+    host.appendChild(table);
+  }
+  function renderBulkResult(snapshot){
+    var host = q('damekeBulkResultHost');
+    var saveBtn = q('damekeBulkSaveBtn');
+    host.innerHTML = '';
+    lastBulkResult = optimizeBulk(snapshot);
+    if(!lastBulkResult){
+      host.innerHTML = '<div class="dameke-adjust-coming-soon">条件を満たす組み合わせが見つかりませんでした。</div>';
+      saveBtn.disabled = true;
+      return;
+    }
+    var r = lastBulkResult;
+    var table = document.createElement('div');
+    table.className = 'dameke-adjust-evspec-table';
+    table.style.gridTemplateColumns = '3.4em repeat(6,minmax(2.6em,3.6em))';
+    var corner = document.createElement('div'); table.appendChild(corner);
+    BULK_STAT_KEYS.forEach(function(k){ var h=document.createElement('div'); h.className='dameke-adjust-evspec-head '+natureStatClassBulk(r.nature,k); h.textContent=k; table.appendChild(h); });
+    var evLabel = document.createElement('div'); evLabel.className='dameke-adjust-evspec-rowlabel'; evLabel.textContent='努力値'; table.appendChild(evLabel);
+    BULK_STAT_KEYS.forEach(function(k){ var c=document.createElement('div'); c.className='dameke-adjust-evspec-cell'; c.textContent=r.evs[k]; table.appendChild(c); });
+    var actualLabel = document.createElement('div'); actualLabel.className='dameke-adjust-evspec-rowlabel'; actualLabel.textContent='実数値'; table.appendChild(actualLabel);
+    BULK_STAT_KEYS.forEach(function(k){ var c=document.createElement('div'); c.className='dameke-adjust-evspec-cell'; c.textContent=r.actual[k]; table.appendChild(c); });
+
+    var natureLine = document.createElement('div');
+    natureLine.className = 'dameke-adjust-summary-note';
+    natureLine.textContent = '性格：' + r.nature + '　総合耐久指数：' + Math.round(r.index);
+    var wrapper = document.createElement('div');
+    wrapper.className = 'dameke-adjust-evspec-wrapper';
+    wrapper.appendChild(natureLine);
+    wrapper.appendChild(table);
+    // No 余り努力値 line here -- H/B/D always strictly benefit from more investment (see the
+    // monotonicity note above), so the search always spends the full remaining budget; there's
+    // never anything left over to report.
+    host.appendChild(wrapper);
+    saveBtn.disabled = false;
+  }
+  function natureStatClassBulk(natureName, statKey){
+    var pair = NATURE_STAT_MAP[natureName];
+    if(!pair) return '';
+    if(pair[0] === statKey) return 'dameke-evopt-stat-up';
+    if(pair[1] === statKey) return 'dameke-evopt-stat-down';
+    return '';
+  }
+  function saveBulkResult(snapshot){
+    if(!lastBulkResult) return;
+    var r = lastBulkResult;
+    var stats = snapshot.options.defenderStats;
+    var entry = {
+      id: null,
+      pokemonId: snapshot.defender.id,
+      nickname: '',
+      abilityId: snapshot.options.defenderAbilityId || 'none',
+      itemId: snapshot.options.defenderItemId || 'none',
+      teraType: snapshot.options.defenderTeraType || 'なし',
+      nature: r.nature,
+      level: snapshot.defenderLevel,
+      ivs: stats.ivs,
+      evs: r.evs,
+      moves: ['', '', '', ''],
+      notes: ''
+    };
+    if(window.__damekeOpenPokemonEditorWithEntry) window.__damekeOpenPokemonEditorWithEntry(entry);
+  }
+  function renderBulkAll(snapshot){
+    var section = q('damekeBulkSection');
+    if(!section) return;
+    if(currentMode !== 'defender' || !snapshot || !snapshot.defender){
+      section.hidden = true;
+      return;
+    }
+    section.hidden = false;
+    var map = window.DAMEKE_POKEMON_IMAGE_IDS;
+    var numId = map ? map[snapshot.defender.name] : null;
+    q('damekeBulkImageHost').innerHTML = numId
+      ? '<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+numId+'.png" alt="'+snapshot.defender.name+'" loading="lazy">'
+      : '';
+    q('damekeBulkPokemonName').textContent = snapshot.defender.name;
+    renderBulkInputTable(snapshot);
+    renderBulkResult(snapshot);
+  }
+
   function renderAndRun(){
     var summaryHost = q('damekeAdjustSummary');
     var evSpecHost = q('damekeAdjustEvSpec');
@@ -620,6 +860,7 @@
       if(evSpecHost) evSpecHost.innerHTML = '';
       natureHost.innerHTML = ''; graphHost.innerHTML = ''; thresholdHost.innerHTML = '';
       if(saveBtn) saveBtn.disabled = true;
+      renderBulkAll(null);
       return;
     }
 
@@ -719,6 +960,8 @@
     if(saveBtn){
       saveBtn.onclick = function(){ saveSelectedToPokemonManagement(snapshot); };
     }
+
+    renderBulkAll(snapshot);
   }
   window.__damekeRenderAdjustPanel = renderAndRun;
 
@@ -741,6 +984,22 @@
     if(goAdjustAtk) goAdjustAtk.addEventListener('click', function(){ if(window.__damekeShowPanel) window.__damekeShowPanel('adjust'); setMode('attacker'); });
     var goAdjustDef = q('damekeGoAdjustDefenderBtn');
     if(goAdjustDef) goAdjustDef.addEventListener('click', function(){ if(window.__damekeShowPanel) window.__damekeShowPanel('adjust'); setMode('defender'); });
+
+    var bulkNatureSelect = q('damekeBulkNature');
+    if(bulkNatureSelect){
+      ALL_NATURE_NAMES.forEach(function(n){
+        var op = document.createElement('option'); op.value = n; op.textContent = n;
+        bulkNatureSelect.appendChild(op);
+      });
+      bulkNatureSelect.addEventListener('change', function(){
+        bulkNature = bulkNatureSelect.value;
+        var snapshot = getSnapshot();
+        if(snapshot) renderBulkAll(snapshot);
+      });
+    }
+    var bulkSaveBtn = q('damekeBulkSaveBtn');
+    if(bulkSaveBtn) bulkSaveBtn.addEventListener('click', function(){ saveBulkResult(getSnapshot()); });
+
     setMode('attacker');
   }
 
