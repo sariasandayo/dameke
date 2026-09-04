@@ -719,13 +719,12 @@
     var table = document.createElement('div');
     table.className = 'dameke-adjust-evspec-table';
     table.style.gridTemplateColumns = '3.4em repeat(6,minmax(2.6em,3.6em))';
+    var displayNature = bulkNature || bBoostNatureFor(snapshot.defender); // used only for showing a plausible 実数値 while typing (not for coloring); doesn't affect optimization
     var corner = document.createElement('div'); table.appendChild(corner);
-    BULK_STAT_KEYS.forEach(function(k){ var h=document.createElement('div'); h.className='dameke-adjust-evspec-head'; h.textContent=k; table.appendChild(h); });
+    BULK_STAT_KEYS.forEach(function(k){ var h=document.createElement('div'); h.className='dameke-adjust-evspec-head '+(bulkNature ? natureStatClassBulk(bulkNature,k) : ''); h.textContent=k; table.appendChild(h); });
 
     var baseLabel = document.createElement('div'); baseLabel.className='dameke-adjust-evspec-rowlabel'; baseLabel.textContent='種族値'; table.appendChild(baseLabel);
     BULK_STAT_KEYS.forEach(function(k){ var c=document.createElement('div'); c.className='dameke-adjust-evspec-cell'; c.textContent=snapshot.defender.baseStats[k]; table.appendChild(c); });
-
-    var displayNature = bulkNature || bBoostNatureFor(snapshot.defender); // just for showing a plausible 実数値 while typing; doesn't affect optimization
 
     var evLabel = document.createElement('div'); evLabel.className='dameke-adjust-evspec-rowlabel'; evLabel.textContent='努力値'; table.appendChild(evLabel);
     BULK_STAT_KEYS.forEach(function(k){
