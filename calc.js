@@ -576,6 +576,13 @@ function hpBlock(side,p,stt,item,itState,ab,special,o){const prefix=side==='A'?'
     upsertLine('02 すばやさ詳細（攻撃側）',aSp);upsertLine('02 すばやさ詳細（防御側）',dSp);
     (result.trace||[]).forEach(function(line){if(String(line.label).includes('攻撃側ランク補正込み実数値')&&typeof line.value==='string')line.value=line.value.replace(/\/[^\/]*$/, '/'+aSp.final);if(String(line.label).includes('防御側ランク補正込み実数値')&&typeof line.value==='string')line.value=line.value.replace(/\/[^\/]*$/, '/'+dSp.final);});
     recalcSpeedMove(result,input,as,ds,aSp,dSp);return result;};
+  // Exposed for the 素早さ調整 tool: the exact same speed-modifier logic the calculator itself
+  // uses internally (ability/item/おいかぜ/しつげん/まひ all included), so that tool never risks
+  // drifting out of sync with how speed is actually computed here. Call as
+  // calcSpeed('A', pokemon, rawS, rankStage, status, o) with o.attackerAbilityId/attackerItemId/
+  // attackerTailwind/attackerSwamp populated (side is always 'A' for a standalone speed lookup --
+  // there's no real "defender" side to speak of, this just reuses the same field names).
+  C.calcSpeed = calcSpeed;
   C.__speedPatchedV2=true;
 })();
 

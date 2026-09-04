@@ -50,6 +50,7 @@
     if(panelName === 'pokemon' && window.__damekeRenderPokemonList) window.__damekeRenderPokemonList();
     if(panelName === 'party' && window.__damekeRenderPartyList) window.__damekeRenderPartyList();
     if(panelName === 'adjust' && window.__damekeRenderAdjustPanel) window.__damekeRenderAdjustPanel();
+    if(panelName === 'speed' && window.__damekeRenderSpeedPanel) window.__damekeRenderSpeedPanel();
   }
   window.__damekeShowPanel = showPanel;
 

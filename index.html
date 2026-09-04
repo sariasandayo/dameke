@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>だめけー Web v1.2.0</title>
+  <title>だめけー Web v1.3.0</title>
   <link rel="icon" href="./icon/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="32x32" href="./icon/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./icon/apple-touch-icon.png">
@@ -16,14 +16,15 @@
     <button type="button" id="damekeMenuBtn" class="dameke-menu-btn" aria-label="メニュー">
       <span></span><span></span><span></span>
     </button>
-    <h1>だめけー Web v1.2.0</h1>
+    <h1>だめけー Web v1.3.0</h1>
     <p>for Pokémon Champions</p>
     <nav id="damekeMenuNav" class="dameke-menu-nav" hidden>
       <button type="button" class="dameke-menu-item" data-panel="calculator">ダメージ計算</button>
       <button type="button" class="dameke-menu-item" data-panel="history">計算履歴</button>
+      <button type="button" class="dameke-menu-item" data-panel="adjust">攻撃・防御調整</button>
+      <button type="button" class="dameke-menu-item" data-panel="speed">素早さ調整</button>
       <button type="button" class="dameke-menu-item" data-panel="pokemon">ポケモン管理</button>
       <button type="button" class="dameke-menu-item" data-panel="party">パーティ管理</button>
-      <button type="button" class="dameke-menu-item" data-panel="adjust">攻撃・防御調整</button>
     </nav>
   </header>
   <div id="panel-calculator" class="dameke-tool-panel">
@@ -322,6 +323,47 @@
       </section>
     </main>
   </div>
+  <div id="panel-speed" class="dameke-tool-panel" hidden>
+    <main class="layout">
+      <section class="card">
+        <h2>素早さ調整</h2>
+        <div class="dameke-speed-input">
+          <div class="grid three">
+            <label>ポケモン<select id="damekeSpeedPokemon"></select></label>
+            <label>特性<select id="damekeSpeedAbility"></select></label>
+            <label>持ち物<select id="damekeSpeedItem"></select></label>
+          </div>
+          <div id="damekeSpeedAbilityActivateWrap" class="dameke-speed-activate-wrap" hidden>
+            <label class="check"><input type="checkbox" id="damekeSpeedAbilityActivate" />発動</label>
+          </div>
+          <div class="dameke-speed-cond-row">
+            <label class="dameke-speed-rank-label">Sランク補正
+              <select id="damekeSpeedRank">
+                <option value="-6">-6</option><option value="-5">-5</option><option value="-4">-4</option>
+                <option value="-3">-3</option><option value="-2">-2</option><option value="-1">-1</option>
+                <option value="0" selected>0</option>
+                <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option>
+                <option value="4">+4</option><option value="5">+5</option><option value="6">+6</option>
+              </select>
+            </label>
+            <label class="check"><input type="checkbox" id="damekeSpeedMyParalysis" />まひ</label>
+            <label class="check"><input type="checkbox" id="damekeSpeedMyTailwind" />おいかぜ</label>
+            <label class="check"><input type="checkbox" id="damekeSpeedMySwamp" />しつげん</label>
+          </div>
+        </div>
+        <div id="damekeSpeedSummary" class="dameke-speed-summary"></div>
+        <div class="dameke-speed-roster-header">
+          <h3>最終進化ポケモン すばやさ一覧</h3>
+          <div class="dameke-speed-cond-row">
+            <label class="check"><input type="checkbox" id="damekeSpeedRosterParalysis" />まひ</label>
+            <label class="check"><input type="checkbox" id="damekeSpeedRosterTailwind" />おいかぜ</label>
+            <label class="check"><input type="checkbox" id="damekeSpeedRosterSwamp" />しつげん</label>
+          </div>
+        </div>
+        <div id="damekeSpeedRosterHost" class="dameke-speed-roster-host"></div>
+      </section>
+    </main>
+  </div>
 <script src="data.js"></script>
 <script src="data_learnsets.js"></script>
 <script src="data_pokemon_images.js"></script>
@@ -330,6 +372,7 @@
 <script src="app.js"></script>
 <script src="app_tools.js"></script>
 <script src="app_adjust.js"></script>
+<script src="app_speed.js"></script>
   
 </body>
 </html>
