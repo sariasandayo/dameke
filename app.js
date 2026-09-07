@@ -184,6 +184,17 @@
       options: buildOptions()
     };
   };
+  // For ポケモン検索's "ダメージ計算機へ" links: sets the calculator's own attacker/defender
+  // select to the given species and fires the same change event picking it manually would, so
+  // every downstream listener (stat panel rebuild, ability/item options, etc.) runs exactly as
+  // it would for a normal selection.
+  window.__damekeLoadPokemonIntoCalculator = function(pokemonId, side){
+    var select = side === 'defender' ? el.defenderSelect : el.attackerSelect;
+    if(!select) return;
+    select.value = pokemonId;
+    try{ select.dispatchEvent(new Event('change', {bubbles:true})); }
+    catch(err){ var ev=document.createEvent('Event'); ev.initEvent('change', true, true); select.dispatchEvent(ev); }
+  };
   function findTraceEntry(trace, labelPart){ return (trace||[]).find(function(x){ return String(x.label||'').indexOf(labelPart) >= 0; }) || null; }
   function findTraceEntries(trace, labelPart){ return (trace||[]).filter(function(x){ return String(x.label||'').indexOf(labelPart) >= 0; }); }
   function rateCell(label, rawText){

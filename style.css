@@ -609,3 +609,70 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-evopt-already-optimal{text-align:center;font-weight:700;color:#059669;font-size:.92rem;padding:8px 0;}
 .dameke-evopt-stat-up{color:#dc2626 !important;}
 .dameke-evopt-stat-down{color:#2563eb !important;}
+
+/* ==================== ポケモン検索ツール ==================== */
+.dameke-search-filter-host label{display:block;margin-bottom:10px;font-size:.82rem;color:#374151;}
+.dameke-search-filter-host label input[type="text"]{width:100%;margin-top:4px;}
+.dameke-search-compact-select{font-size:.82rem;padding:6px 8px;border:1px solid #d1d5db;border-radius:6px;background:#fff;max-width:220px;}
+.dameke-search-inline-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center;}
+.dameke-search-text-input{width:100%;padding:6px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.82rem;margin-bottom:10px;box-sizing:border-box;}
+.dameke-search-move-slot-host{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+.dameke-search-sort-select{font-size:.78rem;padding:4px 6px;border:1px solid #d1d5db;border-radius:5px;max-width:140px;}
+.dameke-search-move-filter-fold{margin-bottom:12px;}
+.dameke-search-add-btn{border:1px dashed #9ca3af;background:#f9fafb;color:#4b5563;border-radius:6px;padding:5px 12px;font-size:.76rem;font-weight:700;cursor:pointer;margin-bottom:10px;}
+.dameke-search-section-gap{margin-top:20px;}
+.dameke-search-range-row{display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:.8rem;}
+.dameke-search-range-label{flex:0 0 3.4em;color:#374151;font-weight:700;}
+.dameke-search-range-input{width:100%;max-width:80px;padding:4px 6px;border:1px solid #d1d5db;border-radius:5px;}
+
+.dameke-search-result-header{font-size:.8rem;color:#6b7280;margin-bottom:8px;font-weight:700;}
+.dameke-search-result-host{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px;max-height:75vh;overflow-y:auto;padding:4px;}
+.dameke-search-result-item{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;border:1px solid #e5e7eb;border-radius:8px;cursor:pointer;transition:box-shadow .12s,border-color .12s;}
+.dameke-search-result-item:hover{border-color:#2563eb;box-shadow:0 2px 6px rgba(37,99,235,.2);}
+.dameke-search-thumb{width:56px;height:56px;display:flex;align-items:center;justify-content:center;}
+.dameke-search-thumb img{max-width:100%;max-height:100%;}
+.dameke-search-thumb-missing{border-radius:50%;background:#e5e7eb;}
+.dameke-search-result-name{font-size:.68rem;text-align:center;color:#111827;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;}
+
+.dameke-search-detail-host{max-height:85vh;overflow-y:auto;}
+.dameke-search-detail-head{display:flex;gap:14px;align-items:center;margin:10px 0 16px;flex-wrap:wrap;}
+.dameke-search-detail-image{width:120px;height:120px;object-fit:contain;}
+.dameke-search-detail-name{font-size:1.1rem;}
+.dameke-search-detail-types{display:flex;gap:6px;margin:4px 0;}
+.dameke-search-combined-stat-table{border:1px solid #e5e7eb;border-radius:8px;padding:8px;overflow-x:auto;max-width:100%;}
+.dameke-search-ability-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+.dameke-search-ability-chip{border:1px solid #d1d5db;background:#f9fafb;color:#374151;border-radius:999px;padding:5px 12px;font-size:.78rem;font-weight:700;cursor:pointer;}
+.dameke-search-ability-chip-active{background:#1f2937;color:#fff;border-color:#1f2937;}
+
+.dameke-search-matchup-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:5px;margin-bottom:14px;}
+.dameke-search-matchup-cell{display:flex;flex-direction:column;align-items:center;padding:6px 2px;border-radius:6px;font-size:.7rem;}
+.dameke-search-matchup-cell span{color:#374151;}
+.dameke-search-matchup-cell b{font-size:.86rem;}
+/* Shaded by exact multiplier, not just weak/resist/neutral -- darker red = bigger weakness,
+   darker blue = bigger resistance. */
+.dameke-search-matchup-weak4{background:#fca5a5;}
+.dameke-search-matchup-weak4 b{color:#7f1d1d;}
+.dameke-search-matchup-weak2{background:#fee2e2;}
+.dameke-search-matchup-weak2 b{color:#dc2626;}
+.dameke-search-matchup-neutral{background:#f9fafb;}
+.dameke-search-matchup-neutral b{color:#6b7280;}
+.dameke-search-matchup-resist2{background:#dbeafe;}
+.dameke-search-matchup-resist2 b{color:#2563eb;}
+.dameke-search-matchup-resist4{background:#93c5fd;}
+.dameke-search-matchup-resist4 b{color:#1e3a8a;}
+.dameke-search-matchup-immune{background:#f3e8ff;}
+.dameke-search-matchup-immune b{color:#7c3aed;}
+
+.dameke-search-move-filter-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+.dameke-search-move-filter-grid input{padding:5px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:.78rem;flex:1 1 100px;}
+.dameke-search-move-list{max-height:320px;overflow-y:auto;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;margin-bottom:14px;}
+.dameke-search-move-row{display:grid;grid-template-columns:1.6fr .8fr .7fr .6fr .6fr .5fr .8fr;gap:6px;padding:5px 8px;border-bottom:1px solid #f1f5f9;font-size:.74rem;align-items:center;}
+.dameke-search-move-row:last-child{border-bottom:none;}
+.dameke-search-move-header{background:#f9fafb;font-weight:700;color:#374151;border:1px solid #e5e7eb;border-radius:8px 8px 0 0;font-size:.7rem;}
+.dameke-search-move-name{font-weight:700;color:#111827;}
+@media(max-width:640px){
+  .dameke-search-result-host{grid-template-columns:repeat(auto-fill,minmax(72px,1fr));}
+  .dameke-search-thumb{width:44px;height:44px;}
+  .dameke-search-move-row{grid-template-columns:1.4fr .8fr .6fr .5fr .5fr .4fr;font-size:.66rem;}
+  .dameke-search-move-header span:last-child,.dameke-search-move-row span:last-child{display:none;}
+}

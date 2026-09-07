@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>だめけー Web v1.4.0</title>
+  <title>だめけー Web v1.5.0</title>
   <link rel="icon" href="./icon/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="32x32" href="./icon/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./icon/apple-touch-icon.png">
@@ -16,7 +16,7 @@
     <button type="button" id="damekeMenuBtn" class="dameke-menu-btn" aria-label="メニュー">
       <span></span><span></span><span></span>
     </button>
-    <h1>だめけー Web v1.4.0</h1>
+    <h1>だめけー Web v1.5.0</h1>
     <p>for Pokémon Champions</p>
     <nav id="damekeMenuNav" class="dameke-menu-nav" hidden>
       <button type="button" class="dameke-menu-item" data-panel="calculator">ダメージ計算</button>
@@ -26,6 +26,7 @@
       <button type="button" class="dameke-menu-item" data-panel="evopt">努力値最適化</button>
       <button type="button" class="dameke-menu-item" data-panel="pokemon">ポケモン管理</button>
       <button type="button" class="dameke-menu-item" data-panel="party">パーティ管理</button>
+      <button type="button" class="dameke-menu-item" data-panel="search">ポケモン検索</button>
     </nav>
   </header>
   <div id="panel-calculator" class="dameke-tool-panel">
@@ -426,6 +427,19 @@
       </section>
     </main>
   </div>
+  <div id="panel-search" class="dameke-tool-panel" hidden>
+    <main class="layout">
+      <section class="card" id="damekeSearchFilterSection">
+        <h2>ポケモン検索</h2>
+        <div id="damekeSearchFilterHost" class="dameke-search-filter-host"></div>
+      </section>
+      <section class="card" id="damekeSearchResultSection">
+        <div id="damekeSearchResultHeader" class="dameke-search-result-header"></div>
+        <div id="damekeSearchResultHost" class="dameke-search-result-host"></div>
+        <div id="damekeSearchDetailHost" class="dameke-search-detail-host" hidden></div>
+      </section>
+    </main>
+  </div>
 <script src="data.js"></script>
 <script src="data_learnsets.js"></script>
 <script src="data_pokemon_images.js"></script>
@@ -436,6 +450,7 @@
 <script src="app_adjust.js"></script>
 <script src="app_speed.js"></script>
 <script src="app_evopt.js"></script>
+<script src="app_search.js"></script>
   
 </body>
 </html>

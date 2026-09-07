@@ -52,6 +52,7 @@
     if(panelName === 'adjust' && window.__damekeRenderAdjustPanel) window.__damekeRenderAdjustPanel();
     if(panelName === 'speed' && window.__damekeRenderSpeedPanel) window.__damekeRenderSpeedPanel();
     if(panelName === 'evopt' && window.__damekeRenderEvoptPanel) window.__damekeRenderEvoptPanel();
+    if(panelName === 'search' && window.__damekeRenderSearchPanel) window.__damekeRenderSearchPanel();
   }
   window.__damekeShowPanel = showPanel;
 

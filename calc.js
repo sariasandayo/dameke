@@ -2420,3 +2420,65 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
     return result;
   };
 })();
+
+// v1.5.0 shared type-effectiveness patch (for ポケモン検索 and future tools).
+// Exposes window.DAMEKE_CALC.computeTypeEffectiveness(defenderTypes, attackerType, abilityName)
+// returning a multiplier (0, 0.25, 0.5, 1, 2, 4) that folds in ability-based immunities using the
+// exact same data calculateDamage() itself already relies on (DATA.typeChart4096, the levitate
+// ability tag, and the fixed table of type-immunity abilities), so this never risks disagreeing
+// with what the calculator would actually compute for the same matchup.
+(function(){
+  var D = window.DAMEKE_DATA;
+  var C = window.DAMEKE_CALC;
+  if(!D || !C || C.__typeEffectivenessPatched) return;
+
+  // Same table calc.js's own abilityImmunity() uses internally for damage calculation --
+  // duplicated here (rather than reached into, since that copy is scoped inside a closure) so it
+  // can't silently drift from what the calculator actually applies.
+  var TYPE_IMMUNITY_ABILITIES = {
+    'こんがりボディ':'ほのお', 'そうしょく':'くさ', 'ちくでん':'でんき', 'ちょすい':'みず',
+    'でんきエンジン':'でんき', 'どしょく':'じめん', 'ひらいしん':'でんき', 'もらいび':'ほのお', 'よびみず':'みず'
+  };
+  function abilityHasTag(abilityName, tag){
+    var ability = (D.abilities||[]).find(function(a){ return a.name === abilityName; });
+    return !!(ability && window.DAMEKE_DATA_HELPERS && window.DAMEKE_DATA_HELPERS.abilityTag && window.DAMEKE_DATA_HELPERS.abilityTag(ability, tag));
+  }
+  // Grounding check, matching calc.js's own sideGrounded() -- levitate-tagged abilities (or the
+  // two hardcoded exceptions that function also carries) make a Pokemon immune to じめん moves,
+  // independent of the base type chart (which never lists an "immune" for じめん vs a grounded
+  // Pokemon otherwise).
+  function isLevitateAbility(abilityName){
+    return abilityName === 'ふゆう' || abilityName === 'うなぎのぼり' || abilityHasTag(abilityName, 'levitate');
+  }
+
+  function typeRateRaw(attackerType, defenderType){
+    if(!defenderType || defenderType === 'タイプなし') return 4096;
+    return ((D.typeChart4096 && D.typeChart4096[attackerType]) || {})[defenderType] ?? 4096;
+  }
+  // defenderTypes: array of 1-2 defending types. attackerType: the single attacking move type.
+  // abilityName: optional -- if given and it grants an immunity relevant to attackerType
+  // (じめん via levitate, or one of the fixed absorb-type abilities), the result is forced to 0.
+  function computeTypeEffectiveness(defenderTypes, attackerType, abilityName){
+    var types = (defenderTypes||[]).filter(function(t){ return t && t !== 'タイプなし'; });
+    var rate = 4096;
+    types.forEach(function(t){ rate = Math.floor(rate * typeRateRaw(attackerType, t) / 4096); });
+    if(abilityName){
+      if(attackerType === 'じめん' && isLevitateAbility(abilityName)) rate = 0;
+      else if(TYPE_IMMUNITY_ABILITIES[abilityName] === attackerType) rate = 0;
+    }
+    return rate / 4096;
+  }
+  // Convenience: the full 18-type matchup row for a defender (optionally through one ability),
+  // e.g. for a Pokedex-style "受けた時の相性" display.
+  var ALL_TYPES = ['ノーマル','ほのお','みず','でんき','くさ','こおり','かくとう','どく','じめん','ひこう','エスパー','むし','いわ','ゴースト','ドラゴン','あく','はがね','フェアリー'];
+  function computeAllTypeEffectiveness(defenderTypes, abilityName){
+    var out = {};
+    ALL_TYPES.forEach(function(t){ out[t] = computeTypeEffectiveness(defenderTypes, t, abilityName); });
+    return out;
+  }
+
+  C.computeTypeEffectiveness = computeTypeEffectiveness;
+  C.computeAllTypeEffectiveness = computeAllTypeEffectiveness;
+  C.__typeEffectivenessAllTypes = ALL_TYPES;
+  C.__typeEffectivenessPatched = true;
+})();

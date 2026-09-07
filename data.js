@@ -5016,9 +5016,7 @@ window.DAMEKE_GENERATED_DATA = {
         "エスパー"
       ],
       "abilities": [
-        "クイックドロウ",
-        "マイペース",
-        "さいせいりょく"
+        "シェルアーマー"
       ],
       "baseStats": {
         "H": 95,
@@ -5044,7 +5042,9 @@ window.DAMEKE_GENERATED_DATA = {
         "エスパー"
       ],
       "abilities": [
-        "シェルアーマー"
+        "クイックドロウ",
+        "マイペース",
+        "さいせいりょく"
       ],
       "baseStats": {
         "H": 95,
