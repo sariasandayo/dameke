@@ -151,20 +151,56 @@
   function optimize(){
     if(!selectedPokemon) return null;
     var targets = actualFor(currentEvs, currentNature); // the table's current 実数値 row is the target
+    var thresholdHB = targets.H * targets.B;
+    var thresholdHD = targets.H * targets.D;
     var best = null;
     ALL_NATURE_NAMES.forEach(function(natureName){
       var evs = { H:0,A:0,B:0,C:0,D:0,S:0 };
-      var total = 0, feasible = true;
-      // H is never nature-modified, and EV order otherwise doesn't matter since each stat's
-      // minimum is independent of the others (nature only touches one up/one down stat).
-      STAT_KEYS.forEach(function(k){
+      var acsTotal = 0, feasible = true;
+      // A/C/S keep the original "at least this much, independently" rule.
+      ['A','C','S'].forEach(function(k){
         if(!feasible) return;
         var found = minEvForTarget(k, natureName, targets[k], evs);
         if(!found.reachable){ feasible = false; return; }
         evs[k] = found.ev;
-        total += found.ev;
+        acsTotal += found.ev;
       });
-      if(!feasible || total > 66) return;
+      if(!feasible) return;
+      // H/B/D: H*B and H*D must each reach at least the input's own H*B / H*D product, rather
+      // than requiring B and D to individually hit their own input values -- a build that trades
+      // some B for more H (or vice versa) still counts, as long as the physical/special bulk
+      // product it implies hasn't dropped below what was asked for. B and D's own actual value
+      // never depends on H's EV, so their full EV0-32 curves are computed once per nature (66
+      // calls total) and then just looked up for every H candidate, rather than re-searching
+      // from scratch 33 times over -- this is what keeps the whole thing fast enough to run live.
+      var hArr = [], bArr = [], dArr = [];
+      for(var ev=0; ev<=32; ev++){
+        hArr[ev] = actualFor(Object.assign({}, evs, { H:ev }), natureName).H;
+        bArr[ev] = actualFor(Object.assign({}, evs, { B:ev }), natureName).B;
+        dArr[ev] = actualFor(Object.assign({}, evs, { D:ev }), natureName).D;
+      }
+      function minEvFromArr(arr, target){
+        for(var i=0;i<=32;i++){ if(arr[i] >= target) return i; }
+        return -1; // unreachable even at EV32
+      }
+      var bestHBD = null;
+      for(var hEv=0; hEv<=32; hEv++){
+        var hActual = hArr[hEv];
+        var bTargetForThisH = thresholdHB > 0 ? Math.ceil(thresholdHB / hActual) : 0;
+        var dTargetForThisH = thresholdHD > 0 ? Math.ceil(thresholdHD / hActual) : 0;
+        var bEv = minEvFromArr(bArr, bTargetForThisH);
+        if(bEv < 0) continue;
+        var dEv = minEvFromArr(dArr, dTargetForThisH);
+        if(dEv < 0) continue;
+        var hbdTotal = hEv + bEv + dEv;
+        if(!bestHBD || hbdTotal < bestHBD.total){
+          bestHBD = { hEv: hEv, bEv: bEv, dEv: dEv, total: hbdTotal };
+        }
+      }
+      if(!bestHBD) return;
+      evs.H = bestHBD.hEv; evs.B = bestHBD.bEv; evs.D = bestHBD.dEv;
+      var total = acsTotal + bestHBD.total;
+      if(total > 66) return;
       var isBetter = !best || total < best.total
         || (total === best.total && !best.isPreferred && natureName === currentNature);
       if(isBetter){
@@ -239,11 +275,9 @@
       host.innerHTML = '';
       return;
     }
-    var map = window.DAMEKE_POKEMON_IMAGE_IDS;
-    var numId = map ? map[selectedPokemon.name] : null;
-    host.innerHTML = numId
-      ? '<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+numId+'.png" alt="'+selectedPokemon.name+'" loading="lazy">'
-      : '';
+    host.innerHTML = '';
+    var img = window.__damekeBuildPokemonImage ? window.__damekeBuildPokemonImage(selectedPokemon.name, function(){ host.innerHTML=''; }) : null;
+    if(img) host.appendChild(img);
   }
 
   // ---- IV table (in the レベル・個体値 fold) ----

@@ -1410,42 +1410,50 @@
     'オーガポン(いど)':'オーガポン(みどり)',
     'オーガポン(かまど)':'オーガポン(みどり)',
   };
-  function buildPokemonThumb(japaneseName, side) {
-    var wrap = make('div', 'v082h-pokemon-thumb v082h-pokemon-thumb-' + side);
+  // Builds an <img> with the app's full 3-step sprite fallback chain (primary sprite -> Pokemon
+  // HOME render -> a pre-transformation form's sprite, for the handful of forms hardcoded above)
+  // wired up via onerror, and calls onAllFailed() once every step has been exhausted. This used
+  // to live only inside the calculator's own buildPokemonThumb, so every other tool's thumbnail
+  // only ever tried the first step -- exposed here so they can all share the identical chain
+  // instead of drifting out of sync with each other.
+  function buildPokemonImageEl(japaneseName, onAllFailed, opts){
     var map = window.DAMEKE_POKEMON_IMAGE_IDS;
     var numId = map ? map[japaneseName] : null;
-    if (!numId && PRE_TRANSFORM_FALLBACK[japaneseName]) {
+    if(!numId && PRE_TRANSFORM_FALLBACK[japaneseName]){
       numId = map ? map[PRE_TRANSFORM_FALLBACK[japaneseName]] : null;
     }
-    if (numId) {
-      var img = document.createElement('img');
-      var primaryUrl = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/' + numId + '.png';
-      // Pokemon HOME renders (still small, ordinary sprites -- not official artwork) sometimes
-      // cover very recently added forms the primary sprite set hasn't caught up on yet.
-      var fallbackUrl = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/' + numId + '.png';
-      // If both the exact form's sprite paths fail, and a pre-transformation fallback id exists
-      // and hasn't been tried yet, fall through to that as a final attempt.
-      var preTransformId = PRE_TRANSFORM_FALLBACK[japaneseName] && map ? map[PRE_TRANSFORM_FALLBACK[japaneseName]] : null;
-      img.src = primaryUrl;
-      img.alt = japaneseName;
-      img.loading = 'lazy';
-      img.onerror = function () {
-        if (!img.dataset.triedFallback) {
-          img.dataset.triedFallback = '1';
-          img.src = fallbackUrl;
-          return;
-        }
-        if (!img.dataset.triedPreTransform && preTransformId && preTransformId !== numId) {
-          img.dataset.triedPreTransform = '1';
-          img.src = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/' + preTransformId + '.png';
-          return;
-        }
-        wrap.classList.add('v082h-pokemon-thumb-missing'); wrap.innerHTML = '';
-      };
-      wrap.appendChild(img);
-    } else {
-      wrap.classList.add('v082h-pokemon-thumb-missing');
-    }
+    if(!numId) return null;
+    var img = document.createElement('img');
+    if(opts && opts.crossOrigin) img.crossOrigin = opts.crossOrigin; // must be set before src
+    var primaryUrl = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/' + numId + '.png';
+    var fallbackUrl = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/' + numId + '.png';
+    var preTransformId = PRE_TRANSFORM_FALLBACK[japaneseName] && map ? map[PRE_TRANSFORM_FALLBACK[japaneseName]] : null;
+    img.src = primaryUrl;
+    img.alt = japaneseName;
+    img.loading = 'lazy';
+    img.onerror = function(){
+      if(!img.dataset.triedFallback){
+        img.dataset.triedFallback = '1';
+        img.src = fallbackUrl;
+        return;
+      }
+      if(!img.dataset.triedPreTransform && preTransformId && preTransformId !== numId){
+        img.dataset.triedPreTransform = '1';
+        img.src = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/' + preTransformId + '.png';
+        return;
+      }
+      if(onAllFailed) onAllFailed();
+    };
+    return img;
+  }
+  window.__damekeBuildPokemonImage = buildPokemonImageEl;
+  function buildPokemonThumb(japaneseName, side) {
+    var wrap = make('div', 'v082h-pokemon-thumb v082h-pokemon-thumb-' + side);
+    var img = buildPokemonImageEl(japaneseName, function(){
+      wrap.classList.add('v082h-pokemon-thumb-missing'); wrap.innerHTML = '';
+    });
+    if(img) wrap.appendChild(img);
+    else wrap.classList.add('v082h-pokemon-thumb-missing');
     return wrap;
   }
   function buildHpBar(maxHp, minRemain, maxRemain) {

@@ -80,6 +80,18 @@
   // never applies to them regardless of the checkbox.
   function canBeParalyzed(pokemon){ return (pokemon.types||[]).indexOf('でんき') === -1; }
 
+  // String-based counterpart to window.__damekeBuildPokemonImage, for the roster/summary spots in
+  // this tool that build plain HTML rather than DOM nodes. Carries the same primary-sprite ->
+  // Pokemon HOME fallback chain (without the calculator's own pre-transform-name step, which only
+  // matters for a handful of specific forms unlikely to show up here).
+  function pokemonImgHtml(japaneseName, missingClass){
+    var map = window.DAMEKE_POKEMON_IMAGE_IDS;
+    var numId = map ? map[japaneseName] : null;
+    if(!numId) return null;
+    var primary = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+numId+'.png';
+    var fallback = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/'+numId+'.png';
+    return '<img src="'+primary+'" alt="'+japaneseName+'" loading="lazy" onerror="if(!this.dataset.t){this.dataset.t=1;this.src=\''+fallback+'\';}else{this.parentElement.classList.add(\''+missingClass+'\');this.remove();}">';
+  }
   var selectedPokemon = null;
   var lastAbilityPopulatedForId = undefined;
   // The ability select is restricted to the selected Pokemon's own abilities (plain dropdown,
@@ -142,11 +154,7 @@
       return;
     }
 
-    var map = window.DAMEKE_POKEMON_IMAGE_IDS;
-    var numId = map ? map[selectedPokemon.name] : null;
-    var thumbHtml = numId
-      ? '<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+numId+'.png" alt="'+selectedPokemon.name+'" loading="lazy">'
-      : '';
+    var thumbHtml = pokemonImgHtml(selectedPokemon.name, 'dameke-history-thumb-missing') || '';
     var baseLine = STAT_KEYS.map(function(k){ return k+':'+selectedPokemon.baseStats[k]; }).join('　');
     summaryHost.innerHTML = '<div class="dameke-history-header-row"><div class="dameke-history-thumb">'+thumbHtml+'</div>'
       + '<div class="dameke-history-text-col"><div class="dameke-history-title">'+selectedPokemon.name+'</div>'
@@ -255,10 +263,9 @@
     return groups;
   }
   function buildMiniThumb(japaneseName){
-    var map = window.DAMEKE_POKEMON_IMAGE_IDS;
-    var numId = map ? map[japaneseName] : null;
-    if(!numId) return '<div class="dameke-speed-roster-thumb dameke-speed-roster-thumb-missing"></div>';
-    return '<div class="dameke-speed-roster-thumb"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+numId+'.png" alt="'+japaneseName+'" loading="lazy"></div>';
+    var html = pokemonImgHtml(japaneseName, 'dameke-speed-roster-thumb-missing');
+    if(!html) return '<div class="dameke-speed-roster-thumb dameke-speed-roster-thumb-missing"></div>';
+    return '<div class="dameke-speed-roster-thumb">'+html+'</div>';
   }
   function findRequiredEv(curve, targetValue){
     if(curve[32] < targetValue) return { type: 'unreachable' };

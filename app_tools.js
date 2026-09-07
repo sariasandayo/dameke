@@ -234,18 +234,9 @@
   function buildMiniThumb(japaneseName){
     var wrap = document.createElement('div');
     wrap.className = 'dameke-history-thumb';
-    var map = window.DAMEKE_POKEMON_IMAGE_IDS;
-    var numId = map ? map[japaneseName] : null;
-    if(numId){
-      var img = document.createElement('img');
-      img.src = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/' + numId + '.png';
-      img.alt = japaneseName;
-      img.loading = 'lazy';
-      img.onerror = function(){ wrap.classList.add('dameke-history-thumb-missing'); wrap.innerHTML = ''; };
-      wrap.appendChild(img);
-    } else {
-      wrap.classList.add('dameke-history-thumb-missing');
-    }
+    var img = window.__damekeBuildPokemonImage ? window.__damekeBuildPokemonImage(japaneseName, function(){ wrap.classList.add('dameke-history-thumb-missing'); wrap.innerHTML = ''; }) : null;
+    if(img) wrap.appendChild(img);
+    else wrap.classList.add('dameke-history-thumb-missing');
     return wrap;
   }
 
@@ -686,18 +677,11 @@
   function buildPokemonThumbFor(japaneseName){
     var wrap = document.createElement('div');
     wrap.className = 'dameke-pokemon-card-thumb';
-    var map = window.DAMEKE_POKEMON_IMAGE_IDS;
-    var numId = map ? map[japaneseName] : null;
-    if(numId){
-      var img = document.createElement('img');
-      img.crossOrigin = 'anonymous'; // set before src, so any canvas export of this thumb (party image output) isn't tainted
-      img.src = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/' + numId + '.png';
-      img.alt = japaneseName;
-      img.onerror = function(){ wrap.classList.add('dameke-pokemon-card-thumb-missing'); wrap.innerHTML=''; };
-      wrap.appendChild(img);
-    } else {
-      wrap.classList.add('dameke-pokemon-card-thumb-missing');
-    }
+    var img = window.__damekeBuildPokemonImage
+      ? window.__damekeBuildPokemonImage(japaneseName, function(){ wrap.classList.add('dameke-pokemon-card-thumb-missing'); wrap.innerHTML=''; }, { crossOrigin:'anonymous' })
+      : null;
+    if(img) wrap.appendChild(img);
+    else wrap.classList.add('dameke-pokemon-card-thumb-missing');
     return wrap;
   }
 
@@ -1047,17 +1031,22 @@
     var pokemonId = q('damekePokeEdit_pokemon') ? q('damekePokeEdit_pokemon').value : '';
     var pokemon = findPokemonById(pokemonId);
     var d = D();
-    var allAbilities = d.abilities;
+    // "なし" is dropped entirely -- every real Pokemon has at least one real ability, so it's
+    // never a meaningful choice here.
+    var allAbilities = d.abilities.filter(function(a){ return a.id !== 'なし'; });
     var options = allAbilities;
     if(pokemon && Array.isArray(pokemon.abilities) && pokemon.abilities.length){
       var allowed = pokemon.abilities;
-      var filtered = allAbilities.filter(function(a){ return a.id==='なし' || allowed.indexOf(a.id) >= 0; });
+      var filtered = allAbilities.filter(function(a){ return allowed.indexOf(a.id) >= 0; });
       if(filtered.length) options = filtered;
     }
     var prev = sel.value;
     fillSelectEl(sel, options, false);
     var stillHas = options.some(function(a){ return a.id===prev; });
-    sel.value = stillHas ? prev : (options[0] ? options[0].id : 'なし');
+    // Only falls through to 特性1 when the previous value doesn't carry over to the new
+    // selection (a genuinely new pick) -- an existing entry's own ability (even 特性2 or a
+    // hidden ability) stays put via the stillHas branch above.
+    sel.value = stillHas ? prev : (options[0] ? options[0].id : '');
     if(sel._v082hRefreshOptions) sel._v082hRefreshOptions();
   }
 
@@ -1117,7 +1106,15 @@
     // doesn't already carry one under some name/id variant.
     var itemHasOwnNone = d.items.some(function(it){ return it && (it.id==='なし' || it.name==='なし' || it.id==='none'); });
     fillSelectEl(itemSel, d.items, !itemHasOwnNone);
-    itemSel.value = entry.itemId || 'none';
+    // Mirrors the calculator's own form-linked-item auto-fill (Mega Stones, Plates, Memories,
+    // etc.) when nothing's already saved for this entry.
+    var initialLinkedItem = (function(){
+      var p = findPokemonById(pokemonSel.value);
+      if(!p || !p.formLinkedItem1) return null;
+      var found = d.items.find(function(it){ return it.name === p.formLinkedItem1; });
+      return found ? found.id : null;
+    })();
+    itemSel.value = entry.itemId || initialLinkedItem || 'none';
     grid.appendChild(makeField('持ち物', itemSel));
 
     // 5. Tera type
@@ -1284,7 +1281,13 @@
 
     // Ability options depend on the selected Pokemon -- populate now, restore saved value.
     refreshAbilityOptionsInEditForm();
-    abilitySel.value = entry.abilityId || abilitySel.value;
+    // 'none'/'なし' were the old "no ability" placeholders (including newBlankEntry()'s own
+    // default) -- neither is a real option anymore, so an entry carrying one falls through to
+    // whatever refreshAbilityOptionsInEditForm() just defaulted the select to (特性1), rather
+    // than being applied literally and leaving the select with no matching option (blank).
+    if(entry.abilityId && entry.abilityId !== 'none' && entry.abilityId !== 'なし'){
+      abilitySel.value = entry.abilityId;
+    }
 
     // Move options depend on the selected Pokemon -- populate now, refresh on change.
     refreshMoveOptionsInEditForm();
@@ -1307,6 +1310,13 @@
       if(pokemonSel._v082hRefreshOptions) pokemonSel._v082hRefreshOptions();
       var selectedForGender = findPokemonById(pokemonSel.value);
       if(selectedForGender && selectedForGender.fixedGender) genderSel.value = selectedForGender.fixedGender;
+      if(selectedForGender && selectedForGender.formLinkedItem1){
+        var linkedItem = d.items.find(function(it){ return it.name === selectedForGender.formLinkedItem1; });
+        if(linkedItem){
+          itemSel.value = linkedItem.id;
+          if(itemSel._v082hRefreshOptions) itemSel._v082hRefreshOptions();
+        }
+      }
       updateStatsPreview();
     });
     showAllCb.addEventListener('change', refreshMoveOptionsInEditForm);

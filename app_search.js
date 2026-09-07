@@ -211,8 +211,8 @@
     var matchupLabel = document.createElement('div'); matchupLabel.className='dameke-adjust-nature-title'; matchupLabel.textContent='指定タイプとの相性';
     host.appendChild(matchupLabel);
     var matchupRow = document.createElement('div'); matchupRow.className='dameke-search-inline-row';
-    var matchupTypeSel = makeCompactSelect(ALL_TYPES.map(function(t){return {id:t,name:t};}), '攻撃タイプ');
-    var matchupCatSel = makeCompactSelect(['4倍弱点','2倍弱点','等倍','半減','4分の1','無効'].map(function(c){return {id:c,name:c};}), '相性');
+    var matchupTypeSel = makeCompactSelect(ALL_TYPES.map(function(t){return {id:t,name:t};}), '指定なし');
+    var matchupCatSel = makeCompactSelect(['4倍弱点','2倍弱点','等倍','半減','4分の1','無効'].map(function(c){return {id:c,name:c};}), '指定なし');
     matchupTypeSel.addEventListener('change', function(){ filters.matchupType = matchupTypeSel.value; renderResults(); });
     matchupCatSel.addEventListener('change', function(){ filters.matchupCategory = matchupCatSel.value; renderResults(); });
     matchupRow.appendChild(matchupTypeSel); matchupRow.appendChild(matchupCatSel);
@@ -269,27 +269,32 @@
   }
 
   function buildThumb(japaneseName){
-    var map = window.DAMEKE_POKEMON_IMAGE_IDS;
-    var numId = map ? map[japaneseName] : null;
-    if(!numId) return '<div class="dameke-search-thumb dameke-search-thumb-missing"></div>';
-    // Falls back to the generic "missing" look if this specific sprite id 404s, same as every
-    // other tool's own thumbnail builder already does -- this one was missing that handler.
-    return '<div class="dameke-search-thumb"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+numId+'.png" alt="'+japaneseName+'" loading="lazy" onerror="this.parentElement.classList.add(\'dameke-search-thumb-missing\');this.remove();"></div>';
+    var wrap = document.createElement('div');
+    wrap.className = 'dameke-search-thumb';
+    var img = window.__damekeBuildPokemonImage
+      ? window.__damekeBuildPokemonImage(japaneseName, function(){ wrap.classList.add('dameke-search-thumb-missing'); wrap.innerHTML = ''; })
+      : null;
+    if(img) wrap.appendChild(img);
+    else wrap.classList.add('dameke-search-thumb-missing');
+    return wrap;
   }
   function renderResults(){
     var headerHost = q('damekeSearchResultHeader');
     var host = q('damekeSearchResultHost');
     var matched = DATA.pokemons.filter(matchesFilters);
     headerHost.textContent = matched.length + ' 件（全 ' + DATA.pokemons.length + ' 件中）';
-    host.innerHTML = matched.map(function(p, i){
-      return '<div class="dameke-search-result-item" data-idx="'+i+'">' + buildThumb(p.name) + '<div class="dameke-search-result-name">'+p.name+'</div></div>';
-    }).join('');
-    host.querySelectorAll('.dameke-search-result-item').forEach(function(el){
-      el.addEventListener('click', function(){
-        var idx = parseInt(el.getAttribute('data-idx'), 10);
-        showDetail(matched[idx]);
-      });
+    host.innerHTML = '';
+    var frag = document.createDocumentFragment();
+    matched.forEach(function(p){
+      var item = document.createElement('div');
+      item.className = 'dameke-search-result-item';
+      item.appendChild(buildThumb(p.name));
+      var nameEl = document.createElement('div'); nameEl.className='dameke-search-result-name'; nameEl.textContent=p.name;
+      item.appendChild(nameEl);
+      item.addEventListener('click', function(){ showDetail(p); });
+      frag.appendChild(item);
     });
+    host.appendChild(frag);
   }
 
   var detailAbilityChoice = null;
@@ -306,7 +311,7 @@
   function showDetail(p){
     detailAbilityChoice = (p.abilities && p.abilities[0]) || null;
     moveListFilter = { name:'', type:'', category:'', minPower:null, minAccuracy:null };
-    moveListSort = 'name';
+    moveListSort = 'type';
     q('damekeSearchResultHost').hidden = true;
     var host = q('damekeSearchDetailHost');
     host.hidden = false;
@@ -326,25 +331,20 @@
     return 'dameke-search-matchup-resist4';
   }
   var moveListFilter = { name:'', type:'', category:'', minPower:null, minAccuracy:null };
-  var moveListSort = 'name';
+  var moveListSort = 'type';
   function renderDetail(p){
     var host = q('damekeSearchDetailHost');
     host.innerHTML = '';
 
-    var backBtn = document.createElement('button');
-    backBtn.type = 'button'; backBtn.className = 'dameke-pokemon-edit-cancel'; backBtn.textContent = '一覧に戻る';
-    backBtn.addEventListener('click', closeDetail);
-    host.appendChild(backBtn);
-
-    var map = window.DAMEKE_POKEMON_IMAGE_IDS;
-    var numId = map ? map[p.name] : null;
     var head = document.createElement('div');
     head.className = 'dameke-search-detail-head';
-    head.innerHTML = (numId ? '<img class="dameke-search-detail-image" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+numId+'.png" alt="'+p.name+'" onerror="this.remove();">' : '')
-      + '<div><div class="dameke-history-title dameke-search-detail-name">'+p.name+'</div>'
+    var headImg = window.__damekeBuildPokemonImage ? window.__damekeBuildPokemonImage(p.name, function(){ headImg.remove(); }) : null;
+    if(headImg){ headImg.className = 'dameke-search-detail-image'; head.appendChild(headImg); }
+    var headInfo = document.createElement('div');
+    headInfo.innerHTML = '<div class="dameke-history-title dameke-search-detail-name">'+p.name+'</div>'
       + '<div class="dameke-search-detail-types">'+(p.types||[]).map(function(t){ return '<span class="dameke-party-type-badge '+typeColorClass(t)+'">'+t+'</span>'; }).join('')+'</div>'
-      + '<div class="dameke-adjust-summary-note">おもさ：'+p.weight+'kg'+(p.canEvolve?'':'（最終進化）')+(p.cannotDynamax?'（ダイマックス不可）':'')+'</div>'
-      + '</div>';
+      + '<div class="dameke-adjust-summary-note">おもさ：'+p.weight+'kg'+(p.canEvolve?'':'（最終進化）')+(p.cannotDynamax?'（ダイマックス不可）':'')+'</div>';
+    head.appendChild(headInfo);
     host.appendChild(head);
 
     var related = relatedFormsFor(p);
@@ -361,7 +361,7 @@
       host.appendChild(relWrap);
     }
 
-    var statTitle = document.createElement('div'); statTitle.className='dameke-adjust-nature-title dameke-search-section-gap'; statTitle.textContent='種族値・実数値（Lv50・個体値31基準、全ポケモン中の順位）';
+    var statTitle = document.createElement('div'); statTitle.className='dameke-adjust-nature-title dameke-search-section-gap'; statTitle.textContent='種族値・実数値（Lv50・個体値31基準）';
     host.appendChild(statTitle);
     var statTable = document.createElement('div');
     statTable.className = 'dameke-adjust-evspec-table dameke-search-combined-stat-table';
@@ -375,7 +375,7 @@
     }
     addStatRow('種族値', function(k){ return p.baseStats[k]; }, function(){ return totalBaseStat(p); });
     addStatRow('順位', function(k){ var r=rankOf(p.baseStats[k],k); return r.rank+'/'+r.total; }, function(){ var r=rankOf(totalBaseStat(p),'total'); return r.rank+'/'+r.total; });
-    addStatRow('最低実数値', function(k){ return statRefRange(p,k).min; }, function(){ return '-'; });
+    addStatRow('無振り実数値', function(k){ return statRefRange(p,k).neutral; }, function(){ return '-'; });
     addStatRow('最高実数値', function(k){ return statRefRange(p,k).max; }, function(){ return '-'; });
     host.appendChild(statTable);
 
@@ -392,7 +392,7 @@
     });
     host.appendChild(abilityWrap);
 
-    var matchupTitle = document.createElement('div'); matchupTitle.className='dameke-adjust-nature-title'; matchupTitle.textContent='攻撃を受けるときの相性（選択中の特性を考慮）';
+    var matchupTitle = document.createElement('div'); matchupTitle.className='dameke-adjust-nature-title dameke-search-section-gap'; matchupTitle.textContent='攻撃を受けるときの相性（選択中の特性を考慮）';
     host.appendChild(matchupTitle);
     var matchup = CALC.computeAllTypeEffectiveness(p.types, detailAbilityChoice);
     var matchupWrap = document.createElement('div'); matchupWrap.className='dameke-search-matchup-grid';
@@ -428,7 +428,7 @@
     var moveObjsAll = learnedNames.map(function(name){ return DATA.moves.find(function(m){ return m.name===name; }); }).filter(Boolean);
 
     var sortRow = document.createElement('div'); sortRow.className = 'dameke-search-inline-row';
-    var sortLabel = document.createElement('span'); sortLabel.className='dameke-search-range-label'; sortLabel.textContent='並び替え';
+    var sortLabel = document.createElement('span'); sortLabel.className='dameke-search-range-label dameke-search-sort-label'; sortLabel.textContent='並び替え';
     var sortSelect = document.createElement('select'); sortSelect.className = 'dameke-search-sort-select';
     [['name','五十音順'],['type','タイプ順'],['power','威力順']].forEach(function(pair){ var op=document.createElement('option'); op.value=pair[0]; op.textContent=pair[1]; sortSelect.appendChild(op); });
     sortSelect.value = moveListSort;
@@ -481,7 +481,7 @@
           + '<span class="dameke-search-move-name">'+m.name+'</span>'
           + '<span><span class="dameke-party-type-badge '+typeColorClass(m.type)+'">'+m.type+'</span></span>'
           + '<span>'+m.category+'</span>'
-          + '<span>'+(m.fixedDamageKind ? '-' : (m.power||'-'))+'</span>'
+          + '<span>'+(m.power===1 ? '-' : (m.power||'-'))+'</span>'
           + '<span>'+(m.accuracy||'-')+'</span>'
           + '<span>'+(m.pp!=null?m.pp:'-')+'</span>'
           + '<span>'+(m.target||'-')+'</span>'

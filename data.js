@@ -92650,3 +92650,25 @@ window.DAMEKE_GENERATED_DATA = {
   apply(GENDERLESS_ONLY, '不明');
   D.__fixedGenderPatched = true;
 })();
+
+// v1.5.x direct data correction patch (runs last, guaranteed to win over any earlier duplicate
+// stub entries a prior generation stage may have created for these move names).
+// Fixes: ふみつけ/のしかかり/ドラゴンダイブ/ハードローラー/フライングプレス/サンダーダイブ were
+// showing power:1 (a placeholder value, not their real base power), and サンダーダイブ was typed
+// as ノーマル instead of でんき.
+(function(){
+  var D = window.DAMEKE_DATA || {};
+  var POWER_FIXES = {
+    'ふみつけ': 65,
+    'のしかかり': 85,
+    'ドラゴンダイブ': 100,
+    'ハードローラー': 65,
+    'フライングプレス': 100,
+    'サンダーダイブ': 100
+  };
+  (D.moves || []).forEach(function(m){
+    if(POWER_FIXES.hasOwnProperty(m.name)) m.power = POWER_FIXES[m.name];
+    if(m.name === 'サンダーダイブ') m.type = 'でんき';
+  });
+  D.__movePowerTypeDirectFixApplied = true;
+})();

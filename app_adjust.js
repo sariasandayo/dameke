@@ -502,17 +502,9 @@
   function buildMiniThumb(japaneseName){
     var wrap = document.createElement('div');
     wrap.className = 'dameke-history-thumb';
-    var map = window.DAMEKE_POKEMON_IMAGE_IDS;
-    var numId = map ? map[japaneseName] : null;
-    if(numId){
-      var img = document.createElement('img');
-      img.src = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/' + numId + '.png';
-      img.alt = japaneseName; img.loading = 'lazy';
-      img.onerror = function(){ wrap.classList.add('dameke-history-thumb-missing'); wrap.innerHTML = ''; };
-      wrap.appendChild(img);
-    } else {
-      wrap.classList.add('dameke-history-thumb-missing');
-    }
+    var img = window.__damekeBuildPokemonImage ? window.__damekeBuildPokemonImage(japaneseName, function(){ wrap.classList.add('dameke-history-thumb-missing'); wrap.innerHTML = ''; }) : null;
+    if(img) wrap.appendChild(img);
+    else wrap.classList.add('dameke-history-thumb-missing');
     return wrap;
   }
   function buildFixedSideStatBlock(snapshot, fixedSide){
@@ -834,11 +826,10 @@
       return;
     }
     section.hidden = false;
-    var map = window.DAMEKE_POKEMON_IMAGE_IDS;
-    var numId = map ? map[snapshot.defender.name] : null;
-    q('damekeBulkImageHost').innerHTML = numId
-      ? '<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+numId+'.png" alt="'+snapshot.defender.name+'" loading="lazy">'
-      : '';
+    var bulkImageHost = q('damekeBulkImageHost');
+    bulkImageHost.innerHTML = '';
+    var bulkImg = window.__damekeBuildPokemonImage ? window.__damekeBuildPokemonImage(snapshot.defender.name, function(){ bulkImageHost.innerHTML=''; }) : null;
+    if(bulkImg) bulkImageHost.appendChild(bulkImg);
     q('damekeBulkPokemonName').textContent = snapshot.defender.name;
     renderBulkInputTable(snapshot);
     renderBulkResult(snapshot);

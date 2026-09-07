@@ -614,15 +614,21 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-search-filter-host label{display:block;margin-bottom:10px;font-size:.82rem;color:#374151;}
 .dameke-search-filter-host label input[type="text"]{width:100%;margin-top:4px;}
 .dameke-search-compact-select{font-size:.82rem;padding:6px 8px;border:1px solid #d1d5db;border-radius:6px;background:#fff;max-width:220px;}
+/* attachSearchCombo() replaces the visible control with its own .v082h-search-input (hiding the
+   underlying select), which otherwise renders at the browser's default input size -- scoped here
+   so 特性/覚える技 match every other compact field in this panel. */
+#damekeSearchFilterHost .v082h-search-combo{max-width:220px;}
+#damekeSearchFilterHost .v082h-search-input{font-size:.82rem;padding:6px 8px;min-height:0;}
 .dameke-search-inline-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center;}
 .dameke-search-text-input{width:100%;padding:6px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.82rem;margin-bottom:10px;box-sizing:border-box;}
 .dameke-search-move-slot-host{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
 .dameke-search-sort-select{font-size:.78rem;padding:4px 6px;border:1px solid #d1d5db;border-radius:5px;max-width:140px;}
+.dameke-search-sort-label.dameke-search-sort-label{flex:0 0 5em;}
 .dameke-search-move-filter-fold{margin-bottom:12px;}
 .dameke-search-add-btn{border:1px dashed #9ca3af;background:#f9fafb;color:#4b5563;border-radius:6px;padding:5px 12px;font-size:.76rem;font-weight:700;cursor:pointer;margin-bottom:10px;}
 .dameke-search-section-gap{margin-top:20px;}
 .dameke-search-range-row{display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:.8rem;}
-.dameke-search-range-label{flex:0 0 3.4em;color:#374151;font-weight:700;}
+.dameke-search-range-label{flex:0 0 3.4em;color:#374151;font-weight:700;font-size:.76rem;}
 .dameke-search-range-input{width:100%;max-width:80px;padding:4px 6px;border:1px solid #d1d5db;border-radius:5px;}
 
 .dameke-search-result-header{font-size:.8rem;color:#6b7280;margin-bottom:8px;font-weight:700;}
@@ -660,8 +666,8 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-search-matchup-resist2 b{color:#2563eb;}
 .dameke-search-matchup-resist4{background:#93c5fd;}
 .dameke-search-matchup-resist4 b{color:#1e3a8a;}
-.dameke-search-matchup-immune{background:#f3e8ff;}
-.dameke-search-matchup-immune b{color:#7c3aed;}
+.dameke-search-matchup-immune{background:#e5e7eb;}
+.dameke-search-matchup-immune b{color:#374151;}
 
 .dameke-search-move-filter-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
 .dameke-search-move-filter-grid input{padding:5px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:.78rem;flex:1 1 100px;}
