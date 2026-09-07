@@ -2437,7 +2437,14 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
   // can't silently drift from what the calculator actually applies.
   var TYPE_IMMUNITY_ABILITIES = {
     'こんがりボディ':'ほのお', 'そうしょく':'くさ', 'ちくでん':'でんき', 'ちょすい':'みず',
-    'でんきエンジン':'でんき', 'どしょく':'じめん', 'ひらいしん':'でんき', 'もらいび':'ほのお', 'よびみず':'みず'
+    'でんきエンジン':'でんき', 'どしょく':'じめん', 'ひらいしん':'でんき', 'もらいび':'ほのお', 'よびみず':'みず',
+    'おわりのだいち':'みず', 'はじまりのうみ':'ほのお'
+  };
+  // Not full immunity -- halves damage from specific types on top of whatever the type chart
+  // already gives (stacks with any existing resistance), same as the real games. Requested
+  // explicitly even though these sit slightly outside strict type-chart effectiveness.
+  var HALF_DAMAGE_ABILITIES = {
+    'あついしぼう': ['ほのお','こおり'], 'すいほう': ['ほのお'], 'たいねつ': ['ほのお'], 'きよめのしお': ['ゴースト']
   };
   function abilityHasTag(abilityName, tag){
     var ability = (D.abilities||[]).find(function(a){ return a.name === abilityName; });
@@ -2456,15 +2463,26 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
     return ((D.typeChart4096 && D.typeChart4096[attackerType]) || {})[defenderType] ?? 4096;
   }
   // defenderTypes: array of 1-2 defending types. attackerType: the single attacking move type.
-  // abilityName: optional -- if given and it grants an immunity relevant to attackerType
-  // (じめん via levitate, or one of the fixed absorb-type abilities), the result is forced to 0.
+  // abilityName: optional -- folds in every ability-based modifier this app tracks: the fixed
+  // immunity table above, じめん immunity via levitate, プレラップ Delta Stream's weakness-only
+  // cap on ひこう, and the half-damage abilities (applied after immunity, so an already-immune
+  // matchup stays at 0 rather than becoming a fractional "half of immune").
   function computeTypeEffectiveness(defenderTypes, attackerType, abilityName){
     var types = (defenderTypes||[]).filter(function(t){ return t && t !== 'タイプなし'; });
     var rate = 4096;
     types.forEach(function(t){ rate = Math.floor(rate * typeRateRaw(attackerType, t) / 4096); });
     if(abilityName){
-      if(attackerType === 'じめん' && isLevitateAbility(abilityName)) rate = 0;
-      else if(TYPE_IMMUNITY_ABILITIES[abilityName] === attackerType) rate = 0;
+      if(attackerType === 'じめん' && isLevitateAbility(abilityName)){
+        rate = 0;
+      } else if(TYPE_IMMUNITY_ABILITIES[abilityName] === attackerType){
+        rate = 0;
+      } else {
+        // デルタストリーム: removes a ひこう weakness specifically (clamps down to neutral) --
+        // never touches an already-neutral-or-better matchup.
+        if(abilityName === 'デルタストリーム' && attackerType === 'ひこう' && rate > 4096) rate = 4096;
+        var halved = HALF_DAMAGE_ABILITIES[abilityName];
+        if(halved && halved.indexOf(attackerType) >= 0) rate = Math.floor(rate / 2);
+      }
     }
     return rate / 4096;
   }
@@ -2481,4 +2499,82 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
   C.computeAllTypeEffectiveness = computeAllTypeEffectiveness;
   C.__typeEffectivenessAllTypes = ALL_TYPES;
   C.__typeEffectivenessPatched = true;
+})();
+
+// v1.6.0 shared タイプ補完度 (type-complementarity score) patch, for 補完ポケモン出力 and the
+// upcoming party-level type-coverage evaluation. Exposes
+// window.DAMEKE_CALC.computeComplementScore(inputRates, candidateRates) -> { S, M, W, rawScore }
+// where inputRates/candidateRates are { typeName: multiplier } maps over exactly the types to be
+// scored (callers exclude ステラ/タイプなし before calling). Implements the spec exactly:
+// per-type scoring table, M/W theoretical bounds from the input's own weakness profile, and the
+// piecewise S->0-100 conversion with the specified zero-division and empty-type-set fallbacks.
+(function(){
+  var C = window.DAMEKE_CALC;
+  if(!C || C.__complementScorePatched) return;
+
+  var TIER_SCORE_TABLE = {
+    '4x': { immune: 9, quarter: 8, half: 7, neutral: -3, double: -10, quad: -15 },
+    '2x': { immune: 7, quarter: 6, half: 5, neutral: -2, double: -8, quad: -11 },
+    '1x': { immune: 3, quarter: 2, half: 1, neutral: -1, double: -3, quad: -5 }
+  };
+  var M_TABLE = { '4x': 9, '2x': 7, '1x': 3 };
+  var W_TABLE = { '4x': -15, '2x': -11, '1x': -5 };
+
+  // Normalizes a raw multiplier into a tier key -- throws on anything not a recognized rate
+  // (NaN, Infinity, null, undefined, or an unexpected number) rather than silently computing
+  // with it, per the spec's error-handling requirement.
+  function tierOf(rate){
+    if(rate == null || typeof rate !== 'number' || !isFinite(rate)){
+      throw new Error('computeComplementScore: invalid multiplier ' + rate);
+    }
+    if(rate < 0) throw new Error('computeComplementScore: unrecognized multiplier ' + rate);
+    if(rate === 0) return 'immune';
+    // The spec's 6-tier table was written around the plain type chart's own six values (0, .25,
+    // .5, 1, 2, 4). The half-damage abilities added afterward (あついしぼう on an already
+    // double-resistant type combo, etc.) can legitimately stack down to 1/8 or finer, which that
+    // table never anticipated -- rather than treat a real, in-game-accurate multiplier as an
+    // error, anything strictly between 0 and 1/4 is folded into the "quarter" tier, since that's
+    // already the strongest non-immune resistance category the scoring table defines.
+    if(rate <= 0.25 + 1e-9) return 'quarter';
+    if(Math.abs(rate - 0.5) < 1e-9) return 'half';
+    if(Math.abs(rate - 1) < 1e-9) return 'neutral';
+    if(Math.abs(rate - 2) < 1e-9) return 'double';
+    if(Math.abs(rate - 4) < 1e-9) return 'quad';
+    throw new Error('computeComplementScore: unrecognized multiplier ' + rate);
+  }
+  // Input-side tier: only 4x/2x/1x are scoreable; immune/quarter/half are excluded entirely
+  // (0 points, and excluded from M/W too) regardless of the candidate's own multiplier there.
+  function inputTierOf(rate){
+    var t = tierOf(rate);
+    if(t === 'quad') return '4x';
+    if(t === 'double') return '2x';
+    if(t === 'neutral') return '1x';
+    return null;
+  }
+
+  function computeComplementScore(inputRates, candidateRates){
+    var types = Object.keys(inputRates);
+    var S = 0, M = 0, W = 0;
+    types.forEach(function(t){
+      var inTier = inputTierOf(inputRates[t]);
+      if(inTier === null) return;
+      M += M_TABLE[inTier];
+      W += W_TABLE[inTier];
+      var candTier = tierOf(candidateRates[t]);
+      S += TIER_SCORE_TABLE[inTier][candTier];
+    });
+    var rawScore;
+    if(M === 0 && W === 0){
+      rawScore = 50; // no scoreable types at all
+    } else if(S >= 0){
+      rawScore = (M === 0) ? 50 : (50 + 50 * S / M);
+    } else {
+      rawScore = (W === 0) ? 50 : (50 - 50 * Math.abs(S) / Math.abs(W));
+    }
+    rawScore = Math.max(0, Math.min(100, rawScore)); // float-safety clamp
+    return { S: S, M: M, W: W, rawScore: rawScore };
+  }
+
+  C.computeComplementScore = computeComplementScore;
+  C.__complementScorePatched = true;
 })();
