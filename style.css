@@ -683,7 +683,7 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
   .dameke-search-move-row{grid-template-columns:1.4fr .8fr .6fr .5fr .5fr .4fr;font-size:.62rem;gap:4px;padding:4px 5px;}
   .dameke-search-move-header > span:last-child,.dameke-search-move-row > span:last-child{display:none;}
   .dameke-search-detail-image{width:84px;height:84px;}
-  .dameke-search-combined-stat-table{grid-template-columns:32px repeat(6,30px) 34px !important;gap:2px !important;font-size:.56rem;padding:5px;}
+  .dameke-search-combined-stat-table{grid-template-columns:1.3fr repeat(6,1fr) 1.3fr !important;justify-content:stretch !important;width:100%;gap:3px !important;font-size:.66rem;padding:5px;}
   .dameke-search-combined-stat-table .dameke-adjust-evspec-rowlabel{white-space:normal;line-height:1.15;}
   .dameke-search-combined-stat-table .dameke-adjust-evspec-cell{white-space:normal;overflow-wrap:anywhere;line-height:1.15;padding:1px 0;}
   .dameke-search-matchup-grid{grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:3px;}
