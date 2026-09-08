@@ -149,6 +149,49 @@
     renderResults();
   }
 
+  function closePicker(){
+    var host = q('damekeComplementPickerHost');
+    host.hidden = true;
+    host.innerHTML = '';
+  }
+  function openPicker(){
+    var host = q('damekeComplementPickerHost');
+    var list = window.__damekeLoadPokemonList ? window.__damekeLoadPokemonList() : [];
+    host.innerHTML = '';
+    var banner = document.createElement('div');
+    banner.className = 'dameke-pokemon-create-banner';
+    var text = document.createElement('span');
+    text.textContent = list.length ? '呼び出すポケモンのカードを下から選んでください。' : 'ポケモン管理に保存されたポケモンがまだありません。';
+    banner.appendChild(text);
+    var cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button'; cancelBtn.className = 'dameke-pokemon-edit-cancel'; cancelBtn.textContent = 'キャンセル';
+    cancelBtn.addEventListener('click', closePicker);
+    banner.appendChild(cancelBtn);
+    host.appendChild(banner);
+    if(window.__damekeBuildPokemonCard){
+      list.forEach(function(entry){
+        host.appendChild(window.__damekeBuildPokemonCard(entry, function(picked){
+          applyPickedEntry(picked);
+          closePicker();
+        }));
+      });
+    }
+    host.hidden = false;
+  }
+  function applyPickedEntry(entry){
+    var pokemonSelect = q('damekeComplementPokemon');
+    pokemonSelect.value = entry.pokemonId;
+    if(pokemonSelect._v082hRefreshOptions) pokemonSelect._v082hRefreshOptions();
+    selectedPokemon = DATA.pokemons.find(function(p){ return p.id === entry.pokemonId; }) || null;
+    ensureAbilityOptions(selectedPokemon);
+    var abilitySelect = q('damekeComplementAbility');
+    if(entry.abilityId && entry.abilityId !== 'none' && entry.abilityId !== 'なし'){
+      abilitySelect.value = entry.abilityId;
+      if(abilitySelect._v082hRefreshOptions) abilitySelect._v082hRefreshOptions();
+    }
+    renderAll();
+  }
+
   function init(){
     var pokemonSelect = q('damekeComplementPokemon');
     fillSelect(pokemonSelect, DATA.pokemons, '指定なし');
@@ -166,6 +209,7 @@
     abilitySelect.addEventListener('change', renderResults);
     q('damekeComplementFinalEvoOnly').addEventListener('change', renderResults);
     q('damekeComplementChampionsOnly').addEventListener('change', renderResults);
+    q('damekeComplementLoadBtn').addEventListener('click', openPicker);
 
     renderAll();
   }

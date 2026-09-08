@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>だめけー Web v1.6.0</title>
+  <title>だめけー Web v1.7.0</title>
   <link rel="icon" href="./icon/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="32x32" href="./icon/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./icon/apple-touch-icon.png">
@@ -16,7 +16,7 @@
     <button type="button" id="damekeMenuBtn" class="dameke-menu-btn" aria-label="メニュー">
       <span></span><span></span><span></span>
     </button>
-    <h1>だめけー Web v1.6.0</h1>
+    <h1>だめけー Web v1.7.0</h1>
     <p>for Pokémon Champions</p>
     <nav id="damekeMenuNav" class="dameke-menu-nav" hidden>
       <button type="button" class="dameke-menu-item" data-panel="calculator">ダメージ計算</button>
@@ -25,6 +25,7 @@
       <button type="button" class="dameke-menu-item" data-panel="speed">素早さ調整</button>
       <button type="button" class="dameke-menu-item" data-panel="evopt">努力値最適化</button>
       <button type="button" class="dameke-menu-item" data-panel="complement">補完ポケモン出力</button>
+      <button type="button" class="dameke-menu-item" data-panel="partytype">パーティタイプ評価</button>
       <button type="button" class="dameke-menu-item" data-panel="pokemon">ポケモン管理</button>
       <button type="button" class="dameke-menu-item" data-panel="party">パーティ管理</button>
       <button type="button" class="dameke-menu-item" data-panel="search">ポケモン検索</button>
@@ -358,11 +359,13 @@
         <div class="dameke-speed-input">
           <div class="grid three">
             <label>ポケモン<select id="damekeSpeedPokemon"></select></label>
-            <label>特性<select id="damekeSpeedAbility"></select></label>
+            <div class="dameke-speed-ability-col">
+              <label>特性<select id="damekeSpeedAbility"></select></label>
+              <div id="damekeSpeedAbilityActivateWrap" class="dameke-speed-activate-wrap" hidden>
+                <label class="check"><input type="checkbox" id="damekeSpeedAbilityActivate" />発動</label>
+              </div>
+            </div>
             <label>持ち物<select id="damekeSpeedItem"></select></label>
-          </div>
-          <div id="damekeSpeedAbilityActivateWrap" class="dameke-speed-activate-wrap" hidden>
-            <label class="check"><input type="checkbox" id="damekeSpeedAbilityActivate" />発動</label>
           </div>
           <div class="dameke-speed-cond-row">
             <label class="dameke-speed-rank-label">Sランク補正
@@ -437,6 +440,7 @@
           <div class="dameke-evopt-pokemon-row">
             <div class="dameke-evopt-pokemon-select-col">
               <label>ポケモン<select id="damekeComplementPokemon"></select></label>
+              <button type="button" id="damekeComplementLoadBtn" class="dameke-toolbar-btn dameke-toolbar-btn-party">呼び出し</button>
               <label>特性<select id="damekeComplementAbility"></select></label>
             </div>
             <div class="dameke-complement-image-col">
@@ -444,6 +448,7 @@
               <div id="damekeComplementInputTypes" class="dameke-search-detail-types"></div>
             </div>
           </div>
+          <div id="damekeComplementPickerHost" class="dameke-evopt-picker-host" hidden></div>
           <div class="dameke-speed-cond-row">
             <label class="check"><input type="checkbox" id="damekeComplementFinalEvoOnly" checked />最終進化のみ</label>
             <label class="check"><input type="checkbox" id="damekeComplementChampionsOnly" checked />チャンピオンズ参戦済のみ</label>
@@ -454,6 +459,38 @@
         <div id="damekeComplementResultHeader" class="dameke-search-result-header"></div>
         <div class="dameke-adjust-band-note">補完度は、入力したポケモンに弱点または等倍で通るタイプを、候補ポケモンがどの程度軽減できるかを表す指標です。数値が高いほど、タイプ相性上の補完に優れています。</div>
         <div id="damekeComplementResultHost" class="dameke-complement-result-host"></div>
+      </section>
+    </main>
+  </div>
+  <div id="panel-partytype" class="dameke-tool-panel" hidden>
+    <main class="layout">
+      <div class="dameke-partytype-left-col">
+      <section class="card" id="damekePartyTypeInputSection">
+        <h2>パーティタイプ評価</h2>
+        <div class="dameke-evopt-input-box">
+          <div class="dameke-evopt-result-header">
+            <h3>入力（最大6体）</h3>
+            <button type="button" id="damekePartyTypeLoadBtn" class="dameke-toolbar-btn dameke-toolbar-btn-party">呼び出し</button>
+          </div>
+          <div id="damekePartyTypePickerHost" class="dameke-evopt-picker-host" hidden></div>
+          <div id="damekePartyTypeSlotsHost" class="dameke-partytype-slots-host"></div>
+        </div>
+      </section>
+      <section class="card" id="damekePartyTypeResultSection">
+        <h3>一貫度</h3>
+        <div id="damekePartyTypeResultHeader" class="dameke-search-result-header"></div>
+        <div class="dameke-adjust-band-note">一貫度は、入力したパーティ全体へどの程度通りやすいかを示します。数値が高いほど、そのタイプに対してパーティ全体が弱い傾向にあります。</div>
+        <div id="damekePartyTypeResultHost" class="dameke-partytype-result-host"></div>
+      </section>
+      </div>
+      <section class="card dameke-partytype-swap-section" id="damekePartyTypeSwapSection">
+        <h3>入れ替え候補</h3>
+        <div class="dameke-speed-cond-row">
+          <label class="check"><input type="checkbox" id="damekePartyTypeSwapFinalEvoOnly" checked />最終進化のみ</label>
+          <label class="check"><input type="checkbox" id="damekePartyTypeSwapChampionsOnly" checked />チャンピオンズ参戦済みのみ</label>
+        </div>
+        <div id="damekePartyTypeSwapHeader" class="dameke-search-result-header"></div>
+        <div id="damekePartyTypeSwapHost" class="dameke-partytype-swap-host"></div>
       </section>
     </main>
   </div>
@@ -482,6 +519,7 @@
 <script src="app_evopt.js"></script>
 <script src="app_search.js"></script>
 <script src="app_complement.js"></script>
+<script src="app_partytype.js"></script>
   
 </body>
 </html>

@@ -2495,8 +2495,22 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
     return out;
   }
 
+  // Whether this ability changes type effectiveness for at least one attacking type -- i.e.
+  // it's one of the fixed-immunity table entries, a levitate-style じめん immunity, one of the
+  // half-damage abilities, or デルタストリーム's ひこう-weakness cap. Lets callers avoid
+  // presenting an ability name when it has no bearing on the defensive profile being shown.
+  function isTypeRelevantAbility(abilityName){
+    if(!abilityName) return false;
+    if(isLevitateAbility(abilityName)) return true;
+    if(TYPE_IMMUNITY_ABILITIES.hasOwnProperty(abilityName)) return true;
+    if(HALF_DAMAGE_ABILITIES.hasOwnProperty(abilityName)) return true;
+    if(abilityName === 'デルタストリーム') return true;
+    return false;
+  }
+
   C.computeTypeEffectiveness = computeTypeEffectiveness;
   C.computeAllTypeEffectiveness = computeAllTypeEffectiveness;
+  C.isTypeRelevantAbility = isTypeRelevantAbility;
   C.__typeEffectivenessAllTypes = ALL_TYPES;
   C.__typeEffectivenessPatched = true;
 })();
@@ -2577,4 +2591,51 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
 
   C.computeComplementScore = computeComplementScore;
   C.__complementScorePatched = true;
+})();
+
+// v1.7.0 shared タイプ一貫度 (type-consistency score) patch, for パーティタイプ評価. Exposes
+// window.DAMEKE_CALC.computeTypeConsistency(rates) -> { A, C } | null, where rates is an array
+// of already-computed final multipliers (one per selected party member, via
+// computeTypeEffectiveness) for a single attacking type. Verified against all of the spec's
+// worked examples (all-neutral -> 50, all-4x -> 100, the six mixed 2x/neutral splits, the two
+// 2x/other mixes, and the N-independence check) before being wired in here.
+(function(){
+  var C = window.DAMEKE_CALC;
+  if(!C || C.__typeConsistencyPatched) return;
+
+  // Same "fold sub-quarter multipliers into the quarter tier" extension used in
+  // computeComplementScore, for the same reason: the half-damage abilities can stack a plain
+  // type-chart quarter resistance down further (e.g. 1/8), which this table was never written
+  // to have its own entry for.
+  function baseValueOf(rate){
+    if(rate == null || typeof rate !== 'number' || !isFinite(rate) || rate < 0){
+      throw new Error('computeTypeConsistency: invalid multiplier ' + rate);
+    }
+    if(rate === 0) return 0.00;
+    if(rate <= 0.25 + 1e-9) return 0.05;
+    if(Math.abs(rate - 0.5) < 1e-9) return 0.25;
+    if(Math.abs(rate - 1) < 1e-9) return 0.50;
+    if(Math.abs(rate - 2) < 1e-9) return 0.90;
+    if(Math.abs(rate - 4) < 1e-9) return 1.00;
+    throw new Error('computeTypeConsistency: unrecognized multiplier ' + rate);
+  }
+
+  // rates: array of final multipliers, one per selected party member (0 members -> null, since
+  // an average over nothing isn't a 0% or 50% result -- it's simply not computable).
+  function computeTypeConsistency(rates){
+    if(!rates || rates.length === 0) return null;
+    var sum = rates.reduce(function(s, r){ return s + baseValueOf(r); }, 0);
+    var A = sum / rates.length;
+    var Cval;
+    if(A >= 0.5){
+      Cval = 50 + 50 * (1 - Math.pow((1 - A) / 0.5, 1.5));
+    } else {
+      Cval = 50 * Math.pow(A / 0.5, 2);
+    }
+    Cval = Math.max(0, Math.min(100, Cval)); // float-safety clamp
+    return { A: A, C: Cval };
+  }
+
+  C.computeTypeConsistency = computeTypeConsistency;
+  C.__typeConsistencyPatched = true;
 })();

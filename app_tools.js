@@ -53,6 +53,8 @@
     if(panelName === 'speed' && window.__damekeRenderSpeedPanel) window.__damekeRenderSpeedPanel();
     if(panelName === 'evopt' && window.__damekeRenderEvoptPanel) window.__damekeRenderEvoptPanel();
     if(panelName === 'search' && window.__damekeRenderSearchPanel) window.__damekeRenderSearchPanel();
+    if(panelName === 'complement' && window.__damekeRenderComplementPanel) window.__damekeRenderComplementPanel();
+    if(panelName === 'partytype' && window.__damekeRenderPartyTypePanel) window.__damekeRenderPartyTypePanel();
   }
   window.__damekeShowPanel = showPanel;
 
@@ -1772,7 +1774,7 @@
     return card;
   }
 
-  function buildPartyCard(party){
+  function buildPartyCard(party, onPickForLoad){
     var card = document.createElement('div');
     card.className = 'dameke-party-card';
 
@@ -1786,18 +1788,26 @@
     var sub = document.createElement('span');
     sub.className = 'dameke-history-card-sub';
     sub.textContent = formatSavedAtLocal(party.savedAt);
-    var actions = document.createElement('div');
-    actions.className = 'dameke-history-card-actions';
-    var editBtn = document.createElement('button');
-    editBtn.type='button'; editBtn.className='dameke-history-load'; editBtn.textContent='編集';
-    editBtn.addEventListener('click', function(){ openPartySelector(party); });
-    var delBtn = document.createElement('button');
-    delBtn.type='button'; delBtn.textContent='削除';
-    delBtn.addEventListener('click', function(){
-      if(window.confirm('このパーティを削除しますか？')) deleteParty(party.id);
-    });
-    actions.appendChild(editBtn); actions.appendChild(delBtn);
-    meta.appendChild(sub); meta.appendChild(actions);
+    meta.appendChild(sub);
+    if(onPickForLoad){
+      // While picking a party to load elsewhere, the normal edit/delete buttons aren't
+      // relevant -- the whole card becomes the "use this party" action instead, same as
+      // buildPokemonCard's own onPickForCopy mode.
+      card.classList.add('dameke-party-card-pickable');
+    } else {
+      var actions = document.createElement('div');
+      actions.className = 'dameke-history-card-actions';
+      var editBtn = document.createElement('button');
+      editBtn.type='button'; editBtn.className='dameke-history-load'; editBtn.textContent='編集';
+      editBtn.addEventListener('click', function(){ openPartySelector(party); });
+      var delBtn = document.createElement('button');
+      delBtn.type='button'; delBtn.textContent='削除';
+      delBtn.addEventListener('click', function(){
+        if(window.confirm('このパーティを削除しますか？')) deleteParty(party.id);
+      });
+      actions.appendChild(editBtn); actions.appendChild(delBtn);
+      meta.appendChild(actions);
+    }
     card.appendChild(meta);
 
     var pokemonList = loadPokemonList();
@@ -1809,6 +1819,17 @@
       grid.appendChild(buildCompactMemberCard(entry));
     }
     card.appendChild(grid);
+    if(onPickForLoad){
+      card.addEventListener('click', function(){
+        var members = [];
+        for(var mi=0; mi<MAX_PARTY_SIZE; mi++){
+          var mid = (party.memberIds||[])[mi];
+          var memberEntry = mid ? pokemonList.find(function(e){ return e.id===mid; }) : null;
+          members.push(memberEntry ? { pokemonId: memberEntry.pokemonId, abilityId: memberEntry.abilityId } : null);
+        }
+        onPickForLoad(members);
+      });
+    }
     return card;
   }
 
@@ -1850,5 +1871,9 @@
   window.__damekeLoadPokemonList = loadPokemonList;
   window.__damekeBuildPokemonCard = buildPokemonCard;
   window.__damekeRenderPartyList = renderPartyList;
+  // For パーティタイプ評価's own "呼び出し" picker: lets it read the saved party list and render
+  // the same card look used in ポケモン管理's own party section, without duplicating either.
+  window.__damekeLoadPartyList = loadPartyList;
+  window.__damekeBuildPartyCard = buildPartyCard;
   window.__damekeInitPartyPanel = initPartyPanel;
 })();

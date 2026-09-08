@@ -400,8 +400,8 @@
     ALL_TYPES.forEach(function(t){
       var rate = matchup[t];
       var cell = document.createElement('div');
-      cell.className = 'dameke-search-matchup-cell ' + matchupClassFor(rate);
-      cell.innerHTML = '<span>'+t+'</span><b>×'+(rate===0?'0':rate)+'</b>';
+      cell.className = 'dameke-typecell ' + typeColorClass(t);
+      cell.innerHTML = '<span class="dameke-typecell-name">'+t+'</span><span class="dameke-typecell-value '+matchupClassFor(rate)+'">×'+(rate===0?'0':rate)+'</span>';
       matchupWrap.appendChild(cell);
     });
     host.appendChild(matchupWrap);
