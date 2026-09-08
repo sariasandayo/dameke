@@ -25383,7 +25383,7 @@ window.DAMEKE_GENERATED_DATA = {
       ],
       "abilities": [
         "そうしょく",
-        "ぼうじん",
+        "ぬめぬめ",
         "シェルアーマー"
       ],
       "baseStats": {
@@ -25438,7 +25438,7 @@ window.DAMEKE_GENERATED_DATA = {
       ],
       "abilities": [
         "そうしょく",
-        "ぼうじん",
+        "ぬめぬめ",
         "シェルアーマー"
       ],
       "baseStats": {

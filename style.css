@@ -673,9 +673,10 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-search-move-filter-grid input{padding:5px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:.78rem;flex:1 1 100px;}
 .dameke-search-move-list{max-height:320px;overflow-y:auto;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;margin-bottom:14px;}
 .dameke-search-move-row{display:grid;grid-template-columns:1.6fr .8fr .7fr .6fr .6fr .5fr .8fr;gap:6px;padding:5px 8px;border-bottom:1px solid #f1f5f9;font-size:.74rem;align-items:center;}
+.dameke-search-move-row > *{min-width:0;overflow:hidden;}
+.dameke-search-move-name{font-weight:700;color:#111827;text-overflow:ellipsis;white-space:nowrap;}
 .dameke-search-move-row:last-child{border-bottom:none;}
 .dameke-search-move-header{background:#f9fafb;font-weight:700;color:#374151;border:1px solid #e5e7eb;border-radius:8px 8px 0 0;font-size:.7rem;}
-.dameke-search-move-name{font-weight:700;color:#111827;}
 @media(max-width:640px){
   .dameke-search-result-host{grid-template-columns:repeat(auto-fill,minmax(72px,1fr));}
   .dameke-search-thumb{width:44px;height:44px;}
