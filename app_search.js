@@ -375,7 +375,7 @@
     }
     addStatRow('種族値', function(k){ return p.baseStats[k]; }, function(){ return totalBaseStat(p); });
     var totalPokemonCount = rankOf(0,'H').total; // same denominator regardless of which stat is ranked
-    addStatRow('順位(全'+totalPokemonCount+'種中)', function(k){ return rankOf(p.baseStats[k],k).rank+'位'; }, function(){ return rankOf(totalBaseStat(p),'total').rank+'位'; });
+    addStatRow('全'+totalPokemonCount+'種中', function(k){ return rankOf(p.baseStats[k],k).rank+'位'; }, function(){ return rankOf(totalBaseStat(p),'total').rank+'位'; });
     addStatRow('無振り実数値', function(k){ return statRefRange(p,k).neutral; }, function(){ return '-'; });
     addStatRow('最高実数値', function(k){ return statRefRange(p,k).max; }, function(){ return '-'; });
     host.appendChild(statTable);
