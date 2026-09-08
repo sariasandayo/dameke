@@ -25383,8 +25383,8 @@ window.DAMEKE_GENERATED_DATA = {
       ],
       "abilities": [
         "そうしょく",
-        "ぬめぬめ",
-        "シェルアーマー"
+        "シェルアーマー",
+        "ぬめぬめ"
       ],
       "baseStats": {
         "H": 58,
@@ -25438,8 +25438,8 @@ window.DAMEKE_GENERATED_DATA = {
       ],
       "abilities": [
         "そうしょく",
-        "ぬめぬめ",
-        "シェルアーマー"
+        "シェルアーマー",
+        "ぬめぬめ"
       ],
       "baseStats": {
         "H": 80,

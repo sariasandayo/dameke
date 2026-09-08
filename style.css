@@ -198,7 +198,7 @@ button:hover { background: #e0e7ff; }
 .dameke-main-control-label > select,.dameke-main-control-label .v082h-search-input{font-size:12px;font-weight:400;color:#111827;padding:6px 8px;min-height:32px;width:100%;margin-top:4px;}
 
 @media(max-width:1250px){
-  .layout{grid-template-columns:1fr}
+  .layout{grid-template-columns:minmax(0,1fr)}
   .layout{padding-bottom:calc(var(--v082h-fixed-panel-h, 180px) + 24px);}
   .result-card{padding-bottom:calc(var(--v082h-fixed-panel-h, 180px) + 30px);}
   #v082hResultPanel{position:fixed;bottom:0;left:0;right:0;z-index:50;margin:0;border-radius:0;box-shadow:0 -6px 16px rgba(15,23,42,.22);padding:6px 10px;max-height:none;overflow:visible;}
@@ -680,8 +680,16 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 @media(max-width:640px){
   .dameke-search-result-host{grid-template-columns:repeat(auto-fill,minmax(72px,1fr));}
   .dameke-search-thumb{width:44px;height:44px;}
-  .dameke-search-move-row{grid-template-columns:1.4fr .8fr .6fr .5fr .5fr .4fr;font-size:.66rem;}
-  .dameke-search-move-header span:last-child,.dameke-search-move-row span:last-child{display:none;}
+  .dameke-search-move-row{grid-template-columns:1.4fr .8fr .6fr .5fr .5fr .4fr;font-size:.62rem;gap:4px;padding:4px 5px;}
+  .dameke-search-move-header > span:last-child,.dameke-search-move-row > span:last-child{display:none;}
+  .dameke-search-detail-image{width:84px;height:84px;}
+  .dameke-search-combined-stat-table{grid-template-columns:32px repeat(6,30px) 34px !important;gap:2px !important;font-size:.56rem;padding:5px;}
+  .dameke-search-combined-stat-table .dameke-adjust-evspec-rowlabel{white-space:normal;line-height:1.15;}
+  .dameke-search-combined-stat-table .dameke-adjust-evspec-cell{white-space:normal;overflow-wrap:anywhere;line-height:1.15;padding:1px 0;}
+  .dameke-search-matchup-grid{grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:3px;}
+  .dameke-search-matchup-cell{font-size:.62rem;padding:4px 1px;}
+  .dameke-search-matchup-cell b{font-size:.72rem;}
+  .dameke-search-move-filter-grid input,.dameke-search-move-filter-grid select{flex:1 1 80px;font-size:.7rem;}
 }
 
 /* ==================== 補完ポケモン出力ツール ==================== */
