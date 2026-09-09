@@ -214,6 +214,7 @@
     var categorySpecial = q('damekeCoverageCategorySpecial').checked;
     var allowedCategories = categoryPhysical ? ['物理'] : (categorySpecial ? ['特殊'] : ['物理','特殊']);
     var excludeNormal = q('damekeCoverageExcludeNormal').checked;
+    var excludeChargeMove = q('damekeCoverageExcludeChargeMove').checked;
 
     var fixedMoves = moveSlots.map(function(id){ return id ? findMoveById(id) : null; }).filter(Boolean);
     var freeSlotCount = moveSlots.filter(function(id){ return !id; }).length;
@@ -230,7 +231,8 @@
       } else {
         var learned = LS.getLearnset(key);
         var learnableMoves = DATA.moves.filter(function(m){
-          return isEligibleForCoverage(m) && learned.indexOf(m.name)>=0 && allowedCategories.indexOf(m.category)>=0;
+          return isEligibleForCoverage(m) && learned.indexOf(m.name)>=0 && allowedCategories.indexOf(m.category)>=0
+            && !(excludeChargeMove && (m.tags||[]).indexOf('chargeMove')>=0);
         });
         // The ノーマル技除外 check happens AFTER type resolution (skin abilities etc), so a
         // Normal-type move that a skin ability turns into something else is no longer excluded,
@@ -589,6 +591,7 @@
     physicalCb.addEventListener('change', function(){ if(physicalCb.checked) specialCb.checked = false; computeAndRenderOutput(); });
     specialCb.addEventListener('change', function(){ if(specialCb.checked) physicalCb.checked = false; computeAndRenderOutput(); });
     q('damekeCoverageExcludeNormal').addEventListener('change', computeAndRenderOutput);
+    q('damekeCoverageExcludeChargeMove').addEventListener('change', computeAndRenderOutput);
     q('damekeCoverageAbility').addEventListener('change', computeAndRenderOutput);
     q('damekeCoverageWeather').addEventListener('change', computeAndRenderOutput);
     q('damekeCoverageField').addEventListener('change', computeAndRenderOutput);
