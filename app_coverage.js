@@ -43,9 +43,9 @@
     return championsCache;
   }
   function findMoveById(id){ return DATA.moves.find(function(m){ return m.id===id; }) || null; }
-  // 一撃必殺含む固定ダメージ技は、弱点等が存在しないため技範囲の集計対象からは除外するが、
-  // 変化技と同様に選択欄には残す（選べるが、集計・最大化候補には使われない）。
-  function isEligibleForCoverage(m){ return !m.fixedDamageKind; }
+  // 一撃必殺含む固定ダメージ技、および変化技は、弱点等が存在しないため技範囲の集計対象からは
+  // 除外するが、選択欄には残す（選べるが、集計・最大化候補には使われない）。
+  function isEligibleForCoverage(m){ return !m.fixedDamageKind && m.category !== '変化'; }
 
   // ==================== 特性選択 ====================
   var lastAbilityPopulatedForId = undefined;
