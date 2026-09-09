@@ -28,12 +28,15 @@
   }
 
   var selectedPokemon = null;
-  var moveSlots = [ {moveId:'', fixed:false}, {moveId:'', fixed:false}, {moveId:'', fixed:false}, {moveId:'', fixed:false} ];
-  // Separate from moveSlots: what the 出力 side actually shows. null means "just mirror the
-  // input slots directly". 範囲最大化 sets this to its own result WITHOUT touching moveSlots or
-  // re-rendering the input selects, per the "入力欄は変わらず、出力だけが変わる" request; any
-  // manual change to an input move select clears it back to null (output tracks input again).
-  var displayMoveIds = null;
+  // Each slot is just the move id, or '' if left to the automatic maximizer. A non-empty slot
+  // IS the "fixed" state now -- typing a move name fixes it; clearing it frees it back up. There
+  // is no separate 固定 checkbox or 範囲最大化 button anymore: every change (Pokemon, a move
+  // slot, or any 詳細条件設定 field) immediately recomputes the full output live.
+  var moveSlots = ['', '', '', ''];
+  // The 4 moves actually shown in 出力 last time computeAndRenderOutput ran (manual picks plus
+  // whatever the auto-maximizer filled the empty slots with) -- used by 保存 to know what to
+  // save. null only when there's genuinely nothing to show (e.g. free slots but zero candidates).
+  var lastComputedMoveIds = null;
   var championsCache = null;
   function championsPool(){
     if(!championsCache) championsCache = DATA.pokemons.filter(hasChampionsEntry);
@@ -178,197 +181,170 @@
     helper(0, []);
     return result;
   }
-  function maximizeCoverage(){
-    var host = q('damekeCoverageMovesHost');
+  function computeAndRenderOutput(){
+    var movesHost = q('damekeCoverageMovesHost');
     var statsHost = q('damekeCoverageStatsHost');
-    if(!selectedPokemon) return;
-    var LS = window.DAMEKE_LEARNSETS;
-    if(!LS) return;
-    var key = learnsetKeyFor(selectedPokemon.name);
-    if(!LS.hasLearnset(key)) return;
-    var learned = LS.getLearnset(key);
+    movesHost.innerHTML = '';
+    statsHost.innerHTML = '';
+    lastComputedMoveIds = null;
+    if(!selectedPokemon){
+      statsHost.innerHTML = '<div class="dameke-adjust-summary-note">ポケモンを選択してください。</div>';
+      return;
+    }
+    var conditions = readConditions();
     var categoryPhysical = q('damekeCoverageCategoryPhysical').checked;
     var categorySpecial = q('damekeCoverageCategorySpecial').checked;
     var allowedCategories = categoryPhysical ? ['物理'] : (categorySpecial ? ['特殊'] : ['物理','特殊']);
     var excludeNormal = q('damekeCoverageExcludeNormal').checked;
-    var conditions = readConditions();
-    var learnableMoves = DATA.moves.filter(function(m){
-      return isEligibleForCoverage(m) && learned.indexOf(m.name)>=0 && allowedCategories.indexOf(m.category)>=0;
-    });
-    // The ノーマル技除外 check happens AFTER type resolution (skin abilities etc), so a Normal-
-    // type move that a skin ability turns into something else is no longer excluded, while a
-    // move that's still Normal after every condition is applied still gets filtered out here.
-    var resolvedPool = learnableMoves.map(function(m){
-      return { move: m, resolvedType: resolveEffectiveType(m, conditions) };
-    }).filter(function(rm){ return !(excludeNormal && rm.resolvedType === 'ノーマル'); });
-    var SPECIAL_EFFECT_TAGS = ['freezeDry', 'flyingPress', 'thousandArrows'];
-    function bucketKeyFor(rm){
-      var specialTag = SPECIAL_EFFECT_TAGS.filter(function(t){ return (rm.move.tags||[]).indexOf(t) >= 0; })[0];
-      // Moves with one of these tags have a genuinely different effectiveness profile than an
-      // ordinary same-type move (e.g. フリーズドライ hits みず for 2x despite being こおり-typed),
-      // so they're never allowed to be silently out-competed by a higher-power plain move of the
-      // same resolved type -- each gets its own bucket, on top of (not instead of) the regular
-      // per-type one.
-      return specialTag ? ('special:'+specialTag) : rm.resolvedType;
-    }
-    // One move per bucket -- the highest-power learnable move representing that bucket (multiple
-    // raw Normal-type moves that all convert to the same skin type compete here too, within the
-    // ordinary per-type buckets).
-    var byType = {};
-    resolvedPool.forEach(function(rm){
-      var key = bucketKeyFor(rm);
-      if(!byType[key] || (rm.move.power||0) > (byType[key].move.power||0)) byType[key] = rm;
-    });
-    var fixedMoveIds = {};
-    moveSlots.forEach(function(s){ if(s.fixed && s.moveId) fixedMoveIds[s.moveId] = true; });
-    var fixedMoves = Object.keys(fixedMoveIds).map(findMoveById).filter(Boolean).filter(isEligibleForCoverage);
-    var pool = Object.keys(byType).map(function(t){ return byType[t].move; }).filter(function(m){ return !fixedMoveIds[m.id]; });
 
-    var freeSlotIndices = [];
-    moveSlots.forEach(function(s, i){ if(!s.fixed) freeSlotIndices.push(i); });
-    var freeCount = freeSlotIndices.length;
-    if(freeCount === 0) return; // everything fixed -- nothing to maximize
+    var fixedMoves = moveSlots.map(function(id){ return id ? findMoveById(id) : null; }).filter(Boolean);
+    var freeSlotCount = moveSlots.filter(function(id){ return !id; }).length;
+    var finalMoves;
 
-    if(!pool.length){
-      // Genuinely nothing left to offer (e.g. ノーマルスキン + ノーマル技除外 leaves almost
-      // nothing) -- this is a normal, expected outcome, not an error.
-      host.innerHTML = '';
-      statsHost.innerHTML = '<div class="dameke-adjust-summary-note">該当する技がありません。</div>';
-      return;
-    }
-
-    var champions = championsPool();
-    // Precompute each candidate move's rate against every defender/ability once, reused across
-    // every combination tried below (same optimization pattern as パーティタイプ評価's swap
-    // search).
-    var defenderAbilityRates = champions.map(function(d){
-      var abilities = (d.abilities && d.abilities.length) ? d.abilities : [null];
-      return abilities.map(function(ab){
-        return pool.map(function(m){ return effectiveRateFor(d.types, ab, m, conditions); });
-      });
-    });
-    var fixedRatesPerDefender = champions.map(function(d){
-      var abilities = (d.abilities && d.abilities.length) ? d.abilities : [null];
-      return abilities.map(function(ab){
-        var best = 0;
-        fixedMoves.forEach(function(m){ var r = effectiveRateFor(d.types, ab, m, conditions); if(r>best) best=r; });
-        return best;
-      });
-    });
-
-    function countNeutralOrMoreForCombo(indices){
-      var count = 0;
-      for(var di=0; di<defenderAbilityRates.length; di++){
-        var abilityRates = defenderAbilityRates[di];
-        var fixedRates = fixedRatesPerDefender[di];
-        var worstForAttacker = Infinity;
-        for(var ai=0; ai<abilityRates.length; ai++){
-          var best = fixedRates[ai];
-          var rates = abilityRates[ai];
-          for(var k=0;k<indices.length;k++){ if(rates[indices[k]] > best) best = rates[indices[k]]; }
-          if(best < worstForAttacker) worstForAttacker = best;
+    if(freeSlotCount === 0){
+      // Every slot was typed in manually -- nothing to search for, just use exactly those 4.
+      finalMoves = fixedMoves;
+    } else {
+      var LS = window.DAMEKE_LEARNSETS;
+      var key = learnsetKeyFor(selectedPokemon.name);
+      if(!LS || !LS.hasLearnset(key)){
+        finalMoves = fixedMoves; // no learnset data -- can't auto-fill the empty slots
+      } else {
+        var learned = LS.getLearnset(key);
+        var learnableMoves = DATA.moves.filter(function(m){
+          return isEligibleForCoverage(m) && learned.indexOf(m.name)>=0 && allowedCategories.indexOf(m.category)>=0;
+        });
+        // The ノーマル技除外 check happens AFTER type resolution (skin abilities etc), so a
+        // Normal-type move that a skin ability turns into something else is no longer excluded,
+        // while a move that's still Normal after every condition is applied still gets filtered.
+        var resolvedPool = learnableMoves.map(function(m){
+          return { move: m, resolvedType: resolveEffectiveType(m, conditions) };
+        }).filter(function(rm){ return !(excludeNormal && rm.resolvedType === 'ノーマル'); });
+        var SPECIAL_EFFECT_TAGS = ['freezeDry', 'flyingPress', 'thousandArrows'];
+        // freezeDry と thousandArrows は、同じ解決後タイプの通常技を全ての対面で厳密に上回る
+        // (もしくは同等)の技であるため、その通常技を候補に残すと「冗長なだけの2本目」として
+        // 一緒に選ばれてしまう(フリーズドライ+ふぶきが両方出る等)。よってこれらのタグを持つ技
+        // がある場合は、同タイプの通常枠(plain bucket)を丸ごと差し替える(通常技は候補から外す)。
+        // flyingPress は複合相性により通常技より劣る対面もあり得るため、この扱いはしない(引き
+        // 続き通常枠とは別の専用枠として両方を候補に残し、探索に判断させる)。
+        var DOMINANT_TAGS = ['freezeDry', 'thousandArrows'];
+        function specialTagOf(move){
+          return SPECIAL_EFFECT_TAGS.filter(function(t){ return (move.tags||[]).indexOf(t) >= 0; })[0] || null;
         }
-        if(worstForAttacker >= 1) count++;
+        var dominantTypesPresent = {};
+        resolvedPool.forEach(function(rm){
+          var tag = specialTagOf(rm.move);
+          if(tag && DOMINANT_TAGS.indexOf(tag) >= 0) dominantTypesPresent[rm.resolvedType] = true;
+        });
+        function bucketKeyFor(rm){
+          var tag = specialTagOf(rm.move);
+          if(tag) return 'special:'+tag; // both dominant (freezeDry/thousandArrows) and non-
+          // dominant (flyingPress) special-tag moves always get their own bucket, on top of the
+          // plain one. Plain (untagged) move of a type a dominant special move already covers is
+          // skipped entirely -- it can never add anything the dominant move doesn't provide.
+          if(dominantTypesPresent[rm.resolvedType]) return null;
+          return rm.resolvedType;
+        }
+        var byType = {};
+        resolvedPool.forEach(function(rm){
+          var bkey = bucketKeyFor(rm);
+          if(bkey === null) return;
+          if(!byType[bkey] || (rm.move.power||0) > (byType[bkey].move.power||0)) byType[bkey] = rm;
+        });
+        var fixedMoveIdSet = {};
+        fixedMoves.forEach(function(m){ fixedMoveIdSet[m.id] = true; });
+        var pool = Object.keys(byType).map(function(t){ return byType[t].move; }).filter(function(m){ return !fixedMoveIdSet[m.id]; });
+
+        if(!pool.length){
+          // Genuinely nothing left to offer for the empty slots (e.g. ノーマルスキン +
+          // ノーマル技除外 leaves almost nothing) -- a normal, expected outcome, not an error.
+          finalMoves = fixedMoves;
+          if(!finalMoves.length){
+            statsHost.innerHTML = '<div class="dameke-adjust-summary-note">該当する技がありません。</div>';
+            return;
+          }
+        } else {
+          var champions = championsPool();
+          // Precompute each candidate move's rate against every defender/ability once, reused
+          // across every combination tried below (same optimization pattern as パーティタイプ
+          // 評価's swap search).
+          var defenderAbilityRates = champions.map(function(d){
+            var abilities = (d.abilities && d.abilities.length) ? d.abilities : [null];
+            return abilities.map(function(ab){
+              return pool.map(function(m){ return effectiveRateFor(d.types, ab, m, conditions); });
+            });
+          });
+          var fixedRatesPerDefender = champions.map(function(d){
+            var abilities = (d.abilities && d.abilities.length) ? d.abilities : [null];
+            return abilities.map(function(ab){
+              var best = 0;
+              fixedMoves.filter(isEligibleForCoverage).forEach(function(m){ var r = effectiveRateFor(d.types, ab, m, conditions); if(r>best) best=r; });
+              return best;
+            });
+          });
+
+          function evaluateCombo(indices){
+            var neutralOrMore = 0, weakOrMore = 0;
+            for(var di=0; di<defenderAbilityRates.length; di++){
+              var abilityRates = defenderAbilityRates[di];
+              var fixedRates = fixedRatesPerDefender[di];
+              var worstForAttacker = Infinity;
+              for(var ai=0; ai<abilityRates.length; ai++){
+                var best = fixedRates[ai];
+                var rates = abilityRates[ai];
+                for(var k=0;k<indices.length;k++){ if(rates[indices[k]] > best) best = rates[indices[k]]; }
+                if(best < worstForAttacker) worstForAttacker = best;
+              }
+              if(worstForAttacker >= 1) neutralOrMore++;
+              if(worstForAttacker > 1) weakOrMore++;
+            }
+            // Tie-break 3: how many of the resulting 4 moves are same-type as the attacking
+            // Pokemon itself (STAB) -- counts fixed moves too, since they're part of the final 4.
+            var stabCount = 0;
+            var pokemonTypes = (selectedPokemon && selectedPokemon.types) || [];
+            indices.forEach(function(i){ if(pokemonTypes.indexOf(resolveEffectiveType(pool[i], conditions)) >= 0) stabCount++; });
+            fixedMoves.forEach(function(m){ if(pokemonTypes.indexOf(resolveEffectiveType(m, conditions)) >= 0) stabCount++; });
+            return { neutralOrMore: neutralOrMore, weakOrMore: weakOrMore, stabCount: stabCount };
+          }
+          function isBetter(a, b){
+            // Tie-break order per request: 等倍以上 -> 弱点以上 -> 自タイプ一致数 -> どれでもよい
+            if(a.neutralOrMore !== b.neutralOrMore) return a.neutralOrMore > b.neutralOrMore;
+            if(a.weakOrMore !== b.weakOrMore) return a.weakOrMore > b.weakOrMore;
+            return a.stabCount > b.stabCount;
+          }
+
+          var poolIndices = pool.map(function(_,i){ return i; });
+          var k = Math.min(freeSlotCount, poolIndices.length);
+          var combos = k > 0 ? combinations(poolIndices, k) : [[]];
+          var best = null;
+          combos.forEach(function(combo){
+            var evalResult = evaluateCombo(combo);
+            if(!best || isBetter(evalResult, best.evalResult)) best = { combo: combo, evalResult: evalResult };
+          });
+          var chosenMoves = best ? best.combo.map(function(i){ return pool[i]; }) : [];
+          finalMoves = fixedMoves.concat(chosenMoves);
+        }
       }
-      return count;
     }
 
-    var poolIndices = pool.map(function(_,i){ return i; });
-    var k = Math.min(freeCount, poolIndices.length);
-    var combos = k > 0 ? combinations(poolIndices, k) : [[]];
-    var best = null;
-    combos.forEach(function(combo){
-      var count = countNeutralOrMoreForCombo(combo);
-      if(!best || count > best.count) best = { combo: combo, count: count };
-    });
-    if(!best) return;
-    var chosenMoves = best.combo.map(function(i){ return pool[i]; });
-    // Final 4-move set for display only: fixed moves plus the newly chosen ones, together
-    // sorted by (resolved) type -- moveSlots (and thus the visible input selects) are never
-    // touched here.
-    var finalMoves = fixedMoves.concat(chosenMoves);
     finalMoves.sort(function(a,b){
       return ALL_TYPES.indexOf(resolveEffectiveType(a, conditions)) - ALL_TYPES.indexOf(resolveEffectiveType(b, conditions));
     });
-    displayMoveIds = finalMoves.map(function(m){ return m.id; });
-    renderOutput();
-  }
+    lastComputedMoveIds = finalMoves.map(function(m){ return m.id; });
 
-  // ==================== Rendering ====================
-  function renderImage(){
-    var host = q('damekeCoverageImageHost');
-    var typesHost = q('damekeCoverageInputTypes');
-    host.innerHTML = '';
-    typesHost.innerHTML = '';
-    if(!selectedPokemon) return;
-    var img = window.__damekeBuildPokemonImage ? window.__damekeBuildPokemonImage(selectedPokemon.name, function(){ host.innerHTML=''; }) : null;
-    if(img) host.appendChild(img);
-    typesHost.innerHTML = typeBadgesHtml(selectedPokemon.types);
-  }
-
-  function renderMoveSlots(){
-    var host = q('damekeCoverageMoveSlotsHost');
-    host.innerHTML = '';
-    var learnableMoves = selectedPokemon && window.__damekeGetFilteredMovesForPokemon
-      ? window.__damekeGetFilteredMovesForPokemon(selectedPokemon.id, false)
-      : DATA.moves;
-    moveSlots.forEach(function(slot, i){
-      var cell = document.createElement('div'); cell.className = 'dameke-coverage-move-slot';
-      var label = document.createElement('label'); label.className = 'dameke-coverage-move-slot-label'; label.textContent = '技'+(i+1);
-      var select = document.createElement('select'); select.id = 'damekeCoverageMove'+i;
-      fillSelect(select, learnableMoves, '指定なし');
-      select.value = slot.moveId;
-      select.addEventListener('change', function(){
-        slot.moveId = select.value;
-        displayMoveIds = null; // manual edits always take output back to mirroring the input
-        renderOutput();
-      });
-      label.appendChild(select);
-      cell.appendChild(label);
-      var fixedLabel = document.createElement('label'); fixedLabel.className = 'check dameke-coverage-fixed-check';
-      var fixedCb = document.createElement('input'); fixedCb.type = 'checkbox'; fixedCb.checked = slot.fixed;
-      fixedCb.addEventListener('change', function(){ slot.fixed = fixedCb.checked; refreshLive(); });
-      fixedLabel.appendChild(fixedCb); fixedLabel.appendChild(document.createTextNode('固定'));
-      cell.appendChild(fixedLabel);
-      host.appendChild(cell);
-    });
-    if(window.__damekeAttachSearchCombo){
-      for(var i=0;i<4;i++) window.__damekeAttachSearchCombo('damekeCoverageMove'+i);
-    }
-  }
-
-  function buildBreakdownList(host, pokemonList){
-    host.innerHTML = '';
-    pokemonList.forEach(function(p){
-      var chip = document.createElement('div'); chip.className = 'dameke-coverage-breakdown-chip';
-      var imgHost = document.createElement('div'); imgHost.className = 'dameke-coverage-breakdown-img';
-      var img = window.__damekeBuildPokemonImage ? window.__damekeBuildPokemonImage(p.name, function(){ imgHost.innerHTML=''; }) : null;
-      if(img) imgHost.appendChild(img);
-      var nameEl = document.createElement('div'); nameEl.className = 'dameke-coverage-breakdown-name'; nameEl.textContent = p.name;
-      var typesEl = document.createElement('div'); typesEl.className = 'dameke-search-detail-types'; typesEl.innerHTML = typeBadgesHtml(p.types);
-      chip.appendChild(imgHost); chip.appendChild(nameEl); chip.appendChild(typesEl);
-      host.appendChild(chip);
-    });
-  }
-
-  function renderOutput(){
-    var movesHost = q('damekeCoverageMovesHost');
-    var statsHost = q('damekeCoverageStatsHost');
-    var conditions = readConditions();
-    var idsToShow = displayMoveIds || moveSlots.map(function(s){ return s.moveId; });
-    // 固定ダメージ技は技として表示はするが、弱点等が存在しないため集計対象からは除外する
-    var selectedMoves = idsToShow.map(function(id){ return id ? findMoveById(id) : null; }).filter(function(m){ return m && isEligibleForCoverage(m); });
-
-    movesHost.innerHTML = '';
-    idsToShow.forEach(function(id){
-      var m = id ? findMoveById(id) : null;
-      var resolvedType = m ? resolveEffectiveType(m, conditions) : 'なし';
+    finalMoves.forEach(function(m){
+      var resolvedType = resolveEffectiveType(m, conditions);
       var cell = document.createElement('div'); cell.className = 'dameke-typecell ' + typeColorClass(resolvedType);
-      cell.innerHTML = '<span class="dameke-typecell-name">'+(m ? m.name : '（未選択）')+'</span>';
+      cell.innerHTML = '<span class="dameke-typecell-name">'+m.name+'</span>';
       movesHost.appendChild(cell);
     });
+    for(var pad=finalMoves.length; pad<4; pad++){
+      var emptyCell = document.createElement('div'); emptyCell.className = 'dameke-typecell ' + typeColorClass('なし');
+      emptyCell.innerHTML = '<span class="dameke-typecell-name">（未選択）</span>';
+      movesHost.appendChild(emptyCell);
+    }
 
-    statsHost.innerHTML = '';
+    var selectedMoves = finalMoves.filter(isEligibleForCoverage);
     if(!selectedMoves.length){
       statsHost.innerHTML = '<div class="dameke-adjust-summary-note">技を1つ以上選択してください。</div>';
       return;
@@ -400,6 +376,57 @@
     statsHost.appendChild(statRow('いずれかで等倍以上', result.neutralOrMore, 'dameke-coverage-stat-neutral'));
     statRowWithFold('すべて使っても半減以下', result.halfOrLess, 'dameke-coverage-stat-half', '内訳');
     statRowWithFold('すべて使っても無効', result.immune, 'dameke-coverage-stat-immune', '内訳');
+  }
+
+  // ==================== Rendering ====================
+  function renderImage(){
+    var host = q('damekeCoverageImageHost');
+    var typesHost = q('damekeCoverageInputTypes');
+    host.innerHTML = '';
+    typesHost.innerHTML = '';
+    if(!selectedPokemon) return;
+    var img = window.__damekeBuildPokemonImage ? window.__damekeBuildPokemonImage(selectedPokemon.name, function(){ host.innerHTML=''; }) : null;
+    if(img) host.appendChild(img);
+    typesHost.innerHTML = typeBadgesHtml(selectedPokemon.types);
+  }
+
+  function renderMoveSlots(){
+    var host = q('damekeCoverageMoveSlotsHost');
+    host.innerHTML = '';
+    var learnableMoves = selectedPokemon && window.__damekeGetFilteredMovesForPokemon
+      ? window.__damekeGetFilteredMovesForPokemon(selectedPokemon.id, false)
+      : DATA.moves;
+    moveSlots.forEach(function(moveId, i){
+      var cell = document.createElement('div'); cell.className = 'dameke-coverage-move-slot';
+      var label = document.createElement('label'); label.className = 'dameke-coverage-move-slot-label'; label.textContent = '技'+(i+1);
+      var select = document.createElement('select'); select.id = 'damekeCoverageMove'+i;
+      fillSelect(select, learnableMoves, '指定なし');
+      select.value = moveId;
+      select.addEventListener('change', function(){
+        moveSlots[i] = select.value;
+        computeAndRenderOutput();
+      });
+      label.appendChild(select);
+      cell.appendChild(label);
+      host.appendChild(cell);
+    });
+    if(window.__damekeAttachSearchCombo){
+      for(var i=0;i<4;i++) window.__damekeAttachSearchCombo('damekeCoverageMove'+i);
+    }
+  }
+
+  function buildBreakdownList(host, pokemonList){
+    host.innerHTML = '';
+    pokemonList.forEach(function(p){
+      var chip = document.createElement('div'); chip.className = 'dameke-coverage-breakdown-chip';
+      var imgHost = document.createElement('div'); imgHost.className = 'dameke-coverage-breakdown-img';
+      var img = window.__damekeBuildPokemonImage ? window.__damekeBuildPokemonImage(p.name, function(){ imgHost.innerHTML=''; }) : null;
+      if(img) imgHost.appendChild(img);
+      var nameEl = document.createElement('div'); nameEl.className = 'dameke-coverage-breakdown-name'; nameEl.textContent = p.name;
+      var typesEl = document.createElement('div'); typesEl.className = 'dameke-search-detail-types'; typesEl.innerHTML = typeBadgesHtml(p.types);
+      chip.appendChild(imgHost); chip.appendChild(nameEl); chip.appendChild(typesEl);
+      host.appendChild(chip);
+    });
   }
 
   // ==================== Load from ポケモン管理 ====================
@@ -437,21 +464,20 @@
     selectedPokemon = DATA.pokemons.find(function(p){ return p.id === entry.pokemonId; }) || null;
     for(var i=0;i<4;i++){
       var mid = (entry.moves||[])[i];
-      moveSlots[i] = { moveId: (mid && mid !== 'none') ? mid : '', fixed: false };
+      moveSlots[i] = (mid && mid !== 'none') ? mid : '';
     }
-    displayMoveIds = null;
     renderAll();
     if(entry.abilityId && entry.abilityId !== 'none' && entry.abilityId !== 'なし'){
       var abilitySelect = q('damekeCoverageAbility');
       abilitySelect.value = entry.abilityId;
       if(abilitySelect._v082hRefreshOptions) abilitySelect._v082hRefreshOptions();
-      renderOutput();
+      computeAndRenderOutput();
     }
   }
 
   // ==================== Save to ポケモン管理 ====================
   function currentMoveIds(){
-    var ids = displayMoveIds || moveSlots.map(function(s){ return s.moveId; });
+    var ids = lastComputedMoveIds || moveSlots;
     var padded = ids.slice(0,4);
     while(padded.length < 4) padded.push('');
     return padded.map(function(v){ return v || ''; });
@@ -502,14 +528,7 @@
     ensureAbilityOptions(selectedPokemon);
     renderImage();
     renderMoveSlots();
-    renderOutput();
-  }
-  // While a 範囲最大化 result is being shown, condition changes re-run the maximizer live
-  // instead of requiring another button press; otherwise they just recompute the stats for
-  // whatever's currently in the input slots.
-  function refreshLive(){
-    if(displayMoveIds) maximizeCoverage();
-    else renderOutput();
+    computeAndRenderOutput();
   }
 
   function updateTeraTypeColor(){
@@ -538,27 +557,25 @@
     pokemonSelect.addEventListener('change', function(){
       var id = pokemonSelect.value;
       selectedPokemon = id ? DATA.pokemons.find(function(p){ return p.id===id; }) : null;
-      moveSlots = [ {moveId:'', fixed:false}, {moveId:'', fixed:false}, {moveId:'', fixed:false}, {moveId:'', fixed:false} ];
-      displayMoveIds = null;
+      moveSlots = ['', '', '', ''];
       renderAll();
     });
     q('damekeCoverageLoadBtn').addEventListener('click', openPicker);
-    q('damekeCoverageMaximizeBtn').addEventListener('click', maximizeCoverage);
     q('damekeCoverageSaveBtn').addEventListener('click', doSave);
-    // While a 範囲最大化 result is being shown, any condition that could change what "best" means
-    // (category filters, ノーマル技除外, or any of the 詳細条件設定 fields) re-runs the maximizer
-    // live instead of requiring another button press. If no maximize result is active, these
-    // just recompute the stats for whatever's currently in the input slots.
+    // Every condition that could change the automatic result -- category filters, ノーマル技
+    // 除外, ability, or any 詳細条件設定 field -- recomputes and re-renders output immediately.
+    // There is no 範囲最大化 button or 固定 checkbox: typing a move into a slot IS fixing it,
+    // and clearing a slot frees it back up for the automatic search.
     var physicalCb = q('damekeCoverageCategoryPhysical');
     var specialCb = q('damekeCoverageCategorySpecial');
-    physicalCb.addEventListener('change', function(){ if(physicalCb.checked) specialCb.checked = false; refreshLive(); });
-    specialCb.addEventListener('change', function(){ if(specialCb.checked) physicalCb.checked = false; refreshLive(); });
-    q('damekeCoverageExcludeNormal').addEventListener('change', refreshLive);
-    q('damekeCoverageAbility').addEventListener('change', refreshLive);
-    q('damekeCoverageWeather').addEventListener('change', refreshLive);
-    q('damekeCoverageField').addEventListener('change', refreshLive);
-    q('damekeCoverageItem').addEventListener('change', refreshLive);
-    teraSelect.addEventListener('change', function(){ updateTeraTypeColor(); refreshLive(); });
+    physicalCb.addEventListener('change', function(){ if(physicalCb.checked) specialCb.checked = false; computeAndRenderOutput(); });
+    specialCb.addEventListener('change', function(){ if(specialCb.checked) physicalCb.checked = false; computeAndRenderOutput(); });
+    q('damekeCoverageExcludeNormal').addEventListener('change', computeAndRenderOutput);
+    q('damekeCoverageAbility').addEventListener('change', computeAndRenderOutput);
+    q('damekeCoverageWeather').addEventListener('change', computeAndRenderOutput);
+    q('damekeCoverageField').addEventListener('change', computeAndRenderOutput);
+    q('damekeCoverageItem').addEventListener('change', computeAndRenderOutput);
+    teraSelect.addEventListener('change', function(){ updateTeraTypeColor(); computeAndRenderOutput(); });
 
     renderAll();
   }

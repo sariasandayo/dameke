@@ -58,14 +58,15 @@
   window.__damekeStatInputId = statInputId;
   window.__damekeGetTransformOps = function(){ return transformOps; };
   function createStatsGrid(side, host) {
-    let html = '<div class="stat-row header"><span>能力</span><span>個体値</span><span>努力値</span><span>ランク</span></div>';
-    html += '<div class="stat-row nature-row"><span>性格</span><select id="' + side + '_nature"></select><span>-</span><span>-</span></div>';
+    let html = '<div class="stat-row header"><span>能力</span><span>個体値</span><span>努力値</span><span>実数値</span><span>ランク</span></div>';
+    html += '<div class="stat-row nature-row"><span>性格</span><select id="' + side + '_nature"></select><span>-</span><span>-</span><span>-</span></div>';
     for (const key of STAT_KEYS) {
       const hasIvEv = key !== 'acc' && key !== 'eva';
       const hasRank = key !== 'H';
       html += '<div class="stat-row"><span>' + STAT_LABELS[key] + '</span>';
       html += hasIvEv ? '<input id="' + statInputId(side,key,'iv') + '" type="number" min="0" max="31" value="31" />' : '<span>-</span>';
       html += hasIvEv ? '<input id="' + statInputId(side,key,'ev') + '" type="number" min="0" max="32" value="0" />' : '<span>-</span>';
+      html += hasIvEv ? '<input id="' + statInputId(side,key,'actual') + '" type="number" />' : '<span>-</span>';
       html += hasRank ? '<input id="' + statInputId(side,key,'rank') + '" type="number" min="-6" max="6" value="0" />' : '<span>-</span>';
       html += '</div>';
     }
@@ -75,6 +76,33 @@
       for (const n of NATURE_OPTIONS) { const op = document.createElement('option'); op.value = n[0]; op.textContent = n[1]; natureSelect.appendChild(op); }
       natureSelect.value = 'まじめ';
     }
+    bindActualStatInputs(side);
+  }
+  // 実数値 -> 努力値 reverse lookup: typing a target actual stat finds the minimum EV (0-32)
+  // whose actual value reaches it, using that stat's own current nature/IV/level. The target is
+  // clamped to [actualAt(0), actualAt(32)] first, so only values actually achievable for this
+  // Pokemon (given the currently-entered nature) can ever be entered -- same convention already
+  // used by ポケモン管理's own edit form.
+  function bindActualStatInputs(side){
+    STAT_KEYS.forEach(function(key){
+      if(key === 'acc' || key === 'eva') return;
+      var actualEl = document.getElementById(statInputId(side,key,'actual'));
+      if(!actualEl) return;
+      actualEl.addEventListener('change', function(){
+        if(!window.__damekeReverseLookupEv) return;
+        var target = parseInt(actualEl.value, 10);
+        var result = window.__damekeReverseLookupEv(side, key, target);
+        if(result == null) return;
+        var evEl = document.getElementById(statInputId(side,key,'ev'));
+        if(evEl) evEl.value = result.ev;
+        // Set explicitly rather than relying solely on the later refresh -- that path skips
+        // fields the user is still "actively" in, and change/blur timing isn't consistent
+        // enough across browsers to guarantee it always fires after this field loses focus.
+        actualEl.value = result.value;
+        calculate();
+        if(window.__damekeRefreshAll) window.__damekeRefreshAll();
+      });
+    });
   }
   function readStats(side) {
     const out = { ivs:{}, evs:{}, ranks:{} };
@@ -944,6 +972,30 @@
     });
     return out;
   }
+  // 実数値 -> 努力値 reverse lookup, exposed on window since the 実数値 input's own change
+  // listener lives in a different IIFE (the one that builds the stats grid) and has no direct
+  // access to currentPokemon/statsSnapshot/valueOf, which only exist in this closure.
+  function reverseLookupEvForActualStat(side, key, targetValue){
+    var C = window.DAMEKE_CALC, p = currentPokemon(side);
+    if(!p || !C || !C.getActualStats) return null;
+    var level = valueOf(side+'Level');
+    var snap = statsSnapshot(side);
+    function actualAt(ev){
+      var s = Object.assign({}, snap, { evs: Object.assign({}, snap.evs) });
+      s.evs[key] = String(ev);
+      var result = C.getActualStats(p, level, s);
+      return result ? result[key] : 0;
+    }
+    var lo = actualAt(0), hi = actualAt(32);
+    var target = isNaN(targetValue) ? lo : targetValue;
+    target = Math.max(lo, Math.min(hi, target));
+    var chosenEv = 32;
+    for(var ev=0; ev<=32; ev++){
+      if(actualAt(ev) >= target){ chosenEv = ev; break; }
+    }
+    return { ev: chosenEv, value: actualAt(chosenEv) };
+  }
+  window.__damekeReverseLookupEv = reverseLookupEvForActualStat;
   function applyHpFraction(side, denom){
     var C=window.DAMEKE_CALC, p=currentPokemon(side);
     if(!C || !p || !C.previewBaseMaxHp) return;
@@ -973,10 +1025,22 @@
     });
     if(!C || !C.getActualStats) return;
     var level=valueOf(side+'Level');
-    var actual = C.getActualStats(p, level, statsSnapshot(side));
+    var snap = statsSnapshot(side);
+    var actual = C.getActualStats(p, level, snap);
     ['H','A','B','C','D','S'].forEach(function(k){
-      var cell=q('v082hActualNoRank_'+side+'_'+k);
-      if(cell) cell.textContent = actual ? actual[k] : '-';
+      var actualEl = q(side+'_'+k+'_actual');
+      if(!actualEl) return;
+      // min/max reflect exactly what's achievable for this stat at the CURRENT nature/level/IV
+      // (EV0 through EV32) -- kept in sync on every relevant change so the browser's own
+      // validation, and the reverse-EV lookup's own clamping, always agree with each other.
+      var loSnap = Object.assign({}, snap, { evs: Object.assign({}, snap.evs, (function(){ var o={}; o[k]='0'; return o; })()) });
+      var hiSnap = Object.assign({}, snap, { evs: Object.assign({}, snap.evs, (function(){ var o={}; o[k]='32'; return o; })()) });
+      var lo = C.getActualStats(p, level, loSnap), hi = C.getActualStats(p, level, hiSnap);
+      if(lo && hi){ actualEl.min = String(lo[k]); actualEl.max = String(hi[k]); }
+      // Don't overwrite the field the user is actively typing into -- its own change handler
+      // (bindActualStatInputs) is what reacts to a value THEY entered; this path only mirrors
+      // whatever IV/EV/nature/level currently compute to, for every other field.
+      if(document.activeElement !== actualEl) actualEl.value = actual ? actual[k] : '';
     });
   }
 
@@ -1003,7 +1067,7 @@
     visible.appendChild(statHeader(['H','A','B','C','D','S']));
     visible.appendChild(readOnlyStatRow(side,'種族値',['H','A','B','C','D','S'],'v082hBaseStat'));
     visible.appendChild(statRow(side,'努力値',['H','A','B','C','D','S'],'ev'));
-    visible.appendChild(readOnlyStatRow(side,'実数値',['H','A','B','C','D','S'],'v082hActualNoRank'));
+    visible.appendChild(statRow(side,'実数値',['H','A','B','C','D','S'],'actual'));
     visible.appendChild(statRow(side,'ランク',['H','A','B','C','D','S'],'rank'));
 
     var accEva=make('div','v082h-stat-table v082h-rank-sub'); panel.appendChild(accEva);
@@ -1145,7 +1209,7 @@
     if(input.parentNode) input.parentNode.insertBefore(sel, input.nextSibling);
   }
   window.__damekeAttachNumberPicker = attachNumberPicker;
-  function statRow(side,label,stats,kind){ var row=make('div','v082h-stat-row'); row.appendChild(make('span','v082h-stat-label',label)); stats.forEach(function(k){ var input=q(side+'_'+k+'_'+kind); var cell=make('span','v082h-stat-cell'); if(input){ cell.appendChild(input); var mn=parseInt(input.min,10), mx=parseInt(input.max,10); if(!isNaN(mn) && !isNaN(mx)) attachNumberPicker(input, mn, mx); } else cell.textContent='-'; row.appendChild(cell); }); return row; }
+  function statRow(side,label,stats,kind,extraRowClass){ var row=make('div','v082h-stat-row'+(extraRowClass?(' '+extraRowClass):'')); row.appendChild(make('span','v082h-stat-label',label)); stats.forEach(function(k){ var input=q(side+'_'+k+'_'+kind); var cell=make('span','v082h-stat-cell'); if(input){ cell.appendChild(input); var mn=parseInt(input.min,10), mx=parseInt(input.max,10); if(!isNaN(mn) && !isNaN(mx)) attachNumberPicker(input, mn, mx); } else cell.textContent='-'; row.appendChild(cell); }); return row; }
 
   function setupZones(){
     if(q('v082hMoveDetails')) return;

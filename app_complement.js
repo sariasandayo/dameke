@@ -10,6 +10,15 @@
   var CALC = window.DAMEKE_CALC;
 
   var TYPE_COLOR_MAP = { 'なし':'none', 'ノーマル':'normal', 'ほのお':'fire', 'みず':'water', 'でんき':'electric', 'くさ':'grass', 'こおり':'ice', 'かくとう':'fighting', 'どく':'poison', 'じめん':'ground', 'ひこう':'flying', 'エスパー':'psychic', 'むし':'bug', 'いわ':'rock', 'ゴースト':'ghost', 'ドラゴン':'dragon', 'あく':'dark', 'はがね':'steel', 'フェアリー':'fairy', 'ステラ':'stellar' };
+  var ALL_TYPES = CALC.__typeEffectivenessAllTypes || ['ノーマル','ほのお','みず','でんき','くさ','こおり','かくとう','どく','じめん','ひこう','エスパー','むし','いわ','ゴースト','ドラゴン','あく','はがね','フェアリー'];
+  function matchupClassFor(rate){
+    if(rate === 0) return 'dameke-search-matchup-immune';
+    if(rate >= 4) return 'dameke-search-matchup-weak4';
+    if(rate === 2) return 'dameke-search-matchup-weak2';
+    if(rate === 1) return 'dameke-search-matchup-neutral';
+    if(rate === 0.5) return 'dameke-search-matchup-resist2';
+    return 'dameke-search-matchup-resist4';
+  }
   function typeColorClass(t){ return 'dameke-type-' + (TYPE_COLOR_MAP[t] || 'none'); }
   function typeBadgesHtml(types){
     return (types||[]).map(function(t){ return '<span class="dameke-party-type-badge '+typeColorClass(t)+'">'+t+'</span>'; }).join('');
@@ -134,6 +143,21 @@
     host.innerHTML = selectedPokemon ? typeBadgesHtml(selectedPokemon.types) : '';
   }
 
+  function renderTypeMatchup(){
+    var host = q('damekeComplementTypeMatchupHost');
+    host.innerHTML = '';
+    if(!selectedPokemon) return;
+    var abilityName = q('damekeComplementAbility').value || null;
+    var matchup = CALC.computeAllTypeEffectiveness(selectedPokemon.types, abilityName);
+    ALL_TYPES.forEach(function(t){
+      var rate = matchup[t];
+      var cell = document.createElement('div');
+      cell.className = 'dameke-typecell ' + typeColorClass(t);
+      cell.innerHTML = '<span class="dameke-typecell-name">'+t+'</span><span class="dameke-typecell-value '+matchupClassFor(rate)+'">×'+(rate===0?'0':rate)+'</span>';
+      host.appendChild(cell);
+    });
+  }
+
   function renderImage(){
     var host = q('damekeComplementImageHost');
     host.innerHTML = '';
@@ -146,6 +170,7 @@
     ensureAbilityOptions(selectedPokemon);
     renderImage();
     renderInputTypes();
+    renderTypeMatchup();
     renderResults();
   }
 
@@ -206,7 +231,7 @@
       selectedPokemon = id ? DATA.pokemons.find(function(p){ return p.id===id; }) : null;
       renderAll();
     });
-    abilitySelect.addEventListener('change', renderResults);
+    abilitySelect.addEventListener('change', function(){ renderTypeMatchup(); renderResults(); });
     q('damekeComplementFinalEvoOnly').addEventListener('change', renderResults);
     q('damekeComplementChampionsOnly').addEventListener('change', renderResults);
     q('damekeComplementLoadBtn').addEventListener('click', openPicker);

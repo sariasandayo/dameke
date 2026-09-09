@@ -130,10 +130,10 @@ button:hover { background: #e0e7ff; }
 .v082h-hp-buttons{display:flex;gap:4px;flex-wrap:nowrap;}
 .v082h-hp-buttons button{padding:3px 5px;font-size:.72rem;}
 .v082h-stat-table{display:grid;gap:4px;margin-bottom:8px;}
-.v082h-stat-row{display:grid;grid-template-columns:40px repeat(6,32px);gap:2px;align-items:center;}
+.v082h-stat-row{display:grid;grid-template-columns:34px repeat(6,minmax(0,1fr));gap:2px;align-items:center;}
 .v082h-stat-boost{color:#dc2626 !important;font-weight:800;}
 .v082h-stat-drop{color:#2563eb !important;font-weight:800;}
-.v082h-rank-sub .v082h-stat-row{grid-template-columns:40px repeat(2,32px);}
+.v082h-rank-sub .v082h-stat-row{grid-template-columns:34px repeat(2,minmax(0,1fr));}
 .v082h-stat-head span{font-size:.72rem;font-weight:700;color:#64748b;text-align:center;}
 .v082h-stat-label{font-size:.72rem;font-weight:700;color:#475569;white-space:nowrap;}
 .v082h-stat-cell{min-width:0;}
@@ -770,7 +770,6 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-coverage-move-slot{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;}
 .dameke-coverage-move-slot-label{width:100%;font-size:.82rem;color:#374151;}
 .dameke-coverage-move-slot-label select{width:100%;margin-top:2px;}
-.dameke-coverage-fixed-check{font-size:.78rem;color:#374151;white-space:nowrap;align-self:flex-start;}
 .dameke-coverage-condition-fold{margin-top:10px;border:1px solid #e5e7eb;border-radius:8px;padding:6px 10px;background:#f9fafb;}
 .dameke-coverage-condition-fold summary{cursor:pointer;font-size:.76rem;color:#6b7280;font-weight:600;}
 .dameke-coverage-condition-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;}
@@ -779,7 +778,7 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 @media(max-width:480px){
   .dameke-coverage-condition-grid{grid-template-columns:1fr;}
 }
-.dameke-coverage-maximize-btn{margin-top:14px;}
+.dameke-coverage-category-row{margin-top:14px;}
 .dameke-coverage-moves-host{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-bottom:12px;}
 .dameke-coverage-moves-host .dameke-typecell{padding:12px 6px;}
 .dameke-coverage-moves-host .dameke-typecell-name{font-size:.92rem;}
