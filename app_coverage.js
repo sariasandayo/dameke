@@ -134,9 +134,27 @@
   // every condition above, then folds in the freezeDry/flyingPress/thousandArrows overrides
   // (which key off the move's own tags, independent of the resolved type) before finally
   // applying the ordinary ability-aware type chart.
+  // 攻撃側(入力ポケモン)の特性による相性への影響。calc.js本体の同等処理(きもったま/しんがん
+  // によるゴースト無効貫通、いろめがねによるいまひとつ2倍)を、技範囲調整用に簡易移植したもの。
+  function applyAttackerAbilityOverrides(rate, defenderTypes, resolvedType, attackerAbilityName){
+    // きもったま/しんがん: ノーマル/かくとう技がゴーストタイプの無効のみによってブロックされて
+    // いる場合、等倍として扱う(みやぶり・サウザンアローと同じ考え方)。
+    if(rate === 0 && (resolvedType === 'ノーマル' || resolvedType === 'かくとう') &&
+       (attackerAbilityName === 'きもったま' || attackerAbilityName === 'しんがん') &&
+       defenderTypes.indexOf('ゴースト') >= 0){
+      rate = 1;
+    }
+    // いろめがね: いまひとつ(等倍未満)の技のダメージが2倍になる効果を、技範囲の集計用に
+    // 相性倍率へ反映(0.25倍は0.5倍相当、0.5倍は等倍相当として扱う)。
+    if(rate > 0 && rate < 1 && attackerAbilityName === 'いろめがね'){
+      rate = rate * 2;
+    }
+    return rate;
+  }
   function effectiveRateFor(defenderTypes, defenderAbility, move, conditions){
     var resolvedType = resolveEffectiveType(move, conditions);
-    return CALC.computeMoveEffectiveness(defenderTypes, resolvedType, defenderAbility, move.tags);
+    var rate = CALC.computeMoveEffectiveness(defenderTypes, resolvedType, defenderAbility, move.tags);
+    return applyAttackerAbilityOverrides(rate, defenderTypes, resolvedType, conditions.abilityName);
   }
 
   // ==================== Coverage computation ====================

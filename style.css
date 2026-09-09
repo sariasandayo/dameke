@@ -133,9 +133,8 @@ button:hover { background: #e0e7ff; }
 .v082h-stat-row{display:grid;grid-template-columns:34px repeat(6,minmax(0,1fr));gap:2px;align-items:center;}
 .v082h-stat-boost{color:#dc2626 !important;font-weight:800;}
 .v082h-stat-drop{color:#2563eb !important;font-weight:800;}
-.v082h-rank-sub .v082h-stat-row{grid-template-columns:34px repeat(2,minmax(0,1fr));}
 .v082h-stat-head span{font-size:.72rem;font-weight:700;color:#64748b;text-align:center;}
-.v082h-stat-label{font-size:.72rem;font-weight:700;color:#475569;white-space:nowrap;}
+.v082h-stat-label{font-size:.66rem;font-weight:700;color:#475569;white-space:nowrap;margin-right:4px;}
 .v082h-stat-cell{min-width:0;}
 .v082h-stat-readonly{display:flex;align-items:center;justify-content:center;font-size:.7rem;color:#6b7280;background:#f3f4f6;border-radius:3px;min-height:1.6em;}
 .v082h-stat-cell input,.v082h-stat-cell select{width:100%;min-width:0;padding:2px 1px;font-size:.7rem;text-align:center;}
