@@ -242,7 +242,7 @@
       }
       // 無振り: no EV, neutral nature, no item, no ability -- a separate baseline tier alongside
       // 最速/準速, deliberately excluding both ability and held-item effects.
-      addEntry({ label: '無振り', nature: 'まじめ', ev: 0 }, '', { status: shared.status, tailwind: shared.tailwind, swamp: shared.swamp, itemId: 'none', abilityId: 'none' });
+      addEntry({ label: '無振り', nature: 'まじめ', ev: 0, itemSuffix: '' }, '', { status: shared.status, tailwind: shared.tailwind, swamp: shared.swamp, itemId: 'none', abilityId: 'none' });
     });
     // Group by value only -- when the same value is reached by several genuinely different
     // conditions (different base Speed stat, different variant, different ability), they're

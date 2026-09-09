@@ -2508,9 +2508,56 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
     return false;
   }
 
+  // フリーズドライ: real-effect override -- 2x specifically against a みず-type component,
+  // regardless of the plain type chart's own こおり-vs-みず value (normally 0.5x). Every other
+  // defending type still uses the ordinary こおり chart value.
+  function computeFreezeDryEffectiveness(defenderTypes, abilityName){
+    var types = (defenderTypes||[]).filter(function(t){ return t && t !== 'タイプなし'; });
+    var rate = 4096;
+    types.forEach(function(t){
+      var componentRate = (t === 'みず') ? 8192 : typeRateRaw('こおり', t);
+      rate = Math.floor(rate * componentRate / 4096);
+    });
+    if(abilityName){
+      var halved = HALF_DAMAGE_ABILITIES[abilityName];
+      if(halved && halved.indexOf('こおり') >= 0) rate = Math.floor(rate / 2);
+    }
+    return rate / 4096;
+  }
+  // フライングプレス: real-effect override -- deals damage as ノーマル and ひこう simultaneously,
+  // i.e. the product of both types' own effectiveness (each already ability-aware).
+  function computeFlyingPressEffectiveness(defenderTypes, abilityName){
+    return computeTypeEffectiveness(defenderTypes, 'かくとう', abilityName) * computeTypeEffectiveness(defenderTypes, 'ひこう', abilityName);
+  }
+  // サウザンアロー: simplified per request -- only the ひこうタイプ / ふゆう / うなぎのぼり
+  // (levitate-style) immunity-bypass is modeled; every other じめん interaction (resistances,
+  // other immunity-granting abilities like どしょく) still applies normally.
+  function computeThousandArrowsEffectiveness(defenderTypes, abilityName){
+    var types = (defenderTypes||[]).filter(function(t){ return t && t !== 'タイプなし'; });
+    var rate = 4096;
+    types.forEach(function(t){
+      var componentRate = (t === 'ひこう') ? 4096 : typeRateRaw('じめん', t);
+      rate = Math.floor(rate * componentRate / 4096);
+    });
+    if(abilityName && TYPE_IMMUNITY_ABILITIES[abilityName] === 'じめん') rate = 0; // どしょく etc -- a
+    // different (absorb) mechanic than levitate, so it's deliberately NOT bypassed here.
+    return rate / 4096;
+  }
+  // Single entry point a caller can always use: applies the freezeDry/flyingPress/thousandArrows
+  // overrides when the move carries the matching tag, and falls back to the plain type chart
+  // (via the already-resolved effective type) otherwise. moveTags is the move's own tags array.
+  function computeMoveEffectiveness(defenderTypes, resolvedType, abilityName, moveTags){
+    moveTags = moveTags || [];
+    if(moveTags.indexOf('freezeDry') >= 0) return computeFreezeDryEffectiveness(defenderTypes, abilityName);
+    if(moveTags.indexOf('flyingPress') >= 0) return computeFlyingPressEffectiveness(defenderTypes, abilityName);
+    if(moveTags.indexOf('thousandArrows') >= 0) return computeThousandArrowsEffectiveness(defenderTypes, abilityName);
+    return computeTypeEffectiveness(defenderTypes, resolvedType, abilityName);
+  }
+
   C.computeTypeEffectiveness = computeTypeEffectiveness;
   C.computeAllTypeEffectiveness = computeAllTypeEffectiveness;
   C.isTypeRelevantAbility = isTypeRelevantAbility;
+  C.computeMoveEffectiveness = computeMoveEffectiveness;
   C.__typeEffectivenessAllTypes = ALL_TYPES;
   C.__typeEffectivenessPatched = true;
 })();

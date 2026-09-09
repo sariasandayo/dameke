@@ -92669,6 +92669,7 @@ window.DAMEKE_GENERATED_DATA = {
   (D.moves || []).forEach(function(m){
     if(POWER_FIXES.hasOwnProperty(m.name)) m.power = POWER_FIXES[m.name];
     if(m.name === 'サンダーダイブ') m.type = 'でんき';
+    if(m.name === 'フライングプレス') m.type = 'かくとう'; // was incorrectly ノーマル -- real move type is かくとう (dual かくとう+ひこう effectiveness, handled separately)
   });
   D.__movePowerTypeDirectFixApplied = true;
 })();

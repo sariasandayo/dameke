@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>だめけー Web v1.7.0</title>
+  <title>だめけー Web v1.8.0</title>
   <link rel="icon" href="./icon/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="32x32" href="./icon/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./icon/apple-touch-icon.png">
@@ -16,7 +16,7 @@
     <button type="button" id="damekeMenuBtn" class="dameke-menu-btn" aria-label="メニュー">
       <span></span><span></span><span></span>
     </button>
-    <h1>だめけー Web v1.7.0</h1>
+    <h1>だめけー Web v1.8.0</h1>
     <p>for Pokémon Champions</p>
     <nav id="damekeMenuNav" class="dameke-menu-nav" hidden>
       <button type="button" class="dameke-menu-item" data-panel="calculator">ダメージ計算</button>
@@ -24,6 +24,7 @@
       <button type="button" class="dameke-menu-item" data-panel="adjust">攻撃・防御調整</button>
       <button type="button" class="dameke-menu-item" data-panel="speed">素早さ調整</button>
       <button type="button" class="dameke-menu-item" data-panel="evopt">努力値最適化</button>
+      <button type="button" class="dameke-menu-item" data-panel="coverage">技範囲調整</button>
       <button type="button" class="dameke-menu-item" data-panel="complement">補完ポケモン出力</button>
       <button type="button" class="dameke-menu-item" data-panel="partytype">パーティタイプ評価</button>
       <button type="button" class="dameke-menu-item" data-panel="pokemon">ポケモン管理</button>
@@ -431,6 +432,68 @@
       </section>
     </main>
   </div>
+  <div id="panel-coverage" class="dameke-tool-panel" hidden>
+    <main class="layout">
+      <section class="card" id="damekeCoverageInputSection">
+        <h2>技範囲調整</h2>
+        <div class="dameke-evopt-input-box">
+          <div class="dameke-evopt-result-header">
+            <h3>入力</h3>
+            <button type="button" id="damekeCoverageLoadBtn" class="dameke-toolbar-btn dameke-toolbar-btn-party">呼び出し</button>
+          </div>
+          <div id="damekeCoveragePickerHost" class="dameke-evopt-picker-host" hidden></div>
+          <div class="dameke-evopt-pokemon-row">
+            <div class="dameke-evopt-pokemon-select-col">
+              <label>ポケモン<select id="damekeCoveragePokemon"></select></label>
+              <label>特性<select id="damekeCoverageAbility"></select></label>
+            </div>
+            <div class="dameke-complement-image-col">
+              <div id="damekeCoverageImageHost" class="dameke-evopt-image-host"></div>
+              <div id="damekeCoverageInputTypes" class="dameke-search-detail-types"></div>
+            </div>
+          </div>
+          <div id="damekeCoverageMoveSlotsHost" class="dameke-coverage-move-slots"></div>
+          <details class="dameke-coverage-condition-fold">
+            <summary>詳細条件設定</summary>
+            <div class="dameke-coverage-condition-grid">
+              <label>天候<select id="damekeCoverageWeather">
+                <option value="">なし</option>
+                <option value="にほんばれ">にほんばれ</option>
+                <option value="あめ">あめ</option>
+                <option value="すなあらし">すなあらし</option>
+                <option value="ゆき">ゆき</option>
+              </select></label>
+              <label>フィールド<select id="damekeCoverageField">
+                <option value="">なし</option>
+                <option value="エレキフィールド">エレキフィールド</option>
+                <option value="グラスフィールド">グラスフィールド</option>
+                <option value="ミストフィールド">ミストフィールド</option>
+                <option value="サイコフィールド">サイコフィールド</option>
+              </select></label>
+              <label>持ち物<select id="damekeCoverageItem"></select></label>
+              <label>テラスタイプ<select id="damekeCoverageTeraType"></select></label>
+            </div>
+          </details>
+          <button type="button" id="damekeCoverageMaximizeBtn" class="dameke-toolbar-btn dameke-toolbar-btn-swap dameke-coverage-maximize-btn">範囲最大化</button>
+          <div class="dameke-speed-cond-row">
+            <label class="check"><input type="checkbox" id="damekeCoverageCategoryPhysical" />物理のみ</label>
+            <label class="check"><input type="checkbox" id="damekeCoverageCategorySpecial" />特殊のみ</label>
+          </div>
+          <div class="dameke-speed-cond-row">
+            <label class="check"><input type="checkbox" id="damekeCoverageExcludeNormal" checked />ノーマル技除外</label>
+          </div>
+        </div>
+      </section>
+      <section class="card" id="damekeCoverageResultSection">
+        <div class="dameke-evopt-result-header">
+          <h3>出力</h3>
+          <button type="button" id="damekeCoverageSaveBtn" class="dameke-toolbar-btn dameke-toolbar-btn-new">保存</button>
+        </div>
+        <div id="damekeCoverageMovesHost" class="dameke-coverage-moves-host"></div>
+        <div id="damekeCoverageStatsHost" class="dameke-coverage-stats-host"></div>
+      </section>
+    </main>
+  </div>
   <div id="panel-complement" class="dameke-tool-panel" hidden>
     <main class="layout">
       <section class="card" id="damekeComplementInputSection">
@@ -517,6 +580,7 @@
 <script src="app_adjust.js"></script>
 <script src="app_speed.js"></script>
 <script src="app_evopt.js"></script>
+<script src="app_coverage.js"></script>
 <script src="app_search.js"></script>
 <script src="app_complement.js"></script>
 <script src="app_partytype.js"></script>

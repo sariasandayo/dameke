@@ -716,7 +716,8 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-partytype-slot-fields{flex:1 1 auto;display:flex;flex-direction:column;gap:6px;min-width:0;}
 .dameke-partytype-slot-fields label{display:block;font-size:.78rem;color:#374151;}
 .dameke-partytype-slot-fields select{width:100%;margin-top:2px;}
-.dameke-partytype-slot-image-col{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.dameke-partytype-slot-image-col{flex:0 0 64px;width:64px;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.dameke-partytype-slot-image-col .dameke-party-type-badge{white-space:nowrap;}
 .dameke-partytype-slot-image{width:56px;height:56px;display:flex;align-items:center;justify-content:center;}
 .dameke-partytype-slot-image img{max-width:100%;max-height:100%;}
 #damekePartyTypeResultSection .dameke-adjust-band-note{margin-bottom:14px;}
@@ -734,7 +735,7 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-partytype-swap-out{background:#fef2f2;border:1px solid #fecaca;}
 .dameke-partytype-swap-inout-title{font-size:.72rem;font-weight:800;color:#374151;margin-bottom:6px;}
 .dameke-partytype-swap-inout-list{display:flex;flex-wrap:wrap;gap:8px;}
-.dameke-partytype-swap-portrait{display:flex;flex-direction:column;align-items:center;width:64px;}
+.dameke-partytype-swap-portrait{display:flex;flex-direction:column;align-items:center;width:84px;}
 .dameke-partytype-swap-portrait-img{width:48px;height:48px;display:flex;align-items:center;justify-content:center;}
 .dameke-partytype-swap-portrait-img img{max-width:100%;max-height:100%;}
 .dameke-partytype-swap-portrait-name{font-size:.74rem;font-weight:700;text-align:center;color:#111827;line-height:1.2;margin-top:3px;}
@@ -762,4 +763,44 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
   .dameke-partytype-slots-host{grid-template-columns:1fr;}
   .dameke-partytype-slot{flex-direction:row-reverse;}
   .dameke-partytype-slot-image{width:44px;height:44px;}
+}
+
+/* ==================== 技範囲調整ツール ==================== */
+.dameke-coverage-move-slots{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+.dameke-coverage-move-slot{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;}
+.dameke-coverage-move-slot-label{width:100%;font-size:.82rem;color:#374151;}
+.dameke-coverage-move-slot-label select{width:100%;margin-top:2px;}
+.dameke-coverage-fixed-check{font-size:.78rem;color:#374151;white-space:nowrap;align-self:flex-start;}
+.dameke-coverage-condition-fold{margin-top:10px;border:1px solid #e5e7eb;border-radius:8px;padding:6px 10px;background:#f9fafb;}
+.dameke-coverage-condition-fold summary{cursor:pointer;font-size:.76rem;color:#6b7280;font-weight:600;}
+.dameke-coverage-condition-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;}
+.dameke-coverage-condition-grid label{font-size:.78rem;color:#374151;}
+.dameke-coverage-condition-grid select{width:100%;margin-top:2px;}
+@media(max-width:480px){
+  .dameke-coverage-condition-grid{grid-template-columns:1fr;}
+}
+.dameke-coverage-maximize-btn{margin-top:14px;}
+.dameke-coverage-moves-host{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-bottom:12px;}
+.dameke-coverage-moves-host .dameke-typecell{padding:12px 6px;}
+.dameke-coverage-moves-host .dameke-typecell-name{font-size:.92rem;}
+.dameke-coverage-stats-host{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+.dameke-coverage-stat-row{display:flex;flex-direction:column;gap:0;padding:8px 12px;border-radius:8px;background:#f9fafb;border:1px solid #e5e7eb;}
+.dameke-coverage-stat-head{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.dameke-coverage-stat-label{font-size:.82rem;font-weight:700;color:#374151;}
+.dameke-coverage-stat-value{font-size:.86rem;font-weight:800;color:#111827;}
+.dameke-coverage-stat-weak{border-color:#fecaca;background:#fef2f2;}
+.dameke-coverage-stat-neutral{border-color:#bbf7d0;background:#f0fdf4;}
+.dameke-coverage-stat-half{border-color:#bfdbfe;background:#eff6ff;}
+.dameke-coverage-stat-immune{border-color:#e5e7eb;background:#f3f4f6;}
+.dameke-coverage-breakdown-fold{margin-top:6px;padding-top:6px;border-top:1px dashed #d1d5db;}
+.dameke-coverage-breakdown-fold summary{cursor:pointer;font-size:.76rem;font-weight:700;color:#374151;}
+.dameke-coverage-breakdown-list{display:flex;flex-wrap:wrap;gap:16px;margin-top:8px;}
+.dameke-coverage-breakdown-chip{display:flex;flex-direction:column;align-items:center;width:92px;}
+.dameke-coverage-breakdown-img{width:48px;height:48px;display:flex;align-items:center;justify-content:center;}
+.dameke-coverage-breakdown-img img{max-width:100%;max-height:100%;}
+.dameke-coverage-breakdown-name{font-size:.66rem;text-align:center;color:#374151;line-height:1.2;margin-top:2px;}
+.dameke-coverage-breakdown-chip .dameke-search-detail-types{flex-direction:column;align-items:center;margin-top:3px;}
+.dameke-coverage-breakdown-chip .dameke-party-type-badge{white-space:nowrap;}
+@media(max-width:640px){
+  .dameke-coverage-move-slots{grid-template-columns:1fr;}
 }

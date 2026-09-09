@@ -52,6 +52,7 @@
     if(panelName === 'adjust' && window.__damekeRenderAdjustPanel) window.__damekeRenderAdjustPanel();
     if(panelName === 'speed' && window.__damekeRenderSpeedPanel) window.__damekeRenderSpeedPanel();
     if(panelName === 'evopt' && window.__damekeRenderEvoptPanel) window.__damekeRenderEvoptPanel();
+    if(panelName === 'coverage' && window.__damekeRenderCoveragePanel) window.__damekeRenderCoveragePanel();
     if(panelName === 'search' && window.__damekeRenderSearchPanel) window.__damekeRenderSearchPanel();
     if(panelName === 'complement' && window.__damekeRenderComplementPanel) window.__damekeRenderComplementPanel();
     if(panelName === 'partytype' && window.__damekeRenderPartyTypePanel) window.__damekeRenderPartyTypePanel();
@@ -1876,4 +1877,7 @@
   window.__damekeLoadPartyList = loadPartyList;
   window.__damekeBuildPartyCard = buildPartyCard;
   window.__damekeInitPartyPanel = initPartyPanel;
+  // For 技範囲調整's own move selects -- identical "what this Pokemon can actually learn"
+  // filtering as ポケモン管理's own edit form uses, so the two never drift apart.
+  window.__damekeGetFilteredMovesForPokemon = getFilteredMovesForPokemon;
 })();
