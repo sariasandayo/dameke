@@ -3,11 +3,21 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>だめけー Web v1.8.0</title>
+  <title>だめけー Web v2.0.0</title>
+  <meta name="description" content="Pokémon Champions対応の非公式ダメージ計算・個体調整・パーティ分析ツール" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="だめけー Web" />
+  <meta property="og:title" content="だめけー Web" />
+  <meta property="og:description" content="Pokémon Champions対応の非公式ダメージ計算・個体調整・パーティ分析ツール" />
+  <meta property="og:image" content="./icon/icon-512.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="だめけー Web" />
+  <meta name="twitter:description" content="Pokémon Champions対応の非公式ダメージ計算・個体調整・パーティ分析ツール" />
+  <meta name="twitter:image" content="./icon/icon-512.png" />
   <link rel="icon" href="./icon/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="32x32" href="./icon/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./icon/apple-touch-icon.png">
-  <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoi44Gg44KB44GR44O8IFdlYiIsInNob3J0X25hbWUiOiLjgaDjgoHjgZHjg7wiLCJkZXNjcmlwdGlvbiI6IumdnuWFrOW8j+ODu+mdnuWWtuWIqeOBruODneOCseODouODs+ODgOODoeODvOOCuOioiOeul+ODhOODvOODqyIsInN0YXJ0X3VybCI6Ii4vIiwic2NvcGUiOiIuLyIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiNmNWY3ZmIiLCJ0aGVtZV9jb2xvciI6IiMxNzIwMzMiLCJpY29ucyI6W3sic3JjIjoiLi9pY29uL2ljb24tMTkyLnBuZyIsInNpemVzIjoiMTkyeDE5MiIsInR5cGUiOiJpbWFnZS9wbmciLCJwdXJwb3NlIjoiYW55In0seyJzcmMiOiIuL2ljb24vaWNvbi01MTIucG5nIiwic2l6ZXMiOiI1MTJ4NTEyIiwidHlwZSI6ImltYWdlL3BuZyIsInB1cnBvc2UiOiJhbnkifSx7InNyYyI6Ii4vaWNvbi9pY29uLW1hc2thYmxlLTUxMi5wbmciLCJzaXplcyI6IjUxMng1MTIiLCJ0eXBlIjoiaW1hZ2UvcG5nIiwicHVycG9zZSI6Im1hc2thYmxlIn1dfQ==">
+  <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjogIuOBoOOCgeOBkeODvCBXZWIiLCAic2hvcnRfbmFtZSI6ICLjgaDjgoHjgZHjg7wiLCAiZGVzY3JpcHRpb24iOiAiUG9rw6ltb24gQ2hhbXBpb25z5a++5b+c44Gu6Z2e5YWs5byP44OA44Oh44O844K46KiI566X44O75YCL5L2T6Kq/5pW044O744OR44O844OG44Kj5YiG5p6Q44OE44O844OrIiwgInN0YXJ0X3VybCI6ICIuLyIsICJzY29wZSI6ICIuLyIsICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLCAiYmFja2dyb3VuZF9jb2xvciI6ICIjZjVmN2ZiIiwgInRoZW1lX2NvbG9yIjogIiMxNzIwMzMiLCAiaWNvbnMiOiBbeyJzcmMiOiAiLi9pY29uL2ljb24tMTkyLnBuZyIsICJzaXplcyI6ICIxOTJ4MTkyIiwgInR5cGUiOiAiaW1hZ2UvcG5nIiwgInB1cnBvc2UiOiAiYW55In0sIHsic3JjIjogIi4vaWNvbi9pY29uLTUxMi5wbmciLCAic2l6ZXMiOiAiNTEyeDUxMiIsICJ0eXBlIjogImltYWdlL3BuZyIsICJwdXJwb3NlIjogImFueSJ9LCB7InNyYyI6ICIuL2ljb24vaWNvbi1tYXNrYWJsZS01MTIucG5nIiwgInNpemVzIjogIjUxMng1MTIiLCAidHlwZSI6ICJpbWFnZS9wbmciLCAicHVycG9zZSI6ICJtYXNrYWJsZSJ9XX0=">
   <meta name="theme-color" content="#172033">
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -16,7 +26,7 @@
     <button type="button" id="damekeMenuBtn" class="dameke-menu-btn" aria-label="メニュー">
       <span></span><span></span><span></span>
     </button>
-    <h1>だめけー Web v1.8.0</h1>
+    <h1>だめけー Web v2.0.0</h1>
     <p>for Pokémon Champions</p>
     <nav id="damekeMenuNav" class="dameke-menu-nav" hidden>
       <button type="button" class="dameke-menu-item" data-panel="calculator">ダメージ計算</button>
@@ -212,7 +222,7 @@
           <label>まきびし<select id="defenderSpikes"><option value="0">なし</option><option value="1">1回</option><option value="2">2回</option><option value="3">3回</option></select></label>
           <label class="check"><input id="defenderSteelSurge" type="checkbox" />キョダイコウジン</label>
           <label class="check"><input id="defenderFlowerGiftSupport" type="checkbox" />フラワーギフト</label>
-          <label class="check"><input id="defenderGlaiveRush" type="checkbox" />きょけんとつげき</label>
+          <label class="check"><input id="defenderGlaiveRush" type="checkbox" />むぼうび</label>
           <label class="check"><input id="defenderTailwind" type="checkbox" />おいかぜ</label>
           <label class="check"><input id="defenderSwamp" type="checkbox" />しつげん</label>
           <label class="check"><input id="defenderSlowStart" type="checkbox" />スロースタート発動</label>

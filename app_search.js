@@ -322,6 +322,52 @@
     q('damekeSearchDetailHost').hidden = true;
     q('damekeSearchResultHost').hidden = false;
   }
+  // 種族値レーダーチャート: 12時の頂点をH、右回りにC/D/S/B/Aの六角形。数値は表示せず、あくまで
+  // イメージ図として形と軸ラベルのみを示す(具体的な数値は下の表で確認できるため)。
+  function buildStatRadarSvg(baseStats){
+    var order = ['H','C','D','S','B','A'];
+    // 255等の極端な種族値を持つポケモンがいるため、そちらを基準にすると140~150程度の一般的に
+    // 高い数値でもチャートが小さく見えてしまう。目盛りの最大は200とし、それを超える分は表示上
+    // はみ出す(SVGのviewBox外にあたる部分は自然に見切れる)ことで、実用上のバランスをとる。
+    var maxStat = 200;
+    var size = 120, cx = size/2, cy = size/2, r = size/2 - 16;
+    function axisAngle(i){ return (-90 + i*60) * Math.PI/180; }
+    function ringPoints(frac){
+      return order.map(function(_,i){
+        var a = axisAngle(i);
+        return (cx+r*frac*Math.cos(a)).toFixed(1)+','+(cy+r*frac*Math.sin(a)).toFixed(1);
+      }).join(' ');
+    }
+    var rings = [0.25,0.5,0.75,1].map(function(frac){
+      return '<polygon points="'+ringPoints(frac)+'" fill="none" stroke="#e2e8f0" stroke-width="1"/>';
+    }).join('');
+    var axisLines = order.map(function(_,i){
+      var a = axisAngle(i);
+      return '<line x1="'+cx+'" y1="'+cy+'" x2="'+(cx+r*Math.cos(a)).toFixed(1)+'" y2="'+(cy+r*Math.sin(a)).toFixed(1)+'" stroke="#e2e8f0" stroke-width="1"/>';
+    }).join('');
+    // 各目盛りの実際の値(50/100/150/200)を、H軸(真上方向)沿いに控えめな小さい数字で添える。
+    var ringLabels = [0.25,0.5,0.75,1].map(function(frac){
+      var y = cy - r*frac;
+      return '<text x="'+(cx+3)+'" y="'+(y-1.5)+'" font-size="6" text-anchor="start" fill="#cbd5e1">'+Math.round(maxStat*frac)+'</text>';
+    }).join('');
+    var dataPoints = order.map(function(k,i){
+      var a = axisAngle(i);
+      // 上限でクランプしない -- 200を超える種族値はチャート外へそのままはみ出させる。
+      var scale = Math.max(0, (baseStats && baseStats[k]!=null ? baseStats[k] : 0)/maxStat);
+      return (cx+r*scale*Math.cos(a)).toFixed(1)+','+(cy+r*scale*Math.sin(a)).toFixed(1);
+    }).join(' ');
+    var labels = order.map(function(k,i){
+      var a = axisAngle(i);
+      var lr = r + 11;
+      var x = (cx+lr*Math.cos(a)).toFixed(1), y = (cy+lr*Math.sin(a)).toFixed(1);
+      return '<text x="'+x+'" y="'+y+'" font-size="11" text-anchor="middle" dominant-baseline="middle" fill="#475569" font-weight="700">'+k+'</text>';
+    }).join('');
+    return '<svg viewBox="0 0 '+size+' '+size+'" class="dameke-search-detail-radar" role="img" aria-label="種族値レーダーチャート">'
+      + rings + axisLines + ringLabels
+      + '<polygon points="'+dataPoints+'" fill="rgba(37,99,235,.32)" stroke="#2563eb" stroke-width="1.5"/>'
+      + labels
+      + '</svg>';
+  }
   function matchupClassFor(rate){
     if(rate === 0) return 'dameke-search-matchup-immune';
     if(rate >= 4) return 'dameke-search-matchup-weak4';
@@ -341,10 +387,23 @@
     var headImg = window.__damekeBuildPokemonImage ? window.__damekeBuildPokemonImage(p.name, function(){ headImg.remove(); }) : null;
     if(headImg){ headImg.className = 'dameke-search-detail-image'; head.appendChild(headImg); }
     var headInfo = document.createElement('div');
-    headInfo.innerHTML = '<div class="dameke-history-title dameke-search-detail-name">'+p.name+'</div>'
+    headInfo.className = 'dameke-search-detail-info';
+    // 括弧書き(フォルム名等)の直前で必ず改行 -- 括弧書き自体の中にさらに括弧があっても、そこで
+    // 追加の改行はしない(最初の"("の直前だけを対象にする)。
+    var parenIdx = p.name.indexOf('(');
+    var nameHtml = parenIdx > 0 ? (p.name.slice(0,parenIdx) + '<br>' + p.name.slice(parenIdx)) : p.name;
+    var flagsHtml = (!p.canEvolve)
+      ? '<div class="dameke-adjust-summary-note dameke-search-detail-flags">（最終進化）</div>'
+      : '';
+    headInfo.innerHTML = '<div class="dameke-history-title dameke-search-detail-name">'+nameHtml+'</div>'
       + '<div class="dameke-search-detail-types">'+(p.types||[]).map(function(t){ return '<span class="dameke-party-type-badge '+typeColorClass(t)+'">'+t+'</span>'; }).join('')+'</div>'
-      + '<div class="dameke-adjust-summary-note">おもさ：'+p.weight+'kg'+(p.canEvolve?'':'（最終進化）')+(p.cannotDynamax?'（ダイマックス不可）':'')+'</div>';
+      + '<div class="dameke-adjust-summary-note">おもさ：'+p.weight+'kg</div>'
+      + flagsHtml;
     head.appendChild(headInfo);
+    var radarHost = document.createElement('div');
+    radarHost.className = 'dameke-search-detail-radar-host';
+    radarHost.innerHTML = buildStatRadarSvg(p.baseStats);
+    head.appendChild(radarHost);
     host.appendChild(head);
 
     var related = relatedFormsFor(p);

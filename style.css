@@ -643,10 +643,13 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-search-thumb-missing{border-radius:50%;background:#e5e7eb;}
 .dameke-search-result-name{font-size:.68rem;text-align:center;color:#111827;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;}
 
-.dameke-search-detail-host{max-height:85vh;overflow-y:auto;}
 .dameke-search-detail-head{display:flex;gap:14px;align-items:center;margin:10px 0 16px;flex-wrap:wrap;}
 .dameke-search-detail-image{width:120px;height:120px;object-fit:contain;}
-.dameke-search-detail-name{font-size:1.1rem;}
+.dameke-search-detail-info{flex:1 1 145px;min-width:145px;}
+.dameke-search-detail-name{font-size:1.1rem;overflow-wrap:break-word;word-break:normal;}
+.dameke-search-detail-flags{margin-top:2px;}
+.dameke-search-detail-radar-host{width:120px;height:120px;flex:0 0 auto;}
+.dameke-search-detail-radar-host svg{width:100%;height:100%;display:block;}
 .dameke-search-detail-types{display:flex;gap:6px;margin:4px 0;}
 .dameke-partytype-slot-image-col .dameke-search-detail-types{flex-direction:column;align-items:center;}
 .dameke-search-combined-stat-table{border:1px solid #e5e7eb;border-radius:8px;padding:8px;overflow-x:auto;max-width:100%;}
@@ -685,6 +688,7 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
   .dameke-search-move-row{grid-template-columns:1.4fr .8fr .6fr .5fr .5fr .4fr;font-size:.62rem;gap:4px;padding:4px 5px;}
   .dameke-search-move-header > span:last-child,.dameke-search-move-row > span:last-child{display:none;}
   .dameke-search-detail-image{width:84px;height:84px;}
+  .dameke-search-detail-radar-host{width:84px;height:84px;}
   .dameke-search-combined-stat-table{grid-template-columns:2.3fr repeat(6,1fr) 1.1fr !important;justify-content:stretch !important;width:100%;gap:3px !important;font-size:.64rem;padding:5px;}
   .dameke-search-combined-stat-table .dameke-adjust-evspec-rowlabel{white-space:nowrap;font-size:.6rem;overflow:visible;}
   .dameke-search-combined-stat-table .dameke-adjust-evspec-cell{white-space:normal;overflow-wrap:anywhere;line-height:1.15;padding:1px 0;}

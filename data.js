@@ -89600,7 +89600,7 @@ window.DAMEKE_GENERATED_DATA = {
   }
   function setDefaults(){
     if(!D) return;
-    var defaults = { attacker:'ジュペッタ', defender:'ハバタクカミ', move:'シャドークロー' };
+    var defaults = { attacker:'ジュペッタ', defender:'サーフゴー', move:'シャドークロー' };
     var attackerAbility = firstAbility(defaults.attacker);
     var defenderAbility = firstAbility(defaults.defender);
 
@@ -89645,7 +89645,7 @@ window.DAMEKE_GENERATED_DATA = {
         },
         firstItem: arr(D.items)[0] && arr(D.items)[0].name,
         firstAbility: arr(D.abilities)[0] && arr(D.abilities)[0].name,
-        defaultPlan: { attacker:'ジュペッタ', defender:'ハバタクカミ', move:'シャドークロー', attackerAbility:firstAbility('ジュペッタ'), defenderAbility:firstAbility('ハバタクカミ'), item:'なし' }
+        defaultPlan: { attacker:'ジュペッタ', defender:'サーフゴー', move:'シャドークロー', attackerAbility:firstAbility('ジュペッタ'), defenderAbility:firstAbility('サーフゴー'), item:'なし' }
       };
     };
   }
@@ -89835,9 +89835,42 @@ window.DAMEKE_GENERATED_DATA = {
     var el = byId(id);
     return el ? Array.prototype.slice.call(el.options || []).map(function(o){ return normalize(o.value || textOfOption(o)); }) : [];
   }
+  // これらの初期値は元々「app.js がまだ select の選択肢を作り終えていないタイミングで適用が
+  // 空振りする」問題への対処として、複数回(遅延タイマーで)再試行するよう作られていた。しかし
+  // ユーザーが検索コンボ等で実際に選択した後もこの再試行が生き残ったまま発火してしまうと、その
+  // 選択が問答無用で既定値に巻き戻ってしまう(「まれに候補選択後スクロール等すると入力が全部
+  // 既定値に戻る」という不具合の原因)。これを防ぐため、一度でもユーザー自身の操作による変更が
+  // 検知された時点でフラグを立て、以後のすべての再試行(このタイマー・別タイマー問わず)を
+  // 無効化する。
+  var damekeDefaultsSettled = false;
+  var damekeApplyingDefaults = false;
+  ['attackerSelect','defenderSelect','moveSelect','attackerItemSelect','defenderItemSelect','attackerAbilitySelect','defenderAbilitySelect'].forEach(function(id){
+    if(document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', function(){ attachSettleGuard(id); });
+    } else {
+      attachSettleGuard(id);
+    }
+  });
+  function attachSettleGuard(id){
+    var el = byId(id);
+    if(!el || el.__damekeSettleGuardAttached) return;
+    el.__damekeSettleGuardAttached = true;
+    el.addEventListener('change', function(){
+      if(!damekeApplyingDefaults) damekeDefaultsSettled = true;
+    });
+  }
   function applyDefaultsOnce(){
+    if(damekeDefaultsSettled) return;
+    damekeApplyingDefaults = true;
+    try {
+      applyDefaultsOnceInner();
+    } finally {
+      damekeApplyingDefaults = false;
+    }
+  }
+  function applyDefaultsOnceInner(){
     var attacker = 'ジュペッタ';
-    var defender = 'ハバタクカミ';
+    var defender = 'サーフゴー';
     var move = 'シャドークロー';
 
     // まずポケモンと技を選ぶ。アプリ側の change ハンドラでタイプ・特性候補などが更新される想定。
@@ -89940,8 +89973,8 @@ window.DAMEKE_GENERATED_DATA = {
           attackerAbility: currentSelectText('attackerAbilitySelect'),
           defenderAbility: currentSelectText('defenderAbilitySelect'),
           expected: {
-            attacker:'ジュペッタ', defender:'ハバタクカミ', move:'シャドークロー', item:'なし',
-            attackerAbility:firstAbilityOf('ジュペッタ'), defenderAbility:firstAbilityOf('ハバタクカミ')
+            attacker:'ジュペッタ', defender:'サーフゴー', move:'シャドークロー', item:'なし',
+            attackerAbility:firstAbilityOf('ジュペッタ'), defenderAbility:firstAbilityOf('サーフゴー')
           },
           firstItemOption: firstOptionText('attackerItemSelect'),
           firstAbilityOption: firstOptionText('attackerAbilitySelect')
@@ -90055,9 +90088,29 @@ window.DAMEKE_GENERATED_DATA = {
     if(el.value !== hit.value){ el.value=hit.value; try{el.dispatchEvent(new Event('input',{bubbles:true}));}catch(e){} try{el.dispatchEvent(new Event('change',{bubbles:true}));}catch(e){} }
     return true;
   }
+  var damekeItemDefaultsSettled = false;
+  var damekeApplyingItemDefaults = false;
+  ['attackerItemSelect','defenderItemSelect'].forEach(function(id){
+    function attach(){
+      var el = document.getElementById(id);
+      if(!el || el.__damekeItemSettleGuardAttached) return;
+      el.__damekeItemSettleGuardAttached = true;
+      el.addEventListener('change', function(){
+        if(!damekeApplyingItemDefaults) damekeItemDefaultsSettled = true;
+      });
+    }
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attach);
+    else attach();
+  });
   function applyDefaultItemsAgain(){
-    selectByTextOrValue('attackerItemSelect', 'なし');
-    selectByTextOrValue('defenderItemSelect', 'なし');
+    if(damekeItemDefaultsSettled) return;
+    damekeApplyingItemDefaults = true;
+    try {
+      selectByTextOrValue('attackerItemSelect', 'なし');
+      selectByTextOrValue('defenderItemSelect', 'なし');
+    } finally {
+      damekeApplyingItemDefaults = false;
+    }
   }
 
   if(G){
@@ -90083,7 +90136,7 @@ window.DAMEKE_GENERATED_DATA = {
         evolution:{ canEvolveCount:canEvolveList.length, sampleCanEvolve:canEvolveList.slice(0,10).map(function(p){return p.name;}), evioliteExists:hasName(D.items,'しんかのきせき'), hasExcelMarker:arr(D.pokemons).some(function(p){ return p && Object.prototype.hasOwnProperty.call(p,'excelMarker'); }) },
         namingCorrections:{ oldItemNamesRemain:oldItemNames.filter(function(n){return hasName(D.items,n);}), newItemNamesPresent:newItemNames.filter(function(n){return hasName(D.items,n);}), taurosCombatOldRemain:hasName(D.pokemons,'ケンタロス(コンバット種)ｼｭ')||hasName(D.pokemons,'ケンタロス(コンバット種)シュ'), taurosCombatUnified:hasName(D.pokemons,'ケンタロス(コンバット種)') },
         zMax:{ signatureZInNormalMoves:signatureZ.filter(function(n){return hasName(D.moves,n);}), generatedZMaxMoves:arr(D.zMax&&D.zMax.generatedMoves).length },
-        defaults:{ attacker:currentSelectValueOrText('attackerSelect'), defender:currentSelectValueOrText('defenderSelect'), move:currentSelectValueOrText('moveSelect'), attackerItem:currentSelectValueOrText('attackerItemSelect'), defenderItem:currentSelectValueOrText('defenderItemSelect'), attackerAbility:currentSelectValueOrText('attackerAbilitySelect'), defenderAbility:currentSelectValueOrText('defenderAbilitySelect'), expected:{attacker:'ジュペッタ', defender:'ハバタクカミ', move:'シャドークロー', item:'なし', attackerAbility:firstAbilityOf('ジュペッタ'), defenderAbility:firstAbilityOf('ハバタクカミ')}, firstItemOption:firstOptionValueOrText('attackerItemSelect'), firstAbilityOption:firstOptionValueOrText('attackerAbilitySelect') },
+        defaults:{ attacker:currentSelectValueOrText('attackerSelect'), defender:currentSelectValueOrText('defenderSelect'), move:currentSelectValueOrText('moveSelect'), attackerItem:currentSelectValueOrText('attackerItemSelect'), defenderItem:currentSelectValueOrText('defenderItemSelect'), attackerAbility:currentSelectValueOrText('attackerAbilitySelect'), defenderAbility:currentSelectValueOrText('defenderAbilitySelect'), expected:{attacker:'ジュペッタ', defender:'サーフゴー', move:'シャドークロー', item:'なし', attackerAbility:firstAbilityOf('ジュペッタ'), defenderAbility:firstAbilityOf('サーフゴー')}, firstItemOption:firstOptionValueOrText('attackerItemSelect'), firstAbilityOption:firstOptionValueOrText('attackerAbilitySelect') },
         ok:null
       };
       report.ok = report.duplicates.pokemonIds.length===0 && report.duplicates.moveNames.length===0 && report.duplicates.abilityNames.length===0 && report.duplicates.itemNames.length===0 && report.evolution.canEvolveCount>0 && report.evolution.evioliteExists && report.namingCorrections.oldItemNamesRemain.length===0 && report.namingCorrections.newItemNamesPresent.length===newItemNames.length && !report.namingCorrections.taurosCombatOldRemain && report.namingCorrections.taurosCombatUnified && report.zMax.signatureZInNormalMoves.length===0 && report.defaults.attacker===report.defaults.expected.attacker && report.defaults.defender===report.defaults.expected.defender && report.defaults.move===report.defaults.expected.move && report.defaults.attackerItem==='なし' && report.defaults.defenderItem==='なし' && report.defaults.attackerAbility===report.defaults.expected.attackerAbility && report.defaults.defenderAbility===report.defaults.expected.defenderAbility;
@@ -90168,7 +90221,7 @@ window.DAMEKE_GENERATED_DATA = {
         evolution:{ canEvolveCount:canEvolveList.length, sampleCanEvolve:canEvolveList.slice(0,10).map(function(p){return p.name;}), evioliteExists:hasName(D.items,'しんかのきせき'), hasExcelMarker:arr(D.pokemons).some(function(p){ return p && Object.prototype.hasOwnProperty.call(p,'excelMarker'); }) },
         namingCorrections:{ oldItemNamesRemain:oldItemNames.filter(function(n){return hasName(D.items,n);}), newItemNamesPresent:newItemNames.filter(function(n){return hasName(D.items,n);}), taurosCombatOldRemain:hasName(D.pokemons,'ケンタロス(コンバット種)ｼｭ')||hasName(D.pokemons,'ケンタロス(コンバット種)シュ'), taurosCombatUnified:hasName(D.pokemons,'ケンタロス(コンバット種)') },
         zMax:{ signatureZInNormalMoves:signatureZ.filter(function(n){return hasName(D.moves,n);}), generatedZMaxMoves:arr(D.zMax&&D.zMax.generatedMoves).length },
-        defaults:{ attacker:selectValueOrText('attackerSelect'), defender:selectValueOrText('defenderSelect'), move:selectValueOrText('moveSelect'), attackerItem:selectValueOrText('attackerItemSelect'), defenderItem:selectValueOrText('defenderItemSelect'), attackerAbility:selectValueOrText('attackerAbilitySelect'), defenderAbility:selectValueOrText('defenderAbilitySelect'), expected:{attacker:'ジュペッタ', defender:'ハバタクカミ', move:'シャドークロー', item:'なし', attackerAbility:firstAbilityOf('ジュペッタ'), defenderAbility:firstAbilityOf('ハバタクカミ')}, firstItemOption:firstOption('attackerItemSelect'), firstAbilityOption:firstOption('attackerAbilitySelect') },
+        defaults:{ attacker:selectValueOrText('attackerSelect'), defender:selectValueOrText('defenderSelect'), move:selectValueOrText('moveSelect'), attackerItem:selectValueOrText('attackerItemSelect'), defenderItem:selectValueOrText('defenderItemSelect'), attackerAbility:selectValueOrText('attackerAbilitySelect'), defenderAbility:selectValueOrText('defenderAbilitySelect'), expected:{attacker:'ジュペッタ', defender:'サーフゴー', move:'シャドークロー', item:'なし', attackerAbility:firstAbilityOf('ジュペッタ'), defenderAbility:firstAbilityOf('サーフゴー')}, firstItemOption:firstOption('attackerItemSelect'), firstAbilityOption:firstOption('attackerAbilitySelect') },
         ok:null
       };
       report.ok = report.duplicates.pokemonIds.length===0 && report.duplicates.pokemonNames.length===0 && report.duplicates.moveIds.length===0 && report.duplicates.moveNames.length===0 && report.duplicates.abilityIds.length===0 && report.duplicates.abilityNames.length===0 && report.duplicates.itemIds.length===0 && report.duplicates.itemNames.length===0 && report.evolution.canEvolveCount>0 && report.evolution.evioliteExists && report.namingCorrections.oldItemNamesRemain.length===0 && report.namingCorrections.newItemNamesPresent.length===newItemNames.length && !report.namingCorrections.taurosCombatOldRemain && report.namingCorrections.taurosCombatUnified && report.zMax.signatureZInNormalMoves.length===0 && report.defaults.attacker===report.defaults.expected.attacker && report.defaults.defender===report.defaults.expected.defender && report.defaults.move===report.defaults.expected.move && report.defaults.attackerItem==='なし' && report.defaults.defenderItem==='なし' && report.defaults.attackerAbility===report.defaults.expected.attackerAbility && report.defaults.defenderAbility===report.defaults.expected.defenderAbility;
@@ -90261,7 +90314,7 @@ window.DAMEKE_GENERATED_DATA = {
         defenderItem:selectText('defenderItemSelect'),
         attackerAbility:selectText('attackerAbilitySelect'),
         defenderAbility:selectText('defenderAbilitySelect'),
-        expected:{attacker:'ジュペッタ', defender:'ハバタクカミ', move:'シャドークロー', item:'なし', attackerAbility:firstAbilityOf('ジュペッタ'), defenderAbility:firstAbilityOf('ハバタクカミ')},
+        expected:{attacker:'ジュペッタ', defender:'サーフゴー', move:'シャドークロー', item:'なし', attackerAbility:firstAbilityOf('ジュペッタ'), defenderAbility:firstAbilityOf('サーフゴー')},
         firstItemOption:firstOptionText('attackerItemSelect'),
         firstAbilityOption:firstOptionText('attackerAbilitySelect')
       };
@@ -92672,4 +92725,53 @@ window.DAMEKE_GENERATED_DATA = {
     if(m.name === 'フライングプレス') m.type = 'かくとう'; // was incorrectly ノーマル -- real move type is かくとう (dual かくとう+ひこう effectiveness, handled separately)
   });
   D.__movePowerTypeDirectFixApplied = true;
+})();
+
+// v2.0.0 M-C (レギュレーションM-C) 対応: 技の威力・PP・範囲・タグ、特性の直接修正
+(function(){
+  var D = window.DAMEKE_DATA;
+  if(!D || !D.moves) return;
+  var MC_POWER_FIXES = { 'ねらいうち': 85, 'スターアサルト': 170, 'きりさく': 80 };
+  var MC_PP_FIXES = { 'ねがいごと': 8, 'ちからをすいとる': 8 };
+  D.moves.forEach(function(m){
+    if(MC_POWER_FIXES.hasOwnProperty(m.name)) m.power = MC_POWER_FIXES[m.name];
+    if(MC_PP_FIXES.hasOwnProperty(m.name)) m.pp = MC_PP_FIXES[m.name];
+    if(m.name === 'ミルクのみ') m.target = '自分か味方';
+    if(m.name === 'でんこうそうげき' && (m.tags||[]).indexOf('punch') < 0) m.tags = (m.tags||[]).concat('punch');
+  });
+  var mgs = (D.pokemons||[]).find(function(p){ return p.name === 'メガグソクムシャ'; });
+  if(mgs) mgs.abilities = ['かたいツメ'];
+  D.__mcV200DirectFixApplied = true;
+})();
+
+// v2.0.1 タイプ相性表の直接修正: ノーマル・むしの一部の値が実際の対戦仕様と異なっていた
+// (ノーマル/むし対いわ・はがねが等倍誤り)ため、この3件を直接補正する。
+// 注: フェアリー対ほのお=0.5(半減)は元データの時点で正しかった(フェアリーはほのお・どく・
+// はがねに半減されるのが仕様)。前回誤って1(等倍)に補正してしまったため、ここで訂正する。
+(function(){
+  var D = window.DAMEKE_DATA;
+  if(!D || !D.typeChart4096) return;
+  D.typeChart4096['ノーマル'] = Object.assign({}, D.typeChart4096['ノーマル'], { 'いわ': 2048, 'はがね': 2048 });
+  D.typeChart4096['むし'] = Object.assign({}, D.typeChart4096['むし'], { 'いわ': 2048 });
+  D.__typeChartV201DirectFixApplied = true;
+})();
+
+// v2.0.2 急所に当たりやすい技(highCritRatio)タグの追加: 元データではツタこんぼう1件のみに
+// このタグが付いており、他の実際に高い確率で急所に当たる技には付与されていなかった。
+(function(){
+  var D = window.DAMEKE_DATA;
+  if(!D || !D.moves) return;
+  var HIGH_CRIT_RATIO_MOVES = [
+    'あくうせつだん','エアカッター','エアロブラスト','かまいたち','きりさく','クラブハンマー',
+    'クロスチョップ','クロスポイズン','こうげきしれい','サイコカッター','シャドークロー',
+    'ストーンエッジ','つじぎり','はっぱカッター','リーフブレード','ドリルライナー','ブレイズキック',
+    'ゴッドバード','シェルブレード','アクアカッター',
+    'ポイズンテール','ねらいうち','オーラウイング','３ぼんのや'
+  ];
+  D.moves.forEach(function(m){
+    if(HIGH_CRIT_RATIO_MOVES.indexOf(m.name) >= 0 && (m.tags||[]).indexOf('highCritRatio') < 0){
+      m.tags = (m.tags||[]).concat('highCritRatio');
+    }
+  });
+  D.__highCritRatioV202DirectFixApplied = true;
 })();

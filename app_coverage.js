@@ -491,6 +491,10 @@
       var abilitySelect = q('damekeCoverageAbility');
       abilitySelect.value = entry.abilityId;
       if(abilitySelect._v082hRefreshOptions) abilitySelect._v082hRefreshOptions();
+      if(abilitySelect.value === 'メガソーラー') q('damekeCoverageWeather').value = 'にほんばれ';
+      computeAndRenderOutput();
+    } else if(q('damekeCoverageAbility').value === 'メガソーラー'){
+      q('damekeCoverageWeather').value = 'にほんばれ';
       computeAndRenderOutput();
     }
   }
@@ -579,6 +583,10 @@
       selectedPokemon = id ? DATA.pokemons.find(function(p){ return p.id===id; }) : null;
       moveSlots = ['', '', '', ''];
       renderAll();
+      if(q('damekeCoverageAbility').value === 'メガソーラー'){
+        q('damekeCoverageWeather').value = 'にほんばれ';
+        computeAndRenderOutput();
+      }
     });
     q('damekeCoverageLoadBtn').addEventListener('click', openPicker);
     q('damekeCoverageSaveBtn').addEventListener('click', doSave);
@@ -592,7 +600,11 @@
     specialCb.addEventListener('change', function(){ if(specialCb.checked) physicalCb.checked = false; computeAndRenderOutput(); });
     q('damekeCoverageExcludeNormal').addEventListener('change', computeAndRenderOutput);
     q('damekeCoverageExcludeChargeMove').addEventListener('change', computeAndRenderOutput);
-    q('damekeCoverageAbility').addEventListener('change', computeAndRenderOutput);
+    q('damekeCoverageAbility').addEventListener('change', function(){
+      var abilitySelect = q('damekeCoverageAbility');
+      if(abilitySelect.value === 'メガソーラー') q('damekeCoverageWeather').value = 'にほんばれ';
+      computeAndRenderOutput();
+    });
     q('damekeCoverageWeather').addEventListener('change', computeAndRenderOutput);
     q('damekeCoverageField').addEventListener('change', computeAndRenderOutput);
     q('damekeCoverageItem').addEventListener('change', computeAndRenderOutput);
