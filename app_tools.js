@@ -886,22 +886,20 @@
       head.appendChild(titleWrap);
 
       if(megaForm){
-        var toggleLabel = document.createElement('label');
-        toggleLabel.className = 'dameke-pokemon-mega-toggle' + (isMega ? ' dameke-pokemon-mega-toggle-active' : '');
-        var toggleCheckbox = document.createElement('input');
-        toggleCheckbox.type = 'checkbox';
-        toggleCheckbox.checked = !!isMega;
-        toggleCheckbox.addEventListener('change', function(){
-          renderVariable(toggleCheckbox.checked ? megaForm : pokemon, toggleCheckbox.checked);
+        var toggleBtn = document.createElement('button');
+        toggleBtn.type = 'button';
+        toggleBtn.className = 'dameke-pokemon-mega-toggle' + (isMega ? ' dameke-pokemon-mega-toggle-active' : '');
+        toggleBtn.title = isMega ? 'メガシンカ中（タップで解除）' : 'メガシンカする';
+        toggleBtn.innerHTML = '<span class="dameke-pokemon-mega-toggle-switch"><span class="dameke-pokemon-mega-toggle-thumb"></span></span>';
+        toggleBtn.addEventListener('click', function(){
+          renderVariable(isMega ? pokemon : megaForm, !isMega);
         });
-        toggleLabel.appendChild(toggleCheckbox);
-        toggleLabel.appendChild(document.createTextNode('メガシンカ'));
-        head.appendChild(toggleLabel);
+        head.appendChild(toggleBtn);
       }
       variableHost.appendChild(head);
 
-      // 特性チップ単体(持ち物・テラスタイプは変化しないため据え置き) -- メガ後は特性が固定1つに
-      // なるため、その特性名を表示する。メガ前の特性は保存された値(ability)をそのまま使う。
+      // 特性チップ単体(テラスタイプは変化しないため据え置き) -- メガ後は特性が固定1つになる
+      // ため、その特性名を表示する。メガ前の特性は保存された値(ability)をそのまま使う。
       var abilityChipRow = document.createElement('div');
       abilityChipRow.className = 'dameke-party-chip-row';
       var abilityChip = document.createElement('div');
@@ -912,6 +910,14 @@
         ? showPokemon.abilities[0] : ability;
       abilityChip.appendChild(document.createTextNode(abilityText));
       abilityChipRow.appendChild(abilityChip);
+      // 持ち物はメガ状態に関わらず変化しないが、表示順(特性→持ち物→実数値表)を保つため、
+      // ここで毎回一緒に再構築する。
+      var itemChip = document.createElement('div');
+      itemChip.className = 'dameke-party-chip';
+      var itemPre = document.createElement('b'); itemPre.textContent = '持ち物：';
+      itemChip.appendChild(itemPre);
+      itemChip.appendChild(document.createTextNode(item));
+      abilityChipRow.appendChild(itemChip);
       variableHost.appendChild(abilityChipRow);
 
       var actual = isMega && showPokemon && window.DAMEKE_CALC
@@ -922,18 +928,10 @@
     renderVariable(pokemon, false);
     main.appendChild(variableHost);
 
-    // 特性/持ち物/テラスタイプ as full-label chips, one per row -- same pattern as the party
-    // member card.
+    // テラスタイプ as a full-label chip -- 特性/持ち物は上のvariableHost内に移動済み(表示順を
+    // 特性→持ち物→実数値表に保つため)。
     var chipRow = document.createElement('div');
     chipRow.className = 'dameke-party-chip-row';
-    function addChip(label, value){
-      var chip = document.createElement('div');
-      chip.className = 'dameke-party-chip';
-      var pre = document.createElement('b'); pre.textContent = label + '：';
-      chip.appendChild(pre);
-      chip.appendChild(document.createTextNode(value));
-      chipRow.appendChild(chip);
-    }
     // テラスタイプ specifically shows the type as a colored badge (matching the type badges
     // used for the Pokemon's own types) rather than a plain bordered chip -- the color itself
     // conveys the type at a glance, in addition to the text.
@@ -948,7 +946,6 @@
       chip.appendChild(badge);
       chipRow.appendChild(chip);
     }
-    addChip('持ち物', item);
     addTeraChip(tera);
     main.appendChild(chipRow);
 
@@ -1019,17 +1016,23 @@
     return card;
   }
 
+  // ひらがなで入力されても、カタカナのポケモン名と一致するよう正規化する。
+  function toKatakana(s){
+    return String(s||'').replace(/[\u3041-\u3096]/g, function(c){
+      return String.fromCharCode(c.charCodeAt(0) + 0x60);
+    });
+  }
   function renderPokemonList(){
     var host = q('damekePokemonList');
     if(!host) return;
     host.innerHTML = '';
     var list = loadPokemonList();
     var filterInput = q('damekePokemonFilterInput');
-    var filterText = filterInput ? filterInput.value.trim() : '';
+    var filterText = filterInput ? toKatakana(filterInput.value.trim()) : '';
     if(filterText){
       list = list.filter(function(entry){
         var pokemon = findPokemonById(entry.pokemonId);
-        var name = pokemon ? pokemon.name : (entry.pokemonId || '');
+        var name = toKatakana(pokemon ? pokemon.name : (entry.pokemonId || ''));
         return name.indexOf(filterText) === 0;
       });
     }
@@ -1229,7 +1232,10 @@
     // one piece of state that calculation can't derive and must be saved (kept under the same
     // #damekePokeEdit_ability id so the existing save/restore logic needs no changes); the
     // post-Mega ability is always derivable from the Mega form's own fixed ability, so it's
-    // shown for reference but not separately persisted.
+    // shown for reference but not separately persisted. This applies whether the user typed in
+    // the pre-Mega name (メガ前) and picked the stone directly, or picked the post-Mega name
+    // (メガ後) itself and had the stone auto-filled -- either way, メガ前特性 always offers the
+    // *base* form's own ability choices, not whichever form happens to be selected right now.
     var abilityFieldHost = document.createElement('div');
     grid.appendChild(abilityFieldHost);
     var abilitySel;
@@ -1239,14 +1245,20 @@
       var selectedPokemon = findPokemonById(pokemonSel.value);
       var selectedItem = d.items.find(function(it){ return it.id === itemSel.value; });
       var itemName = selectedItem ? selectedItem.name : null;
+      var baseForm = (selectedPokemon && d.getFormDefaultPokemon) ? d.getFormDefaultPokemon(selectedPokemon) : selectedPokemon;
       var megaForm = (selectedPokemon && itemName && d.findFormByLinkedItem) ? d.findFormByLinkedItem(selectedPokemon, itemName) : null;
-      if(megaForm && megaForm.name === selectedPokemon.name) megaForm = null;
+      if(megaForm && baseForm && megaForm.name === baseForm.name) megaForm = null;
 
       if(megaForm){
         abilityFieldHost.className = 'dameke-pokemon-edit-fullwidth dameke-pokemon-edit-mega-ability-row';
         var preLabel = document.createElement('label');
         var preSpan = document.createElement('span'); preSpan.textContent = 'メガ前特性';
         abilitySel = document.createElement('select'); abilitySel.id = 'damekePokeEdit_ability';
+        var allAbilities = d.abilities.filter(function(a){ return a.id !== 'なし'; });
+        var baseAbilities = (baseForm && Array.isArray(baseForm.abilities) && baseForm.abilities.length)
+          ? allAbilities.filter(function(a){ return baseForm.abilities.indexOf(a.id) >= 0; })
+          : allAbilities;
+        fillSelectEl(abilitySel, baseAbilities.length ? baseAbilities : allAbilities, false);
         preLabel.appendChild(preSpan); preLabel.appendChild(abilitySel);
 
         var postLabel = document.createElement('label');
@@ -1265,16 +1277,19 @@
         pairWrap.appendChild(preLabel);
         pairWrap.appendChild(postLabel);
         abilityFieldHost.appendChild(pairWrap);
+        if(window.__damekeAttachSearchCombo) window.__damekeAttachSearchCombo('damekePokeEdit_ability');
+        var stillHasBase = prevValue && Array.prototype.slice.call(abilitySel.options).some(function(o){ return o.value === prevValue; });
+        abilitySel.value = stillHasBase ? prevValue : (abilitySel.options[0] ? abilitySel.options[0].value : '');
       } else {
         abilityFieldHost.className = '';
         abilitySel = document.createElement('select'); abilitySel.id = 'damekePokeEdit_ability';
         abilityFieldHost.appendChild(makeField('特性', abilitySel));
-      }
-      if(window.__damekeAttachSearchCombo) window.__damekeAttachSearchCombo('damekePokeEdit_ability');
-      refreshAbilityOptionsInEditForm();
-      if(prevValue){
-        var stillHas = Array.prototype.slice.call(abilitySel.options).some(function(o){ return o.value === prevValue; });
-        if(stillHas) abilitySel.value = prevValue;
+        if(window.__damekeAttachSearchCombo) window.__damekeAttachSearchCombo('damekePokeEdit_ability');
+        refreshAbilityOptionsInEditForm();
+        if(prevValue){
+          var stillHas = Array.prototype.slice.call(abilitySel.options).some(function(o){ return o.value === prevValue; });
+          if(stillHas) abilitySel.value = prevValue;
+        }
       }
       if(abilitySel._v082hRefreshOptions) abilitySel._v082hRefreshOptions();
     }
@@ -1288,11 +1303,17 @@
     teraSel.value = entry.teraType || 'なし';
     grid.appendChild(makeField('テラスタル', teraSel));
 
-    // 6. Nature
+    // 6. Nature -- always on its own independent row (never sharing a row with whatever comes
+    // before/after it, regardless of how many fields precede it), since it's a conceptually
+    // different kind of field from the rest. The row itself spans the full form width so
+    // nothing else can share it, but the select itself keeps its original (single-column) width
+    // via a dedicated class, rather than stretching to fill that full width.
     var natureSel = document.createElement('select'); natureSel.id = 'damekePokeEdit_nature';
     NATURE_LIST.forEach(function(n){ var op=document.createElement('option'); op.value=n; op.textContent=n; natureSel.appendChild(op); });
     natureSel.value = entry.nature || 'まじめ';
-    grid.appendChild(makeField('性格', natureSel));
+    var natureField = makeField('性格', natureSel, true);
+    natureField.classList.add('dameke-pokemon-edit-nature-row');
+    grid.appendChild(natureField);
 
     form.appendChild(grid);
 
@@ -1902,26 +1923,28 @@
         badge.textContent = t;
         sub.appendChild(badge);
       });
+      titleWrap.appendChild(sub);
+      // 性別は独立した行として表示する(タイプバッジと同じ行に混在させない)。
       if(entry.gender){
+        var genderRow = document.createElement('div');
+        genderRow.className = 'dameke-pokemon-card-sub';
         var genderSpan = document.createElement('span');
         genderSpan.textContent = genderDisplayText(entry.gender);
-        sub.appendChild(genderSpan);
+        genderRow.appendChild(genderSpan);
+        titleWrap.appendChild(genderRow);
       }
-      titleWrap.appendChild(sub);
       head.appendChild(titleWrap);
 
       if(megaForm){
-        var toggleLabel = document.createElement('label');
-        toggleLabel.className = 'dameke-pokemon-mega-toggle dameke-pokemon-mega-toggle-compact' + (isMega ? ' dameke-pokemon-mega-toggle-active' : '');
-        var toggleCheckbox = document.createElement('input');
-        toggleCheckbox.type = 'checkbox';
-        toggleCheckbox.checked = !!isMega;
-        toggleCheckbox.addEventListener('change', function(){
-          renderVariable(toggleCheckbox.checked ? megaForm : pokemon, toggleCheckbox.checked);
+        var toggleBtn = document.createElement('button');
+        toggleBtn.type = 'button';
+        toggleBtn.className = 'dameke-pokemon-mega-toggle dameke-pokemon-mega-toggle-compact' + (isMega ? ' dameke-pokemon-mega-toggle-active' : '');
+        toggleBtn.title = isMega ? 'メガシンカ中（タップで解除）' : 'メガシンカする';
+        toggleBtn.innerHTML = '<span class="dameke-pokemon-mega-toggle-switch"><span class="dameke-pokemon-mega-toggle-thumb"></span></span>';
+        toggleBtn.addEventListener('click', function(){
+          renderVariable(isMega ? pokemon : megaForm, !isMega);
         });
-        toggleLabel.appendChild(toggleCheckbox);
-        toggleLabel.appendChild(document.createTextNode('メガシンカ'));
-        head.appendChild(toggleLabel);
+        head.appendChild(toggleBtn);
       }
       variableHost.appendChild(head);
 
@@ -1935,6 +1958,14 @@
         ? showPokemon.abilities[0] : ability;
       abilityChip.appendChild(document.createTextNode(abilityText));
       abilityChipRow.appendChild(abilityChip);
+      // 持ち物はメガ状態に関わらず変化しないが、表示順(特性→持ち物→実数値表)を保つため、
+      // ここで毎回一緒に再構築する。
+      var itemChip = document.createElement('div');
+      itemChip.className = 'dameke-party-chip';
+      var itemPre = document.createElement('b'); itemPre.textContent = '持ち物：';
+      itemChip.appendChild(itemPre);
+      itemChip.appendChild(document.createTextNode(item));
+      abilityChipRow.appendChild(itemChip);
       variableHost.appendChild(abilityChipRow);
 
       var actual = isMega && showPokemon && window.DAMEKE_CALC
@@ -1945,19 +1976,11 @@
     renderVariable(pokemon, false);
     card.appendChild(variableHost);
 
-    // 特性/持ち物/テラスタイプ each get their own full-width row with the full label -- letting
-    // them wrap freely by available width (the earlier 1-character-prefix version) made the row
-    // count vary unpredictably depending on how long each value happened to be.
+    // テラスタイプ each get their own full-width row with the full label -- letting them wrap
+    // freely by available width. 特性/持ち物は上のvariableHost内に移動済み(表示順を特性→持ち物
+    // →実数値表に保つため)。
     var chipRow = document.createElement('div');
     chipRow.className = 'dameke-party-chip-row';
-    function addChip(label, value){
-      var chip = document.createElement('div');
-      chip.className = 'dameke-party-chip';
-      var pre = document.createElement('b'); pre.textContent = label + '：';
-      chip.appendChild(pre);
-      chip.appendChild(document.createTextNode(value));
-      chipRow.appendChild(chip);
-    }
     function addTeraChip(value){
       var chip = document.createElement('div');
       chip.className = 'dameke-party-tera-row';
@@ -1969,7 +1992,6 @@
       chip.appendChild(badge);
       chipRow.appendChild(chip);
     }
-    addChip('持ち物', item);
     addTeraChip(entry.teraType || 'なし');
     card.appendChild(chipRow);
 

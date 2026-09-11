@@ -84,27 +84,31 @@
     return { min: actual(0, DOWN_NATURE_FOR[k]||'まじめ'), neutral: actual(0, 'まじめ'), max: actual(32, UP_NATURE_FOR[k]||'まじめ') };
   }
 
-  var filters = {
-    name: '',
-    type1: '', type2: '',
-    matchupType: '', matchupCategory: '',
-    ability: '',
-    moves: [''],
-    statRange: {},
-    totalRange: [null,null],
-    weightRange: [null,null],
-    finalEvoOnly: false,
-    championsOnly: false
-  };
+  function defaultFilters(){
+    return {
+      name: '',
+      type1: '', type2: '',
+      matchupConditions: [{type:'', category:''}],
+      ability: '',
+      moveConditions: [{name:'', type:'', category:'', minPower:null, minAccuracy:null}],
+      statRange: {},
+      totalRange: [null,null],
+      weightRange: [null,null],
+      finalEvoOnly: false,
+      championsOnly: false
+    };
+  }
+  var filters = defaultFilters();
+  var sortBy = 'dex'; // 'dex' | 'kana' | 'stat' | 'weight'
+  var sortStatKey = 'total'; // used when sortBy==='stat': H/A/B/C/D/S/total
   function kanaNormalize(s){ return String(s||'').replace(/[\u30a1-\u30f6]/g, function(c){ return String.fromCharCode(c.charCodeAt(0)-0x60); }).toLowerCase(); }
-  function matchupCategoryOf(rate){
-    if(rate === 0) return '無効';
-    if(rate >= 4) return '4倍弱点';
-    if(rate === 2) return '2倍弱点';
-    if(rate === 1) return '等倍';
-    if(rate === 0.5) return '半減';
-    if(rate <= 0.25) return '4分の1';
-    return '等倍';
+  // 「等倍以下」「半減以下」「1/4以下」の3段階。それぞれ、無効(0倍)も含めて「その水準以下」を
+  // 満たすかどうかで判定する(等倍以下なら半減・1/4・無効もすべて該当)。
+  function matchupSatisfies(rate, category){
+    if(category === '等倍以下') return rate <= 1;
+    if(category === '半減以下') return rate <= 0.5;
+    if(category === '1/4以下') return rate <= 0.25;
+    return false;
   }
   function inRange(val, range){
     if(range[0] != null && val < range[0]) return false;
@@ -115,20 +119,41 @@
     if(filters.name && kanaNormalize(p.name).indexOf(kanaNormalize(filters.name)) === -1) return false;
     if(filters.type1 && (p.types||[]).indexOf(filters.type1) === -1) return false;
     if(filters.type2 && (p.types||[]).indexOf(filters.type2) === -1) return false;
-    if(filters.matchupType && filters.matchupCategory){
+    // タイプ相性: 有効な条件(タイプ・段階とも指定済み)をすべてAND条件として満たす必要がある。
+    var activeMatchups = filters.matchupConditions.filter(function(c){ return c.type && c.category; });
+    if(activeMatchups.length){
       var abilityList = (p.abilities||[]).length ? p.abilities : [null];
-      var anyMatches = abilityList.some(function(abName){
-        var rate = CALC.computeTypeEffectiveness(p.types, filters.matchupType, abName);
-        return matchupCategoryOf(rate) === filters.matchupCategory;
+      var allMatchupsOk = activeMatchups.every(function(cond){
+        return abilityList.some(function(abName){
+          var rate = CALC.computeTypeEffectiveness(p.types, cond.type, abName);
+          return matchupSatisfies(rate, cond.category);
+        });
       });
-      if(!anyMatches) return false;
+      if(!allMatchupsOk) return false;
     }
     if(filters.ability && (p.abilities||[]).indexOf(filters.ability) === -1) return false;
-    var wantedMoves = filters.moves.filter(function(m){ return m; });
-    if(wantedMoves.length){
+    // 覚える技: 技名が指定されたスロットはその技名のみで判定(他の項目は無視)。技名未指定なら
+    // タイプ/分類/威力下限/命中下限をAND条件として満たす技を1つでも覚えていればそのスロットは
+    // 合格。スロット同士もAND条件。
+    var activeMoveConds = filters.moveConditions.filter(function(c){
+      return c.name || c.type || c.category || c.minPower != null || c.minAccuracy != null;
+    });
+    if(activeMoveConds.length){
       var learned = pokemonLearnset(p);
       if(!learned) return false;
-      if(!wantedMoves.every(function(m){ return learned.indexOf(m) >= 0; })) return false;
+      var allSlotsOk = activeMoveConds.every(function(cond){
+        if(cond.name) return learned.indexOf(cond.name) >= 0;
+        return learned.some(function(moveName){
+          var m = DATA.moves.find(function(x){ return x.name === moveName; });
+          if(!m) return false;
+          if(cond.type && m.type !== cond.type) return false;
+          if(cond.category && m.category !== cond.category) return false;
+          if(cond.minPower != null && (m.power||0) < cond.minPower) return false;
+          if(cond.minAccuracy != null && (parseInt(m.accuracy,10)||0) < cond.minAccuracy) return false;
+          return true;
+        });
+      });
+      if(!allSlotsOk) return false;
     }
     for(var i=0;i<STAT_KEYS.length;i++){
       var k = STAT_KEYS[i];
@@ -208,15 +233,34 @@
     typeRow.appendChild(type1Sel); typeRow.appendChild(type2Sel);
     host.appendChild(typeRow);
 
-    var matchupLabel = document.createElement('div'); matchupLabel.className='dameke-adjust-nature-title'; matchupLabel.textContent='指定タイプとの相性';
+    var matchupLabel = document.createElement('div'); matchupLabel.className='dameke-adjust-nature-title'; matchupLabel.textContent='指定タイプとの相性（それぞれAND条件、最大4つ）';
     host.appendChild(matchupLabel);
-    var matchupRow = document.createElement('div'); matchupRow.className='dameke-search-inline-row';
-    var matchupTypeSel = makeCompactSelect(ALL_TYPES.map(function(t){return {id:t,name:t};}), '指定なし');
-    var matchupCatSel = makeCompactSelect(['4倍弱点','2倍弱点','等倍','半減','4分の1','無効'].map(function(c){return {id:c,name:c};}), '指定なし');
-    matchupTypeSel.addEventListener('change', function(){ filters.matchupType = matchupTypeSel.value; renderResults(); });
-    matchupCatSel.addEventListener('change', function(){ filters.matchupCategory = matchupCatSel.value; renderResults(); });
-    matchupRow.appendChild(matchupTypeSel); matchupRow.appendChild(matchupCatSel);
-    host.appendChild(matchupRow);
+    var matchupListHost = document.createElement('div'); matchupListHost.className = 'dameke-search-move-slot-host';
+    host.appendChild(matchupListHost);
+    var addMatchupBtn = document.createElement('button');
+    addMatchupBtn.type = 'button'; addMatchupBtn.className = 'dameke-search-add-btn'; addMatchupBtn.textContent = '追加する';
+    addMatchupBtn.addEventListener('click', function(){
+      if(filters.matchupConditions.length >= 4) return;
+      filters.matchupConditions.push({type:'', category:''});
+      renderMatchupSlots();
+    });
+    host.appendChild(addMatchupBtn);
+    function renderMatchupSlots(){
+      matchupListHost.innerHTML = '';
+      filters.matchupConditions.forEach(function(cond, idx){
+        var row = document.createElement('div'); row.className = 'dameke-search-inline-row';
+        var typeSel = makeCompactSelect(ALL_TYPES.map(function(t){return {id:t,name:t};}), '指定なし');
+        typeSel.value = cond.type;
+        typeSel.addEventListener('change', function(){ filters.matchupConditions[idx].type = typeSel.value; renderResults(); });
+        var catSel = makeCompactSelect(['等倍以下','半減以下','1/4以下'].map(function(c){return {id:c,name:c};}), '指定なし');
+        catSel.value = cond.category;
+        catSel.addEventListener('change', function(){ filters.matchupConditions[idx].category = catSel.value; renderResults(); });
+        row.appendChild(typeSel); row.appendChild(catSel);
+        matchupListHost.appendChild(row);
+      });
+      addMatchupBtn.hidden = filters.matchupConditions.length >= 4;
+    }
+    renderMatchupSlots();
 
     var abilityLabel = document.createElement('div'); abilityLabel.className='dameke-adjust-nature-title'; abilityLabel.textContent='特性';
     host.appendChild(abilityLabel);
@@ -225,27 +269,41 @@
     abilitySelect.addEventListener('change', function(){ filters.ability = abilitySelect.value; renderResults(); });
     host.appendChild(abilitySelect);
 
-    var moveTitle = document.createElement('div'); moveTitle.className='dameke-adjust-nature-title dameke-search-section-gap'; moveTitle.textContent='覚える技';
+    var moveTitle = document.createElement('div'); moveTitle.className='dameke-adjust-nature-title dameke-search-section-gap'; moveTitle.textContent='覚える技（技名を指定した場合は他の項目を無視。未指定ならタイプ/分類/威力下限/命中下限をAND条件で判定。最大4セット・AND）';
     host.appendChild(moveTitle);
     var moveListHost = document.createElement('div'); moveListHost.className = 'dameke-search-move-slot-host';
     host.appendChild(moveListHost);
     var addMoveBtn = document.createElement('button');
     addMoveBtn.type = 'button'; addMoveBtn.className = 'dameke-search-add-btn'; addMoveBtn.textContent = '追加する';
     addMoveBtn.addEventListener('click', function(){
-      if(filters.moves.length >= 4) return;
-      filters.moves.push('');
+      if(filters.moveConditions.length >= 4) return;
+      filters.moveConditions.push({name:'', type:'', category:'', minPower:null, minAccuracy:null});
       renderMoveSlots();
     });
     host.appendChild(addMoveBtn);
     function renderMoveSlots(){
       moveListHost.innerHTML = '';
-      filters.moves.forEach(function(val, idx){
-        var moveSelect = makeCompactSelect(DATA.moves, '指定なし', true);
-        moveSelect.value = val;
-        moveSelect.addEventListener('change', function(){ filters.moves[idx] = moveSelect.value; renderResults(); });
-        moveListHost.appendChild(moveSelect);
+      filters.moveConditions.forEach(function(cond, idx){
+        var row = document.createElement('div'); row.className = 'dameke-search-move-filter-grid dameke-search-move-filter-slot';
+        var nameSel = makeCompactSelect(DATA.moves, '技名指定なし', true);
+        nameSel.value = cond.name;
+        nameSel.addEventListener('change', function(){ filters.moveConditions[idx].name = nameSel.value; renderResults(); });
+        var typeSel = makeCompactSelect(ALL_TYPES.map(function(t){return {id:t,name:t};}), 'タイプ指定なし');
+        typeSel.value = cond.type;
+        typeSel.addEventListener('change', function(){ filters.moveConditions[idx].type = typeSel.value; renderResults(); });
+        var catSel = makeCompactSelect([{id:'物理',name:'物理'},{id:'特殊',name:'特殊'},{id:'変化',name:'変化'}], '分類指定なし');
+        catSel.value = cond.category;
+        catSel.addEventListener('change', function(){ filters.moveConditions[idx].category = catSel.value; renderResults(); });
+        var powerInput = document.createElement('input'); powerInput.type='number'; powerInput.placeholder='威力下限';
+        powerInput.value = cond.minPower==null ? '' : cond.minPower;
+        powerInput.addEventListener('input', function(){ filters.moveConditions[idx].minPower = powerInput.value===''?null:parseInt(powerInput.value,10); renderResults(); });
+        var accInput = document.createElement('input'); accInput.type='number'; accInput.placeholder='命中下限';
+        accInput.value = cond.minAccuracy==null ? '' : cond.minAccuracy;
+        accInput.addEventListener('input', function(){ filters.moveConditions[idx].minAccuracy = accInput.value===''?null:parseInt(accInput.value,10); renderResults(); });
+        [nameSel, typeSel, catSel, powerInput, accInput].forEach(function(el){ row.appendChild(el); });
+        moveListHost.appendChild(row);
       });
-      addMoveBtn.hidden = filters.moves.length >= 4;
+      addMoveBtn.hidden = filters.moveConditions.length >= 4;
     }
     renderMoveSlots();
 
@@ -266,6 +324,16 @@
     champLabel.appendChild(champCb); champLabel.appendChild(document.createTextNode('チャンピオンズ参戦済のみ'));
     checksRow.appendChild(finalLabel); checksRow.appendChild(champLabel);
     host.appendChild(checksRow);
+
+    var clearBtn = document.createElement('button');
+    clearBtn.type = 'button'; clearBtn.className = 'dameke-search-clear-btn dameke-search-section-gap';
+    clearBtn.textContent = '絞り込みクリア';
+    clearBtn.addEventListener('click', function(){
+      filters = defaultFilters();
+      renderFilterPanel();
+      renderResults();
+    });
+    host.appendChild(clearBtn);
   }
 
   function buildThumb(japaneseName){
@@ -278,11 +346,44 @@
     else wrap.classList.add('dameke-search-thumb-missing');
     return wrap;
   }
+  function sortMatched(list){
+    if(sortBy === 'kana') return list.slice().sort(function(a,b){ return a.name.localeCompare(b.name,'ja'); });
+    if(sortBy === 'stat'){
+      return list.slice().sort(function(a,b){
+        var va = sortStatKey==='total' ? totalBaseStat(a) : a.baseStats[sortStatKey];
+        var vb = sortStatKey==='total' ? totalBaseStat(b) : b.baseStats[sortStatKey];
+        return vb - va;
+      });
+    }
+    if(sortBy === 'weight') return list.slice().sort(function(a,b){ return b.weight - a.weight; });
+    return list; // 'dex' -- keep DATA.pokemons' own (filter-preserved) order
+  }
+  function renderSortControls(){
+    var host = q('damekeSearchSortHost');
+    if(!host) return;
+    host.innerHTML = '';
+    var sortSel = document.createElement('select'); sortSel.className = 'dameke-search-compact-select';
+    [['dex','図鑑番号順'],['kana','五十音順'],['stat','種族値順'],['weight','おもさ順']].forEach(function(pair){
+      var op = document.createElement('option'); op.value = pair[0]; op.textContent = pair[1]; sortSel.appendChild(op);
+    });
+    sortSel.value = sortBy;
+    sortSel.addEventListener('change', function(){ sortBy = sortSel.value; renderSortControls(); renderResults(); });
+    host.appendChild(sortSel);
+    if(sortBy === 'stat'){
+      var statSel = document.createElement('select'); statSel.className = 'dameke-search-compact-select';
+      STAT_KEYS.concat(['total']).forEach(function(k){
+        var op = document.createElement('option'); op.value = k; op.textContent = (k==='total'?'合計':k); statSel.appendChild(op);
+      });
+      statSel.value = sortStatKey;
+      statSel.addEventListener('change', function(){ sortStatKey = statSel.value; renderResults(); });
+      host.appendChild(statSel);
+    }
+  }
   function renderResults(){
-    var headerHost = q('damekeSearchResultHeader');
+    var countHost = q('damekeSearchResultCount');
     var host = q('damekeSearchResultHost');
-    var matched = DATA.pokemons.filter(matchesFilters);
-    headerHost.textContent = matched.length + ' 件（全 ' + DATA.pokemons.length + ' 件中）';
+    var matched = sortMatched(DATA.pokemons.filter(matchesFilters));
+    countHost.textContent = matched.length + ' 件（全 ' + DATA.pokemons.length + ' 件中）';
     host.innerHTML = '';
     var frag = document.createDocumentFragment();
     matched.forEach(function(p){
@@ -553,6 +654,7 @@
 
   function init(){
     renderFilterPanel();
+    renderSortControls();
     renderResults();
   }
   window.__damekeRenderSearchPanel = function(){
