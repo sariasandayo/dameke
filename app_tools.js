@@ -848,6 +848,9 @@
     // そのものを保存している場合(megaForm.name===pokemon.name)はトグル自体を出さない。
     var megaForm = (pokemon && Ddata.findFormByLinkedItem) ? Ddata.findFormByLinkedItem(pokemon, item) : null;
     if(megaForm && megaForm.name === pokemon.name) megaForm = null;
+    // トグルが表示される場合、カードに専用クラスを付与しCSS側で上部に余白を確保する
+    // (スマホ幅で名前・タイプ・画像と重なってトグルが埋もれてしまう不具合の対策)。
+    if(megaForm && card) card.classList.add('dameke-pokemon-card-has-mega-toggle');
 
     var main = document.createElement('div');
     main.className = 'dameke-pokemon-card-main';
@@ -1897,6 +1900,7 @@
     var Ddata = D();
     var megaForm = (pokemon && Ddata.findFormByLinkedItem) ? Ddata.findFormByLinkedItem(pokemon, item) : null;
     if(megaForm && megaForm.name === pokemon.name) megaForm = null;
+    if(megaForm) card.classList.add('dameke-pokemon-card-has-mega-toggle');
 
     // メガシンカの有無で変化する部分(サムネイル+名前+タイプ+特性+実数値)をまとめて再構築できる
     // よう、専用のホストにまとめる(ポケモン管理のカードと同じ考え方)。
@@ -1933,6 +1937,18 @@
         genderRow.appendChild(genderSpan);
         titleWrap.appendChild(genderRow);
       }
+      // テラスタイプも性別の下、独立した行として表示する(メガ状態に関わらず変化しないが、
+      // 表示順を保つためここで毎回一緒に再構築する)。
+      var teraRow = document.createElement('div');
+      teraRow.className = 'dameke-party-tera-row';
+      var teraPre = document.createElement('b'); teraPre.textContent = 'テラスタイプ：';
+      teraRow.appendChild(teraPre);
+      var teraBadge = document.createElement('span');
+      var teraValue = entry.teraType || 'なし';
+      teraBadge.className = 'dameke-party-type-badge ' + typeColorClass(teraValue);
+      teraBadge.textContent = teraValue;
+      teraRow.appendChild(teraBadge);
+      titleWrap.appendChild(teraRow);
       head.appendChild(titleWrap);
 
       if(megaForm){
@@ -1975,25 +1991,6 @@
     }
     renderVariable(pokemon, false);
     card.appendChild(variableHost);
-
-    // テラスタイプ each get their own full-width row with the full label -- letting them wrap
-    // freely by available width. 特性/持ち物は上のvariableHost内に移動済み(表示順を特性→持ち物
-    // →実数値表に保つため)。
-    var chipRow = document.createElement('div');
-    chipRow.className = 'dameke-party-chip-row';
-    function addTeraChip(value){
-      var chip = document.createElement('div');
-      chip.className = 'dameke-party-tera-row';
-      var pre = document.createElement('b'); pre.textContent = 'テラスタイプ：';
-      chip.appendChild(pre);
-      var badge = document.createElement('span');
-      badge.className = 'dameke-party-type-badge ' + typeColorClass(value);
-      badge.textContent = value;
-      chip.appendChild(badge);
-      chipRow.appendChild(chip);
-    }
-    addTeraChip(entry.teraType || 'なし');
-    card.appendChild(chipRow);
 
     // Moves as a 2x2 grid (not a single wrapped line) -- each cell can still wrap to two lines
     // on its own for an unusually long move name, without forcing the *other* three moves down

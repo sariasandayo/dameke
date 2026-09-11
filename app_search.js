@@ -233,7 +233,7 @@
     typeRow.appendChild(type1Sel); typeRow.appendChild(type2Sel);
     host.appendChild(typeRow);
 
-    var matchupLabel = document.createElement('div'); matchupLabel.className='dameke-adjust-nature-title'; matchupLabel.textContent='指定タイプとの相性（それぞれAND条件、最大4つ）';
+    var matchupLabel = document.createElement('div'); matchupLabel.className='dameke-adjust-nature-title'; matchupLabel.textContent='指定タイプとの相性';
     host.appendChild(matchupLabel);
     var matchupListHost = document.createElement('div'); matchupListHost.className = 'dameke-search-move-slot-host';
     host.appendChild(matchupListHost);
@@ -269,7 +269,7 @@
     abilitySelect.addEventListener('change', function(){ filters.ability = abilitySelect.value; renderResults(); });
     host.appendChild(abilitySelect);
 
-    var moveTitle = document.createElement('div'); moveTitle.className='dameke-adjust-nature-title dameke-search-section-gap'; moveTitle.textContent='覚える技（技名を指定した場合は他の項目を無視。未指定ならタイプ/分類/威力下限/命中下限をAND条件で判定。最大4セット・AND）';
+    var moveTitle = document.createElement('div'); moveTitle.className='dameke-adjust-nature-title dameke-search-section-gap'; moveTitle.textContent='覚える技';
     host.appendChild(moveTitle);
     var moveListHost = document.createElement('div'); moveListHost.className = 'dameke-search-move-slot-host';
     host.appendChild(moveListHost);
