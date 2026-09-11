@@ -269,7 +269,7 @@
     abilitySelect.addEventListener('change', function(){ filters.ability = abilitySelect.value; renderResults(); });
     host.appendChild(abilitySelect);
 
-    var moveTitle = document.createElement('div'); moveTitle.className='dameke-adjust-nature-title dameke-search-section-gap'; moveTitle.textContent='覚える技';
+    var moveTitle = document.createElement('div'); moveTitle.className='dameke-adjust-nature-title dameke-search-section-gap dameke-search-move-title'; moveTitle.textContent='覚える技';
     host.appendChild(moveTitle);
     var moveListHost = document.createElement('div'); moveListHost.className = 'dameke-search-move-slot-host';
     host.appendChild(moveListHost);

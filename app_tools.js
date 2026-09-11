@@ -867,6 +867,7 @@
       head.className = 'dameke-pokemon-card-head dameke-pokemon-card-head-large';
       head.appendChild(buildPokemonThumbFor(showName, item));
       var titleWrap = document.createElement('div');
+      titleWrap.className = 'dameke-pokemon-card-titlewrap';
       var title = document.createElement('div');
       title.className = 'dameke-pokemon-card-title';
       title.textContent = entry.nickname ? (entry.nickname + '（' + showName + '）') : showName;
@@ -880,12 +881,27 @@
         badge.textContent = t;
         sub.appendChild(badge);
       });
+      titleWrap.appendChild(sub);
+      // 性別は独立した行として表示する(タイプバッジと同じ行に混在させない)。
       if(entry.gender){
+        var genderRow = document.createElement('div');
+        genderRow.className = 'dameke-pokemon-card-sub';
         var genderSpan = document.createElement('span');
         genderSpan.textContent = genderDisplayText(entry.gender);
-        sub.appendChild(genderSpan);
+        genderRow.appendChild(genderSpan);
+        titleWrap.appendChild(genderRow);
       }
-      titleWrap.appendChild(sub);
+      // テラスタイプも性別の下、独立した行として表示する(メガ状態に関わらず変化しないが、
+      // 表示順を保つためここで毎回一緒に再構築する)。
+      var teraRow = document.createElement('div');
+      teraRow.className = 'dameke-party-tera-row';
+      var teraPre = document.createElement('b'); teraPre.textContent = 'テラスタイプ：';
+      teraRow.appendChild(teraPre);
+      var teraBadge = document.createElement('span');
+      teraBadge.className = 'dameke-party-type-badge ' + typeColorClass(tera);
+      teraBadge.textContent = tera;
+      teraRow.appendChild(teraBadge);
+      titleWrap.appendChild(teraRow);
       head.appendChild(titleWrap);
 
       if(megaForm){
@@ -930,27 +946,6 @@
     }
     renderVariable(pokemon, false);
     main.appendChild(variableHost);
-
-    // テラスタイプ as a full-label chip -- 特性/持ち物は上のvariableHost内に移動済み(表示順を
-    // 特性→持ち物→実数値表に保つため)。
-    var chipRow = document.createElement('div');
-    chipRow.className = 'dameke-party-chip-row';
-    // テラスタイプ specifically shows the type as a colored badge (matching the type badges
-    // used for the Pokemon's own types) rather than a plain bordered chip -- the color itself
-    // conveys the type at a glance, in addition to the text.
-    function addTeraChip(value){
-      var chip = document.createElement('div');
-      chip.className = 'dameke-party-tera-row';
-      var pre = document.createElement('b'); pre.textContent = 'テラスタイプ：';
-      chip.appendChild(pre);
-      var badge = document.createElement('span');
-      badge.className = 'dameke-party-type-badge ' + typeColorClass(value);
-      badge.textContent = value;
-      chip.appendChild(badge);
-      chipRow.appendChild(chip);
-    }
-    addTeraChip(tera);
-    main.appendChild(chipRow);
 
     // Moves as a 2x2 grid, colored by each move's own type -- same as the party member card.
     var moves = (entry.moves||[]).map(function(id){ return id ? findMoveById(id) : null; });
@@ -1914,6 +1909,7 @@
       head.className = 'dameke-party-member-head';
       head.appendChild(buildPokemonThumbFor(showName, item));
       var titleWrap = document.createElement('div');
+      titleWrap.className = 'dameke-pokemon-card-titlewrap';
       var title = document.createElement('div');
       title.className = 'dameke-pokemon-card-title';
       title.textContent = entry.nickname ? (entry.nickname + '（' + showName + '）') : showName;
