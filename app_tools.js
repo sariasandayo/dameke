@@ -132,6 +132,16 @@
     if(window.__damekeApplyMoveFilter) window.__damekeApplyMoveFilter();
     if(window.__damekeUpdateTypeColors) window.__damekeUpdateTypeColors();
     if(window.__damekeRefreshAll) window.__damekeRefreshAll();
+    // フォルムチェンジボタン(v091)は attacker/defenderSelect の'change'頼みで再描画されるが、
+    // 上のwriteStateToDomはそれを発火しないため、直接呼んで復元後のポケモンに同期させる。
+    if(window.__damekeRenderFormButtons) window.__damekeRenderFormButtons();
+    // 個体値・努力値のスマホ用ナンバーピッカーも対象inputの'change'でのみ再同期されるため、
+    // 復元した各欄で明示的に発火する。
+    Object.keys(state || {}).forEach(function(id){
+      if(!/_(iv|ev)$/.test(id)) return;
+      var el = q(id);
+      if(el) try{ el.dispatchEvent(new Event('change', {bubbles:true})); }catch(e){}
+    });
     if(window.__damekeCalculate) window.__damekeCalculate();
   }
 
@@ -234,13 +244,26 @@
 
   // ---- Miniature HP-bar reproduction (images, names/move, dmg/rate, certainty/faint rate, HP
   // bar) for a history card, using the same PokeAPI sprite id map the calculator uses.
-  function buildMiniThumb(japaneseName){
+  function buildMiniThumb(japaneseName, itemName){
+    var group = document.createElement('div');
+    group.className = 'dameke-history-thumb-group';
     var wrap = document.createElement('div');
     wrap.className = 'dameke-history-thumb';
     var img = window.__damekeBuildPokemonImage ? window.__damekeBuildPokemonImage(japaneseName, function(){ wrap.classList.add('dameke-history-thumb-missing'); wrap.innerHTML = ''; }) : null;
     if(img) wrap.appendChild(img);
     else wrap.classList.add('dameke-history-thumb-missing');
-    return wrap;
+    group.appendChild(wrap);
+    if(itemName && itemName !== 'なし' && window.__damekeBuildItemImage){
+      var itemWrap = document.createElement('div');
+      itemWrap.className = 'dameke-history-item-thumb';
+      var itemImg = window.__damekeBuildItemImage(itemName, function(){
+        itemWrap.classList.add('dameke-history-item-thumb-missing'); itemWrap.innerHTML = '';
+      });
+      if(itemImg) itemWrap.appendChild(itemImg);
+      else itemWrap.classList.add('dameke-history-item-thumb-missing');
+      group.appendChild(itemWrap);
+    }
+    return group;
   }
 
   function formatKoText(koInfo, maxDamage, substituteBlocksAll){
@@ -304,7 +327,7 @@
     var result = snapshot, faintPct = snapshot.faintPct;
     var row = document.createElement('div');
     row.className = 'dameke-history-header-row';
-    row.appendChild(buildMiniThumb(result.attackerName));
+    row.appendChild(buildMiniThumb(result.attackerName, state && state.attackerItemSelect));
     var textCol = document.createElement('div');
     textCol.className = 'dameke-history-text-col';
     var namesLine = document.createElement('div');
@@ -325,7 +348,7 @@
     textCol.appendChild(dmgLine);
     textCol.appendChild(koLine);
     row.appendChild(textCol);
-    row.appendChild(buildMiniThumb(result.defenderName));
+    row.appendChild(buildMiniThumb(result.defenderName, state && state.defenderItemSelect));
     box.appendChild(row);
 
     var curHp = result.defenderCurrentHp, maxHp = result.defenderMaxHp;
@@ -677,7 +700,9 @@
   window.__damekeSavePokemonFromSide = savePokemonFromSide;
 
   // ---- Card rendering ----
-  function buildPokemonThumbFor(japaneseName){
+  function buildPokemonThumbFor(japaneseName, itemName){
+    var group = document.createElement('div');
+    group.className = 'dameke-pokemon-card-thumb-group';
     var wrap = document.createElement('div');
     wrap.className = 'dameke-pokemon-card-thumb';
     var img = window.__damekeBuildPokemonImage
@@ -685,13 +710,38 @@
       : null;
     if(img) wrap.appendChild(img);
     else wrap.classList.add('dameke-pokemon-card-thumb-missing');
-    return wrap;
+    group.appendChild(wrap);
+    if(itemName && itemName !== 'なし' && window.__damekeBuildItemImage){
+      var itemWrap = document.createElement('div');
+      itemWrap.className = 'dameke-pokemon-card-item-thumb';
+      var itemImg = window.__damekeBuildItemImage(itemName, function(){
+        itemWrap.classList.add('dameke-pokemon-card-item-thumb-missing'); itemWrap.innerHTML = '';
+      });
+      if(itemImg) itemWrap.appendChild(itemImg);
+      else itemWrap.classList.add('dameke-pokemon-card-item-thumb-missing');
+      group.appendChild(itemWrap);
+    }
+    return group;
   }
 
   function loadPokemonIntoSide(entry, side){
     var panel = q('panel-calculator');
     function setVal(id, v){ var el = q(id); if(el && panel && panel.contains(el) && v != null) el.value = v; }
-    setVal(side+'Select', entry.pokemonId);
+    function fireChange(id){
+      var el = q(id);
+      if(el && panel && panel.contains(el)){ try{ el.dispatchEvent(new Event('change', {bubbles:true})); }catch(e){} }
+    }
+    // ポケモン本体は commitPokemonForm 経由で反映する。これがタイプ表示(内部値・見た目とも)・
+    // 特性チップ・フォルムチェンジボタンの単一の正規の更新経路であるため、side+'Select'.value を
+    // 直接書き換えるだけでは、これらが前に選択されていたポケモンのまま同期されずに残ってしまう
+    // (「タイプが反映されない」「フォルムチェンジボタンが一致しない」不具合の原因)。
+    var pokemon = findPokemonById(entry.pokemonId);
+    if(pokemon && window.__damekeCommitPokemonForm){
+      window.__damekeCommitPokemonForm(side === 'attacker' ? 'A' : 'D', pokemon, false);
+    } else {
+      setVal(side+'Select', entry.pokemonId);
+    }
+    // commitPokemonForm は種族デフォルトの特性・性別を当てるため、保存された値でこの後に上書きする。
     setVal(side+'SexSelect', entry.gender);
     setVal(side+'AbilitySelect', entry.abilityId);
     setVal(side+'ItemSelect', entry.itemId);
@@ -701,6 +751,10 @@
     STAT_KEYS_ALL.forEach(function(k){
       setVal(side+'_'+k+'_iv', entry.ivs && entry.ivs[k]);
       setVal(side+'_'+k+'_ev', entry.evs && entry.evs[k]);
+      // 実数値入力のスマホ用ナンバーピッカーは、対象inputの'change'イベントでのみ表示を
+      // 再同期するため、値を直接書き換えただけでは見た目が古いまま残ってしまう。
+      fireChange(side+'_'+k+'_iv');
+      fireChange(side+'_'+k+'_ev');
     });
     // moveSelect belongs to the attacker role only (not per-side), so only set it when loading
     // into the attacker, using the first saved move if one was set.
@@ -759,12 +813,14 @@
   }
 
   // Read-only version of the edit form's combined 努力値/実数値 table, for the card summary.
-  function buildCombinedStatTable(entry, actual){
+  // pokemonOverride: when set (メガシンカ表示時), used for the 種族値 row instead of the entry's
+  // own saved pokemonId -- lets the same table show either the base or Mega form's base stats.
+  function buildCombinedStatTable(entry, actual, pokemonOverride){
     var table = document.createElement('div');
     table.className = 'dameke-pokemon-combined-stat-table dameke-pokemon-combined-stat-table-readonly';
     var corner = document.createElement('span'); table.appendChild(corner);
     STAT_KEYS_ALL.forEach(function(k){ var s=document.createElement('span'); s.className='dameke-pokemon-stat-head '+natureColorClass(entry.nature, k); s.textContent=STAT_LABELS_ALL[k]; table.appendChild(s); });
-    var pokemon = findPokemonById(entry.pokemonId);
+    var pokemon = pokemonOverride || findPokemonById(entry.pokemonId);
     var baseLabel = document.createElement('span'); baseLabel.className='dameke-pokemon-stat-head'; baseLabel.textContent='種族値';
     table.appendChild(baseLabel);
     STAT_KEYS_ALL.forEach(function(k){ var s=document.createElement('span'); s.textContent=(pokemon&&pokemon.baseStats&&pokemon.baseStats[k]!=null)?pokemon.baseStats[k]:'-'; table.appendChild(s); });
@@ -786,40 +842,85 @@
     var ability = entry.abilityId && entry.abilityId!=='none' ? entry.abilityId : 'なし';
     var item = entry.itemId && entry.itemId!=='none' ? entry.itemId : 'なし';
     var tera = entry.teraType || 'なし';
-    var actual = computeActualStatsFor(entry);
+
+    var Ddata = D();
+    // ポケモンと持ち物(～ナイト)の組み合わせがメガシンカに対応しているか判定。既にメガ後の姿
+    // そのものを保存している場合(megaForm.name===pokemon.name)はトグル自体を出さない。
+    var megaForm = (pokemon && Ddata.findFormByLinkedItem) ? Ddata.findFormByLinkedItem(pokemon, item) : null;
+    if(megaForm && megaForm.name === pokemon.name) megaForm = null;
 
     var main = document.createElement('div');
     main.className = 'dameke-pokemon-card-main';
 
-    // Same head-row pattern as the party member card (thumbnail + name + type badges + gender
-    // together), but kept at a larger size here -- this is the vertically-listed, one-per-row
-    // management screen rather than a tightly packed multi-column party grid, so there's no
-    // need to shrink this area down as far.
-    var head = document.createElement('div');
-    head.className = 'dameke-pokemon-card-head dameke-pokemon-card-head-large';
-    head.appendChild(buildPokemonThumbFor(pokemonName));
-    var titleWrap = document.createElement('div');
-    var title = document.createElement('div');
-    title.className = 'dameke-pokemon-card-title';
-    title.textContent = entry.nickname ? (entry.nickname + '（' + pokemonName + '）') : pokemonName;
-    titleWrap.appendChild(title);
-    var sub = document.createElement('div');
-    sub.className = 'dameke-pokemon-card-sub';
-    var pokeTypes = pokemon && Array.isArray(pokemon.types) ? pokemon.types : [];
-    pokeTypes.forEach(function(t){
-      var badge = document.createElement('span');
-      badge.className = 'dameke-party-type-badge ' + typeColorClass(t);
-      badge.textContent = t;
-      sub.appendChild(badge);
-    });
-    if(entry.gender){
-      var genderSpan = document.createElement('span');
-      genderSpan.textContent = genderDisplayText(entry.gender);
-      sub.appendChild(genderSpan);
+    // メガシンカの有無で変化する部分(サムネイル+名前+タイプ+特性+実数値)をまとめて再構築できる
+    // よう、専用のホストにまとめる。持ち物・テラスタイプ・技・メモはメガ状態に関わらず変化しない。
+    var variableHost = document.createElement('div');
+
+    function renderVariable(showPokemon, isMega){
+      variableHost.innerHTML = '';
+      var showName = showPokemon ? showPokemon.name : pokemonName;
+
+      var head = document.createElement('div');
+      head.className = 'dameke-pokemon-card-head dameke-pokemon-card-head-large';
+      head.appendChild(buildPokemonThumbFor(showName, item));
+      var titleWrap = document.createElement('div');
+      var title = document.createElement('div');
+      title.className = 'dameke-pokemon-card-title';
+      title.textContent = entry.nickname ? (entry.nickname + '（' + showName + '）') : showName;
+      titleWrap.appendChild(title);
+      var sub = document.createElement('div');
+      sub.className = 'dameke-pokemon-card-sub';
+      var pokeTypes = showPokemon && Array.isArray(showPokemon.types) ? showPokemon.types : [];
+      pokeTypes.forEach(function(t){
+        var badge = document.createElement('span');
+        badge.className = 'dameke-party-type-badge ' + typeColorClass(t);
+        badge.textContent = t;
+        sub.appendChild(badge);
+      });
+      if(entry.gender){
+        var genderSpan = document.createElement('span');
+        genderSpan.textContent = genderDisplayText(entry.gender);
+        sub.appendChild(genderSpan);
+      }
+      titleWrap.appendChild(sub);
+      head.appendChild(titleWrap);
+
+      if(megaForm){
+        var toggleLabel = document.createElement('label');
+        toggleLabel.className = 'dameke-pokemon-mega-toggle' + (isMega ? ' dameke-pokemon-mega-toggle-active' : '');
+        var toggleCheckbox = document.createElement('input');
+        toggleCheckbox.type = 'checkbox';
+        toggleCheckbox.checked = !!isMega;
+        toggleCheckbox.addEventListener('change', function(){
+          renderVariable(toggleCheckbox.checked ? megaForm : pokemon, toggleCheckbox.checked);
+        });
+        toggleLabel.appendChild(toggleCheckbox);
+        toggleLabel.appendChild(document.createTextNode('メガシンカ'));
+        head.appendChild(toggleLabel);
+      }
+      variableHost.appendChild(head);
+
+      // 特性チップ単体(持ち物・テラスタイプは変化しないため据え置き) -- メガ後は特性が固定1つに
+      // なるため、その特性名を表示する。メガ前の特性は保存された値(ability)をそのまま使う。
+      var abilityChipRow = document.createElement('div');
+      abilityChipRow.className = 'dameke-party-chip-row';
+      var abilityChip = document.createElement('div');
+      abilityChip.className = 'dameke-party-chip';
+      var abilityPre = document.createElement('b'); abilityPre.textContent = '特性：';
+      abilityChip.appendChild(abilityPre);
+      var abilityText = isMega && showPokemon && Array.isArray(showPokemon.abilities) && showPokemon.abilities[0]
+        ? showPokemon.abilities[0] : ability;
+      abilityChip.appendChild(document.createTextNode(abilityText));
+      abilityChipRow.appendChild(abilityChip);
+      variableHost.appendChild(abilityChipRow);
+
+      var actual = isMega && showPokemon && window.DAMEKE_CALC
+        ? window.DAMEKE_CALC.getActualStats(showPokemon, Number(entry.level)||50, entry)
+        : computeActualStatsFor(entry);
+      variableHost.appendChild(buildCombinedStatTable(entry, actual, isMega ? showPokemon : pokemon));
     }
-    titleWrap.appendChild(sub);
-    head.appendChild(titleWrap);
-    main.appendChild(head);
+    renderVariable(pokemon, false);
+    main.appendChild(variableHost);
 
     // 特性/持ち物/テラスタイプ as full-label chips, one per row -- same pattern as the party
     // member card.
@@ -847,7 +948,6 @@
       chip.appendChild(badge);
       chipRow.appendChild(chip);
     }
-    addChip('特性', ability);
     addChip('持ち物', item);
     addTeraChip(tera);
     main.appendChild(chipRow);
@@ -863,8 +963,6 @@
       moveGrid.appendChild(cell);
     });
     main.appendChild(moveGrid);
-
-    main.appendChild(buildCombinedStatTable(entry, actual));
 
     if(entry.notes){
       var notes = document.createElement('div');
@@ -926,10 +1024,19 @@
     if(!host) return;
     host.innerHTML = '';
     var list = loadPokemonList();
+    var filterInput = q('damekePokemonFilterInput');
+    var filterText = filterInput ? filterInput.value.trim() : '';
+    if(filterText){
+      list = list.filter(function(entry){
+        var pokemon = findPokemonById(entry.pokemonId);
+        var name = pokemon ? pokemon.name : (entry.pokemonId || '');
+        return name.indexOf(filterText) === 0;
+      });
+    }
     if(!list.length){
       var empty = document.createElement('div');
       empty.className = 'dameke-pokemon-empty';
-      empty.textContent = '保存されたポケモンはまだありません。';
+      empty.textContent = filterText ? '該当するポケモンが見つかりません。' : '保存されたポケモンはまだありません。';
       host.appendChild(empty);
       return;
     }
@@ -1098,12 +1205,8 @@
     genderSel.value = entry.gender || (findPokemonById(pokemonSel.value) && findPokemonById(pokemonSel.value).fixedGender) || '';
     grid.appendChild(makeField('性別', genderSel));
 
-    // 3. Ability -- limited to this Pokemon's own possible abilities (D.abilities already
-    // includes "なし" as its first entry, so no extra none-option is added here).
-    var abilitySel = document.createElement('select'); abilitySel.id = 'damekePokeEdit_ability';
-    grid.appendChild(makeField('特性', abilitySel));
-
-    // 4. Item (D.items has no native "なし" entry, so one is added explicitly)
+    // 4. Item (D.items has no native "なし" entry, so one is added explicitly) -- moved before
+    // the ability field below, since that field's mega-detection logic needs itemSel to exist.
     var itemSel = document.createElement('select'); itemSel.id = 'damekePokeEdit_item';
     // Defensively avoid a duplicate "なし" entry: only add our own none-option if the data
     // doesn't already carry one under some name/id variant.
@@ -1119,6 +1222,65 @@
     })();
     itemSel.value = entry.itemId || initialLinkedItem || 'none';
     grid.appendChild(makeField('持ち物', itemSel));
+
+    // 3. Ability -- normally a single field limited to this Pokemon's own possible abilities.
+    // When the selected Pokemon+持ち物 combination matches a Mega Evolution, this expands to a
+    // full-width 2-column "メガ前特性 / メガ後特性" pair instead: the pre-Mega ability is the
+    // one piece of state that calculation can't derive and must be saved (kept under the same
+    // #damekePokeEdit_ability id so the existing save/restore logic needs no changes); the
+    // post-Mega ability is always derivable from the Mega form's own fixed ability, so it's
+    // shown for reference but not separately persisted.
+    var abilityFieldHost = document.createElement('div');
+    grid.appendChild(abilityFieldHost);
+    var abilitySel;
+    function rebuildAbilityField(){
+      var prevValue = abilitySel ? abilitySel.value : (entry.abilityId || '');
+      abilityFieldHost.innerHTML = '';
+      var selectedPokemon = findPokemonById(pokemonSel.value);
+      var selectedItem = d.items.find(function(it){ return it.id === itemSel.value; });
+      var itemName = selectedItem ? selectedItem.name : null;
+      var megaForm = (selectedPokemon && itemName && d.findFormByLinkedItem) ? d.findFormByLinkedItem(selectedPokemon, itemName) : null;
+      if(megaForm && megaForm.name === selectedPokemon.name) megaForm = null;
+
+      if(megaForm){
+        abilityFieldHost.className = 'dameke-pokemon-edit-fullwidth dameke-pokemon-edit-mega-ability-row';
+        var preLabel = document.createElement('label');
+        var preSpan = document.createElement('span'); preSpan.textContent = 'メガ前特性';
+        abilitySel = document.createElement('select'); abilitySel.id = 'damekePokeEdit_ability';
+        preLabel.appendChild(preSpan); preLabel.appendChild(abilitySel);
+
+        var postLabel = document.createElement('label');
+        var postSpan = document.createElement('span'); postSpan.textContent = 'メガ後特性';
+        var megaAbilitySel = document.createElement('select');
+        megaAbilitySel.id = 'damekePokeEdit_abilityMega';
+        megaAbilitySel.disabled = true;
+        (Array.isArray(megaForm.abilities) ? megaForm.abilities : []).forEach(function(abName){
+          var op = document.createElement('option'); op.value = abName; op.textContent = abName;
+          megaAbilitySel.appendChild(op);
+        });
+        postLabel.appendChild(postSpan); postLabel.appendChild(megaAbilitySel);
+
+        var pairWrap = document.createElement('div');
+        pairWrap.className = 'dameke-pokemon-edit-mega-ability-pair';
+        pairWrap.appendChild(preLabel);
+        pairWrap.appendChild(postLabel);
+        abilityFieldHost.appendChild(pairWrap);
+      } else {
+        abilityFieldHost.className = '';
+        abilitySel = document.createElement('select'); abilitySel.id = 'damekePokeEdit_ability';
+        abilityFieldHost.appendChild(makeField('特性', abilitySel));
+      }
+      if(window.__damekeAttachSearchCombo) window.__damekeAttachSearchCombo('damekePokeEdit_ability');
+      refreshAbilityOptionsInEditForm();
+      if(prevValue){
+        var stillHas = Array.prototype.slice.call(abilitySel.options).some(function(o){ return o.value === prevValue; });
+        if(stillHas) abilitySel.value = prevValue;
+      }
+      if(abilitySel._v082hRefreshOptions) abilitySel._v082hRefreshOptions();
+    }
+    rebuildAbilityField();
+
+
 
     // 5. Tera type
     var teraSel = document.createElement('select'); teraSel.id = 'damekePokeEdit_tera';
@@ -1308,7 +1470,7 @@
       (function(idx){ q('damekePokeEdit_move'+idx).addEventListener('change', function(){ updateMoveSelectColor(idx); }); })(mi4);
     }
     pokemonSel.addEventListener('change', function(){
-      refreshAbilityOptionsInEditForm();
+      rebuildAbilityField();
       refreshMoveOptionsInEditForm();
       if(pokemonSel._v082hRefreshOptions) pokemonSel._v082hRefreshOptions();
       var selectedForGender = findPokemonById(pokemonSel.value);
@@ -1318,8 +1480,13 @@
         if(linkedItem){
           itemSel.value = linkedItem.id;
           if(itemSel._v082hRefreshOptions) itemSel._v082hRefreshOptions();
+          rebuildAbilityField();
         }
       }
+      updateStatsPreview();
+    });
+    itemSel.addEventListener('change', function(){
+      rebuildAbilityField();
       updateStatsPreview();
     });
     showAllCb.addEventListener('change', refreshMoveOptionsInEditForm);
@@ -1532,6 +1699,11 @@
       partyBtn.setAttribute('data-dameke-init', '1');
       partyBtn.addEventListener('click', function(){ openPartySelectorAndShow(null); });
     }
+    var filterInput = q('damekePokemonFilterInput');
+    if(filterInput && !filterInput.getAttribute('data-dameke-init')){
+      filterInput.setAttribute('data-dameke-init', '1');
+      filterInput.addEventListener('input', renderPokemonList);
+    }
   }
 
   // ==================== パーティ管理 (kept in this same IIFE so it can reuse all the
@@ -1698,33 +1870,80 @@
     if(!entry){ card.classList.add('dameke-party-member-empty'); card.textContent='（空き枠）'; return card; }
     var pokemon = findPokemonById(entry.pokemonId);
     var pokemonName = pokemon ? pokemon.name : (entry.pokemonId || '(不明)');
-    var actual = computeActualStatsFor(entry);
+    var ability = entry.abilityId && entry.abilityId!=='none' ? entry.abilityId : 'なし';
+    var item = entry.itemId && entry.itemId!=='none' ? entry.itemId : 'なし';
 
-    var head = document.createElement('div');
-    head.className = 'dameke-party-member-head';
-    head.appendChild(buildPokemonThumbFor(pokemonName));
-    var titleWrap = document.createElement('div');
-    var title = document.createElement('div');
-    title.className = 'dameke-pokemon-card-title';
-    title.textContent = entry.nickname ? (entry.nickname + '（' + pokemonName + '）') : pokemonName;
-    titleWrap.appendChild(title);
-    var sub = document.createElement('div');
-    sub.className = 'dameke-pokemon-card-sub';
-    var pokeTypes = pokemon && Array.isArray(pokemon.types) ? pokemon.types : [];
-    pokeTypes.forEach(function(t){
-      var badge = document.createElement('span');
-      badge.className = 'dameke-party-type-badge ' + typeColorClass(t);
-      badge.textContent = t;
-      sub.appendChild(badge);
-    });
-    if(entry.gender){
-      var genderSpan = document.createElement('span');
-      genderSpan.textContent = genderDisplayText(entry.gender);
-      sub.appendChild(genderSpan);
+    var Ddata = D();
+    var megaForm = (pokemon && Ddata.findFormByLinkedItem) ? Ddata.findFormByLinkedItem(pokemon, item) : null;
+    if(megaForm && megaForm.name === pokemon.name) megaForm = null;
+
+    // メガシンカの有無で変化する部分(サムネイル+名前+タイプ+特性+実数値)をまとめて再構築できる
+    // よう、専用のホストにまとめる(ポケモン管理のカードと同じ考え方)。
+    var variableHost = document.createElement('div');
+
+    function renderVariable(showPokemon, isMega){
+      variableHost.innerHTML = '';
+      var showName = showPokemon ? showPokemon.name : pokemonName;
+
+      var head = document.createElement('div');
+      head.className = 'dameke-party-member-head';
+      head.appendChild(buildPokemonThumbFor(showName, item));
+      var titleWrap = document.createElement('div');
+      var title = document.createElement('div');
+      title.className = 'dameke-pokemon-card-title';
+      title.textContent = entry.nickname ? (entry.nickname + '（' + showName + '）') : showName;
+      titleWrap.appendChild(title);
+      var sub = document.createElement('div');
+      sub.className = 'dameke-pokemon-card-sub';
+      var pokeTypes = showPokemon && Array.isArray(showPokemon.types) ? showPokemon.types : [];
+      pokeTypes.forEach(function(t){
+        var badge = document.createElement('span');
+        badge.className = 'dameke-party-type-badge ' + typeColorClass(t);
+        badge.textContent = t;
+        sub.appendChild(badge);
+      });
+      if(entry.gender){
+        var genderSpan = document.createElement('span');
+        genderSpan.textContent = genderDisplayText(entry.gender);
+        sub.appendChild(genderSpan);
+      }
+      titleWrap.appendChild(sub);
+      head.appendChild(titleWrap);
+
+      if(megaForm){
+        var toggleLabel = document.createElement('label');
+        toggleLabel.className = 'dameke-pokemon-mega-toggle dameke-pokemon-mega-toggle-compact' + (isMega ? ' dameke-pokemon-mega-toggle-active' : '');
+        var toggleCheckbox = document.createElement('input');
+        toggleCheckbox.type = 'checkbox';
+        toggleCheckbox.checked = !!isMega;
+        toggleCheckbox.addEventListener('change', function(){
+          renderVariable(toggleCheckbox.checked ? megaForm : pokemon, toggleCheckbox.checked);
+        });
+        toggleLabel.appendChild(toggleCheckbox);
+        toggleLabel.appendChild(document.createTextNode('メガシンカ'));
+        head.appendChild(toggleLabel);
+      }
+      variableHost.appendChild(head);
+
+      var abilityChipRow = document.createElement('div');
+      abilityChipRow.className = 'dameke-party-chip-row';
+      var abilityChip = document.createElement('div');
+      abilityChip.className = 'dameke-party-chip';
+      var abilityPre = document.createElement('b'); abilityPre.textContent = '特性：';
+      abilityChip.appendChild(abilityPre);
+      var abilityText = isMega && showPokemon && Array.isArray(showPokemon.abilities) && showPokemon.abilities[0]
+        ? showPokemon.abilities[0] : ability;
+      abilityChip.appendChild(document.createTextNode(abilityText));
+      abilityChipRow.appendChild(abilityChip);
+      variableHost.appendChild(abilityChipRow);
+
+      var actual = isMega && showPokemon && window.DAMEKE_CALC
+        ? window.DAMEKE_CALC.getActualStats(showPokemon, Number(entry.level)||50, entry)
+        : computeActualStatsFor(entry);
+      variableHost.appendChild(buildCombinedStatTable(entry, actual, isMega ? showPokemon : pokemon));
     }
-    titleWrap.appendChild(sub);
-    head.appendChild(titleWrap);
-    card.appendChild(head);
+    renderVariable(pokemon, false);
+    card.appendChild(variableHost);
 
     // 特性/持ち物/テラスタイプ each get their own full-width row with the full label -- letting
     // them wrap freely by available width (the earlier 1-character-prefix version) made the row
@@ -1750,8 +1969,7 @@
       chip.appendChild(badge);
       chipRow.appendChild(chip);
     }
-    addChip('特性', entry.abilityId && entry.abilityId!=='none' ? entry.abilityId : 'なし');
-    addChip('持ち物', entry.itemId && entry.itemId!=='none' ? entry.itemId : 'なし');
+    addChip('持ち物', item);
     addTeraChip(entry.teraType || 'なし');
     card.appendChild(chipRow);
 
@@ -1771,7 +1989,6 @@
     });
     card.appendChild(moveGrid);
 
-    card.appendChild(buildCombinedStatTable(entry, actual));
     return card;
   }
 

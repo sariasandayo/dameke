@@ -210,6 +210,7 @@ button:hover { background: #e0e7ff; }
   #v082hResultPanel .v082h-result-key{font-size:.68rem;}
   #v082hResultPanel .v082h-result-value{font-size:.72rem;}
   #v082hResultPanel .v082h-pokemon-thumb,#v082hResultPanel .v082h-pokemon-thumb-missing{width:60px;height:60px;}
+  #v082hResultPanel .v082h-item-thumb{width:20px;height:20px;}
 
   /* ポケモン管理・パーティ管理: below 1250px (this app's existing "narrow layout" breakpoint,
      matching where .layout itself drops to a single column) the fixed-width button columns
@@ -219,7 +220,7 @@ button:hover { background: #e0e7ff; }
      below the content instead, so the text gets the full card width to work with -- same
      information, just rearranged rather than shown side-by-side. */
   .dameke-pokemon-card{flex-wrap:wrap;}
-  .dameke-pokemon-card-thumb{order:1;}
+  .dameke-pokemon-card-thumb-group{order:1;}
   .dameke-pokemon-card-main{order:2;width:100%;flex:1 1 100% !important;}
   .dameke-pokemon-card-loadbtns{order:3;display:grid !important;grid-template-columns:1fr 1fr;gap:6px;width:100%;}
   .dameke-pokemon-card-actions{order:4;display:grid !important;grid-template-columns:1fr 1fr;gap:6px;width:100%;margin-top:-6px;}
@@ -292,6 +293,10 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .v082h-pokemon-thumb{flex:0 0 auto;width:68px;height:68px;display:flex;align-items:center;justify-content:center;}
 .v082h-pokemon-thumb img{max-width:100%;max-height:100%;image-rendering:pixelated;}
 .v082h-pokemon-thumb-missing{width:68px;height:68px;border-radius:50%;background:#e5e7eb;}
+.v082h-pokemon-thumb-group{display:flex;align-items:flex-end;gap:2px;flex:0 0 auto;}
+.v082h-item-thumb{width:22px;height:22px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;}
+.v082h-item-thumb img{max-width:100%;max-height:100%;}
+.v082h-item-thumb-missing{border-radius:50%;background:#e5e7eb;}
 .app-header{position:relative;}
 .dameke-menu-btn{position:absolute;top:12px;right:16px;width:44px;height:40px;background:transparent;border:none;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;padding:0;}
 .dameke-menu-btn span{display:block;width:26px;height:3px;background:#fff;border-radius:2px;flex-shrink:0;}
@@ -322,6 +327,10 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-history-thumb{flex:0 0 auto;width:48px;height:48px;display:flex;align-items:center;justify-content:center;}
 .dameke-history-thumb img{max-width:100%;max-height:100%;image-rendering:pixelated;}
 .dameke-history-thumb-missing{width:48px;height:48px;border-radius:50%;background:#e5e7eb;}
+.dameke-history-thumb-group{display:flex;align-items:flex-end;gap:2px;flex:0 0 auto;}
+.dameke-history-item-thumb{width:16px;height:16px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;}
+.dameke-history-item-thumb img{max-width:100%;max-height:100%;}
+.dameke-history-item-thumb-missing{border-radius:50%;background:#e5e7eb;}
 .dameke-history-hpbar-wrap{margin-top:8px;}
 .dameke-history-hpbar-track{position:relative;height:12px;border-radius:6px;background:#3f3f46;overflow:hidden;display:flex;}
 .dameke-history-hpbar-seg{height:100%;}
@@ -345,11 +354,19 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-pokemon-card-thumb{flex:0 0 auto;width:52px;height:52px;display:flex;align-items:center;justify-content:center;}
 .dameke-pokemon-card-thumb img{max-width:100%;max-height:100%;image-rendering:pixelated;}
 .dameke-pokemon-card-thumb-missing{width:52px;height:52px;border-radius:50%;background:#e5e7eb;}
+.dameke-pokemon-card-thumb-group{display:flex;align-items:flex-end;gap:3px;flex:0 0 auto;}
+.dameke-pokemon-card-item-thumb{flex:0 0 auto;display:flex;align-items:center;justify-content:center;}
+.dameke-pokemon-card-item-thumb img{max-width:100%;max-height:100%;}
+.dameke-pokemon-card-item-thumb-missing{border-radius:50%;background:#e5e7eb;}
 .dameke-pokemon-card-main{flex:1;min-width:0;}
 .dameke-pokemon-card-head{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
 .dameke-pokemon-card-head-large{gap:14px;margin-bottom:10px;}
+.dameke-pokemon-mega-toggle{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:999px;border:1px solid #a78bfa;background:#f5f3ff;color:#6d28d9;font-size:.72rem;font-weight:700;cursor:pointer;margin-top:6px;transition:background-color .12s,color .12s,border-color .12s;}
+.dameke-pokemon-mega-toggle input{margin:0;}
+.dameke-pokemon-mega-toggle-active{background:#7c3aed;border-color:#7c3aed;color:#fff;}
 .dameke-pokemon-card-head-large .dameke-pokemon-card-thumb{width:64px;height:64px;}
 .dameke-pokemon-card-head-large .dameke-pokemon-card-thumb-missing{width:64px;height:64px;}
+.dameke-pokemon-card-head-large .dameke-pokemon-card-item-thumb{width:32px;height:32px;}
 .dameke-pokemon-card-head-large .dameke-pokemon-card-title{font-size:1.05rem;}
 .dameke-pokemon-card-head-large .dameke-pokemon-card-sub{font-size:.8rem;gap:6px;}
 .dameke-pokemon-card-title{font-weight:800;font-size:.94rem;color:#111827;}
@@ -372,6 +389,8 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-pokemon-edit-grid label span{font-weight:600;}
 .dameke-pokemon-edit-grid select,.dameke-pokemon-edit-grid input,.dameke-pokemon-edit-grid textarea{font:inherit;border:1px solid #d1d5db;border-radius:8px;padding:6px 8px;}
 .dameke-pokemon-edit-fullwidth{grid-column:1/-1;}
+.dameke-pokemon-edit-mega-ability-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px;}
+.dameke-pokemon-edit-mega-ability-pair select:disabled{background:#f3f4f6;color:#6b7280;}
 .dameke-pokemon-edit-stat-table{display:grid;grid-template-columns:2.4em minmax(0,1fr);gap:4px 8px;font-size:.78rem;align-items:center;margin-top:4px;}
 
 /* Combined 努力値/実数値 table: corner cell + 6 stat-name headers, then a 努力値 row and a 実数値 row */
@@ -419,6 +438,8 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 
 /* ==================== パーティ管理 ==================== */
 .dameke-pokemon-panel-toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+.dameke-pokemon-filter-row{margin-bottom:10px;}
+.dameke-pokemon-filter-input{width:100%;box-sizing:border-box;font-size:.86rem;padding:8px 10px;}
 .dameke-toolbar-btn-new,.dameke-toolbar-btn-party,.dameke-toolbar-btn-copy{height:38px;box-sizing:border-box;}
 .dameke-toolbar-btn-party{background:linear-gradient(135deg,#7c3aed,#6d28d9);box-shadow:0 2px 6px rgba(124,58,237,.35);transition:transform .12s,box-shadow .12s;}
 .dameke-toolbar-btn-party::before{content:'⛨';font-size:1rem;}
@@ -439,8 +460,11 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-party-member-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;}
 .dameke-party-member-card{border:1px solid #e5e7eb;border-radius:8px;padding:6px;background:#fff;font-size:.72rem;}
 .dameke-party-member-empty{display:flex;align-items:center;justify-content:center;color:#d1d5db;min-height:120px;font-size:.78rem;}
-.dameke-party-member-head{display:flex;align-items:center;gap:5px;margin-bottom:3px;}
-.dameke-party-member-head .dameke-pokemon-card-thumb{width:30px;height:30px;}
+.dameke-party-member-head{display:flex;align-items:center;gap:5px;margin-bottom:3px;flex-wrap:wrap;}
+.dameke-pokemon-mega-toggle-compact{padding:2px 8px;font-size:.6rem;gap:3px;margin-top:0;}
+.dameke-party-member-head .dameke-pokemon-card-thumb{width:40px;height:40px;}
+.dameke-party-member-head .dameke-pokemon-card-thumb-missing{width:40px;height:40px;}
+.dameke-party-member-head .dameke-pokemon-card-item-thumb{width:20px;height:20px;}
 .dameke-party-member-head .dameke-pokemon-card-title{font-size:.74rem;line-height:1.2;}
 .dameke-party-member-head .dameke-pokemon-card-sub{font-size:.62rem;line-height:1.2;}
 .dameke-stat-boost{color:#dc2626 !important;}

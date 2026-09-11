@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>だめけー Web v2.0.0</title>
+  <title>だめけー Web</title>
   <meta name="description" content="Pokémon Champions対応の非公式ダメージ計算・個体調整・パーティ分析ツール" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="だめけー Web" />
@@ -300,6 +300,9 @@
           <button type="button" id="damekePokemonNewBtn" class="dameke-toolbar-btn dameke-toolbar-btn-new">新規作成</button>
           <button type="button" id="damekePartyNewFromPokemonBtn" class="dameke-toolbar-btn dameke-toolbar-btn-party">パーティ作成</button>
         </div>
+        <div class="dameke-pokemon-filter-row">
+          <input type="text" id="damekePokemonFilterInput" class="dameke-pokemon-filter-input" placeholder="ポケモン名で検索（前方一致）" />
+        </div>
         <div id="damekePokemonList" class="dameke-pokemon-list"></div>
         <div id="damekePokemonEditHost" class="dameke-pokemon-edit-host" hidden></div>
       </section>
@@ -584,6 +587,7 @@
 <script src="data.js"></script>
 <script src="data_learnsets.js"></script>
 <script src="data_pokemon_images.js"></script>
+<script src="data_item_images.js"></script>
 <script src="calc.js"></script>
   
 <script src="app.js"></script>

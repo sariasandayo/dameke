@@ -1419,6 +1419,10 @@
     if(window.__damekeApplyMoveFilter) window.__damekeApplyMoveFilter(); // new attacker's learnset may differ
     if(window.__damekeUpdateTypeColors) window.__damekeUpdateTypeColors();
     refreshAll(); // rebuilds ability chips for both sides + re-renders the last computed result
+    // swapSides はタイプ上書きを守るため attacker/defenderSelect に 'change' を発火しない。
+    // そのため、'change' 頼みで再描画しているフォルムチェンジボタン(v091)がそのままでは
+    // 攻防交代前の状態を表示し続けてしまう -- 直接再描画を呼んで同期する。
+    if(window.__damekeRenderFormButtons) window.__damekeRenderFormButtons();
     if(window.__damekeCalculate) window.__damekeCalculate(); // the one recalculation for this swap
   }
 
@@ -1511,14 +1515,47 @@
     return img;
   }
   window.__damekeBuildPokemonImage = buildPokemonImageEl;
-  function buildPokemonThumb(japaneseName, side) {
+
+  // 持ち物画像: ポケモン画像と同じロジックで、日本語名からPokeAPIの英語スラッグを引いて
+  // スプライトを組み立てる。PokeAPI側に対応するスラッグが見つからない持ち物(このアプリ独自の
+  // メガストーン等、実際のゲームに存在しない持ち物を含む)は、単純に画像なし(枠を空にする)。
+  function buildItemImageEl(japaneseName, onAllFailed){
+    var map = window.DAMEKE_ITEM_IMAGE_SLUGS;
+    var slug = map ? map[japaneseName] : null;
+    if(!slug) return null;
+    var img = document.createElement('img');
+    img.src = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/' + slug + '.png';
+    img.alt = japaneseName;
+    img.loading = 'lazy';
+    img.onerror = function(){ if(onAllFailed) onAllFailed(); };
+    return img;
+  }
+  window.__damekeBuildItemImage = buildItemImageEl;
+  function itemNameForSide(side){
+    var sel = q(side + 'ItemSelect');
+    if(!sel) return '';
+    var opt = sel.options[sel.selectedIndex];
+    return opt ? (opt.textContent || opt.value) : '';
+  }
+  function buildPokemonThumb(japaneseName, side, itemName) {
+    var group = make('div', 'v082h-pokemon-thumb-group');
     var wrap = make('div', 'v082h-pokemon-thumb v082h-pokemon-thumb-' + side);
     var img = buildPokemonImageEl(japaneseName, function(){
       wrap.classList.add('v082h-pokemon-thumb-missing'); wrap.innerHTML = '';
     });
     if(img) wrap.appendChild(img);
     else wrap.classList.add('v082h-pokemon-thumb-missing');
-    return wrap;
+    group.appendChild(wrap);
+    if(itemName && itemName !== 'なし'){
+      var itemWrap = make('div', 'v082h-item-thumb');
+      var itemImg = buildItemImageEl(itemName, function(){
+        itemWrap.classList.add('v082h-item-thumb-missing'); itemWrap.innerHTML = '';
+      });
+      if(itemImg) itemWrap.appendChild(itemImg);
+      else itemWrap.classList.add('v082h-item-thumb-missing');
+      group.appendChild(itemWrap);
+    }
+    return group;
   }
   function buildHpBar(maxHp, minRemain, maxRemain) {
     var track = make('div','v082h-hpbar-track');
@@ -1565,7 +1602,7 @@
     var moveNamePart = (attackerMovePart[1]||'').trim();
     var defenderNamePart = (headParts[1]||'').trim();
     var headerRow = make('div','v082h-result-header-row');
-    headerRow.appendChild(buildPokemonThumb(attackerNamePart, 'left'));
+    headerRow.appendChild(buildPokemonThumb(attackerNamePart, 'left', itemNameForSide('attacker')));
     var textCol = make('div','v082h-result-text-col');
     var namesLine = make('div','v082h-result-title', attackerNamePart+' → '+defenderNamePart);
     var moveLine = make('div','v082h-result-move-line', moveNamePart);
@@ -1574,7 +1611,7 @@
     textCol.appendChild(make('div','v082h-hp-infoline', dmg+'（'+rate+'）'));
     textCol.appendChild(make('div','v082h-hp-infoline2', certainty+'　瀕死率:'+faintRate));
     headerRow.appendChild(textCol);
-    headerRow.appendChild(buildPokemonThumb(defenderNamePart, 'right'));
+    headerRow.appendChild(buildPokemonThumb(defenderNamePart, 'right', itemNameForSide('defender')));
     panel.appendChild(headerRow);
 
     var maxHp=0;
@@ -2142,6 +2179,10 @@
     renderAll();
   }
   window.__damekeInitV093 = init;
+  // 攻防交代やポケモン管理からの呼び出しなど、他のモジュールからポケモン変更後の同期(タイプ表示・
+  // 特性チップ・フォルムチェンジボタン)を正しくトリガーできるよう公開する。
+  window.__damekeCommitPokemonForm = commitPokemon; // (side: 'A'|'D', pokemonObj, withLinked)
+  window.__damekeRenderFormButtons = renderAll;
   })();
 
 /* Form-change runtime END */
