@@ -863,6 +863,24 @@
       variableHost.innerHTML = '';
       var showName = showPokemon ? showPokemon.name : pokemonName;
 
+      // トグルはhead(サムネイル+名前+タイプ+性別+テラスタイプが積み重なる、内容によって縦に
+      // 伸びる領域)の外側、独立した行として一番上に置く。headの内部構造やポケモン名の長さに
+      // 一切依存しないため、画面幅やコンテンツの高さに関わらず必ず表示される。
+      if(megaForm){
+        var toggleRow = document.createElement('div');
+        toggleRow.className = 'dameke-pokemon-mega-toggle-row';
+        var toggleBtn = document.createElement('button');
+        toggleBtn.type = 'button';
+        toggleBtn.className = 'dameke-pokemon-mega-toggle' + (isMega ? ' dameke-pokemon-mega-toggle-active' : '');
+        toggleBtn.title = isMega ? 'メガシンカ中（タップで解除）' : 'メガシンカする';
+        toggleBtn.innerHTML = '<span class="dameke-pokemon-mega-toggle-switch"><span class="dameke-pokemon-mega-toggle-thumb"></span></span>';
+        toggleBtn.addEventListener('click', function(){
+          renderVariable(isMega ? pokemon : megaForm, !isMega);
+        });
+        toggleRow.appendChild(toggleBtn);
+        variableHost.appendChild(toggleRow);
+      }
+
       var head = document.createElement('div');
       head.className = 'dameke-pokemon-card-head dameke-pokemon-card-head-large';
       head.appendChild(buildPokemonThumbFor(showName, item));
@@ -903,18 +921,6 @@
       teraRow.appendChild(teraBadge);
       titleWrap.appendChild(teraRow);
       head.appendChild(titleWrap);
-
-      if(megaForm){
-        var toggleBtn = document.createElement('button');
-        toggleBtn.type = 'button';
-        toggleBtn.className = 'dameke-pokemon-mega-toggle' + (isMega ? ' dameke-pokemon-mega-toggle-active' : '');
-        toggleBtn.title = isMega ? 'メガシンカ中（タップで解除）' : 'メガシンカする';
-        toggleBtn.innerHTML = '<span class="dameke-pokemon-mega-toggle-switch"><span class="dameke-pokemon-mega-toggle-thumb"></span></span>';
-        toggleBtn.addEventListener('click', function(){
-          renderVariable(isMega ? pokemon : megaForm, !isMega);
-        });
-        head.appendChild(toggleBtn);
-      }
       variableHost.appendChild(head);
 
       // 特性チップ単体(テラスタイプは変化しないため据え置き) -- メガ後は特性が固定1つになる
@@ -1905,6 +1911,24 @@
       variableHost.innerHTML = '';
       var showName = showPokemon ? showPokemon.name : pokemonName;
 
+      // トグルはhead(サムネイル+名前+タイプ+性別+テラスタイプが積み重なる領域)の外側、独立
+      // した行として一番上に置く。headの内部構造やポケモン名の長さに依存しないため、画面幅や
+      // コンテンツの高さに関わらず必ず表示される。
+      if(megaForm){
+        var toggleRow = document.createElement('div');
+        toggleRow.className = 'dameke-pokemon-mega-toggle-row dameke-pokemon-mega-toggle-row-compact';
+        var toggleBtn = document.createElement('button');
+        toggleBtn.type = 'button';
+        toggleBtn.className = 'dameke-pokemon-mega-toggle dameke-pokemon-mega-toggle-compact' + (isMega ? ' dameke-pokemon-mega-toggle-active' : '');
+        toggleBtn.title = isMega ? 'メガシンカ中（タップで解除）' : 'メガシンカする';
+        toggleBtn.innerHTML = '<span class="dameke-pokemon-mega-toggle-switch"><span class="dameke-pokemon-mega-toggle-thumb"></span></span>';
+        toggleBtn.addEventListener('click', function(){
+          renderVariable(isMega ? pokemon : megaForm, !isMega);
+        });
+        toggleRow.appendChild(toggleBtn);
+        variableHost.appendChild(toggleRow);
+      }
+
       var head = document.createElement('div');
       head.className = 'dameke-party-member-head';
       head.appendChild(buildPokemonThumbFor(showName, item));
@@ -1946,18 +1970,6 @@
       teraRow.appendChild(teraBadge);
       titleWrap.appendChild(teraRow);
       head.appendChild(titleWrap);
-
-      if(megaForm){
-        var toggleBtn = document.createElement('button');
-        toggleBtn.type = 'button';
-        toggleBtn.className = 'dameke-pokemon-mega-toggle dameke-pokemon-mega-toggle-compact' + (isMega ? ' dameke-pokemon-mega-toggle-active' : '');
-        toggleBtn.title = isMega ? 'メガシンカ中（タップで解除）' : 'メガシンカする';
-        toggleBtn.innerHTML = '<span class="dameke-pokemon-mega-toggle-switch"><span class="dameke-pokemon-mega-toggle-thumb"></span></span>';
-        toggleBtn.addEventListener('click', function(){
-          renderVariable(isMega ? pokemon : megaForm, !isMega);
-        });
-        head.appendChild(toggleBtn);
-      }
       variableHost.appendChild(head);
 
       var abilityChipRow = document.createElement('div');

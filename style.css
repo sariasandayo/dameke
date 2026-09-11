@@ -361,7 +361,9 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-pokemon-card-main{flex:1;min-width:0;}
 .dameke-pokemon-card-head{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
 .dameke-pokemon-card-head-large{gap:14px;margin-bottom:10px;}
-.dameke-pokemon-mega-toggle{flex:0 0 auto;margin-left:auto;display:inline-block;padding:0;border:none;background:transparent;cursor:pointer;line-height:0;align-self:center;}
+.dameke-pokemon-mega-toggle-row{display:flex;justify-content:flex-end;margin-bottom:4px;}
+.dameke-pokemon-mega-toggle-row-compact{margin-bottom:2px;}
+.dameke-pokemon-mega-toggle{display:inline-block;padding:0;border:none;background:transparent;cursor:pointer;line-height:0;}
 .dameke-pokemon-mega-toggle-switch{display:inline-block;width:34px;height:19px;border-radius:999px;background:#cbd5e1;position:relative;transition:background-color .15s;vertical-align:middle;}
 .dameke-pokemon-mega-toggle-thumb{position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.35);transition:transform .15s;}
 .dameke-pokemon-mega-toggle-active .dameke-pokemon-mega-toggle-switch{background:#7c3aed;}
