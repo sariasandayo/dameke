@@ -681,6 +681,7 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-search-move-filter-slot{border:1px solid #eef1f6;border-radius:6px;padding:6px;background:#fafbfc;}
 .dameke-search-result-host{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px;max-height:75vh;overflow-y:auto;padding:4px;}
 .dameke-search-result-item{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;border:1px solid #e5e7eb;border-radius:8px;cursor:pointer;transition:box-shadow .12s,border-color .12s;}
+.dameke-search-result-item-nodata{background:#f3f4f6;}
 .dameke-search-result-item:hover{border-color:#2563eb;box-shadow:0 2px 6px rgba(37,99,235,.2);}
 .dameke-search-thumb{width:56px;height:56px;display:flex;align-items:center;justify-content:center;}
 .dameke-search-thumb img{max-width:100%;max-height:100%;}
@@ -699,6 +700,22 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-search-combined-stat-table{border:1px solid #e5e7eb;border-radius:8px;padding:8px;overflow-x:auto;max-width:100%;}
 .dameke-search-ability-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
 .dameke-search-ability-chip{border:1px solid #d1d5db;background:#f9fafb;color:#374151;border-radius:999px;padding:5px 12px;font-size:.78rem;font-weight:700;cursor:pointer;}
+/* 使用率(性格/努力値/特性)の一覧行 */
+.dameke-search-usage-rate-list{display:flex;flex-direction:column;gap:2px;margin-bottom:8px;}
+.dameke-search-usage-rate-row{display:flex;justify-content:space-between;gap:8px;font-size:.78rem;color:#374151;padding:2px 4px;border-bottom:1px dashed #f1f5f9;}
+.dameke-search-usage-rate-value{color:#6b7280;font-weight:700;white-space:nowrap;}
+/* 技の採用率TOP10強調 */
+.dameke-search-move-name-top10{background:#fef9c3;border-radius:4px;padding:1px 4px;display:inline-block;}
+.dameke-search-move-rate{display:block;font-size:.66rem;color:#92400e;font-weight:700;}
+/* 持ち物採用率 */
+.dameke-search-usage-item-list{display:flex;flex-direction:column;gap:2px;margin-bottom:8px;}
+.dameke-search-usage-item-row{display:flex;align-items:center;gap:6px;font-size:.78rem;color:#374151;padding:2px 4px;border-bottom:1px dashed #f1f5f9;}
+.dameke-search-usage-item-row span:nth-child(2){flex:1 1 auto;}
+.dameke-search-usage-item-thumb{width:20px;height:20px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;}
+.dameke-search-usage-item-thumb img{max-width:100%;max-height:100%;}
+/* 同じチームのポケモン */
+.dameke-search-teammate-host{margin-bottom:8px;}
+.dameke-search-usage-source-note{font-size:.62rem;color:#9ca3af;white-space:nowrap;}
 .dameke-search-ability-chip-active{background:#1f2937;color:#fff;border-color:#1f2937;}
 
 .dameke-search-matchup-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:5px;margin-bottom:14px;}
@@ -719,9 +736,9 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-search-matchup-immune{background:#e5e7eb;color:#374151;}
 
 .dameke-search-move-filter-grid{display:flex;flex-direction:column;gap:5px;margin-top:8px;}
-.dameke-search-move-filter-row1{display:flex;}
+.dameke-search-move-filter-row1{display:flex;width:100%;box-sizing:border-box;}
 .dameke-search-move-filter-row1 input{padding:5px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:.78rem;flex:0 1 33%;max-width:33%;min-width:0;}
-#damekeSearchFilterHost .dameke-search-move-filter-row1 .v082h-search-combo{flex:0 1 33% !important;width:33% !important;max-width:33% !important;min-width:0 !important;}
+#damekeSearchFilterHost .dameke-search-move-filter-row1 .v082h-search-combo{width:100% !important;max-width:none !important;flex:1 1 auto !important;}
 .dameke-search-move-filter-row2{display:flex;gap:5px;flex-wrap:nowrap;}
 .dameke-search-move-filter-row2 > *{flex:1 1 0;min-width:0;}
 .dameke-search-move-filter-row2 input{padding:5px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:.78rem;width:100%;}

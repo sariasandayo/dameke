@@ -1363,7 +1363,7 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
     if(['じばく','だいばくはつ','ビックリヘッド','ミストバースト'].indexOf(n)>=0 && dOk && dAb.name==='しめりけ')
       return {invalid:true,reason:'しめりけにより爆発技無効'};
 
-    if(priority>=1 && dOk && ['ビビッドボディ','じょうおうのいげん','テイルアーマー'].indexOf(dAb.name)>=0)
+    if(priority>=1 && dOk && ['ビビッドボディ','じょおうのいげん','テイルアーマー'].indexOf(dAb.name)>=0)
       return {invalid:true,reason:dAb.name+'により先制技無効'};
 
     if((o.field||'なし')==='サイコフィールド' && isGrounded(result,'D') && invisible==='なし' && priority>=1)

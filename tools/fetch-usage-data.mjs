@@ -1,0 +1,398 @@
+#!/usr/bin/env node
+// 使用率データ取得・変換スクリプト (v2.1.0)
+//
+// データソース: Pokemon Champions Battle Data (https://championsbattledata.com/)
+// - ファンメイドの非公式サイト。運営者自身の明言により、データはPokemon Championsの
+//   ランクバトルプレイから収集されている(Showdownではない)。
+// - 利用規約(/api-rules/)で、出典表記付きでのキャッシュ・商用利用を含む再利用を許可。
+//
+// 設計方針:
+// - このスクリプトはGitHub Actionsから1日1回だけ実行される想定。
+// - 失敗した場合は既存の data/data.usage.json を一切変更しない(exit code 1で終了)。
+// - シングル/ダブルの片方だけ取得に失敗した場合は、成功した方だけ更新し、失敗した方は
+//   前回の値をそのまま維持する。
+// - だめけー側のポケモンID(日本語名)と、championsbattledata側のslug/showdownIdを
+//   対応付けるため、PokeAPIの英語名を橋渡しとして使う(だめけー側は既に
+//   data_pokemon_images.js で 日本語名→PokeAPI数値ID を持っているため、これに
+//   PokeAPIの pokemon-species 一覧(数値ID→英語名)を組み合わせて 日本語名→英語名 を得て、
+//   championsbattledata側のslugと突き合わせる)。
+
+import { readFileSync, writeFileSync, existsSync, appendFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = path.resolve(__dirname, '..');
+const OUTPUT_PATH = path.join(REPO_ROOT, 'data', 'data.usage.json');
+const POKEMON_IMAGE_IDS_PATH = path.join(REPO_ROOT, 'data_pokemon_images.js');
+const ABILITY_JA_TO_EN_PATH = path.join(__dirname, 'name-maps', 'abilities-ja-en.json');
+const ITEM_IMAGE_SLUGS_PATH = path.join(REPO_ROOT, 'data_item_images.js');
+const MOVE_JA_TO_EN_PATH = path.join(__dirname, 'name-maps', 'moves-ja-en.json');
+const NATURE_JA_TO_EN_PATH = path.join(__dirname, 'name-maps', 'natures-ja-en.json');
+
+const CHAMPIONS_API = 'https://championsbattledata.com/api';
+const POKEAPI_SPECIES_LIST = 'https://pokeapi.co/api/v2/pokemon-species?limit=2000';
+const POKEAPI_POKEMON_LIST = 'https://pokeapi.co/api/v2/pokemon?limit=2000';
+
+const FETCH_TIMEOUT_MS = 20000;
+const RETRY_COUNT = 3;
+const RETRY_DELAY_MS = 1500;
+
+const summaryLines = [];
+function summary(line) { summaryLines.push(line); console.log(line); }
+function writeSummaryAndExit(code) {
+  const summaryPath = process.env.GITHUB_STEP_SUMMARY;
+  if (summaryPath) {
+    appendFileSync(summaryPath, '## 使用率データ更新結果\n\n' + summaryLines.map(l => '- ' + l).join('\n') + '\n');
+  }
+  process.exit(code);
+}
+
+// ---- 汎用フェッチ (タイムアウト + 短いリトライ) ----
+async function fetchJsonWithRetry(url, { retries = RETRY_COUNT } = {}) {
+  let lastErr;
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    try {
+      const res = await fetch(url, { signal: controller.signal, headers: { 'Accept': 'application/json' } });
+      clearTimeout(timer);
+      if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        // HTMLエラーページ等が返ってきた場合を弾く
+        throw new Error(`Unexpected content-type "${contentType}" for ${url}`);
+      }
+      const text = await res.text();
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        throw new Error(`JSON parse failed for ${url}: ${e.message}`);
+      }
+    } catch (e) {
+      clearTimeout(timer);
+      lastErr = e;
+      if (attempt < retries) await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
+    }
+  }
+  throw lastErr;
+}
+
+function readJsonIfExists(p) {
+  if (!existsSync(p)) return null;
+  try { return JSON.parse(readFileSync(p, 'utf-8')); } catch { return null; }
+}
+
+// ---- だめけー側 日本語名 -> PokeAPI数値ID (既存の data_pokemon_images.js を再利用) ----
+function loadDamekePokemonImageIds() {
+  const raw = readFileSync(POKEMON_IMAGE_IDS_PATH, 'utf-8');
+  const jsonLike = raw.replace('window.DAMEKE_POKEMON_IMAGE_IDS = ', '').trim().replace(/;\s*$/, '');
+  // このファイルはシングルクォートのJS風オブジェクトリテラルなので、JSON.parseではなく
+  // Function経由で安全に評価する(このスクリプト自身がdamekeーリポジトリ内で完結しており、
+  // 外部入力ではないため許容する)。
+  // eslint-disable-next-line no-new-func
+  const obj = new Function('return (' + jsonLike + ')')();
+  return obj; // { '日本語名': 数値ID, ... }
+}
+
+// ---- だめけー側 日本語名 -> 英語slug (持ち物) : 既に本番の持ち物画像表示機能で使用・検証
+// 済みの data_item_images.js をそのまま再利用する。個別に日英対応表を作り直す必要はない。
+function loadDamekeItemImageSlugs() {
+  const raw = readFileSync(ITEM_IMAGE_SLUGS_PATH, 'utf-8');
+  const jsonLike = raw.replace('window.DAMEKE_ITEM_IMAGE_SLUGS = ', '').trim().replace(/;\s*$/, '');
+  // eslint-disable-next-line no-new-func
+  const obj = new Function('return (' + jsonLike + ')')();
+  return obj; // { '日本語名': '英語slug', ... }
+}
+
+// ---- PokeAPI 数値ID -> 英語slug 一覧を取得。pokemon-species(基本種、id 1〜1025程度)だけでは
+// メガシンカ等のフォルム(idが10000番台の"pokemon"リソース側にのみ存在する)を拾えないため、
+// pokemon-species と pokemon の両方の一覧を取得してマージする。
+async function loadPokeApiIdToEnglishSlug() {
+  const map = {};
+  const [speciesData, pokemonData] = await Promise.all([
+    fetchJsonWithRetry(POKEAPI_SPECIES_LIST, { retries: RETRY_COUNT }),
+    fetchJsonWithRetry(POKEAPI_POKEMON_LIST, { retries: RETRY_COUNT }),
+  ]);
+  for (const entry of speciesData.results || []) {
+    const m = String(entry.url || '').match(/\/pokemon-species\/(\d+)\/?$/);
+    if (!m) continue;
+    map[Number(m[1])] = entry.name;
+  }
+  for (const entry of pokemonData.results || []) {
+    const m = String(entry.url || '').match(/\/pokemon\/(\d+)\/?$/);
+    if (!m) continue;
+    // pokemon側のidは基本種と重複するもの(同じ数値)もあるが、フォルム固有の高いidは
+    // ここでしか手に入らないため、基本種側の値を上書きしないよう、まだ無い時だけ設定する。
+    const id = Number(m[1]);
+    if (map[id] == null) map[id] = entry.name;
+  }
+  return map;
+}
+
+// だめけー側の表記ゆれ(フォルム名の括弧書きなど)を落とし、素のポケモン名部分だけ取り出す。
+// 例: "ロトム(ウォッシュ)" -> "ロトム"
+function baseJapaneseName(name) {
+  const m = String(name || '').match(/^(.+?)[（(]/);
+  return m ? m[1] : name;
+}
+
+// PokeAPI(本編シリーズのデータ)には存在しない、Pokemon Champions独自のフォルム
+// (「メガ○○Z」等)は、PokeAPI経由の橋渡しでは原理的に対応できない。件数が少ないため、
+// 判明している分だけこの上書きマップで直接 championsbattledata 側のslugを指定する。
+// 新しい独自フォルムが追加された場合は、ここに追記する。
+const KNOWN_CHAMPIONS_ONLY_SLUGS = {
+  'メガガブリアスZ': 'mega-garchomp-z',
+  'メガアブソルZ': 'mega-absol-z',
+  'メガルカリオZ': 'mega-lucario-z',
+};
+
+function normalizeSlug(s) {
+  const cleaned = String(s || '').toLowerCase().replace(/[^a-z0-9-]/g, '');
+  // PokeAPI側は "garchomp-mega" のように種族名が先、championsbattledata側は
+  // "mega-garchomp" のように "mega" が先に来る語順の違いがあるため、"mega"/"megax"/
+  // "megay"がどこにあっても先頭に来るよう並べ替えてから比較する。
+  const parts = cleaned.split('-').filter(Boolean);
+  const megaIdx = parts.findIndex(p => p === 'mega');
+  if (megaIdx > 0) {
+    const rest = parts.filter((_, i) => i !== megaIdx);
+    return ['mega', ...rest].join('');
+  }
+  return parts.join('');
+}
+
+// championsbattledata側の pokemon[] を、slug正規化した形でインデックス化。
+function indexChampionsPokemonBySlug(apiIndex) {
+  const bySlug = new Map();
+  for (const p of apiIndex.pokemon || []) {
+    bySlug.set(normalizeSlug(p.slug), p);
+    if (p.showdownId) bySlug.set(normalizeSlug(p.showdownId), p);
+  }
+  return bySlug;
+}
+
+// ---- だめけーポケモンID(日本語名) -> championsbattledata側エントリ の対応表を構築 ----
+async function buildPokemonIdMap(championsIndex, auditLog) {
+  const damekeIds = loadDamekePokemonImageIds();
+  const pokeApiIdToSlug = await loadPokeApiIdToEnglishSlug();
+  const championsBySlug = indexChampionsPokemonBySlug(championsIndex);
+
+  const map = {}; // だめけー日本語名 -> championsPokemonエントリ
+  let matched = 0, unmatched = 0;
+  for (const [jaName, numericId] of Object.entries(damekeIds)) {
+    // 既知のPokemon Champions独自フォルムを優先的にチェック(PokeAPIには存在しないため)。
+    if (KNOWN_CHAMPIONS_ONLY_SLUGS[jaName]) {
+      const candidate = championsBySlug.get(normalizeSlug(KNOWN_CHAMPIONS_ONLY_SLUGS[jaName]));
+      if (candidate) { map[jaName] = candidate; matched++; continue; }
+    }
+    const englishSlug = pokeApiIdToSlug[numericId];
+    if (!englishSlug) { unmatched++; auditLog.unmatchedPokemon.push(jaName); continue; }
+    const candidate = championsBySlug.get(normalizeSlug(englishSlug));
+    if (candidate) { map[jaName] = candidate; matched++; continue; }
+    unmatched++;
+    auditLog.unmatchedPokemon.push(jaName);
+  }
+  summary(`ポケモンID対応: 成功 ${matched} 件 / 未対応 ${unmatched} 件`);
+  return map;
+}
+
+// ---- 技・特性・持ち物・性格の 日本語<->英語 対応表 (別ファイルで管理、随時拡充) ----
+function loadNameMap(p) { return readJsonIfExists(p) || {}; }
+
+function buildReverseMap(jaToEn) {
+  const rev = {};
+  for (const [ja, en] of Object.entries(jaToEn)) rev[normalizeSlug(en)] = ja;
+  return rev;
+}
+
+// ---- 1匹分の battleSummary から、公開用JSONの1エントリを作る ----
+function buildPokemonEntry(jaName, championsPokemon, format, nameMaps, auditLog, reversePokemonMap) {
+  const bs = championsPokemon?.summary?.battleSummary?.Current?.[format];
+  if (!bs) return null;
+  const top = bs.top || {};
+  const values = bs.values || {};
+
+  function mapList(categoryKey, jaToEnMap, auditKey) {
+    const names = values[categoryKey] || [];
+    const topEntry = top[categoryKey];
+    const out = [];
+    names.forEach((enName) => {
+      const revMap = buildReverseMap(jaToEnMap);
+      const ja = revMap[normalizeSlug(enName)];
+      if (!ja) { auditLog[auditKey].push(enName); return; }
+      // rateは値配列自体には付与されていないため、topエントリのみ%が既知。
+      // top以外の順位のrate%は取得できないため、topの1件だけrateを持たせ、
+      // それ以外は「収録されているが割合は不明」として rate:null にする。
+      const isTop = topEntry && topEntry.name === enName;
+      out.push({ id: ja, rate: isTop && topEntry.percentage_value != null ? Number(topEntry.percentage_value.toFixed(1)) : null });
+    });
+    return out;
+  }
+
+  const abilities = mapList('ability', nameMaps.abilities, 'unmatchedAbilities');
+  const items = mapList('held_item', nameMaps.items, 'unmatchedItems');
+  const moves = mapList('move', nameMaps.moves, 'unmatchedMoves');
+  const natures = mapList('stat_alignment', nameMaps.natures, 'unmatchedNatures');
+
+  // 努力値配分(stat_points)は日本語訳の必要がない数値情報なので、"HP 32 / Atk 0 / ..." 形式
+  // から、だめけー側の表記(H/A/B/C/D/S)へ変換するだけでよい。
+  function formatEvSpread(row){
+    if (!row) return null;
+    const parts = [];
+    if (row.hp_points != null) parts.push('H' + row.hp_points);
+    if (row.attack_points != null) parts.push('A' + row.attack_points);
+    if (row.defense_points != null) parts.push('B' + row.defense_points);
+    if (row.sp_atk_points != null) parts.push('C' + row.sp_atk_points);
+    if (row.sp_def_points != null) parts.push('D' + row.sp_def_points);
+    if (row.speed_points != null) parts.push('S' + row.speed_points);
+    return parts.length ? parts.join('/') : null;
+  }
+  const evSpreads = [];
+  {
+    const rawList = values.stat_points || []; // 生の文字列("HP 32 / Atk 0 / ...")の配列
+    const topRow = top.stat_points;
+    rawList.forEach((rawLabel, idx) => {
+      // valuesの配列自体は文字列のみで各行の内訳を持たないため、top(1位)だけは実際の内訳
+      // (hp_points等)とrate%が分かる。それ以外は文字列表示のみ、rateはnullとする。
+      const isTop = idx === 0 && topRow;
+      const label = isTop ? (formatEvSpread(topRow) || rawLabel) : rawLabel;
+      const rate = isTop && topRow.percentage_value != null ? Number(topRow.percentage_value.toFixed(1)) : null;
+      evSpreads.push({ label, rate });
+    });
+  }
+
+  // 味方ポケモンは、既に構築済みのポケモンID対応表(英語battleName -> だめけー日本語名)の
+  // 逆引きで変換する。変換できない場合はその行だけ除外し、監査対象に記録する。
+  const teammates = (values.teammate || [])
+    .map((enName) => {
+      const jaName = reversePokemonMap.get(normalizeSlug(enName));
+      if (!jaName) { auditLog.unmatchedTeammates.push(enName); return null; }
+      return { id: jaName, rate: null };
+    })
+    .filter(Boolean);
+
+  // position(=column_position)は、その形式(シングル/ダブル)における使用率ランキング上の
+  // 列位置であり、実質的にそのポケモン自体の使用率順位として扱える。カテゴリによらず同じ
+  // ポケモン+形式では共通の値なので、topのどれか(move)から取得する。
+  const rank = bs.top?.move?.position ?? bs.position ?? null;
+
+  return {
+    sourcePokemonId: championsPokemon.slug,
+    rank,
+    usageRate: null, // ポケモン自体の採用率(%)は現時点でAPIレスポンスから直接確認できて
+    // いないため null のまま。rankによる順位付けは可能。
+    natures,
+    evSpreads,
+    abilities,
+    items,
+    moves,
+    teammates,
+  };
+}
+
+async function main() {
+  const auditLog = {
+    unmatchedPokemon: [], unmatchedAbilities: [], unmatchedItems: [],
+    unmatchedMoves: [], unmatchedNatures: [], unmatchedTeammates: [],
+  };
+
+  let championsIndex;
+  try {
+    championsIndex = await fetchJsonWithRetry(CHAMPIONS_API);
+  } catch (e) {
+    summary(`❌ championsbattledata.com からの取得に失敗: ${e.message}`);
+    summary('既存の data.usage.json は変更せず終了します。');
+    writeSummaryAndExit(1);
+    return;
+  }
+
+  // ゲーム内由来であることを裏付ける最低限のメタ情報チェック。
+  if (!Array.isArray(championsIndex.pokemon) || championsIndex.pokemon.length < 100) {
+    summary(`❌ 取得したポケモン件数が異常に少ない(${championsIndex.pokemon?.length ?? 0}件)。更新を中止します。`);
+    writeSummaryAndExit(1);
+    return;
+  }
+
+  const nameMaps = {
+    abilities: loadNameMap(ABILITY_JA_TO_EN_PATH),
+    items: loadDamekeItemImageSlugs(),
+    moves: loadNameMap(MOVE_JA_TO_EN_PATH),
+    natures: loadNameMap(NATURE_JA_TO_EN_PATH),
+  };
+
+  const pokemonIdMap = await buildPokemonIdMap(championsIndex, auditLog);
+
+  // 味方ポケモン変換用: championsPokemon側の名前(slug/battleName/name いずれか)を正規化した
+  // ものから、だめけー日本語名を引けるようにする逆引きマップ。
+  const reversePokemonMap = new Map();
+  for (const [jaName, championsPokemon] of Object.entries(pokemonIdMap)) {
+    for (const key of [championsPokemon.slug, championsPokemon.showdownId, championsPokemon.name, championsPokemon.battleName]) {
+      if (key) reversePokemonMap.set(normalizeSlug(key), jaName);
+    }
+  }
+
+  const existing = readJsonIfExists(OUTPUT_PATH);
+  const nowIso = new Date().toISOString();
+
+  const formatsOut = { singles: null, doubles: null };
+  let anyFormatSucceeded = false;
+
+  for (const [outKey, apiFormat] of [['singles', 'Singles'], ['doubles', 'Doubles']]) {
+    try {
+      const pokemonOut = {};
+      let count = 0;
+      for (const [jaName, championsPokemon] of Object.entries(pokemonIdMap)) {
+        const entry = buildPokemonEntry(jaName, championsPokemon, apiFormat, nameMaps, auditLog, reversePokemonMap);
+        if (!entry) continue;
+        pokemonOut[jaName] = entry;
+        count++;
+      }
+      if (count === 0) throw new Error('0件のポケモンしか変換できませんでした');
+      formatsOut[outKey] = {
+        season: championsIndex.defaultSeason || 'Current',
+        regulation: null,
+        generatedAt: nowIso,
+        sampleSize: null,
+        pokemon: pokemonOut,
+      };
+      anyFormatSucceeded = true;
+      summary(`${outKey}: ${count} 件のポケモンを変換しました。`);
+    } catch (e) {
+      summary(`⚠ ${outKey} の変換に失敗: ${e.message}。前回値を維持します。`);
+      formatsOut[outKey] = existing?.formats?.[outKey] || null;
+    }
+  }
+
+  if (!anyFormatSucceeded) {
+    summary('❌ シングル・ダブルの両方が失敗しました。data.usage.json は更新しません。');
+    writeSummaryAndExit(1);
+    return;
+  }
+
+  const output = {
+    schemaVersion: 1,
+    source: {
+      name: 'Pokemon Champions Battle Data',
+      url: 'https://championsbattledata.com/',
+      sourceType: 'pokemon-champions-in-game',
+      game: 'pokemon-champions',
+    },
+    retrievedAt: nowIso,
+    formats: formatsOut,
+  };
+
+  writeFileSync(OUTPUT_PATH, JSON.stringify(output));
+
+  summary(`未対応ポケモン: ${auditLog.unmatchedPokemon.length} 件`);
+  summary(`未対応特性: ${new Set(auditLog.unmatchedAbilities).size} 種`);
+  summary(`未対応持ち物: ${new Set(auditLog.unmatchedItems).size} 種`);
+  summary(`未対応技: ${new Set(auditLog.unmatchedMoves).size} 種`);
+  summary(`未対応性格: ${new Set(auditLog.unmatchedNatures).size} 種`);
+  summary('✅ data.usage.json を更新しました。');
+  writeSummaryAndExit(0);
+}
+
+main().catch((e) => {
+  summary(`❌ 予期しないエラー: ${e?.stack || e}`);
+  writeSummaryAndExit(1);
+});

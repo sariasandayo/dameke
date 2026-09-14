@@ -13,6 +13,56 @@
   var TYPE_COLOR_MAP = { 'なし':'none', 'ノーマル':'normal', 'ほのお':'fire', 'みず':'water', 'でんき':'electric', 'くさ':'grass', 'こおり':'ice', 'かくとう':'fighting', 'どく':'poison', 'じめん':'ground', 'ひこう':'flying', 'エスパー':'psychic', 'むし':'bug', 'いわ':'rock', 'ゴースト':'ghost', 'ドラゴン':'dragon', 'あく':'dark', 'はがね':'steel', 'フェアリー':'fairy', 'ステラ':'stellar' };
   function typeColorClass(t){ return 'dameke-type-' + (TYPE_COLOR_MAP[t] || 'none'); }
 
+  // ==================== 使用率データ (v2.1.0) ====================
+  // Pokemon Champions Battle Data (https://championsbattledata.com/) から日次取得した
+  // 使用率データ。取得・読込・検証のいずれかに失敗しても、既存のポケモン検索機能には
+  // 一切影響を与えない設計とする(usageData が null のままなら、使用率関連の表示・
+  // 並べ替えだけを安全に非表示/無効化し、それ以外は従来通り動作する)。
+  var usageData = null; // 検証に通った場合のみ、パース済みのオブジェクトが入る
+  var usageFormat = 'singles'; // 'singles' | 'doubles'
+  var usageLoadPromise = null;
+
+  function isFiniteNumberInRange(v, min, max){
+    return typeof v === 'number' && isFinite(v) && v >= min && v <= max;
+  }
+
+  // 最低限のスキーマ検証。ここを通らないデータは一切使用しない(ブラウザ側は安全性優先)。
+  function validateUsageData(obj){
+    if(!obj || typeof obj !== 'object') return false;
+    if(obj.schemaVersion !== 1) return false;
+    if(!obj.source || obj.source.sourceType !== 'pokemon-champions-in-game') return false;
+    if(!obj.formats || typeof obj.formats !== 'object') return false;
+    if(!obj.formats.singles && !obj.formats.doubles) return false;
+    return true;
+  }
+
+  function usageFormatData(){
+    if(!usageData) return null;
+    return usageData.formats && usageData.formats[usageFormat] || null;
+  }
+
+  function usagePokemonEntry(pokemonName){
+    var fd = usageFormatData();
+    if(!fd || !fd.pokemon) return null;
+    return fd.pokemon[pokemonName] || null;
+  }
+
+  function loadUsageData(){
+    if(usageLoadPromise) return usageLoadPromise;
+    usageLoadPromise = fetch('data/data.usage.json')
+      .then(function(res){ if(!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+      .then(function(json){
+        if(!validateUsageData(json)){ console.warn('[使用率] スキーマ検証に失敗したため無効化します。'); return; }
+        usageData = json;
+      })
+      .catch(function(e){
+        // 使用率データがまだ存在しない/取得できない場合は、通常のポケモン検索として
+        // 動作させるだけでよいので、警告のみに留める(エラー表示やダイアログは出さない)。
+        console.warn('[使用率] 読み込みに失敗しました。使用率機能なしで動作します。', e);
+      });
+    return usageLoadPromise;
+  }
+
   var NATURE_STAT_MAP = {
     'さみしがり':['A','B'], 'いじっぱり':['A','C'], 'やんちゃ':['A','D'], 'ゆうかん':['A','S'],
     'ずぶとい':['B','A'], 'わんぱく':['B','C'], 'のうてんき':['B','D'], 'のんき':['B','S'],
@@ -181,21 +231,25 @@
     select.className = 'dameke-search-compact-select';
     fillSelect(select, items, placeholder);
     if(withSearch && window.__damekeAttachSearchCombo){
-      Promise.resolve().then(function(){
-        window.__damekeAttachSearchCombo(id);
-        // CSSの優先順位に一切依存せず、確実にこの欄の幅を固定するため、非同期のラッパー構築が
-        // 終わった直後にインラインstyleで直接指定する(最も詳細度が高く、他のどのルールにも
-        // 上書きされない)。
-        if(forceWidthPercent != null){
-          var wrap = select.parentNode;
-          if(wrap && wrap.classList && wrap.classList.contains('v082h-search-combo')){
-            wrap.style.flex = '0 1 ' + forceWidthPercent + '%';
-            wrap.style.width = forceWidthPercent + '%';
-            wrap.style.maxWidth = forceWidthPercent + '%';
-            wrap.style.minWidth = '0';
-          }
-        }
-      });
+      Promise.resolve().then(function(){ window.__damekeAttachSearchCombo(id); });
+    }
+    if(forceWidthPercent != null){
+      // 非同期のattachSearchCombo()がいつ・どのように完了するかに一切依存しない、根本的な
+      // 解決策: selectを最初から自前の固定幅コンテナで包んでおく。後でattachSearchCombo()が
+      // このselectを独自の.v082h-search-comboでラップしても、それは単にこのコンテナの内側に
+      // 挿入されるだけなので、外側のコンテナの幅で確実に制約される。タイミングや例外の有無に
+      // 一切左右されない、最も確実な方法。
+      var sizedWrap = document.createElement('div');
+      sizedWrap.style.setProperty('flex', '0 1 ' + forceWidthPercent + '%', 'important');
+      sizedWrap.style.setProperty('width', forceWidthPercent + '%', 'important');
+      sizedWrap.style.setProperty('max-width', forceWidthPercent + '%', 'important');
+      sizedWrap.style.setProperty('min-width', '0', 'important');
+      sizedWrap.style.setProperty('box-sizing', 'border-box', 'important');
+      select.style.setProperty('width', '100%', 'important');
+      select.style.setProperty('box-sizing', 'border-box', 'important');
+      sizedWrap.appendChild(select);
+      sizedWrap._damekeSelect = select; // callers can still read/set .value via this if needed
+      return sizedWrap;
     }
     return select;
   }
@@ -306,9 +360,10 @@
         var row1 = document.createElement('div'); row1.className = 'dameke-search-move-filter-row1';
         var row2 = document.createElement('div'); row2.className = 'dameke-search-move-filter-row2';
 
-        var nameSel = makeCompactSelect(DATA.moves, '技名指定なし', true, 33);
+        var nameWrap = makeCompactSelect(DATA.moves, '技名指定なし', true, 33);
+        var nameSel = nameWrap._damekeSelect;
         nameSel.value = cond.name;
-        row1.appendChild(nameSel);
+        row1.appendChild(nameWrap);
 
         var typeSel = makeCompactSelect(ALL_TYPES.map(function(t){return {id:t,name:t};}), 'タイプ指定なし');
         typeSel.value = cond.type;
@@ -397,6 +452,20 @@
       });
     }
     if(sortBy === 'weight') return list.slice().sort(function(a,b){ return b.weight - a.weight; });
+    if(sortBy === 'usage'){
+      // rank(使用率順位)があるポケモンを昇順(=使用率が高い順)で並べ、データのない
+      // ポケモンはその後ろに、既存の安定した図鑑番号順のまま配置する。usageRateやrankを
+      // 0として扱ったり、シングル/ダブルの値を混同したりしないよう、選択中フォーマット
+      // (usageFormat)のrankだけを見る。
+      var withRank = [], withoutRank = [];
+      list.forEach(function(p){
+        var entry = usagePokemonEntry(p.name);
+        if(entry && typeof entry.rank === 'number') withRank.push({ p: p, rank: entry.rank });
+        else withoutRank.push(p);
+      });
+      withRank.sort(function(a,b){ return a.rank - b.rank; });
+      return withRank.map(function(x){ return x.p; }).concat(withoutRank);
+    }
     return list; // 'dex' -- keep DATA.pokemons' own (filter-preserved) order
   }
   function renderSortControls(){
@@ -404,9 +473,15 @@
     if(!host) return;
     host.innerHTML = '';
     var sortSel = document.createElement('select'); sortSel.className = 'dameke-search-compact-select';
-    [['dex','図鑑番号順'],['kana','五十音順'],['stat','種族値順'],['weight','おもさ順']].forEach(function(pair){
+    var options = [['dex','図鑑番号順'],['kana','五十音順'],['stat','種族値順'],['weight','おもさ順']];
+    // 使用率データが読み込めている場合だけ「使用率順」を選択肢に加える。読み込めていない
+    // 場合はこの選択肢自体を出さない(選べない状態にする)ことで、失敗時も一覧が空になったり
+    // 壊れたりしないようにする。
+    if(usageData) options.push(['usage','使用率順']);
+    options.forEach(function(pair){
       var op = document.createElement('option'); op.value = pair[0]; op.textContent = pair[1]; sortSel.appendChild(op);
     });
+    if(sortBy === 'usage' && !usageData) sortBy = 'dex'; // データが後から無効になった場合の保険
     sortSel.value = sortBy;
     sortSel.addEventListener('change', function(){ sortBy = sortSel.value; renderSortControls(); renderResults(); });
     host.appendChild(sortSel);
@@ -419,6 +494,31 @@
       statSel.addEventListener('change', function(){ sortStatKey = statSel.value; renderResults(); });
       host.appendChild(statSel);
     }
+    // シングル/ダブルの形式切替。使用率データが読み込めている場合のみ表示する。片方の
+    // 形式しか収録されていない場合は、利用可能な形式だけを選択可能にする。
+    if(usageData){
+      var hasSingles = !!(usageData.formats && usageData.formats.singles);
+      var hasDoubles = !!(usageData.formats && usageData.formats.doubles);
+      if(hasSingles || hasDoubles){
+        var formatSel = document.createElement('select'); formatSel.className = 'dameke-search-compact-select';
+        if(hasSingles){ var opS = document.createElement('option'); opS.value='singles'; opS.textContent='シングル'; formatSel.appendChild(opS); }
+        if(hasDoubles){ var opD = document.createElement('option'); opD.value='doubles'; opD.textContent='ダブル'; formatSel.appendChild(opD); }
+        if(usageFormat === 'singles' && !hasSingles) usageFormat = 'doubles';
+        if(usageFormat === 'doubles' && !hasDoubles) usageFormat = 'singles';
+        formatSel.value = usageFormat;
+        formatSel.addEventListener('change', function(){ usageFormat = formatSel.value; renderResults(); });
+        host.appendChild(formatSel);
+      }
+      // 出典と最終更新日時。UIを圧迫しないよう、控えめな小さいテキストで表示する。
+      var fd = usageFormatData();
+      if(fd && fd.generatedAt){
+        var sourceNote = document.createElement('span'); sourceNote.className = 'dameke-search-usage-source-note';
+        var d = new Date(fd.generatedAt);
+        var dateStr = isNaN(d.getTime()) ? '' : (d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日');
+        sourceNote.textContent = '日次更新：' + dateStr + '　出典：' + (usageData.source && usageData.source.name || 'Pokemon Champions Battle Data');
+        host.appendChild(sourceNote);
+      }
+    }
   }
   function renderResults(){
     var countHost = q('damekeSearchResultCount');
@@ -430,6 +530,11 @@
     matched.forEach(function(p){
       var item = document.createElement('div');
       item.className = 'dameke-search-result-item';
+      // 使用率順で並べたとき、データのないポケモン(図鑑番号順で末尾に配置される分)は
+      // 薄いグレー背景にして、データがある分と視覚的に区別できるようにする。
+      if(sortBy === 'usage' && !usagePokemonEntry(p.name)){
+        item.classList.add('dameke-search-result-item-nodata');
+      }
       item.appendChild(buildThumb(p.name));
       var nameEl = document.createElement('div'); nameEl.className='dameke-search-result-name'; nameEl.textContent=p.name;
       item.appendChild(nameEl);
@@ -581,6 +686,42 @@
     addStatRow('最高実数値', function(k){ return statRefRange(p,k).max; }, function(){ return '-'; });
     host.appendChild(statTable);
 
+    // 人気の性格・努力値構成(使用率データがある場合のみ)。データがなければ、見出しごと
+    // 一切表示しない。
+    var usageEntry = usagePokemonEntry(p.name);
+    if(usageEntry && ((usageEntry.natures && usageEntry.natures.length) || (usageEntry.evSpreads && usageEntry.evSpreads.length))){
+      var usageFold = document.createElement('details'); usageFold.className = 'dameke-pokemon-edit-levelfold dameke-search-section-gap';
+      var usageFoldSummary = document.createElement('summary'); usageFoldSummary.textContent = '人気の性格・努力値構成';
+      usageFold.appendChild(usageFoldSummary);
+      if(usageEntry.natures && usageEntry.natures.length){
+        var natureTitle = document.createElement('div'); natureTitle.className='dameke-adjust-nature-title'; natureTitle.textContent='性格';
+        usageFold.appendChild(natureTitle);
+        var natureList = document.createElement('div'); natureList.className='dameke-search-usage-rate-list';
+        usageEntry.natures.forEach(function(n){
+          var row = document.createElement('div'); row.className='dameke-search-usage-rate-row';
+          var label = document.createElement('span'); label.textContent = n.id;
+          row.appendChild(label);
+          if(n.rate != null){ var rate = document.createElement('span'); rate.className='dameke-search-usage-rate-value'; rate.textContent = n.rate.toFixed(1)+'%'; row.appendChild(rate); }
+          natureList.appendChild(row);
+        });
+        usageFold.appendChild(natureList);
+      }
+      if(usageEntry.evSpreads && usageEntry.evSpreads.length){
+        var evTitle = document.createElement('div'); evTitle.className='dameke-adjust-nature-title dameke-search-section-gap'; evTitle.textContent='努力値構成';
+        usageFold.appendChild(evTitle);
+        var evList = document.createElement('div'); evList.className='dameke-search-usage-rate-list';
+        usageEntry.evSpreads.forEach(function(s){
+          var row = document.createElement('div'); row.className='dameke-search-usage-rate-row';
+          var label = document.createElement('span'); label.textContent = s.label;
+          row.appendChild(label);
+          if(s.rate != null){ var rate = document.createElement('span'); rate.className='dameke-search-usage-rate-value'; rate.textContent = s.rate.toFixed(1)+'%'; row.appendChild(rate); }
+          evList.appendChild(row);
+        });
+        usageFold.appendChild(evList);
+      }
+      host.appendChild(usageFold);
+    }
+
     var abilityTitle = document.createElement('div'); abilityTitle.className='dameke-adjust-nature-title dameke-search-section-gap'; abilityTitle.textContent='特性';
     host.appendChild(abilityTitle);
     var abilityWrap = document.createElement('div'); abilityWrap.className='dameke-search-ability-list';
@@ -593,6 +734,21 @@
       abilityWrap.appendChild(chip);
     });
     host.appendChild(abilityWrap);
+
+    // 特性の採用率(使用率データがある場合のみ)。このポケモンが実際に持ちうる特性の範囲に
+    // 絞って表示する(データ側にIDが対応しないものはここには出てこない)。
+    if(usageEntry && usageEntry.abilities && usageEntry.abilities.length){
+      var abilityRateList = document.createElement('div'); abilityRateList.className='dameke-search-usage-rate-list';
+      usageEntry.abilities.forEach(function(a){
+        if((p.abilities||[]).indexOf(a.id) === -1) return; // このポケモンが持たない特性は無視
+        var row = document.createElement('div'); row.className='dameke-search-usage-rate-row';
+        var label = document.createElement('span'); label.textContent = a.id;
+        row.appendChild(label);
+        if(a.rate != null){ var rate = document.createElement('span'); rate.className='dameke-search-usage-rate-value'; rate.textContent = a.rate.toFixed(1)+'%'; row.appendChild(rate); }
+        abilityRateList.appendChild(row);
+      });
+      if(abilityRateList.children.length) host.appendChild(abilityRateList);
+    }
 
     var matchupTitle = document.createElement('div'); matchupTitle.className='dameke-adjust-nature-title dameke-search-section-gap'; matchupTitle.textContent='攻撃を受けるときの相性（選択中の特性を考慮）';
     host.appendChild(matchupTitle);
@@ -613,7 +769,47 @@
     if(!learned){
       host.appendChild(makeNote('この個体の技データは未登録です。'));
     } else {
-      renderMoveSection(host, learned);
+      renderMoveSection(host, learned, p);
+    }
+
+    // 持ち物採用率(使用率データがある場合のみ)。持ち物の画像・名前・採用率を一覧表示する。
+    if(usageEntry && usageEntry.items && usageEntry.items.length){
+      var itemTitle = document.createElement('div'); itemTitle.className='dameke-adjust-nature-title dameke-search-section-gap'; itemTitle.textContent='持ち物採用率';
+      host.appendChild(itemTitle);
+      var itemList = document.createElement('div'); itemList.className='dameke-search-usage-item-list';
+      usageEntry.items.forEach(function(it){
+        var row = document.createElement('div'); row.className='dameke-search-usage-item-row';
+        if(window.__damekeBuildItemImage){
+          var itemImgWrap = document.createElement('span'); itemImgWrap.className='dameke-search-usage-item-thumb';
+          var itemImg = window.__damekeBuildItemImage(it.id, function(){ itemImgWrap.remove(); });
+          if(itemImg) itemImgWrap.appendChild(itemImg);
+          row.appendChild(itemImgWrap);
+        }
+        var label = document.createElement('span'); label.textContent = it.id;
+        row.appendChild(label);
+        if(it.rate != null){ var rate = document.createElement('span'); rate.className='dameke-search-usage-rate-value'; rate.textContent = it.rate.toFixed(1)+'%'; row.appendChild(rate); }
+        itemList.appendChild(row);
+      });
+      host.appendChild(itemList);
+    }
+
+    // 同じチームのポケモン(使用率データがある場合のみ)。クリックでそのポケモンの詳細表示へ
+    // 遷移する。
+    if(usageEntry && usageEntry.teammates && usageEntry.teammates.length){
+      var teammateTitle = document.createElement('div'); teammateTitle.className='dameke-adjust-nature-title dameke-search-section-gap'; teammateTitle.textContent='同じチームのポケモン';
+      host.appendChild(teammateTitle);
+      var teammateWrap = document.createElement('div'); teammateWrap.className='dameke-search-result-host dameke-search-teammate-host';
+      usageEntry.teammates.forEach(function(tm){
+        var tmPokemon = DATA.pokemons.find(function(x){ return x.name === tm.id; });
+        if(!tmPokemon) return; // 変換できなかった/だめけー側に存在しない場合は表示しない
+        var item = document.createElement('div'); item.className = 'dameke-search-result-item';
+        item.appendChild(buildThumb(tmPokemon.name));
+        var nameEl = document.createElement('div'); nameEl.className='dameke-search-result-name'; nameEl.textContent=tmPokemon.name;
+        item.appendChild(nameEl);
+        item.addEventListener('click', function(){ showDetail(tmPokemon); });
+        teammateWrap.appendChild(item);
+      });
+      if(teammateWrap.children.length) host.appendChild(teammateWrap);
     }
 
     var calcRow = document.createElement('div'); calcRow.className='dameke-speed-cond-row dameke-search-section-gap';
@@ -626,13 +822,23 @@
   }
   function makeNote(text){ var d=document.createElement('div'); d.className='dameke-adjust-summary-note'; d.textContent=text; return d; }
 
-  function renderMoveSection(host, learnedNames){
+  function renderMoveSection(host, learnedNames, p){
     var moveObjsAll = learnedNames.map(function(name){ return DATA.moves.find(function(m){ return m.name===name; }); }).filter(Boolean);
+    // 技の採用率(使用率データがある場合のみ)。技名 -> {rate, isTop10} のマップを作る。
+    var moveRateMap = {};
+    var usageEntryForMoves = usagePokemonEntry(p.name);
+    if(usageEntryForMoves && usageEntryForMoves.moves){
+      usageEntryForMoves.moves.forEach(function(m, idx){ moveRateMap[m.id] = { rate: m.rate, isTop10: idx < 10 }; });
+    }
+    var hasMoveUsageData = Object.keys(moveRateMap).length > 0;
 
     var sortRow = document.createElement('div'); sortRow.className = 'dameke-search-inline-row';
     var sortLabel = document.createElement('span'); sortLabel.className='dameke-search-range-label dameke-search-sort-label'; sortLabel.textContent='並び替え';
     var sortSelect = document.createElement('select'); sortSelect.className = 'dameke-search-sort-select';
-    [['name','五十音順'],['type','タイプ順'],['power','威力順']].forEach(function(pair){ var op=document.createElement('option'); op.value=pair[0]; op.textContent=pair[1]; sortSelect.appendChild(op); });
+    var moveSortOptions = [['name','五十音順'],['type','タイプ順'],['power','威力順']];
+    if(hasMoveUsageData) moveSortOptions.push(['usage','採用率順']);
+    moveSortOptions.forEach(function(pair){ var op=document.createElement('option'); op.value=pair[0]; op.textContent=pair[1]; sortSelect.appendChild(op); });
+    if(moveListSort === 'usage' && !hasMoveUsageData) moveListSort = 'type'; // データがない場合の保険
     sortSelect.value = moveListSort;
     sortSelect.addEventListener('change', function(){ moveListSort = sortSelect.value; renderMoveList(); });
     sortRow.appendChild(sortLabel); sortRow.appendChild(sortSelect);
@@ -705,11 +911,27 @@
           return (ia-ib) || a.name.localeCompare(b.name,'ja');
         }
         if(moveListSort==='power') return (b.power||0)-(a.power||0) || a.name.localeCompare(b.name,'ja');
+        if(moveListSort==='usage'){
+          var ra = moveRateMap[a.name] ? moveRateMap[a.name].rate : null;
+          var rb = moveRateMap[b.name] ? moveRateMap[b.name].rate : null;
+          if(ra != null && rb != null && ra !== rb) return rb - ra;
+          if(ra != null && rb == null) return -1;
+          if(ra == null && rb != null) return 1;
+          // 同一順位・データなし同士は、タイプ順にフォールバックする。
+          var ita = TYPE_ORDER.indexOf(a.type), itb = TYPE_ORDER.indexOf(b.type);
+          return (ita-itb) || a.name.localeCompare(b.name,'ja');
+        }
         return a.name.localeCompare(b.name,'ja');
       });
       listHost.innerHTML = moves.map(function(m){
+        var usage = moveRateMap[m.name];
+        // 採用率データがあり、かつ0%(採用なし)ではない技についてのみ、技名の下に採用率を
+        // 表示する。採用率TOP10の技は、薄い黄色の枠で技名と採用率をあわせて強調する。
+        var nameCellClass = 'dameke-search-move-name' + (usage && usage.isTop10 ? ' dameke-search-move-name-top10' : '');
+        var rateHtml = (usage && usage.rate != null && usage.rate > 0)
+          ? '<span class="dameke-search-move-rate">採用率 '+usage.rate.toFixed(1)+'%</span>' : '';
         return '<div class="dameke-search-move-row">'
-          + '<span class="dameke-search-move-name">'+m.name+'</span>'
+          + '<span class="'+nameCellClass+'">'+m.name+rateHtml+'</span>'
           + '<span><span class="dameke-party-type-badge '+typeColorClass(m.type)+'">'+m.type+'</span></span>'
           + '<span>'+m.category+'</span>'
           + '<span>'+(m.power===1 ? '-' : (m.power||'-'))+'</span>'
@@ -726,6 +948,12 @@
     renderFilterPanel();
     renderSortControls();
     renderResults();
+    // 使用率データは非同期で読み込み、検索自体をブロックしない。読み込み完了後に
+    // 並び替えUI(使用率順の選択肢の有効/無効)と結果一覧を更新する。
+    loadUsageData().then(function(){
+      renderSortControls();
+      renderResults();
+    });
   }
   window.__damekeRenderSearchPanel = function(){
     if(!q('damekeSearchFilterHost').childElementCount) init();
