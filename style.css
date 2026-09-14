@@ -220,7 +220,6 @@ button:hover { background: #e0e7ff; }
      below the content instead, so the text gets the full card width to work with -- same
      information, just rearranged rather than shown side-by-side. */
   .dameke-pokemon-card{flex-wrap:wrap;}
-  .dameke-pokemon-card-thumb-group{order:1;}
   .dameke-pokemon-card-main{order:2;width:100%;flex:1 1 100% !important;}
   .dameke-pokemon-card-loadbtns{order:3;display:grid !important;grid-template-columns:1fr 1fr;gap:6px;width:100%;}
   .dameke-pokemon-card-actions{order:4;display:grid !important;grid-template-columns:1fr 1fr;gap:6px;width:100%;margin-top:-6px;}
@@ -368,13 +367,13 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-pokemon-mega-toggle-thumb{position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.35);transition:transform .15s;}
 .dameke-pokemon-mega-toggle-active .dameke-pokemon-mega-toggle-switch{background:#7c3aed;}
 .dameke-pokemon-mega-toggle-active .dameke-pokemon-mega-toggle-thumb{transform:translateX(15px);}
-.dameke-pokemon-card-head-large .dameke-pokemon-card-thumb{width:64px;height:64px;}
-.dameke-pokemon-card-head-large .dameke-pokemon-card-thumb-missing{width:64px;height:64px;}
-.dameke-pokemon-card-head-large .dameke-pokemon-card-item-thumb{width:32px;height:32px;}
+.dameke-pokemon-card-head-large .dameke-pokemon-card-thumb{width:80px;height:80px;}
+.dameke-pokemon-card-head-large .dameke-pokemon-card-thumb-missing{width:80px;height:80px;}
+.dameke-pokemon-card-head-large .dameke-pokemon-card-item-thumb{width:40px;height:40px;}
 .dameke-pokemon-card-head-large .dameke-pokemon-card-title{font-size:1.05rem;}
 .dameke-pokemon-card-head-large .dameke-pokemon-card-sub{font-size:.8rem;gap:6px;}
 .dameke-pokemon-card-titlewrap{flex:1 1 auto;min-width:0;}
-.dameke-pokemon-card-title{font-weight:800;font-size:.94rem;color:#111827;overflow-wrap:break-word;}
+.dameke-pokemon-card-title{font-weight:800;font-size:.94rem;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .dameke-pokemon-card-sub{font-size:.78rem;color:#6b7280;margin-top:2px;line-height:1.5;}
 .dameke-pokemon-card-notes{font-size:.76rem;color:#9ca3af;margin-top:2px;font-style:italic;}
 .dameke-pokemon-card-actions{display:flex;flex-direction:column;gap:6px;flex:0 0 auto;}
@@ -466,13 +465,13 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-party-member-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;}
 .dameke-party-member-card{border:1px solid #e5e7eb;border-radius:8px;padding:6px;background:#fff;font-size:.72rem;position:relative;}
 .dameke-party-member-empty{display:flex;align-items:center;justify-content:center;color:#d1d5db;min-height:120px;font-size:.78rem;}
-.dameke-party-member-head{display:flex;align-items:center;gap:5px;margin-bottom:3px;flex-wrap:wrap;}
+.dameke-party-member-head{display:flex;align-items:center;gap:5px;margin-bottom:3px;}
 .dameke-pokemon-mega-toggle-compact .dameke-pokemon-mega-toggle-switch{width:26px;height:15px;}
 .dameke-pokemon-mega-toggle-compact .dameke-pokemon-mega-toggle-thumb{width:11px;height:11px;top:2px;left:2px;}
 .dameke-pokemon-mega-toggle-compact.dameke-pokemon-mega-toggle-active .dameke-pokemon-mega-toggle-thumb{transform:translateX(11px);}
-.dameke-party-member-head .dameke-pokemon-card-thumb{width:40px;height:40px;}
-.dameke-party-member-head .dameke-pokemon-card-thumb-missing{width:40px;height:40px;}
-.dameke-party-member-head .dameke-pokemon-card-item-thumb{width:20px;height:20px;}
+.dameke-party-member-head .dameke-pokemon-card-thumb{width:52px;height:52px;}
+.dameke-party-member-head .dameke-pokemon-card-thumb-missing{width:52px;height:52px;}
+.dameke-party-member-head .dameke-pokemon-card-item-thumb{width:26px;height:26px;}
 .dameke-party-member-head .dameke-pokemon-card-title{font-size:.74rem;line-height:1.2;}
 .dameke-party-member-head .dameke-pokemon-card-sub{font-size:.62rem;line-height:1.2;}
 .dameke-stat-boost{color:#dc2626 !important;}
@@ -723,8 +722,7 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 @media(max-width:640px){
   .dameke-search-result-host{grid-template-columns:repeat(auto-fill,minmax(72px,1fr));}
   .dameke-search-thumb{width:44px;height:44px;}
-  .dameke-search-move-row{grid-template-columns:1.4fr .8fr .6fr .5fr .5fr .4fr;font-size:.62rem;gap:4px;padding:4px 5px;}
-  .dameke-search-move-header > span:last-child,.dameke-search-move-row > span:last-child{display:none;}
+  .dameke-search-move-row{grid-template-columns:1.1fr .6fr .5fr .4fr .4fr .35fr .6fr;font-size:.56rem;gap:2px;padding:3px 3px;}
   .dameke-search-detail-image{width:84px;height:84px;}
   .dameke-search-detail-radar-host{width:84px;height:84px;}
   .dameke-search-combined-stat-table{grid-template-columns:2.3fr repeat(6,1fr) 1.1fr !important;justify-content:stretch !important;width:100%;gap:3px !important;font-size:.64rem;padding:5px;}

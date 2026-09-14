@@ -844,10 +844,14 @@
     var tera = entry.teraType || 'なし';
 
     var Ddata = D();
-    // ポケモンと持ち物(～ナイト)の組み合わせがメガシンカに対応しているか判定。既にメガ後の姿
-    // そのものを保存している場合(megaForm.name===pokemon.name)はトグル自体を出さない。
+    // ポケモンと持ち物(～ナイト)の組み合わせがメガシンカに対応しているか判定。保存されている
+    // のがメガ前・メガ後どちらの姿でも同じように扱えるよう、常にそのフォルムグループの基本形
+    // (baseForm)を基準にmegaFormを求める。保存済みポケモンがメガ後の姿そのものである場合は、
+    // 初期状態からトグルをON(isMega=true)にして表示する。
+    var baseForm = (pokemon && Ddata.getFormDefaultPokemon) ? Ddata.getFormDefaultPokemon(pokemon) : pokemon;
     var megaForm = (pokemon && Ddata.findFormByLinkedItem) ? Ddata.findFormByLinkedItem(pokemon, item) : null;
-    if(megaForm && megaForm.name === pokemon.name) megaForm = null;
+    if(megaForm && baseForm && megaForm.name === baseForm.name) megaForm = null;
+    var startsAsMega = !!(pokemon && megaForm && pokemon.name === megaForm.name);
     // トグルが表示される場合、カードに専用クラスを付与しCSS側で上部に余白を確保する
     // (スマホ幅で名前・タイプ・画像と重なってトグルが埋もれてしまう不具合の対策)。
     if(megaForm && card) card.classList.add('dameke-pokemon-card-has-mega-toggle');
@@ -875,7 +879,7 @@
         toggleBtn.title = isMega ? 'メガシンカ中（タップで解除）' : 'メガシンカする';
         toggleBtn.innerHTML = '<span class="dameke-pokemon-mega-toggle-switch"><span class="dameke-pokemon-mega-toggle-thumb"></span></span>';
         toggleBtn.addEventListener('click', function(){
-          renderVariable(isMega ? pokemon : megaForm, !isMega);
+          renderVariable(isMega ? baseForm : megaForm, !isMega);
         });
         toggleRow.appendChild(toggleBtn);
         variableHost.appendChild(toggleRow);
@@ -950,7 +954,7 @@
         : computeActualStatsFor(entry);
       variableHost.appendChild(buildCombinedStatTable(entry, actual, isMega ? showPokemon : pokemon));
     }
-    renderVariable(pokemon, false);
+    renderVariable(startsAsMega ? megaForm : baseForm, startsAsMega);
     main.appendChild(variableHost);
 
     // Moves as a 2x2 grid, colored by each move's own type -- same as the party member card.
@@ -1469,15 +1473,12 @@
       });
     }
 
-    // Ability options depend on the selected Pokemon -- populate now, restore saved value.
-    refreshAbilityOptionsInEditForm();
-    // 'none'/'なし' were the old "no ability" placeholders (including newBlankEntry()'s own
-    // default) -- neither is a real option anymore, so an entry carrying one falls through to
-    // whatever refreshAbilityOptionsInEditForm() just defaulted the select to (特性1), rather
-    // than being applied literally and leaving the select with no matching option (blank).
-    if(entry.abilityId && entry.abilityId !== 'none' && entry.abilityId !== 'なし'){
-      abilitySel.value = entry.abilityId;
-    }
+    // Ability options: already populated by rebuildAbilityField() above (both the single-field
+    // and split メガ前/メガ後 cases). A further refreshAbilityOptionsInEditForm() call here would
+    // repopulate #damekePokeEdit_ability from pokemonSel.value directly -- which, when a Mega
+    // form is selected, means the base form's own ability choices get overwritten by the Mega
+    // form's single fixed ability, leaving メガ前特性 stuck on one unchangeable option. So this
+    // step is intentionally NOT repeated here.
 
     // Move options depend on the selected Pokemon -- populate now, refresh on change.
     refreshMoveOptionsInEditForm();
@@ -1899,8 +1900,10 @@
     var item = entry.itemId && entry.itemId!=='none' ? entry.itemId : 'なし';
 
     var Ddata = D();
+    var baseForm = (pokemon && Ddata.getFormDefaultPokemon) ? Ddata.getFormDefaultPokemon(pokemon) : pokemon;
     var megaForm = (pokemon && Ddata.findFormByLinkedItem) ? Ddata.findFormByLinkedItem(pokemon, item) : null;
-    if(megaForm && megaForm.name === pokemon.name) megaForm = null;
+    if(megaForm && baseForm && megaForm.name === baseForm.name) megaForm = null;
+    var startsAsMega = !!(pokemon && megaForm && pokemon.name === megaForm.name);
     if(megaForm) card.classList.add('dameke-pokemon-card-has-mega-toggle');
 
     // メガシンカの有無で変化する部分(サムネイル+名前+タイプ+特性+実数値)をまとめて再構築できる
@@ -1923,7 +1926,7 @@
         toggleBtn.title = isMega ? 'メガシンカ中（タップで解除）' : 'メガシンカする';
         toggleBtn.innerHTML = '<span class="dameke-pokemon-mega-toggle-switch"><span class="dameke-pokemon-mega-toggle-thumb"></span></span>';
         toggleBtn.addEventListener('click', function(){
-          renderVariable(isMega ? pokemon : megaForm, !isMega);
+          renderVariable(isMega ? baseForm : megaForm, !isMega);
         });
         toggleRow.appendChild(toggleBtn);
         variableHost.appendChild(toggleRow);
@@ -1997,7 +2000,7 @@
         : computeActualStatsFor(entry);
       variableHost.appendChild(buildCombinedStatTable(entry, actual, isMega ? showPokemon : pokemon));
     }
-    renderVariable(pokemon, false);
+    renderVariable(startsAsMega ? megaForm : baseForm, startsAsMega);
     card.appendChild(variableHost);
 
     // Moves as a 2x2 grid (not a single wrapped line) -- each cell can still wrap to two lines
