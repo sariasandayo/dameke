@@ -1,0 +1,54 @@
+name: Update usage data
+
+on:
+  schedule:
+    # championsbattledata.com は不定期に日次データを更新するため、UTC 5:00
+    # (JST 14:00) に実行し、更新が反映されているであろう時間帯を狙う。
+    - cron: '0 5 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-usage-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Fetch and transform usage data
+        id: fetch
+        run: node tools/fetch-usage-data.mjs
+        env:
+          # スクリプト内で使用率データの生成に成功したかどうかをこの環境変数経由で
+          # 後続ステップに伝える(失敗時は既存の data/data.usage.json を一切変更しない)。
+          DAMEKE_USAGE_OUTPUT: data/data.usage.json
+
+      - name: Check for changes
+        id: diff
+        run: |
+          if git diff --quiet -- data/data.usage.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit and push
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/data.usage.json
+          git commit -m "Update usage data ($(date -u +%Y-%m-%d))"
+          git push
