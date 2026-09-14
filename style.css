@@ -471,7 +471,11 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-pokemon-mega-toggle-compact.dameke-pokemon-mega-toggle-active .dameke-pokemon-mega-toggle-thumb{transform:translateX(11px);}
 .dameke-party-member-head .dameke-pokemon-card-thumb{width:52px;height:52px;}
 .dameke-party-member-head .dameke-pokemon-card-thumb-missing{width:52px;height:52px;}
-.dameke-party-member-head .dameke-pokemon-card-item-thumb{width:26px;height:26px;}
+/* 持ち物画像をポケモン画像の右下に重ねて表示し、サムネイル全体の横幅を圧縮する(サイズは維持
+   したまま、タイプバッジ等に使える幅を確保するため)。 */
+.dameke-party-member-head .dameke-pokemon-card-thumb-group{position:relative;}
+.dameke-party-member-head .dameke-pokemon-card-item-thumb{position:absolute;right:-3px;bottom:-2px;width:24px;height:24px;}
+.dameke-party-member-head .dameke-pokemon-card-item-thumb img{filter:drop-shadow(0 0 1.2px #fff) drop-shadow(0 0 1.2px #fff) drop-shadow(0 0 1.2px #fff);}
 .dameke-party-member-head .dameke-pokemon-card-title{font-size:.74rem;line-height:1.2;}
 .dameke-party-member-head .dameke-pokemon-card-sub{font-size:.62rem;line-height:1.2;}
 .dameke-stat-boost{color:#dc2626 !important;}
@@ -486,6 +490,7 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-party-tera-row b{color:#9ca3af;font-weight:700;}
 .dameke-party-chip b{color:#9ca3af;font-weight:700;}
 .dameke-party-type-badge{display:inline-block;border-radius:4px;padding:0 5px;font-size:.58rem;font-weight:700;margin-right:3px;}
+.dameke-party-member-card .dameke-party-type-badge{padding:0 4px;margin-right:2px;}
 
 /* Moves as a 2x2 grid rather than a single wrapped line -- each cell can still wrap to two
    lines on its own for an unusually long move name, without pushing the whole card to a taller
@@ -713,7 +718,7 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-search-move-filter-grid{display:flex;flex-direction:column;gap:5px;margin-top:8px;}
 .dameke-search-move-filter-row1{display:flex;}
 .dameke-search-move-filter-row1 input{padding:5px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:.78rem;flex:0 1 33%;max-width:33%;min-width:0;}
-.dameke-search-move-filter-row1 .v082h-search-combo{flex:0 1 33%;max-width:33%;min-width:0;}
+#damekeSearchFilterHost .dameke-search-move-filter-row1 .v082h-search-combo{flex:0 1 33% !important;width:33% !important;max-width:33% !important;min-width:0 !important;}
 .dameke-search-move-filter-row2{display:flex;gap:5px;flex-wrap:nowrap;}
 .dameke-search-move-filter-row2 > *{flex:1 1 0;min-width:0;}
 .dameke-search-move-filter-row2 input{padding:5px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:.78rem;width:100%;}

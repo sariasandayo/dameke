@@ -1964,7 +1964,7 @@
       // 表示順を保つためここで毎回一緒に再構築する)。
       var teraRow = document.createElement('div');
       teraRow.className = 'dameke-party-tera-row';
-      var teraPre = document.createElement('b'); teraPre.textContent = 'テラスタイプ：';
+      var teraPre = document.createElement('b'); teraPre.textContent = 'テラス：';
       teraRow.appendChild(teraPre);
       var teraBadge = document.createElement('span');
       var teraValue = entry.teraType || 'なし';

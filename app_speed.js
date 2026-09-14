@@ -122,9 +122,16 @@
     lastItemPopulatedForId = key;
     var itemSelect = q('damekeSpeedItem');
     if(pokemon && pokemon.formLinkedItem1){
+      // フォルム連動アイテム(メガストーン等)は、この持ち物欄が扱う素早さ関連アイテムのいずれ
+      // にも該当しないのが通常のため、その場合は「その他」を選び、入力不可にする(実際に持たせ
+      // ているアイテムは固定されており、ユーザーが選び直せるものではないため)。連動アイテムが
+      // 偶然にも素早さ関連アイテムそのものだった場合は、その値を選んだ上でやはり入力不可にする。
       var found = DATA.items.find(function(i){ return i.name === pokemon.formLinkedItem1; });
-      if(found) itemSelect.value = found.id;
+      var isSpeedRelevant = found && SPEED_RELEVANT_ITEM_IDS.indexOf(found.id) >= 0;
+      itemSelect.value = isSpeedRelevant ? found.id : 'none';
+      itemSelect.disabled = true;
     } else {
+      itemSelect.disabled = false;
       itemSelect.value = 'none';
     }
   }
@@ -319,14 +326,22 @@
     }
   }
 
+  // calc.js の itemRate() が実際に素早さ補正の対象としている持ち物のみに絞る(こだわりスカーフ
+  // ＝1.5倍、スピードパウダー＝メタモン限定2倍、それ以外(パワー系+きょうせいギプス+くろいて
+  // っきゅう)は0.5倍)。「なし」は、この文脈では「その他」という表示にする。
+  var SPEED_RELEVANT_ITEM_IDS = ['こだわりスカーフ','スピードパウダー','くろいてっきゅう','きょうせいギプス','パワーウエイト','パワーリスト','パワーベルト','パワーレンズ','パワーバンド','パワーアンクル','ブーストエナジー'];
+  function buildSpeedItemOptions(){
+    var relevant = DATA.items.filter(function(i){ return SPEED_RELEVANT_ITEM_IDS.indexOf(i.id) >= 0; });
+    return [{id:'none', name:'その他'}].concat(relevant);
+  }
+
   function init(){
     fillSelect(q('damekeSpeedPokemon'), [{id:'',name:'指定なし'}].concat(DATA.pokemons));
     ensureAbilityOptionsForPokemon(null);
-    fillSelect(q('damekeSpeedItem'), DATA.items); // already includes a "なし" (id:'none') entry
+    fillSelect(q('damekeSpeedItem'), buildSpeedItemOptions());
 
     if(window.__damekeAttachSearchCombo){
       window.__damekeAttachSearchCombo('damekeSpeedPokemon');
-      window.__damekeAttachSearchCombo('damekeSpeedItem');
     }
 
     ['damekeSpeedPokemon','damekeSpeedAbility','damekeSpeedItem','damekeSpeedAbilityActivate','damekeSpeedRank','damekeSpeedMyParalysis','damekeSpeedMyTailwind','damekeSpeedMySwamp'].forEach(function(id){
