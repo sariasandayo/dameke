@@ -174,14 +174,28 @@
     items.forEach(function(item){ var op=document.createElement('option'); op.value=item.id; op.textContent=item.name; select.appendChild(op); });
   }
   var comboIdCounter = 0;
-  function makeCompactSelect(items, placeholder, withSearch){
+  function makeCompactSelect(items, placeholder, withSearch, forceWidthPercent){
     var id = 'damekeSearchCombo' + (comboIdCounter++);
     var select = document.createElement('select');
     select.id = id;
     select.className = 'dameke-search-compact-select';
     fillSelect(select, items, placeholder);
     if(withSearch && window.__damekeAttachSearchCombo){
-      Promise.resolve().then(function(){ window.__damekeAttachSearchCombo(id); });
+      Promise.resolve().then(function(){
+        window.__damekeAttachSearchCombo(id);
+        // CSSの優先順位に一切依存せず、確実にこの欄の幅を固定するため、非同期のラッパー構築が
+        // 終わった直後にインラインstyleで直接指定する(最も詳細度が高く、他のどのルールにも
+        // 上書きされない)。
+        if(forceWidthPercent != null){
+          var wrap = select.parentNode;
+          if(wrap && wrap.classList && wrap.classList.contains('v082h-search-combo')){
+            wrap.style.flex = '0 1 ' + forceWidthPercent + '%';
+            wrap.style.width = forceWidthPercent + '%';
+            wrap.style.maxWidth = forceWidthPercent + '%';
+            wrap.style.minWidth = '0';
+          }
+        }
+      });
     }
     return select;
   }
@@ -292,7 +306,7 @@
         var row1 = document.createElement('div'); row1.className = 'dameke-search-move-filter-row1';
         var row2 = document.createElement('div'); row2.className = 'dameke-search-move-filter-row2';
 
-        var nameSel = makeCompactSelect(DATA.moves, '技名指定なし', true);
+        var nameSel = makeCompactSelect(DATA.moves, '技名指定なし', true, 33);
         nameSel.value = cond.name;
         row1.appendChild(nameSel);
 

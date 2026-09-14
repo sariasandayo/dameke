@@ -292,9 +292,9 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .v082h-pokemon-thumb{flex:0 0 auto;width:68px;height:68px;display:flex;align-items:center;justify-content:center;}
 .v082h-pokemon-thumb img{max-width:100%;max-height:100%;image-rendering:pixelated;}
 .v082h-pokemon-thumb-missing{width:68px;height:68px;border-radius:50%;background:#e5e7eb;}
-.v082h-pokemon-thumb-group{display:flex;align-items:flex-end;gap:2px;flex:0 0 auto;}
-.v082h-item-thumb{width:22px;height:22px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;}
-.v082h-item-thumb img{max-width:100%;max-height:100%;}
+.v082h-pokemon-thumb-group{display:flex;align-items:flex-end;gap:2px;flex:0 0 auto;position:relative;}
+.v082h-item-thumb{width:22px;height:22px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;position:absolute;right:-4px;bottom:-2px;}
+.v082h-item-thumb img{max-width:100%;max-height:100%;filter:drop-shadow(0 0 1.2px #fff) drop-shadow(0 0 1.2px #fff) drop-shadow(0 0 1.2px #fff);}
 .v082h-item-thumb-missing{border-radius:50%;background:#e5e7eb;}
 .app-header{position:relative;}
 .dameke-menu-btn{position:absolute;top:12px;right:16px;width:44px;height:40px;background:transparent;border:none;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;padding:0;}
@@ -343,6 +343,9 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-history-detail-list{margin-top:6px;display:flex;flex-direction:column;gap:3px;}
 .dameke-history-detail-item{font-size:.76rem;color:#374151;}
 .dameke-history-detail-empty{color:#9ca3af;}
+.dameke-history-detail-section{border-top:1px dashed #e5e7eb;padding-top:6px;margin-top:6px;}
+.dameke-history-detail-section:first-of-type{border-top:none;padding-top:0;margin-top:0;}
+.dameke-history-detail-section-title{font-size:.74rem;font-weight:700;color:#6b7280;}
 .dameke-pokemon-list{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
 .dameke-pokemon-card{border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;display:flex;align-items:flex-start;gap:12px;background:#fafafa;position:relative;}
 .dameke-pokemon-detail-grid{margin-top:6px;display:flex;flex-direction:column;gap:2px;}
@@ -360,8 +363,8 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-pokemon-card-main{flex:1;min-width:0;}
 .dameke-pokemon-card-head{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
 .dameke-pokemon-card-head-large{gap:14px;margin-bottom:10px;}
-.dameke-pokemon-mega-toggle-row{display:flex;justify-content:flex-end;margin-bottom:4px;}
-.dameke-pokemon-mega-toggle-row-compact{margin-bottom:2px;}
+.dameke-pokemon-mega-toggle-row{display:flex;justify-content:flex-end;margin-bottom:4px;min-height:19px;}
+.dameke-pokemon-mega-toggle-row-compact{margin-bottom:2px;min-height:15px;}
 .dameke-pokemon-mega-toggle{display:inline-block;padding:0;border:none;background:transparent;cursor:pointer;line-height:0;}
 .dameke-pokemon-mega-toggle-switch{display:inline-block;width:34px;height:19px;border-radius:999px;background:#cbd5e1;position:relative;transition:background-color .15s;vertical-align:middle;}
 .dameke-pokemon-mega-toggle-thumb{position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.35);transition:transform .15s;}

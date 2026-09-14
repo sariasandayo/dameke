@@ -191,7 +191,8 @@
         effectiveCategory: cat, minDamage: result.minDamage, maxDamage: result.maxDamage,
         minRate: result.minRate, maxRate: result.maxRate, koInfo: result.koInfo,
         substituteBlocksAll: result.substituteBlocksAll, defenderCurrentHp: result.defenderCurrentHp,
-        defenderMaxHp: result.defenderMaxHp, faintPct: faintPct, atkRef: atkRef, defRef: defRef
+        defenderMaxHp: result.defenderMaxHp, faintPct: faintPct, atkRef: atkRef, defRef: defRef,
+        trace: result.trace
       };
     } catch(e){
       if(window.console) console.error('[history] compute failed:', e);
@@ -405,6 +406,25 @@
       addRow(atkCol, 'ランク('+atkSideJp+atkRef.key+')', statFromState(state, atkRef.side, atkRef.key, 'rank'));
       addRow(defCol, 'ランク('+defRef.key+')', statFromState(state,'defender',defRef.key,'rank'));
     }
+    // 特性/持ち物: 下部固定枠(v082hResultPanel)と同じ、保存されたtraceを参照した有効/無効込みの
+    // 表示ロジック(abilityDisplay/itemDisplay相当)をここでも再現する。
+    var trace = snapshot.trace || [];
+    function findTrace(labelPart){ return trace.find(function(x){ return String(x.label||'').indexOf(labelPart) >= 0; }) || null; }
+    function abilityDisplay(labelPart){
+      var e = findTrace(labelPart);
+      if(!e) return '-';
+      return e.value === '有効' ? e.name : (e.name + '（' + e.value + '）');
+    }
+    function itemDisplay(labelPart){
+      var e = findTrace(labelPart);
+      if(!e) return '-';
+      var status = e.value === '持ち物なし' ? '無効' : e.value;
+      return status === '有効' ? e.name : (e.name + '（' + status + '）');
+    }
+    addRow(atkCol, '特性', abilityDisplay('特性（攻撃側）'));
+    addRow(defCol, '特性', abilityDisplay('特性（防御側）'));
+    addRow(atkCol, '持ち物', itemDisplay('持ち物（攻撃側）'));
+    addRow(defCol, '持ち物', itemDisplay('持ち物（防御側）'));
     wrap.appendChild(atkCol);
     wrap.appendChild(defCol);
     return wrap;
@@ -449,7 +469,7 @@
   // real field genderValue() reads and the unused static one -- and the EV quick-preset
   // selectors) are excluded so "詳細" only adds genuinely new information.
   var STAT_DETAIL_ID_SUFFIXES = ['_nature', '_iv', '_ev', '_rank'];
-  var ALREADY_SHOWN_IDS = ['attackerSelect','defenderSelect','moveSelect','attackerLevel','defenderLevel','attackerCurrentHp','defenderCurrentHp','attackerSexSelect','defenderSexSelect','attackerGender','defenderGender','v082hEvPreset_attacker','v082hEvPreset_defender'];
+  var ALREADY_SHOWN_IDS = ['attackerSelect','defenderSelect','moveSelect','attackerLevel','defenderLevel','attackerCurrentHp','defenderCurrentHp','attackerSexSelect','defenderSexSelect','attackerGender','defenderGender','v082hEvPreset_attacker','v082hEvPreset_defender','attackerAbilitySelect','defenderAbilitySelect','attackerItemSelect','defenderItemSelect'];
   function isAlreadyShownElsewhere(id){
     if(ALREADY_SHOWN_IDS.indexOf(id) >= 0) return true;
     return STAT_DETAIL_ID_SUFFIXES.some(function(suf){ return id.indexOf(suf) >= 0; });
@@ -475,13 +495,14 @@
     wrap.appendChild(summary);
 
     var panel = q('panel-calculator');
-    var list = document.createElement('div');
-    list.className = 'dameke-history-detail-list';
+    // 攻撃側固有の条件・入力、防御側固有の条件・入力、場の条件、の3つに分けて集計する。
+    // フィールドIDが attacker/defender で始まるかどうかで振り分け、それ以外(天候・フィールド・
+    // 各種ルインなど、どちらか一方の持ち物ではない全体条件)はすべて「場」として扱う。
+    var attackerItems = [], defenderItems = [], fieldItems = [];
     // visibleIds is only present on entries saved after this feature was added; older entries
     // fall back to "no visibility filtering" rather than hiding everything.
     var visibleSet = Array.isArray(visibleIds) ? {} : null;
     if(visibleSet) visibleIds.forEach(function(id){ visibleSet[id] = true; });
-    var any = false;
     if(panel){
       Object.keys(state).forEach(function(id){
         if(isAlreadyShownElsewhere(id)) return;
@@ -504,20 +525,40 @@
           if(val === el.defaultValue) return; // left at the field's own HTML default
           displayVal = val;
         }
-        var line = document.createElement('div');
-        line.className = 'dameke-history-detail-item';
-        line.textContent = labelTextFor(el) + '： ' + displayVal;
-        list.appendChild(line);
-        any = true;
+        var text = labelTextFor(el) + '： ' + displayVal;
+        if(id.indexOf('attacker') === 0) attackerItems.push(text);
+        else if(id.indexOf('defender') === 0) defenderItems.push(text);
+        else fieldItems.push(text);
       });
     }
-    if(!any){
-      var none = document.createElement('div');
-      none.className = 'dameke-history-detail-item dameke-history-detail-empty';
-      none.textContent = '表示できる項目はありません。';
-      list.appendChild(none);
+    function buildSubSection(title, items){
+      var sec = document.createElement('div');
+      sec.className = 'dameke-history-detail-section';
+      var h = document.createElement('div');
+      h.className = 'dameke-history-detail-section-title';
+      h.textContent = title;
+      sec.appendChild(h);
+      var list = document.createElement('div');
+      list.className = 'dameke-history-detail-list';
+      if(items.length){
+        items.forEach(function(text){
+          var line = document.createElement('div');
+          line.className = 'dameke-history-detail-item';
+          line.textContent = text;
+          list.appendChild(line);
+        });
+      } else {
+        var none = document.createElement('div');
+        none.className = 'dameke-history-detail-item dameke-history-detail-empty';
+        none.textContent = '表示できる項目はありません。';
+        list.appendChild(none);
+      }
+      sec.appendChild(list);
+      return sec;
     }
-    wrap.appendChild(list);
+    wrap.appendChild(buildSubSection('攻撃側', attackerItems));
+    wrap.appendChild(buildSubSection('防御側', defenderItems));
+    wrap.appendChild(buildSubSection('場', fieldItems));
     return wrap;
   }
 
@@ -863,9 +904,11 @@
       // トグルはhead(サムネイル+名前+タイプ+性別+テラスタイプが積み重なる、内容によって縦に
       // 伸びる領域)の外側、独立した行として一番上に置く。headの内部構造やポケモン名の長さに
       // 一切依存しないため、画面幅やコンテンツの高さに関わらず必ず表示される。
+      // 行自体は常に作成する(中身のボタンはmegaFormがある場合のみ)。こうすることで、トグルの
+      // ないカードも同じ高さの余白を確保し、隣に並ぶトグルありのカードと表示位置が揃う。
+      var toggleRow = document.createElement('div');
+      toggleRow.className = 'dameke-pokemon-mega-toggle-row';
       if(megaForm){
-        var toggleRow = document.createElement('div');
-        toggleRow.className = 'dameke-pokemon-mega-toggle-row';
         var toggleBtn = document.createElement('button');
         toggleBtn.type = 'button';
         toggleBtn.className = 'dameke-pokemon-mega-toggle' + (isMega ? ' dameke-pokemon-mega-toggle-active' : '');
@@ -875,8 +918,8 @@
           renderVariable(isMega ? baseForm : megaForm, !isMega);
         });
         toggleRow.appendChild(toggleBtn);
-        variableHost.appendChild(toggleRow);
       }
+      variableHost.appendChild(toggleRow);
 
       var head = document.createElement('div');
       head.className = 'dameke-pokemon-card-head dameke-pokemon-card-head-large';
@@ -1917,9 +1960,11 @@
       // トグルはhead(サムネイル+名前+タイプ+性別+テラスタイプが積み重なる領域)の外側、独立
       // した行として一番上に置く。headの内部構造やポケモン名の長さに依存しないため、画面幅や
       // コンテンツの高さに関わらず必ず表示される。
+      // 行自体は常に作成する(中身のボタンはmegaFormがある場合のみ)。こうすることで、トグルの
+      // ないカードも同じ高さの余白を確保し、隣に並ぶトグルありのカードと表示位置が揃う。
+      var toggleRow = document.createElement('div');
+      toggleRow.className = 'dameke-pokemon-mega-toggle-row dameke-pokemon-mega-toggle-row-compact';
       if(megaForm){
-        var toggleRow = document.createElement('div');
-        toggleRow.className = 'dameke-pokemon-mega-toggle-row dameke-pokemon-mega-toggle-row-compact';
         var toggleBtn = document.createElement('button');
         toggleBtn.type = 'button';
         toggleBtn.className = 'dameke-pokemon-mega-toggle dameke-pokemon-mega-toggle-compact' + (isMega ? ' dameke-pokemon-mega-toggle-active' : '');
@@ -1929,8 +1974,8 @@
           renderVariable(isMega ? baseForm : megaForm, !isMega);
         });
         toggleRow.appendChild(toggleBtn);
-        variableHost.appendChild(toggleRow);
       }
+      variableHost.appendChild(toggleRow);
 
       var head = document.createElement('div');
       head.className = 'dameke-party-member-head';
