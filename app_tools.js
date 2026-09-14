@@ -687,15 +687,8 @@
   function savePokemonFromSide(side){
     var captured = captureSideForSave(side);
     if(!captured.pokemonId){ window.alert('ポケモンが選択されていません。'); return; }
-    var entry = Object.assign({
-      id: 'pk' + Date.now() + '_' + Math.floor(Math.random()*1000),
-      savedAt: new Date().toISOString()
-    }, captured);
-    var list = loadPokemonList();
-    list.unshift(entry);
-    savePokemonListToStorage(list);
-    if(q('panel-pokemon') && !q('panel-pokemon').hidden) renderPokemonList();
-    window.alert('ポケモンを保存しました。「ポケモン管理」から確認・編集できます。');
+    var entry = Object.assign({ id: null }, captured);
+    if(window.__damekeOpenPokemonEditorWithEntry) window.__damekeOpenPokemonEditorWithEntry(entry);
   }
   window.__damekeSavePokemonFromSide = savePokemonFromSide;
 
@@ -949,10 +942,17 @@
       abilityChipRow.appendChild(itemChip);
       variableHost.appendChild(abilityChipRow);
 
-      var actual = isMega && showPokemon && window.DAMEKE_CALC
+      // showPokemon is always the currently-displayed form (base or Mega) regardless of
+      // isMega, so use it directly for both the actual-stats calculation and the stat table's
+      // species-stats row -- falling back to entry.pokemonId-based lookups here would use
+      // whichever form happens to be *saved*, not whichever form is currently being *shown*,
+      // which is wrong whenever those two differ (e.g. saved as the Mega form, toggled to show
+      // the base form: 種族値/実数値 must reflect the base form being shown, not the Mega form
+      // that's actually saved).
+      var actual = showPokemon && window.DAMEKE_CALC
         ? window.DAMEKE_CALC.getActualStats(showPokemon, Number(entry.level)||50, entry)
         : computeActualStatsFor(entry);
-      variableHost.appendChild(buildCombinedStatTable(entry, actual, isMega ? showPokemon : pokemon));
+      variableHost.appendChild(buildCombinedStatTable(entry, actual, showPokemon));
     }
     renderVariable(startsAsMega ? megaForm : baseForm, startsAsMega);
     main.appendChild(variableHost);
@@ -1995,10 +1995,17 @@
       abilityChipRow.appendChild(itemChip);
       variableHost.appendChild(abilityChipRow);
 
-      var actual = isMega && showPokemon && window.DAMEKE_CALC
+      // showPokemon is always the currently-displayed form (base or Mega) regardless of
+      // isMega, so use it directly for both the actual-stats calculation and the stat table's
+      // species-stats row -- falling back to entry.pokemonId-based lookups here would use
+      // whichever form happens to be *saved*, not whichever form is currently being *shown*,
+      // which is wrong whenever those two differ (e.g. saved as the Mega form, toggled to show
+      // the base form: 種族値/実数値 must reflect the base form being shown, not the Mega form
+      // that's actually saved).
+      var actual = showPokemon && window.DAMEKE_CALC
         ? window.DAMEKE_CALC.getActualStats(showPokemon, Number(entry.level)||50, entry)
         : computeActualStatsFor(entry);
-      variableHost.appendChild(buildCombinedStatTable(entry, actual, isMega ? showPokemon : pokemon));
+      variableHost.appendChild(buildCombinedStatTable(entry, actual, showPokemon));
     }
     renderVariable(startsAsMega ? megaForm : baseForm, startsAsMega);
     card.appendChild(variableHost);

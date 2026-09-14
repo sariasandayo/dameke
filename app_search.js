@@ -90,7 +90,7 @@
       type1: '', type2: '',
       matchupConditions: [{type:'', category:''}],
       ability: '',
-      moveConditions: [{name:'', type:'', category:'', minPower:null, minAccuracy:null}],
+      moveConditions: [{name:'', type:'', category:'', minPower:null, minAccuracy:null, pp:null, target:''}],
       statRange: {},
       totalRange: [null,null],
       weightRange: [null,null],
@@ -133,10 +133,10 @@
     }
     if(filters.ability && (p.abilities||[]).indexOf(filters.ability) === -1) return false;
     // 覚える技: 技名が指定されたスロットはその技名のみで判定(他の項目は無視)。技名未指定なら
-    // タイプ/分類/威力下限/命中下限をAND条件として満たす技を1つでも覚えていればそのスロットは
-    // 合格。スロット同士もAND条件。
+    // タイプ/分類/威力下限/命中下限/PP/範囲をAND条件として満たす技を1つでも覚えていればその
+    // スロットは合格。スロット同士もAND条件。
     var activeMoveConds = filters.moveConditions.filter(function(c){
-      return c.name || c.type || c.category || c.minPower != null || c.minAccuracy != null;
+      return c.name || c.type || c.category || c.minPower != null || c.minAccuracy != null || c.pp != null || c.target;
     });
     if(activeMoveConds.length){
       var learned = pokemonLearnset(p);
@@ -150,6 +150,8 @@
           if(cond.category && m.category !== cond.category) return false;
           if(cond.minPower != null && (m.power||0) < cond.minPower) return false;
           if(cond.minAccuracy != null && (parseInt(m.accuracy,10)||0) < cond.minAccuracy) return false;
+          if(cond.pp != null && m.pp !== cond.pp) return false;
+          if(cond.target && m.target !== cond.target) return false;
           return true;
         });
       });
@@ -277,30 +279,55 @@
     addMoveBtn.type = 'button'; addMoveBtn.className = 'dameke-search-add-btn'; addMoveBtn.textContent = '追加する';
     addMoveBtn.addEventListener('click', function(){
       if(filters.moveConditions.length >= 4) return;
-      filters.moveConditions.push({name:'', type:'', category:'', minPower:null, minAccuracy:null});
+      filters.moveConditions.push({name:'', type:'', category:'', minPower:null, minAccuracy:null, pp:null, target:''});
       renderMoveSlots();
     });
     host.appendChild(addMoveBtn);
+    var moveFilterPpValues = Array.from(new Set(DATA.moves.map(function(m){ return m.pp; }).filter(function(v){ return v!=null; }))).sort(function(a,b){return a-b;});
+    var moveFilterTargetValues = Array.from(new Set(DATA.moves.map(function(m){ return m.target; }).filter(Boolean))).sort();
     function renderMoveSlots(){
       moveListHost.innerHTML = '';
       filters.moveConditions.forEach(function(cond, idx){
         var row = document.createElement('div'); row.className = 'dameke-search-move-filter-grid dameke-search-move-filter-slot';
+        var row1 = document.createElement('div'); row1.className = 'dameke-search-move-filter-row1';
+        var row2 = document.createElement('div'); row2.className = 'dameke-search-move-filter-row2';
+
         var nameSel = makeCompactSelect(DATA.moves, '技名指定なし', true);
         nameSel.value = cond.name;
-        nameSel.addEventListener('change', function(){ filters.moveConditions[idx].name = nameSel.value; renderResults(); });
+        row1.appendChild(nameSel);
+
         var typeSel = makeCompactSelect(ALL_TYPES.map(function(t){return {id:t,name:t};}), 'タイプ指定なし');
         typeSel.value = cond.type;
-        typeSel.addEventListener('change', function(){ filters.moveConditions[idx].type = typeSel.value; renderResults(); });
         var catSel = makeCompactSelect([{id:'物理',name:'物理'},{id:'特殊',name:'特殊'},{id:'変化',name:'変化'}], '分類指定なし');
         catSel.value = cond.category;
-        catSel.addEventListener('change', function(){ filters.moveConditions[idx].category = catSel.value; renderResults(); });
         var powerInput = document.createElement('input'); powerInput.type='number'; powerInput.placeholder='威力下限';
         powerInput.value = cond.minPower==null ? '' : cond.minPower;
-        powerInput.addEventListener('input', function(){ filters.moveConditions[idx].minPower = powerInput.value===''?null:parseInt(powerInput.value,10); renderResults(); });
         var accInput = document.createElement('input'); accInput.type='number'; accInput.placeholder='命中下限';
         accInput.value = cond.minAccuracy==null ? '' : cond.minAccuracy;
-        accInput.addEventListener('input', function(){ filters.moveConditions[idx].minAccuracy = accInput.value===''?null:parseInt(accInput.value,10); renderResults(); });
-        [nameSel, typeSel, catSel, powerInput, accInput].forEach(function(el){ row.appendChild(el); });
+        var ppSel = makeCompactSelect(moveFilterPpValues.map(function(v){ return {id:String(v), name:String(v)}; }), 'PP指定なし');
+        ppSel.value = cond.pp==null ? '' : String(cond.pp);
+        var targetSel = makeCompactSelect(moveFilterTargetValues.map(function(v){ return {id:v, name:v}; }), '範囲指定なし');
+        targetSel.value = cond.target;
+        [typeSel, catSel, powerInput, accInput, ppSel, targetSel].forEach(function(el){ row2.appendChild(el); });
+
+        // 技名を指定した場合はそれのみで判定(2段目は無効化)、2段目のいずれかを指定した場合は
+        // 技名を無効化する、相互排他の関係。
+        function updateExclusivity(){
+          var row2HasInput = !!(typeSel.value || catSel.value || powerInput.value || accInput.value || ppSel.value || targetSel.value);
+          var row1HasInput = !!nameSel.value;
+          nameSel.disabled = row2HasInput;
+          [typeSel, catSel, powerInput, accInput, ppSel, targetSel].forEach(function(el){ el.disabled = row1HasInput; });
+        }
+        nameSel.addEventListener('change', function(){ filters.moveConditions[idx].name = nameSel.value; updateExclusivity(); renderResults(); });
+        typeSel.addEventListener('change', function(){ filters.moveConditions[idx].type = typeSel.value; updateExclusivity(); renderResults(); });
+        catSel.addEventListener('change', function(){ filters.moveConditions[idx].category = catSel.value; updateExclusivity(); renderResults(); });
+        powerInput.addEventListener('input', function(){ filters.moveConditions[idx].minPower = powerInput.value===''?null:parseInt(powerInput.value,10); updateExclusivity(); renderResults(); });
+        accInput.addEventListener('input', function(){ filters.moveConditions[idx].minAccuracy = accInput.value===''?null:parseInt(accInput.value,10); updateExclusivity(); renderResults(); });
+        ppSel.addEventListener('change', function(){ filters.moveConditions[idx].pp = ppSel.value===''?null:parseInt(ppSel.value,10); updateExclusivity(); renderResults(); });
+        targetSel.addEventListener('change', function(){ filters.moveConditions[idx].target = targetSel.value; updateExclusivity(); renderResults(); });
+        updateExclusivity();
+
+        row.appendChild(row1); row.appendChild(row2);
         moveListHost.appendChild(row);
       });
       addMoveBtn.hidden = filters.moveConditions.length >= 4;
@@ -411,7 +438,7 @@
   }
   function showDetail(p){
     detailAbilityChoice = (p.abilities && p.abilities[0]) || null;
-    moveListFilter = { name:'', type:'', category:'', minPower:null, minAccuracy:null };
+    moveListFilter = { name:'', type:'', category:'', minPower:null, minAccuracy:null, pp:null, target:'' };
     moveListSort = 'type';
     q('damekeSearchResultHost').hidden = true;
     var host = q('damekeSearchDetailHost');
@@ -477,7 +504,7 @@
     if(rate === 0.5) return 'dameke-search-matchup-resist2';
     return 'dameke-search-matchup-resist4';
   }
-  var moveListFilter = { name:'', type:'', category:'', minPower:null, minAccuracy:null };
+  var moveListFilter = { name:'', type:'', category:'', minPower:null, minAccuracy:null, pp:null, target:'' };
   var moveListSort = 'type';
   function renderDetail(p){
     var host = q('damekeSearchDetailHost');
@@ -601,17 +628,41 @@
     var filterSummary = document.createElement('summary'); filterSummary.textContent = '技の絞り込み';
     filterFold.appendChild(filterSummary);
     var filterGrid = document.createElement('div'); filterGrid.className = 'dameke-search-move-filter-grid';
+
+    // 1段目: 技名(指定した場合はこれのみで判定)。2段目: タイプ/分類/威力下限/命中下限/PP/範囲
+    // (いずれかを指定した場合、AND条件で判定)。どちらか一方に入力があれば、もう一方は無効化。
+    var row1 = document.createElement('div'); row1.className = 'dameke-search-move-filter-row1';
+    var row2 = document.createElement('div'); row2.className = 'dameke-search-move-filter-row2';
+
     var nameF = document.createElement('input'); nameF.type='text'; nameF.placeholder='技名';
-    nameF.addEventListener('input', function(){ moveListFilter.name = nameF.value; renderMoveList(); });
+    row1.appendChild(nameF);
+
     var typeF = makeCompactSelect(ALL_TYPES.map(function(t){return {id:t,name:t};}), 'タイプ指定なし');
-    typeF.addEventListener('change', function(){ moveListFilter.type = typeF.value; renderMoveList(); });
     var catF = makeCompactSelect([{id:'物理',name:'物理'},{id:'特殊',name:'特殊'},{id:'変化',name:'変化'}], '分類指定なし');
-    catF.addEventListener('change', function(){ moveListFilter.category = catF.value; renderMoveList(); });
     var powerF = document.createElement('input'); powerF.type='number'; powerF.placeholder='威力の下限';
-    powerF.addEventListener('input', function(){ moveListFilter.minPower = powerF.value===''?null:parseInt(powerF.value,10); renderMoveList(); });
     var accF = document.createElement('input'); accF.type='number'; accF.placeholder='命中の下限';
-    accF.addEventListener('input', function(){ moveListFilter.minAccuracy = accF.value===''?null:parseInt(accF.value,10); renderMoveList(); });
-    [nameF, typeF, catF, powerF, accF].forEach(function(el){ filterGrid.appendChild(el); });
+    var ppValues = Array.from(new Set(DATA.moves.map(function(m){ return m.pp; }).filter(function(v){ return v!=null; }))).sort(function(a,b){return a-b;});
+    var ppF = makeCompactSelect(ppValues.map(function(v){ return {id:String(v), name:String(v)}; }), 'PP指定なし');
+    var targetValues = Array.from(new Set(DATA.moves.map(function(m){ return m.target; }).filter(Boolean))).sort();
+    var targetF = makeCompactSelect(targetValues.map(function(v){ return {id:v, name:v}; }), '範囲指定なし');
+    [typeF, catF, powerF, accF, ppF, targetF].forEach(function(el){ row2.appendChild(el); });
+
+    function updateMoveFilterExclusivity(){
+      var row2HasInput = !!(typeF.value || catF.value || powerF.value || accF.value || ppF.value || targetF.value);
+      var row1HasInput = !!nameF.value;
+      nameF.disabled = row2HasInput;
+      [typeF, catF, powerF, accF, ppF, targetF].forEach(function(el){ el.disabled = row1HasInput; });
+    }
+    nameF.addEventListener('input', function(){ moveListFilter.name = nameF.value; updateMoveFilterExclusivity(); renderMoveList(); });
+    typeF.addEventListener('change', function(){ moveListFilter.type = typeF.value; updateMoveFilterExclusivity(); renderMoveList(); });
+    catF.addEventListener('change', function(){ moveListFilter.category = catF.value; updateMoveFilterExclusivity(); renderMoveList(); });
+    powerF.addEventListener('input', function(){ moveListFilter.minPower = powerF.value===''?null:parseInt(powerF.value,10); updateMoveFilterExclusivity(); renderMoveList(); });
+    accF.addEventListener('input', function(){ moveListFilter.minAccuracy = accF.value===''?null:parseInt(accF.value,10); updateMoveFilterExclusivity(); renderMoveList(); });
+    ppF.addEventListener('change', function(){ moveListFilter.pp = ppF.value===''?null:parseInt(ppF.value,10); updateMoveFilterExclusivity(); renderMoveList(); });
+    targetF.addEventListener('change', function(){ moveListFilter.target = targetF.value; updateMoveFilterExclusivity(); renderMoveList(); });
+    updateMoveFilterExclusivity();
+
+    filterGrid.appendChild(row1); filterGrid.appendChild(row2);
     filterFold.appendChild(filterGrid);
     host.appendChild(filterFold);
 
@@ -624,11 +675,16 @@
 
     function renderMoveList(){
       var moves = moveObjsAll.slice();
-      if(moveListFilter.name) moves = moves.filter(function(m){ return kanaNormalize(m.name).indexOf(kanaNormalize(moveListFilter.name))>=0; });
-      if(moveListFilter.type) moves = moves.filter(function(m){ return m.type===moveListFilter.type; });
-      if(moveListFilter.category) moves = moves.filter(function(m){ return m.category===moveListFilter.category; });
-      if(moveListFilter.minPower != null) moves = moves.filter(function(m){ return (m.power||0) >= moveListFilter.minPower; });
-      if(moveListFilter.minAccuracy != null) moves = moves.filter(function(m){ return (parseInt(m.accuracy,10)||0) >= moveListFilter.minAccuracy; });
+      if(moveListFilter.name){
+        moves = moves.filter(function(m){ return kanaNormalize(m.name).indexOf(kanaNormalize(moveListFilter.name))>=0; });
+      } else {
+        if(moveListFilter.type) moves = moves.filter(function(m){ return m.type===moveListFilter.type; });
+        if(moveListFilter.category) moves = moves.filter(function(m){ return m.category===moveListFilter.category; });
+        if(moveListFilter.minPower != null) moves = moves.filter(function(m){ return (m.power||0) >= moveListFilter.minPower; });
+        if(moveListFilter.minAccuracy != null) moves = moves.filter(function(m){ return (parseInt(m.accuracy,10)||0) >= moveListFilter.minAccuracy; });
+        if(moveListFilter.pp != null) moves = moves.filter(function(m){ return m.pp === moveListFilter.pp; });
+        if(moveListFilter.target) moves = moves.filter(function(m){ return m.target === moveListFilter.target; });
+      }
       moves.sort(function(a,b){
         if(moveListSort==='type'){
           var ia = TYPE_ORDER.indexOf(a.type), ib = TYPE_ORDER.indexOf(b.type);

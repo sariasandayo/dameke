@@ -462,8 +462,8 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-party-card-title{font-weight:800;font-size:1rem;color:#111827;margin-bottom:6px;}
 .dameke-party-name-field{display:flex;flex-direction:column;gap:3px;font-size:.82rem;color:#374151;margin:8px 0;max-width:320px;}
 .dameke-party-name-field input{font:inherit;border:1px solid #d1d5db;border-radius:8px;padding:6px 8px;}
-.dameke-party-member-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;}
-.dameke-party-member-card{border:1px solid #e5e7eb;border-radius:8px;padding:6px;background:#fff;font-size:.72rem;position:relative;}
+.dameke-party-member-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px;margin-top:8px;}
+.dameke-party-member-card{border:1px solid #e5e7eb;border-radius:8px;padding:6px;background:#fff;font-size:.72rem;position:relative;min-width:0;}
 .dameke-party-member-empty{display:flex;align-items:center;justify-content:center;color:#d1d5db;min-height:120px;font-size:.78rem;}
 .dameke-party-member-head{display:flex;align-items:center;gap:5px;margin-bottom:3px;}
 .dameke-pokemon-mega-toggle-compact .dameke-pokemon-mega-toggle-switch{width:26px;height:15px;}
@@ -710,9 +710,14 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-search-matchup-resist4{background:#93c5fd;color:#1e3a8a;}
 .dameke-search-matchup-immune{background:#e5e7eb;color:#374151;}
 
-.dameke-search-move-filter-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
-.dameke-search-move-filter-grid input{padding:5px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:.78rem;flex:1 1 100px;}
-.dameke-search-move-filter-grid .v082h-search-combo{flex:1 1 100px;max-width:none;}
+.dameke-search-move-filter-grid{display:flex;flex-direction:column;gap:5px;margin-top:8px;}
+.dameke-search-move-filter-row1{display:flex;}
+.dameke-search-move-filter-row1 input{padding:5px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:.78rem;flex:0 1 33%;max-width:33%;min-width:0;}
+.dameke-search-move-filter-row1 .v082h-search-combo{flex:0 1 33%;max-width:33%;min-width:0;}
+.dameke-search-move-filter-row2{display:flex;gap:5px;flex-wrap:nowrap;}
+.dameke-search-move-filter-row2 > *{flex:1 1 0;min-width:0;}
+.dameke-search-move-filter-row2 input{padding:5px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:.78rem;width:100%;}
+.dameke-search-move-filter-grid select:disabled,.dameke-search-move-filter-grid input:disabled{background:#f3f4f6;color:#9ca3af;}
 .dameke-search-move-list{max-height:320px;overflow-y:auto;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;margin-bottom:14px;}
 .dameke-search-move-row{display:grid;grid-template-columns:1.6fr .8fr .7fr .6fr .6fr .5fr .8fr;gap:6px;padding:5px 8px;border-bottom:1px solid #f1f5f9;font-size:.74rem;align-items:center;}
 .dameke-search-move-row > *{min-width:0;overflow:hidden;}
@@ -732,9 +737,10 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
   .dameke-typecell{font-size:.62rem;padding:4px 1px;}
   .dameke-typecell-value{font-size:.68rem;padding:2px 7px;}
   .dameke-search-matchup-cell b{font-size:.72rem;}
-  .dameke-search-move-filter-grid{flex-wrap:nowrap;gap:4px;}
-  .dameke-search-move-filter-grid input,.dameke-search-move-filter-grid select,.dameke-search-move-filter-grid .v082h-search-combo{flex:1 1 62px;font-size:.66rem;min-width:0;max-width:none;}
-  .dameke-search-move-filter-grid input[type="number"]{flex:0 1 46px;}
+  .dameke-search-move-filter-grid{gap:3px;}
+  .dameke-search-move-filter-row1 input,.dameke-search-move-filter-row1 .v082h-search-combo{font-size:.66rem;}
+  .dameke-search-move-filter-row2{gap:2px;}
+  .dameke-search-move-filter-row2 select,.dameke-search-move-filter-row2 input{font-size:.6rem;padding:3px 2px;}
 }
 
 /* ==================== 補完ポケモン出力ツール ==================== */
