@@ -17,7 +17,7 @@
 //   PokeAPIの pokemon-species 一覧(数値ID→英語名)を組み合わせて 日本語名→英語名 を得て、
 //   championsbattledata側のslugと突き合わせる)。
 
-import { readFileSync, writeFileSync, existsSync, appendFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, appendFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -31,8 +31,8 @@ const MOVE_JA_TO_EN_PATH = path.join(__dirname, 'name-maps', 'moves-ja-en.json')
 const NATURE_JA_TO_EN_PATH = path.join(__dirname, 'name-maps', 'natures-ja-en.json');
 
 const CHAMPIONS_API = 'https://championsbattledata.com/api';
-const POKEAPI_SPECIES_LIST = 'https://pokeapi.co/api/v2/pokemon-species?limit=2000';
-const POKEAPI_POKEMON_LIST = 'https://pokeapi.co/api/v2/pokemon?limit=2000';
+const POKEAPI_SPECIES_LIST = 'https://pokeapi.co/api/v2/pokemon-species?limit=5000';
+const POKEAPI_POKEMON_LIST = 'https://pokeapi.co/api/v2/pokemon?limit=5000';
 
 const FETCH_TIMEOUT_MS = 20000;
 const RETRY_COUNT = 3;
@@ -178,7 +178,12 @@ async function buildPokemonIdMap(championsIndex, auditLog) {
   const championsBySlug = indexChampionsPokemonBySlug(championsIndex);
 
   const map = {}; // だめけー日本語名 -> championsPokemonエントリ
-  let matched = 0, unmatched = 0;
+  let matched = 0;
+  let noPokeApiSlug = 0; // PokeAPI側で数値IDに対応する英語slugが見つからない
+  let noChampionsMatch = 0; // 英語slugは分かったが、champions側に該当エントリがない
+  const noPokeApiSlugSamples = [];
+  const noChampionsMatchSamples = [];
+
   for (const [jaName, numericId] of Object.entries(damekeIds)) {
     // 既知のPokemon Champions独自フォルムを優先的にチェック(PokeAPIには存在しないため)。
     if (KNOWN_CHAMPIONS_ONLY_SLUGS[jaName]) {
@@ -186,13 +191,24 @@ async function buildPokemonIdMap(championsIndex, auditLog) {
       if (candidate) { map[jaName] = candidate; matched++; continue; }
     }
     const englishSlug = pokeApiIdToSlug[numericId];
-    if (!englishSlug) { unmatched++; auditLog.unmatchedPokemon.push(jaName); continue; }
+    if (!englishSlug) {
+      noPokeApiSlug++;
+      auditLog.unmatchedPokemon.push(jaName);
+      if (noPokeApiSlugSamples.length < 15) noPokeApiSlugSamples.push(`${jaName}(id:${numericId})`);
+      continue;
+    }
     const candidate = championsBySlug.get(normalizeSlug(englishSlug));
     if (candidate) { map[jaName] = candidate; matched++; continue; }
-    unmatched++;
+    noChampionsMatch++;
     auditLog.unmatchedPokemon.push(jaName);
+    if (noChampionsMatchSamples.length < 15) noChampionsMatchSamples.push(`${jaName}->${englishSlug}(正規化:${normalizeSlug(englishSlug)})`);
   }
-  summary(`ポケモンID対応: 成功 ${matched} 件 / 未対応 ${unmatched} 件`);
+  summary(`ポケモンID対応: 成功 ${matched} 件 / 未対応 ${noPokeApiSlug + noChampionsMatch} 件`);
+  summary(`  - PokeAPI側で数値IDから英語名が見つからない: ${noPokeApiSlug} 件`);
+  summary(`  - 英語名は判明したがchampions側に一致エントリなし: ${noChampionsMatch} 件`);
+  if (noPokeApiSlugSamples.length) summary(`  - サンプル(PokeAPI未解決): ${noPokeApiSlugSamples.join(', ')}`);
+  if (noChampionsMatchSamples.length) summary(`  - サンプル(champions側不一致): ${noChampionsMatchSamples.join(', ')}`);
+  summary(`  - championsBySlug 総登録数: ${championsBySlug.size} / pokeApiIdToSlug 総登録数: ${Object.keys(pokeApiIdToSlug).length}`);
   return map;
 }
 
@@ -381,6 +397,7 @@ async function main() {
     formats: formatsOut,
   };
 
+  mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
   writeFileSync(OUTPUT_PATH, JSON.stringify(output));
 
   summary(`未対応ポケモン: ${auditLog.unmatchedPokemon.length} 件`);
