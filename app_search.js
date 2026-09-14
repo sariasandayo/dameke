@@ -49,8 +49,10 @@
 
   function loadUsageData(){
     if(usageLoadPromise) return usageLoadPromise;
-    usageLoadPromise = fetch('data/data.usage.json')
-      .then(function(res){ if(!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+    var url = 'data/data.usage.json';
+    var resolvedUrl = (function(){ try{ return new URL(url, document.baseURI).href; }catch(e){ return url; } })();
+    usageLoadPromise = fetch(url)
+      .then(function(res){ if(!res.ok) throw new Error('HTTP ' + res.status + '（URL: ' + resolvedUrl + '）'); return res.json(); })
       .then(function(json){
         if(!validateUsageData(json)){ console.warn('[使用率] スキーマ検証に失敗したため無効化します。'); return; }
         usageData = json;
@@ -472,6 +474,25 @@
     var host = q('damekeSearchSortHost');
     if(!host) return;
     host.innerHTML = '';
+
+    // シングル/ダブルの形式切替。並び替え選択の左側に置く。使用率データが読み込めている
+    // 場合のみ表示する。片方の形式しか収録されていない場合は、利用可能な形式だけを選択
+    // 可能にする。
+    if(usageData){
+      var hasSingles = !!(usageData.formats && usageData.formats.singles);
+      var hasDoubles = !!(usageData.formats && usageData.formats.doubles);
+      if(hasSingles || hasDoubles){
+        var formatSel = document.createElement('select'); formatSel.className = 'dameke-search-compact-select';
+        if(hasSingles){ var opS = document.createElement('option'); opS.value='singles'; opS.textContent='シングル'; formatSel.appendChild(opS); }
+        if(hasDoubles){ var opD = document.createElement('option'); opD.value='doubles'; opD.textContent='ダブル'; formatSel.appendChild(opD); }
+        if(usageFormat === 'singles' && !hasSingles) usageFormat = 'doubles';
+        if(usageFormat === 'doubles' && !hasDoubles) usageFormat = 'singles';
+        formatSel.value = usageFormat;
+        formatSel.addEventListener('change', function(){ usageFormat = formatSel.value; renderResults(); });
+        host.appendChild(formatSel);
+      }
+    }
+
     var sortSel = document.createElement('select'); sortSel.className = 'dameke-search-compact-select';
     var options = [['dex','図鑑番号順'],['kana','五十音順'],['stat','種族値順'],['weight','おもさ順']];
     // 使用率データが読み込めている場合だけ「使用率順」を選択肢に加える。読み込めていない
@@ -494,21 +515,7 @@
       statSel.addEventListener('change', function(){ sortStatKey = statSel.value; renderResults(); });
       host.appendChild(statSel);
     }
-    // シングル/ダブルの形式切替。使用率データが読み込めている場合のみ表示する。片方の
-    // 形式しか収録されていない場合は、利用可能な形式だけを選択可能にする。
     if(usageData){
-      var hasSingles = !!(usageData.formats && usageData.formats.singles);
-      var hasDoubles = !!(usageData.formats && usageData.formats.doubles);
-      if(hasSingles || hasDoubles){
-        var formatSel = document.createElement('select'); formatSel.className = 'dameke-search-compact-select';
-        if(hasSingles){ var opS = document.createElement('option'); opS.value='singles'; opS.textContent='シングル'; formatSel.appendChild(opS); }
-        if(hasDoubles){ var opD = document.createElement('option'); opD.value='doubles'; opD.textContent='ダブル'; formatSel.appendChild(opD); }
-        if(usageFormat === 'singles' && !hasSingles) usageFormat = 'doubles';
-        if(usageFormat === 'doubles' && !hasDoubles) usageFormat = 'singles';
-        formatSel.value = usageFormat;
-        formatSel.addEventListener('change', function(){ usageFormat = formatSel.value; renderResults(); });
-        host.appendChild(formatSel);
-      }
       // 出典と最終更新日時。UIを圧迫しないよう、控えめな小さいテキストで表示する。
       var fd = usageFormatData();
       if(fd && fd.generatedAt){
