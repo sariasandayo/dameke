@@ -656,6 +656,7 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-search-filter-host label{display:block;margin-bottom:10px;font-size:.82rem;color:#374151;}
 .dameke-search-filter-host label input[type="text"]{width:100%;margin-top:4px;}
 .dameke-search-compact-select{font-size:.82rem;padding:6px 8px;border:1px solid #d1d5db;border-radius:6px;background:#fff;max-width:220px;}
+.dameke-search-move-name-select{font-size:.78rem;padding:5px 7px;border:1px solid #d1d5db;border-radius:5px;background:#fff;}
 /* attachSearchCombo() replaces the visible control with its own .v082h-search-input (hiding the
    underlying select), which otherwise renders at the browser's default input size -- scoped here
    so 特性/覚える技 match every other compact field in this panel. */
@@ -741,7 +742,6 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-search-move-filter-grid{display:flex;flex-direction:column;gap:5px;margin-top:8px;}
 .dameke-search-move-filter-row1{display:flex;width:100%;box-sizing:border-box;}
 .dameke-search-move-filter-row1 input{padding:5px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:.78rem;flex:0 1 33%;max-width:33%;min-width:0;}
-#damekeSearchFilterHost .dameke-search-move-filter-row1 .v082h-search-combo{width:100% !important;max-width:none !important;flex:1 1 auto !important;}
 .dameke-search-move-filter-row2{display:flex;gap:5px;flex-wrap:nowrap;}
 .dameke-search-move-filter-row2 > *{flex:1 1 0;min-width:0;}
 .dameke-search-move-filter-row2 input{padding:5px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:.78rem;width:100%;}
@@ -766,7 +766,7 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
   .dameke-typecell-value{font-size:.68rem;padding:2px 7px;}
   .dameke-search-matchup-cell b{font-size:.72rem;}
   .dameke-search-move-filter-grid{gap:3px;}
-  .dameke-search-move-filter-row1 input,.dameke-search-move-filter-row1 .v082h-search-combo{font-size:.66rem;}
+  .dameke-search-move-filter-row1 input,.dameke-search-move-filter-row1 .dameke-search-move-name-select{font-size:.66rem;}
   .dameke-search-move-filter-row2{gap:2px;}
   .dameke-search-move-filter-row2 select,.dameke-search-move-filter-row2 input{font-size:.6rem;padding:3px 2px;}
 }

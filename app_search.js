@@ -155,7 +155,9 @@
       totalRange: [null,null],
       weightRange: [null,null],
       finalEvoOnly: false,
-      championsOnly: false
+      championsOnly: false,
+      megaOnly: false,
+      megaExclude: false
     };
   }
   var filters = defaultFilters();
@@ -225,6 +227,10 @@
     if(!inRange(p.weight, filters.weightRange)) return false;
     if(filters.finalEvoOnly && p.canEvolve) return false;
     if(filters.championsOnly && !hasChampionsEntry(p)) return false;
+    // メガシンカ後のポケモンは、だめけーの命名規則上、名前が必ず「メガ」で始まる。
+    var isMegaForm = p.name.indexOf('メガ') === 0;
+    if(filters.megaOnly && !isMegaForm) return false;
+    if(filters.megaExclude && isMegaForm) return false;
     return true;
   }
 
@@ -370,10 +376,21 @@
         var row1 = document.createElement('div'); row1.className = 'dameke-search-move-filter-row1';
         var row2 = document.createElement('div'); row2.className = 'dameke-search-move-filter-row2';
 
-        var nameWrap = makeCompactSelect(DATA.moves, '技名指定なし', true, 33);
-        var nameSel = nameWrap._damekeSelect;
+        // 技名選択欄: 検索コンボ(非同期でselectを別要素にラップする方式)を繰り返し使っても
+        // 幅の不具合が解決しなかったため、根本的に作り直した。プレーンなselect要素を1つだけ
+        // 使い、幅はインラインstyleで直接・同期的に指定する(非同期処理や別要素へのラップを
+        // 一切介さないため、タイミングやCSSの詳細度に左右される余地がない)。技名検索の
+        // 入力補助はなくなるが、ブラウザ標準のselect自体にも先頭文字入力によるジャンプ機能は
+        // ある。
+        var nameSel = document.createElement('select');
+        nameSel.className = 'dameke-search-move-name-select';
+        nameSel.style.setProperty('width', '33%', 'important');
+        nameSel.style.setProperty('max-width', '33%', 'important');
+        nameSel.style.setProperty('flex', '0 1 33%', 'important');
+        nameSel.style.setProperty('box-sizing', 'border-box', 'important');
+        fillSelect(nameSel, DATA.moves, '技名指定なし');
         nameSel.value = cond.name;
-        row1.appendChild(nameWrap);
+        row1.appendChild(nameSel);
 
         var typeSel = makeCompactSelect(ALL_TYPES.map(function(t){return {id:t,name:t};}), 'タイプ指定なし');
         typeSel.value = cond.type;
@@ -428,7 +445,25 @@
     var champCb = document.createElement('input'); champCb.type='checkbox';
     champCb.addEventListener('change', function(){ filters.championsOnly = champCb.checked; renderResults(); });
     champLabel.appendChild(champCb); champLabel.appendChild(document.createTextNode('チャンピオンズ参戦済のみ'));
-    checksRow.appendChild(finalLabel); checksRow.appendChild(champLabel);
+    var megaOnlyLabel = document.createElement('label'); megaOnlyLabel.className='check';
+    var megaOnlyCb = document.createElement('input'); megaOnlyCb.type='checkbox';
+    var megaExcludeLabel = document.createElement('label'); megaExcludeLabel.className='check';
+    var megaExcludeCb = document.createElement('input'); megaExcludeCb.type='checkbox';
+    // 「メガシンカポケモンのみ」と「メガシンカポケモン除外」は互いに排他的(どちらか一方にしか
+    // チェックが入らない)。片方をチェックしたら、もう片方は自動的に外す。
+    megaOnlyCb.addEventListener('change', function(){
+      filters.megaOnly = megaOnlyCb.checked;
+      if(megaOnlyCb.checked){ filters.megaExclude = false; megaExcludeCb.checked = false; }
+      renderResults();
+    });
+    megaExcludeCb.addEventListener('change', function(){
+      filters.megaExclude = megaExcludeCb.checked;
+      if(megaExcludeCb.checked){ filters.megaOnly = false; megaOnlyCb.checked = false; }
+      renderResults();
+    });
+    megaOnlyLabel.appendChild(megaOnlyCb); megaOnlyLabel.appendChild(document.createTextNode('メガシンカポケモンのみ'));
+    megaExcludeLabel.appendChild(megaExcludeCb); megaExcludeLabel.appendChild(document.createTextNode('メガシンカポケモン除外'));
+    checksRow.appendChild(finalLabel); checksRow.appendChild(champLabel); checksRow.appendChild(megaOnlyLabel); checksRow.appendChild(megaExcludeLabel);
     host.appendChild(checksRow);
 
     var clearBtn = document.createElement('button');
