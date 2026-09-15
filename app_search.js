@@ -228,7 +228,11 @@
     if(filters.finalEvoOnly && p.canEvolve) return false;
     if(filters.championsOnly && !hasChampionsEntry(p)) return false;
     // メガシンカ後のポケモンは、だめけーの命名規則上、名前が必ず「メガ」で始まる。
-    var isMegaForm = p.name.indexOf('メガ') === 0;
+    // 名前が「メガ」で始まるかどうかではなく、フォルムのラベル(formLabel)を見て判定する。
+    // メガニウム・メガヤンマ等、名前がたまたま「メガ」で始まるだけの通常フォルムのポケモンを
+    // 誤ってメガシンカ扱いしないようにするため(これらのformLabelは「通常」等であり、
+    // 実際にメガシンカ後のポケモンのformLabelは「メガ」「メガX」「メガY」「メガZ」のいずれか)。
+    var isMegaForm = String(p.formLabel || '').indexOf('メガ') === 0;
     if(filters.megaOnly && !isMegaForm) return false;
     if(filters.megaExclude && isMegaForm) return false;
     return true;
@@ -376,21 +380,38 @@
         var row1 = document.createElement('div'); row1.className = 'dameke-search-move-filter-row1';
         var row2 = document.createElement('div'); row2.className = 'dameke-search-move-filter-row2';
 
-        // 技名選択欄: 検索コンボ(非同期でselectを別要素にラップする方式)を繰り返し使っても
-        // 幅の不具合が解決しなかったため、根本的に作り直した。プレーンなselect要素を1つだけ
-        // 使い、幅はインラインstyleで直接・同期的に指定する(非同期処理や別要素へのラップを
-        // 一切介さないため、タイミングやCSSの詳細度に左右される余地がない)。技名検索の
-        // 入力補助はなくなるが、ブラウザ標準のselect自体にも先頭文字入力によるジャンプ機能は
-        // ある。
+        // 技名選択欄: 以前は検索コンボの非同期ラップ処理(Promise.resolve().then()での遅延)
+        // が幅の不具合の原因だったため、いったんプレーンなselectのみに戻していた。ひらがな/
+        // カタカナ対応の入力機能を復活させるにあたり、今回はattachSearchCombo()を
+        // Promiseで遅延させず、selectをrow1に追加した直後、同じ同期実行ターン内で直接
+        // 呼び出す。この関数自体は元々同期処理(async/Promiseを一切含まない)なので、
+        // 呼び出すタイミングさえ遅延させなければ、ラップ完了直後に幅を再設定でき、
+        // タイミングのずれが生じる余地が一切なくなる。
         var nameSel = document.createElement('select');
+        nameSel.id = 'damekeSearchCombo' + (comboIdCounter++);
         nameSel.className = 'dameke-search-move-name-select';
-        nameSel.style.setProperty('width', '33%', 'important');
-        nameSel.style.setProperty('max-width', '33%', 'important');
-        nameSel.style.setProperty('flex', '0 1 33%', 'important');
-        nameSel.style.setProperty('box-sizing', 'border-box', 'important');
         fillSelect(nameSel, DATA.moves, '技名指定なし');
         nameSel.value = cond.name;
         row1.appendChild(nameSel);
+        if(window.__damekeAttachSearchCombo){
+          window.__damekeAttachSearchCombo(nameSel.id);
+          // ラップが完了した直後(同期的に、同じ実行ターン内)、生成されたラッパー要素に
+          // 直接、確実に幅を適用する。
+          var nameWrapEl = nameSel.parentNode;
+          if(nameWrapEl && nameWrapEl.classList && nameWrapEl.classList.contains('v082h-search-combo')){
+            nameWrapEl.style.setProperty('width', '33%', 'important');
+            nameWrapEl.style.setProperty('max-width', '33%', 'important');
+            nameWrapEl.style.setProperty('flex', '0 1 33%', 'important');
+            nameWrapEl.style.setProperty('box-sizing', 'border-box', 'important');
+          }
+        } else {
+          // 検索コンボの仕組み自体が読み込まれていない場合の保険。プレーンなselectのまま
+          // 幅だけは確実に指定する。
+          nameSel.style.setProperty('width', '33%', 'important');
+          nameSel.style.setProperty('max-width', '33%', 'important');
+          nameSel.style.setProperty('flex', '0 1 33%', 'important');
+          nameSel.style.setProperty('box-sizing', 'border-box', 'important');
+        }
 
         var typeSel = makeCompactSelect(ALL_TYPES.map(function(t){return {id:t,name:t};}), 'タイプ指定なし');
         typeSel.value = cond.type;
