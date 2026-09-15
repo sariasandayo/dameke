@@ -145,7 +145,51 @@ const KNOWN_CHAMPIONS_ONLY_SLUGS = {
   'メガガブリアスZ': 'mega-garchomp-z',
   'メガアブソルZ': 'mega-absol-z',
   'メガルカリオZ': 'mega-lucario-z',
+  // 以下、championsbattledata.com の実際のpokemonPages一覧を直接確認して判明した対応関係。
+  // PokeAPIの数値IDだけでは正しく橋渡しできない(フォルムごとに独立したランキングがある、
+  // または逆に複数のだめけー側フォルムを1つのランキングに統合すべき)ケース。
+  //
+  // タウロス(パルデア地方3品種): それぞれ独立したページ/ランキングが存在する。
+  'ケンタロス(コンバット種)': 'paldean-tauros-combat-breed',
+  'ケンタロス(ブレイズ種)': 'paldean-tauros-blaze-breed',
+  'ケンタロス(ウォーター種)': 'paldean-tauros-aqua-breed',
+  // ビビヨン: サイト側はコスメティック違いを区別せず単一ページ(Fancy Pattern)のみ。
+  // だめけー側に複数の柄違いエントリがあっても、すべてこの1つに統合する。
+  'ビビヨン': 'vivillon-fancy-pattern',
+  // ニャオニクス(メオスティック): 性別で独立したページがある。オスは基本種のIDで橋渡しできる
+  // ため、メスのみここで明示指定する。
+  'ニャオニクス(メス)': 'meowstic-female',
+  // ギルガルド: ブレードフォルムは独立ページを持たず、シールドフォルムと同一データを使う。
+  'ギルガルド(ブレードフォルム)': 'aegislash-shield-forme',
+  // イエッサン(インディーデ): 性別で独立したページがある。オスは基本種のIDで橋渡しできる
+  // ため、メスのみここで明示指定する。
+  'イエッサン(メス)': 'indeedee-female',
+  // モルペコ: サイト側は「はらもち」の状態を区別せず単一ページのみ。まんぷくもようの
+  // データと統合する。
+  'モルペコ(はらぺこもよう)': 'morpeko',
+  // イダイトウ(バスカレジ): 性別で独立したページがある。オスは基本種のIDで橋渡しできる
+  // ため、メスのみここで明示指定する。
+  'イダイトウ(メス)': 'basculegion-female',
+  // イッカネズミ(マウストドン): サイト側は家族の人数を区別せず単一ページのみ。両方とも
+  // 同じ基本種データに統合する。
+  'イッカネズミ(３びきかぞく)': 'maushold',
+  'イッカネズミ(４ひきかぞく)': 'maushold',
+  // イキリンコ(スカウビリー): 実際に対戦で機能が異なるのは色の「ペア」単位(グリーン/
+  // ブルーが同一グループ、イエロー/ホワイトが同一グループ)。サイト側もこの2グループで
+  // しかページを分けていないため、それぞれ対応するグループの代表ページに統合する。
+  'イキリンコ(グリーンフェザー)': 'squawkabilly',
+  'イキリンコ(ブルーフェザー)': 'squawkabilly',
+  'イキリンコ(イエローフェザー)': 'squawkabilly-form-2',
+  'イキリンコ(ホワイトフェザー)': 'squawkabilly-form-2',
 };
+
+// PokeAPIの数値IDが基本種と衝突する等の理由で、自動橋渡しでは正しく区別できず、かつ
+// championsbattledata側にも存在しない(チャンピオンズ未参戦の)だめけー側フォルム。
+// ここに含めたフォルムは、対応表構築の対象から完全に除外する。
+const EXCLUDED_FROM_MAPPING = new Set([
+  'ピカチュウ(サトシ)', // 基本種ピカチュウとPokeAPIの数値IDが同一のため、自動橋渡しでは
+  // 区別できない。チャンピオンズ未参戦のため、対応表自体から除外する。
+]);
 
 function normalizeSlug(s) {
   const cleaned = String(s || '').toLowerCase().replace(/[^a-z0-9-]/g, '');
@@ -185,6 +229,10 @@ async function buildPokemonIdMap(championsIndex, auditLog) {
   const noChampionsMatchSamples = [];
 
   for (const [jaName, numericId] of Object.entries(damekeIds)) {
+    // チャンピオンズ未参戦であることが判明しているフォルムは、自動橋渡しの対象から
+    // 完全に除外する(基本種と数値IDが衝突する等の理由で誤って基本種のデータが
+    // 割り当てられてしまうことを防ぐため)。
+    if (EXCLUDED_FROM_MAPPING.has(jaName)) continue;
     // 既知のPokemon Champions独自フォルムを優先的にチェック(PokeAPIには存在しないため)。
     if (KNOWN_CHAMPIONS_ONLY_SLUGS[jaName]) {
       const candidate = championsBySlug.get(normalizeSlug(KNOWN_CHAMPIONS_ONLY_SLUGS[jaName]));
