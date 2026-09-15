@@ -150,7 +150,7 @@
       type1: '', type2: '',
       matchupConditions: [{type:'', category:''}],
       ability: '',
-      moveConditions: [{name:'', type:'', category:'', minPower:null, minAccuracy:null, pp:null, target:''}],
+      moveConditions: [{name:'', type:'', category:'', minPower:null, minAccuracy:null, pp:null, target:'', contact:''}],
       statRange: {},
       totalRange: [null,null],
       weightRange: [null,null],
@@ -213,6 +213,8 @@
           if(cond.minPower != null && (m.power||0) < cond.minPower) return false;
           if(cond.minAccuracy != null && (parseInt(m.accuracy,10)||0) < cond.minAccuracy) return false;
           if(cond.pp != null && m.pp !== cond.pp) return false;
+          if(cond.contact === 'true' && !m.contact) return false;
+          if(cond.contact === 'false' && m.contact) return false;
           if(cond.target && m.target !== cond.target) return false;
           return true;
         });
@@ -367,7 +369,7 @@
     addMoveBtn.type = 'button'; addMoveBtn.className = 'dameke-search-add-btn'; addMoveBtn.textContent = '追加する';
     addMoveBtn.addEventListener('click', function(){
       if(filters.moveConditions.length >= 4) return;
-      filters.moveConditions.push({name:'', type:'', category:'', minPower:null, minAccuracy:null, pp:null, target:''});
+      filters.moveConditions.push({name:'', type:'', category:'', minPower:null, minAccuracy:null, pp:null, target:'', contact:''});
       renderMoveSlots();
     });
     host.appendChild(addMoveBtn);
@@ -406,6 +408,16 @@
             nameWrapEl.style.setProperty('max-width', '33%', 'important');
             nameWrapEl.style.setProperty('flex', '0 1 33%', 'important');
             nameWrapEl.style.setProperty('box-sizing', 'border-box', 'important');
+            // 診断用: 実機での実測値をコンソールに出す(これまでの調査では原因を特定
+            // できなかったため、次回はここの出力を見て切り分ける)。
+            setTimeout(function(){
+              try{
+                var rect = nameWrapEl.getBoundingClientRect();
+                var row1Rect = row1.getBoundingClientRect();
+                console.log('[技名欄diag] wrap実測幅:', rect.width, 'px / row1実測幅:', row1Rect.width, 'px / 比率:', (rect.width/row1Rect.width*100).toFixed(1)+'%');
+                console.log('[技名欄diag] wrap computedStyle:', window.getComputedStyle(nameWrapEl).width, window.getComputedStyle(nameWrapEl).flex);
+              }catch(e){ console.warn('[技名欄diag] 測定失敗', e); }
+            }, 0);
           }
         } else {
           // 検索コンボの仕組み自体が読み込まれていない場合の保険。プレーンなselectのまま
@@ -426,17 +438,19 @@
         accInput.value = cond.minAccuracy==null ? '' : cond.minAccuracy;
         var ppSel = makeCompactSelect(moveFilterPpValues.map(function(v){ return {id:String(v), name:String(v)}; }), 'PP指定なし');
         ppSel.value = cond.pp==null ? '' : String(cond.pp);
+        var contactSel = makeCompactSelect([{id:'true',name:'接触'},{id:'false',name:'非接触'}], '接触指定なし');
+        contactSel.value = cond.contact || '';
         var targetSel = makeCompactSelect(moveFilterTargetValues.map(function(v){ return {id:v, name:v}; }), '範囲指定なし');
         targetSel.value = cond.target;
-        [typeSel, catSel, powerInput, accInput, ppSel, targetSel].forEach(function(el){ row2.appendChild(el); });
+        [typeSel, catSel, powerInput, accInput, ppSel, contactSel, targetSel].forEach(function(el){ row2.appendChild(el); });
 
         // 技名を指定した場合はそれのみで判定(2段目は無効化)、2段目のいずれかを指定した場合は
         // 技名を無効化する、相互排他の関係。
         function updateExclusivity(){
-          var row2HasInput = !!(typeSel.value || catSel.value || powerInput.value || accInput.value || ppSel.value || targetSel.value);
+          var row2HasInput = !!(typeSel.value || catSel.value || powerInput.value || accInput.value || ppSel.value || contactSel.value || targetSel.value);
           var row1HasInput = !!nameSel.value;
           nameSel.disabled = row2HasInput;
-          [typeSel, catSel, powerInput, accInput, ppSel, targetSel].forEach(function(el){ el.disabled = row1HasInput; });
+          [typeSel, catSel, powerInput, accInput, ppSel, contactSel, targetSel].forEach(function(el){ el.disabled = row1HasInput; });
         }
         nameSel.addEventListener('change', function(){ filters.moveConditions[idx].name = nameSel.value; updateExclusivity(); renderResults(); });
         typeSel.addEventListener('change', function(){ filters.moveConditions[idx].type = typeSel.value; updateExclusivity(); renderResults(); });
@@ -444,6 +458,7 @@
         powerInput.addEventListener('input', function(){ filters.moveConditions[idx].minPower = powerInput.value===''?null:parseInt(powerInput.value,10); updateExclusivity(); renderResults(); });
         accInput.addEventListener('input', function(){ filters.moveConditions[idx].minAccuracy = accInput.value===''?null:parseInt(accInput.value,10); updateExclusivity(); renderResults(); });
         ppSel.addEventListener('change', function(){ filters.moveConditions[idx].pp = ppSel.value===''?null:parseInt(ppSel.value,10); updateExclusivity(); renderResults(); });
+        contactSel.addEventListener('change', function(){ filters.moveConditions[idx].contact = contactSel.value; updateExclusivity(); renderResults(); });
         targetSel.addEventListener('change', function(){ filters.moveConditions[idx].target = targetSel.value; updateExclusivity(); renderResults(); });
         updateExclusivity();
 
@@ -643,7 +658,7 @@
   }
   function showDetail(p){
     detailAbilityChoice = (p.abilities && p.abilities[0]) || null;
-    moveListFilter = { name:'', type:'', category:'', minPower:null, minAccuracy:null, pp:null, target:'' };
+    moveListFilter = { name:'', type:'', category:'', minPower:null, minAccuracy:null, pp:null, target:'', contact:'' };
     moveListSort = 'type';
     q('damekeSearchResultHost').hidden = true;
     var host = q('damekeSearchDetailHost');
@@ -709,7 +724,7 @@
     if(rate === 0.5) return 'dameke-search-matchup-resist2';
     return 'dameke-search-matchup-resist4';
   }
-  var moveListFilter = { name:'', type:'', category:'', minPower:null, minAccuracy:null, pp:null, target:'' };
+  var moveListFilter = { name:'', type:'', category:'', minPower:null, minAccuracy:null, pp:null, target:'', contact:'' };
   var moveListSort = 'type';
   function renderDetail(p){
     var host = q('damekeSearchDetailHost');
@@ -959,15 +974,16 @@
     var accF = document.createElement('input'); accF.type='number'; accF.placeholder='命中の下限';
     var ppValues = Array.from(new Set(DATA.moves.map(function(m){ return m.pp; }).filter(function(v){ return v!=null; }))).sort(function(a,b){return a-b;});
     var ppF = makeCompactSelect(ppValues.map(function(v){ return {id:String(v), name:String(v)}; }), 'PP指定なし');
+    var contactF = makeCompactSelect([{id:'true',name:'接触'},{id:'false',name:'非接触'}], '接触指定なし');
     var targetValues = Array.from(new Set(DATA.moves.map(function(m){ return m.target; }).filter(Boolean))).sort();
     var targetF = makeCompactSelect(targetValues.map(function(v){ return {id:v, name:v}; }), '範囲指定なし');
-    [typeF, catF, powerF, accF, ppF, targetF].forEach(function(el){ row2.appendChild(el); });
+    [typeF, catF, powerF, accF, ppF, contactF, targetF].forEach(function(el){ row2.appendChild(el); });
 
     function updateMoveFilterExclusivity(){
-      var row2HasInput = !!(typeF.value || catF.value || powerF.value || accF.value || ppF.value || targetF.value);
+      var row2HasInput = !!(typeF.value || catF.value || powerF.value || accF.value || ppF.value || contactF.value || targetF.value);
       var row1HasInput = !!nameF.value;
       nameF.disabled = row2HasInput;
-      [typeF, catF, powerF, accF, ppF, targetF].forEach(function(el){ el.disabled = row1HasInput; });
+      [typeF, catF, powerF, accF, ppF, contactF, targetF].forEach(function(el){ el.disabled = row1HasInput; });
     }
     nameF.addEventListener('input', function(){ moveListFilter.name = nameF.value; updateMoveFilterExclusivity(); renderMoveList(); });
     typeF.addEventListener('change', function(){ moveListFilter.type = typeF.value; updateMoveFilterExclusivity(); renderMoveList(); });
@@ -975,6 +991,7 @@
     powerF.addEventListener('input', function(){ moveListFilter.minPower = powerF.value===''?null:parseInt(powerF.value,10); updateMoveFilterExclusivity(); renderMoveList(); });
     accF.addEventListener('input', function(){ moveListFilter.minAccuracy = accF.value===''?null:parseInt(accF.value,10); updateMoveFilterExclusivity(); renderMoveList(); });
     ppF.addEventListener('change', function(){ moveListFilter.pp = ppF.value===''?null:parseInt(ppF.value,10); updateMoveFilterExclusivity(); renderMoveList(); });
+    contactF.addEventListener('change', function(){ moveListFilter.contact = contactF.value; updateMoveFilterExclusivity(); renderMoveList(); });
     targetF.addEventListener('change', function(){ moveListFilter.target = targetF.value; updateMoveFilterExclusivity(); renderMoveList(); });
     updateMoveFilterExclusivity();
 
@@ -984,7 +1001,7 @@
 
     var header = document.createElement('div');
     header.className = 'dameke-search-move-row dameke-search-move-header';
-    header.innerHTML = '<span>技名</span><span>タイプ</span><span>技分類</span><span>威力</span><span>命中</span><span>PP</span><span>範囲</span>';
+    header.innerHTML = '<span>技名</span><span>タイプ</span><span>技分類</span><span>威力</span><span>命中</span><span>PP</span><span>接触</span><span>範囲</span>';
     host.appendChild(header);
     var listHost = document.createElement('div'); listHost.className = 'dameke-search-move-list';
     host.appendChild(listHost);
@@ -999,6 +1016,8 @@
         if(moveListFilter.minPower != null) moves = moves.filter(function(m){ return (m.power||0) >= moveListFilter.minPower; });
         if(moveListFilter.minAccuracy != null) moves = moves.filter(function(m){ return (parseInt(m.accuracy,10)||0) >= moveListFilter.minAccuracy; });
         if(moveListFilter.pp != null) moves = moves.filter(function(m){ return m.pp === moveListFilter.pp; });
+        if(moveListFilter.contact === 'true') moves = moves.filter(function(m){ return !!m.contact; });
+        if(moveListFilter.contact === 'false') moves = moves.filter(function(m){ return !m.contact; });
         if(moveListFilter.target) moves = moves.filter(function(m){ return m.target === moveListFilter.target; });
       }
       moves.sort(function(a,b){
@@ -1033,6 +1052,7 @@
           + '<span>'+(m.power===1 ? '-' : (m.power||'-'))+'</span>'
           + '<span>'+(m.accuracy==='ONEHIT_KO' ? '-' : (m.accuracy||'-'))+'</span>'
           + '<span>'+(m.pp!=null?m.pp:'-')+'</span>'
+          + '<span>'+(m.contact ? '○' : '×')+'</span>'
           + '<span>'+(m.target||'-')+'</span>'
           + '</div>';
       }).join('') || '<div class="dameke-adjust-summary-note">該当する技がありません。</div>';
