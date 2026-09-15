@@ -49,9 +49,13 @@
 
   function loadUsageData(){
     if(usageLoadPromise) return usageLoadPromise;
-    var url = 'data/data.usage.json';
+    // ブラウザのHTTPキャッシュ(cache:'no-store')に加え、GitHub Pages側のCDNキャッシュも
+    // 回避するため、日付ベースのクエリを付与する(このデータは1日1回しか更新されないため、
+    // 日付単位での区別で十分)。
+    var cacheBustDate = new Date().toISOString().slice(0, 10);
+    var url = 'data/data.usage.json?v=' + cacheBustDate;
     var resolvedUrl = (function(){ try{ return new URL(url, document.baseURI).href; }catch(e){ return url; } })();
-    usageLoadPromise = fetch(url)
+    usageLoadPromise = fetch(url, { cache: 'no-store' })
       .then(function(res){ if(!res.ok) throw new Error('HTTP ' + res.status + '（URL: ' + resolvedUrl + '）'); return res.json(); })
       .then(function(json){
         var invalidReason = validateUsageData(json);
