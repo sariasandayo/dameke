@@ -519,15 +519,18 @@
       statSel.addEventListener('change', function(){ sortStatKey = statSel.value; renderResults(); });
       host.appendChild(statSel);
     }
-    if(usageData){
-      // 日次更新日は、○件表示と同じ行の右端(=このsortHostの末尾)に留める。
-      var fd = usageFormatData();
-      if(fd && fd.generatedAt){
-        var dateNote = document.createElement('span'); dateNote.className = 'dameke-search-usage-source-note';
-        var d = new Date(fd.generatedAt);
-        var dateStr = isNaN(d.getTime()) ? '' : (d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日');
-        dateNote.textContent = '日次更新：' + dateStr;
-        host.appendChild(dateNote);
+    // 日次更新日は、○件表示と同じ行の右端の専用ホストに配置する。
+    var dateHost = q('damekeSearchUsageDateHost');
+    if(dateHost){
+      dateHost.innerHTML = '';
+      if(usageData){
+        var fd = usageFormatData();
+        if(fd && fd.generatedAt){
+          var d = new Date(fd.generatedAt);
+          var dateStr = isNaN(d.getTime()) ? '' : (d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日');
+          dateHost.textContent = '日次更新：' + dateStr;
+          dateHost.className = 'dameke-search-usage-date-host';
+        }
       }
     }
     // 出典は、一覧・詳細表示のカードより下、枠外の専用ホストに表示する(横幅の制約で

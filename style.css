@@ -675,7 +675,9 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-search-range-label{flex:0 0 3.4em;color:#374151;font-weight:700;font-size:.76rem;}
 .dameke-search-range-input{width:100%;max-width:80px;padding:4px 6px;border:1px solid #d1d5db;border-radius:5px;}
 
-.dameke-search-result-header{font-size:.8rem;color:#6b7280;margin-bottom:8px;font-weight:700;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+.dameke-search-result-header{font-size:.8rem;color:#6b7280;margin-bottom:4px;font-weight:700;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+.dameke-search-usage-date-host{font-size:.68rem;color:#9ca3af;font-weight:400;white-space:nowrap;}
+.dameke-search-sort-row{display:flex;justify-content:flex-end;margin-bottom:8px;}
 .dameke-search-sort-host{display:flex;gap:6px;align-items:center;}
 .dameke-search-clear-btn{display:block;border:1px solid #d1d5db;background:#f3f4f6;color:#6b7280;border-radius:6px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;}
 .dameke-search-move-filter-slot{border:1px solid #eef1f6;border-radius:6px;padding:6px;background:#fafbfc;}
