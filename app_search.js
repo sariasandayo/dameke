@@ -864,18 +864,23 @@
     }
 
     // 持ち物採用率(使用率データがある場合のみ)。持ち物の画像・名前・採用率を一覧表示する。
+    // 画像用の枠(itemImgWrap)は、画像の有無に関わらず必ず作成して常に同じ幅を確保する
+    // (名前・採用率の表示位置を揃えるため)。画像が見つからない/読み込みに失敗した場合は、
+    // 要素自体を消すのではなく、フォールバック表示(グレーの枠)に差し替える。
     if(usageEntry && usageEntry.items && usageEntry.items.length){
       var itemTitle = document.createElement('div'); itemTitle.className='dameke-adjust-nature-title dameke-search-section-gap'; itemTitle.textContent='持ち物採用率';
       host.appendChild(itemTitle);
       var itemList = document.createElement('div'); itemList.className='dameke-search-usage-item-list';
       usageEntry.items.forEach(function(it){
         var row = document.createElement('div'); row.className='dameke-search-usage-item-row';
-        if(window.__damekeBuildItemImage){
-          var itemImgWrap = document.createElement('span'); itemImgWrap.className='dameke-search-usage-item-thumb';
-          var itemImg = window.__damekeBuildItemImage(it.id, function(){ itemImgWrap.remove(); });
-          if(itemImg) itemImgWrap.appendChild(itemImg);
-          row.appendChild(itemImgWrap);
+        var itemImgWrap = document.createElement('span'); itemImgWrap.className='dameke-search-usage-item-thumb';
+        function showFallback(){
+          itemImgWrap.innerHTML = '';
+          itemImgWrap.classList.add('dameke-search-usage-item-thumb-fallback');
         }
+        var itemImg = window.__damekeBuildItemImage ? window.__damekeBuildItemImage(it.id, showFallback) : null;
+        if(itemImg){ itemImgWrap.appendChild(itemImg); } else { showFallback(); }
+        row.appendChild(itemImgWrap);
         var label = document.createElement('span'); label.textContent = it.id;
         row.appendChild(label);
         if(it.rate != null){ var rate = document.createElement('span'); rate.className='dameke-search-usage-rate-value'; rate.textContent = it.rate.toFixed(1)+'%'; row.appendChild(rate); }

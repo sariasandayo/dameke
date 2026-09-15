@@ -661,6 +661,10 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
    underlying select), which otherwise renders at the browser's default input size -- scoped here
    so 特性/覚える技 match every other compact field in this panel. */
 #damekeSearchFilterHost .v082h-search-combo{max-width:220px;}
+/* 技名欄(row1)内の検索コンボだけは、上の汎用ルール(max-width:220px)より優先して33%幅にする。
+   構造セレクタでの詳細度を上のルールより高くすることで、JS側での後付けのインラインstyle
+   指定に頼らず、宣言的なCSSだけで確実に反映されるようにする。 */
+#damekeSearchFilterHost .dameke-search-move-filter-row1 .v082h-search-combo{width:33% !important;max-width:33% !important;flex:0 1 33% !important;box-sizing:border-box;}
 #damekeSearchFilterHost .v082h-search-input{font-size:.82rem;padding:6px 8px;min-height:0;}
 .dameke-search-inline-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center;}
 .dameke-search-text-input{width:100%;padding:6px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.82rem;margin-bottom:10px;box-sizing:border-box;}
@@ -715,6 +719,7 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-search-usage-item-row{display:flex;align-items:center;gap:6px;font-size:.78rem;color:#374151;padding:2px 4px;border-bottom:1px dashed #f1f5f9;}
 .dameke-search-usage-item-row span:nth-child(2){flex:1 1 auto;}
 .dameke-search-usage-item-thumb{width:20px;height:20px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;}
+.dameke-search-usage-item-thumb-fallback{background:#e5e7eb;border-radius:4px;}
 .dameke-search-usage-item-thumb img{max-width:100%;max-height:100%;}
 /* 同じチームのポケモン */
 .dameke-search-teammate-host{margin-bottom:8px;}
