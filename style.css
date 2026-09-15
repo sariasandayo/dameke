@@ -706,7 +706,7 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-search-usage-rate-value{color:#6b7280;font-weight:700;white-space:nowrap;}
 /* 技の採用率TOP10強調 */
 .dameke-search-move-name-top10{background:#fef9c3;border-radius:4px;padding:1px 4px;display:inline-block;}
-.dameke-search-move-rate{display:block;font-size:.66rem;color:#92400e;font-weight:700;}
+.dameke-search-move-rate{display:block;font-size:.66rem;color:#9ca3af;font-weight:400;}
 /* 持ち物採用率 */
 .dameke-search-usage-item-list{display:flex;flex-direction:column;gap:2px;margin-bottom:8px;}
 .dameke-search-usage-item-row{display:flex;align-items:center;gap:6px;font-size:.78rem;color:#374151;padding:2px 4px;border-bottom:1px dashed #f1f5f9;}
@@ -716,6 +716,7 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 /* 同じチームのポケモン */
 .dameke-search-teammate-host{margin-bottom:8px;}
 .dameke-search-usage-source-note{font-size:.62rem;color:#9ca3af;white-space:nowrap;}
+.dameke-search-usage-source-host{font-size:.62rem;color:#9ca3af;margin-top:4px;padding:0 2px;}
 .dameke-search-ability-chip-active{background:#1f2937;color:#fff;border-color:#1f2937;}
 
 .dameke-search-matchup-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:5px;margin-bottom:14px;}

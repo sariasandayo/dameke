@@ -516,14 +516,23 @@
       host.appendChild(statSel);
     }
     if(usageData){
-      // 出典と最終更新日時。UIを圧迫しないよう、控えめな小さいテキストで表示する。
+      // 日次更新日は、○件表示と同じ行の右端(=このsortHostの末尾)に留める。
       var fd = usageFormatData();
       if(fd && fd.generatedAt){
-        var sourceNote = document.createElement('span'); sourceNote.className = 'dameke-search-usage-source-note';
+        var dateNote = document.createElement('span'); dateNote.className = 'dameke-search-usage-source-note';
         var d = new Date(fd.generatedAt);
         var dateStr = isNaN(d.getTime()) ? '' : (d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日');
-        sourceNote.textContent = '日次更新：' + dateStr + '　出典：' + (usageData.source && usageData.source.name || 'Pokemon Champions Battle Data');
-        host.appendChild(sourceNote);
+        dateNote.textContent = '日次更新：' + dateStr;
+        host.appendChild(dateNote);
+      }
+    }
+    // 出典は、一覧・詳細表示のカードより下、枠外の専用ホストに表示する(横幅の制約で
+    // 見切れないようにするため)。
+    var sourceHost = q('damekeSearchUsageSourceHost');
+    if(sourceHost){
+      sourceHost.innerHTML = '';
+      if(usageData){
+        sourceHost.textContent = '出典：' + (usageData.source && usageData.source.name || 'Pokemon Champions Battle Data');
       }
     }
   }
@@ -649,10 +658,15 @@
     var flagsHtml = (!p.canEvolve)
       ? '<div class="dameke-adjust-summary-note dameke-search-detail-flags">（最終進化）</div>'
       : '';
+    var usageEntryForRank = usagePokemonEntry(p.name);
+    var rankHtml = (usageEntryForRank && typeof usageEntryForRank.rank === 'number')
+      ? '<div class="dameke-adjust-summary-note dameke-search-detail-flags">使用率 '+usageEntryForRank.rank+'位</div>'
+      : '';
     headInfo.innerHTML = '<div class="dameke-history-title dameke-search-detail-name">'+nameHtml+'</div>'
       + '<div class="dameke-search-detail-types">'+(p.types||[]).map(function(t){ return '<span class="dameke-party-type-badge '+typeColorClass(t)+'">'+t+'</span>'; }).join('')+'</div>'
       + '<div class="dameke-adjust-summary-note">おもさ：'+p.weight+'kg</div>'
-      + flagsHtml;
+      + flagsHtml
+      + rankHtml;
     head.appendChild(headInfo);
     var radarHost = document.createElement('div');
     radarHost.className = 'dameke-search-detail-radar-host';
@@ -936,7 +950,7 @@
         // 表示する。採用率TOP10の技は、薄い黄色の枠で技名と採用率をあわせて強調する。
         var nameCellClass = 'dameke-search-move-name' + (usage && usage.isTop10 ? ' dameke-search-move-name-top10' : '');
         var rateHtml = (usage && usage.rate != null && usage.rate > 0)
-          ? '<span class="dameke-search-move-rate">採用率 '+usage.rate.toFixed(1)+'%</span>' : '';
+          ? '<span class="dameke-search-move-rate">'+usage.rate.toFixed(1)+'%</span>' : '';
         return '<div class="dameke-search-move-row">'
           + '<span class="'+nameCellClass+'">'+m.name+rateHtml+'</span>'
           + '<span><span class="dameke-party-type-badge '+typeColorClass(m.type)+'">'+m.type+'</span></span>'
