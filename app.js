@@ -40,7 +40,14 @@
     if (!LS.hasLearnset(key)) return allMoves;
     var learned = LS.getLearnset(key);
     var filtered = allMoves.filter(function(m){ return learned.indexOf(m.name) >= 0; });
-    return filtered.length ? filtered : allMoves;
+    if(!filtered.length) return allMoves;
+    // 技データが登録されているポケモンについては、選択肢の最後に「わるあがき」を追加する
+    // (実際のゲームと同様、PPが尽きた際の代替技として常に選べるようにするため)。技データが
+    // そもそも登録されていない場合(上のif文でallMovesにフォールバックする場合)は、
+    // allMoves自体に元々わるあがきが含まれているため、ここでの追加は不要。
+    var struggle = allMoves.find(function(m){ return m.id === 'わるあがき'; });
+    if(struggle && filtered.indexOf(struggle) === -1) return filtered.concat([struggle]);
+    return filtered;
   }
   function applyMoveFilter() {
     if (!el.moveSelect) return;

@@ -35258,7 +35258,8 @@ window.DAMEKE_GENERATED_DATA = {
       ],
       "abilities": [
         "じきゅうりょく",
-        "がんじょう"
+        "がんじょう",
+        "すじがねいり"
       ],
       "baseStats": {
         "H": 90,

@@ -28,12 +28,12 @@
 
   // 最低限のスキーマ検証。ここを通らないデータは一切使用しない(ブラウザ側は安全性優先)。
   function validateUsageData(obj){
-    if(!obj || typeof obj !== 'object') return false;
-    if(obj.schemaVersion !== 1) return false;
-    if(!obj.source || obj.source.sourceType !== 'pokemon-champions-in-game') return false;
-    if(!obj.formats || typeof obj.formats !== 'object') return false;
-    if(!obj.formats.singles && !obj.formats.doubles) return false;
-    return true;
+    if(!obj || typeof obj !== 'object') return 'obj not an object';
+    if(obj.schemaVersion !== 1) return 'schemaVersion !== 1 (got ' + obj.schemaVersion + ')';
+    if(!obj.source || obj.source.sourceType !== 'pokemon-champions-in-game') return 'source.sourceType mismatch';
+    if(!obj.formats || typeof obj.formats !== 'object') return 'formats missing/not object';
+    if(!obj.formats.singles && !obj.formats.doubles) return 'both formats.singles and formats.doubles are empty';
+    return null; // null = 検証OK
   }
 
   function usageFormatData(){
@@ -54,8 +54,12 @@
     usageLoadPromise = fetch(url)
       .then(function(res){ if(!res.ok) throw new Error('HTTP ' + res.status + '（URL: ' + resolvedUrl + '）'); return res.json(); })
       .then(function(json){
-        if(!validateUsageData(json)){ console.warn('[使用率] スキーマ検証に失敗したため無効化します。'); return; }
+        var invalidReason = validateUsageData(json);
+        if(invalidReason){ console.warn('[使用率] スキーマ検証に失敗したため無効化します。理由: ' + invalidReason); return; }
         usageData = json;
+        var singlesCount = json.formats.singles ? Object.keys(json.formats.singles.pokemon||{}).length : 0;
+        var doublesCount = json.formats.doubles ? Object.keys(json.formats.doubles.pokemon||{}).length : 0;
+        console.log('[使用率] 読み込み成功。シングル:'+singlesCount+'件 / ダブル:'+doublesCount+'件');
       })
       .catch(function(e){
         // 使用率データがまだ存在しない/取得できない場合は、通常のポケモン検索として
@@ -956,7 +960,7 @@
           + '<span><span class="dameke-party-type-badge '+typeColorClass(m.type)+'">'+m.type+'</span></span>'
           + '<span>'+m.category+'</span>'
           + '<span>'+(m.power===1 ? '-' : (m.power||'-'))+'</span>'
-          + '<span>'+(m.accuracy||'-')+'</span>'
+          + '<span>'+(m.accuracy==='ONEHIT_KO' ? '-' : (m.accuracy||'-'))+'</span>'
           + '<span>'+(m.pp!=null?m.pp:'-')+'</span>'
           + '<span>'+(m.target||'-')+'</span>'
           + '</div>';
