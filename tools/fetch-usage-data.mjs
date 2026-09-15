@@ -172,8 +172,8 @@ const KNOWN_CHAMPIONS_ONLY_SLUGS = {
   'イダイトウ(メス)': 'basculegion-female',
   // イッカネズミ(マウストドン): サイト側は家族の人数を区別せず単一ページのみ。両方とも
   // 同じ基本種データに統合する。
-  'イッカネズミ(３びきかぞく)': 'maushold',
-  'イッカネズミ(４ひきかぞく)': 'maushold',
+  'イッカネズミ(3びきかぞく)': 'maushold',
+  'イッカネズミ(4ひきかぞく)': 'maushold',
   // イキリンコ(スカウビリー): 実際に対戦で機能が異なるのは色の「ペア」単位(グリーン/
   // ブルーが同一グループ、イエロー/ホワイトが同一グループ)。サイト側もこの2グループで
   // しかページを分けていないため、それぞれ対応するグループの代表ページに統合する。
@@ -181,6 +181,9 @@ const KNOWN_CHAMPIONS_ONLY_SLUGS = {
   'イキリンコ(ブルーフェザー)': 'squawkabilly',
   'イキリンコ(イエローフェザー)': 'squawkabilly-form-2',
   'イキリンコ(ホワイトフェザー)': 'squawkabilly-form-2',
+  // イルカマン(パルデア): マイティフォルムは独立ページを持たず、ナイーブフォルムと同一
+  // データを使う。
+  'イルカマン(マイティ)': 'palafin-zero-form',
 };
 
 // PokeAPIの数値IDが基本種と衝突する等の理由で、自動橋渡しでは正しく区別できず、かつ
@@ -225,8 +228,11 @@ async function buildPokemonIdMap(championsIndex, auditLog) {
   let matched = 0;
   let noPokeApiSlug = 0; // PokeAPI側で数値IDに対応する英語slugが見つからない
   let noChampionsMatch = 0; // 英語slugは分かったが、champions側に該当エントリがない
+  let overrideFailed = 0; // 手動オーバーライド指定があるのに、そのslugでchampions側に
+  // 一致エントリが見つからない(オーバーライドのslug自体が誤っている可能性が高い)
   const noPokeApiSlugSamples = [];
   const noChampionsMatchSamples = [];
+  const overrideFailedSamples = [];
 
   for (const [jaName, numericId] of Object.entries(damekeIds)) {
     // チャンピオンズ未参戦であることが判明しているフォルムは、自動橋渡しの対象から
@@ -235,8 +241,15 @@ async function buildPokemonIdMap(championsIndex, auditLog) {
     if (EXCLUDED_FROM_MAPPING.has(jaName)) continue;
     // 既知のPokemon Champions独自フォルムを優先的にチェック(PokeAPIには存在しないため)。
     if (KNOWN_CHAMPIONS_ONLY_SLUGS[jaName]) {
-      const candidate = championsBySlug.get(normalizeSlug(KNOWN_CHAMPIONS_ONLY_SLUGS[jaName]));
+      const overrideSlug = KNOWN_CHAMPIONS_ONLY_SLUGS[jaName];
+      const candidate = championsBySlug.get(normalizeSlug(overrideSlug));
       if (candidate) { map[jaName] = candidate; matched++; continue; }
+      // オーバーライド指定はあるのに一致しなかった場合、通常の橋渡しにフォールバックせず、
+      // ここで明確に記録する(サイレントに別の結果へすり替わるのを防ぐため)。
+      overrideFailed++;
+      auditLog.unmatchedPokemon.push(jaName);
+      if (overrideFailedSamples.length < 20) overrideFailedSamples.push(`${jaName}->${overrideSlug}(正規化:${normalizeSlug(overrideSlug)})`);
+      continue;
     }
     const englishSlug = pokeApiIdToSlug[numericId];
     if (!englishSlug) {
@@ -251,9 +264,11 @@ async function buildPokemonIdMap(championsIndex, auditLog) {
     auditLog.unmatchedPokemon.push(jaName);
     if (noChampionsMatchSamples.length < 15) noChampionsMatchSamples.push(`${jaName}->${englishSlug}(正規化:${normalizeSlug(englishSlug)})`);
   }
-  summary(`ポケモンID対応: 成功 ${matched} 件 / 未対応 ${noPokeApiSlug + noChampionsMatch} 件`);
+  summary(`ポケモンID対応: 成功 ${matched} 件 / 未対応 ${noPokeApiSlug + noChampionsMatch + overrideFailed} 件`);
   summary(`  - PokeAPI側で数値IDから英語名が見つからない: ${noPokeApiSlug} 件`);
   summary(`  - 英語名は判明したがchampions側に一致エントリなし: ${noChampionsMatch} 件`);
+  summary(`  - 手動オーバーライド指定ありだが一致エントリなし(slug要確認): ${overrideFailed} 件`);
+  if (overrideFailedSamples.length) summary(`  - サンプル(オーバーライド不一致): ${overrideFailedSamples.join(', ')}`);
   if (noPokeApiSlugSamples.length) summary(`  - サンプル(PokeAPI未解決): ${noPokeApiSlugSamples.join(', ')}`);
   if (noChampionsMatchSamples.length) summary(`  - サンプル(champions側不一致): ${noChampionsMatchSamples.join(', ')}`);
   summary(`  - championsBySlug 総登録数: ${championsBySlug.size} / pokeApiIdToSlug 総登録数: ${Object.keys(pokeApiIdToSlug).length}`);
