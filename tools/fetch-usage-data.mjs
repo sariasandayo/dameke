@@ -272,6 +272,17 @@ async function buildPokemonIdMap(championsIndex, auditLog) {
   if (noPokeApiSlugSamples.length) summary(`  - サンプル(PokeAPI未解決): ${noPokeApiSlugSamples.join(', ')}`);
   if (noChampionsMatchSamples.length) summary(`  - サンプル(champions側不一致): ${noChampionsMatchSamples.join(', ')}`);
   summary(`  - championsBySlug 総登録数: ${championsBySlug.size} / pokeApiIdToSlug 総登録数: ${Object.keys(pokeApiIdToSlug).length}`);
+  // オーバーライド対象のポケモンが、そもそも「今日時点のpokemon配列(=現在のロースター)」に
+  // 存在するかどうかを直接確認する。Pokemon Championsにはロースターの入れ替え制があるため、
+  // championsbattledata.com側のpokemon配列も日によって収録内容が変わっている可能性がある。
+  // pokemonPages(静的なページ一覧、常時全件)と食い違う場合、この可能性を疑う根拠になる。
+  const diagKeywords = ['aegislash', 'tauros', 'absol', 'garchomp', 'lucario', 'vivillon', 'indeedee', 'meowstic', 'basculegion', 'maushold', 'squawkabilly', 'palafin'];
+  const matchedRawNames = [];
+  for (const p of championsIndex.pokemon || []) {
+    const hay = (String(p.name || '') + ' ' + String(p.slug || '') + ' ' + String(p.showdownId || '')).toLowerCase();
+    if (diagKeywords.some(k => hay.includes(k))) matchedRawNames.push(`${p.name}(slug:${p.slug}, showdownId:${p.showdownId})`);
+  }
+  summary(`  - 診断: 今日のpokemon配列内で上記キーワードに一致する実エントリ(${matchedRawNames.length}件): ${matchedRawNames.length ? matchedRawNames.join(' | ') : '該当なし(=これらのポケモンは現在のロースターに存在しない可能性)'}`);
   return map;
 }
 
