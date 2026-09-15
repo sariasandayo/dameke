@@ -702,6 +702,9 @@
     // 場合は、ライブかどうかに関わらずそのまま使える。
     var select = typeof selectIdOrElement === 'string' ? q(selectIdOrElement) : selectIdOrElement;
     if(!select || select.getAttribute('data-v082h-search')) return;
+    // 万一、呼び出し元の実装ミスでまだどこにも追加されていない(親を持たない)要素が
+    // 渡された場合、insertBeforeで例外を投げてページ全体の描画を止めてしまうことを防ぐ。
+    if(!select.parentNode) return;
     select.setAttribute('data-v082h-search', '1');
 
     var wrap = make('div','v082h-search-combo');

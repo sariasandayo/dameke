@@ -257,11 +257,15 @@
     select.id = id;
     select.className = 'dameke-search-compact-select';
     fillSelect(select, items, placeholder);
-    // 呼び出し直後にelementそのものをattachSearchCombo()へ直接渡す(id文字列経由の
-    // document.getElementById検索や、Promiseによる呼び出し遅延はしない)。要素がまだ
-    // ページに挿入されていないデタッチされたDOMツリー内にあっても確実に動作する、最も
-    // 頑健な方式。
-    if(withSearch && window.__damekeAttachSearchCombo) window.__damekeAttachSearchCombo(select);
+    // ここで返すselectは、呼び出し元がまだどこにも追加していない(親を持たない)段階にある。
+    // attachSearchCombo()は要素をラップする際にselect.parentNode.insertBefore(...)を使う
+    // ため、親がない状態で呼ぶとエラーになる。呼び出し元は関数から戻った直後、同期的に
+    // 必ずどこかへ追加する実装になっているため、そのタイミングを待つよう1マイクロタスク
+    // 遅延させる(要素そのものを直接渡すため、id文字列によるdocument.getElementById検索は
+    // 経由しない)。
+    if(withSearch && window.__damekeAttachSearchCombo){
+      Promise.resolve().then(function(){ window.__damekeAttachSearchCombo(select); });
+    }
     return select;
   }
   function buildStatRangeRow(container, label, key, bounds){
