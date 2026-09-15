@@ -774,7 +774,7 @@ window.DAMEKE_ITEM_IMAGE_SLUGS = {
   "フレイムメール":"flame-mail",
   "フレンドボール":"friend-ball",
   "フーディナイト":"alakazite",
-  "ブリガロナイト":"rillaboomite",
+  "ブリガロナイト":"chesnaughtite",
   "ブリザードメール":"snow-mail",
   "ブリックメール":"brick-mail",
   "ブリッジメールC":"bridge-mail-t",
