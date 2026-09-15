@@ -394,7 +394,10 @@
         nameSel.value = cond.name;
         row1.appendChild(nameSel);
         if(window.__damekeAttachSearchCombo){
-          window.__damekeAttachSearchCombo(nameSel.id);
+          // id文字列(document.getElementById経由)ではなく、要素そのものを直接渡す。
+          // この時点ではrow1はまだページに挿入されていないデタッチされたDOMツリーのため、
+          // document.getElementByIdでは見つからず、id経由だと無反応になってしまう。
+          window.__damekeAttachSearchCombo(nameSel);
           // ラップが完了した直後(同期的に、同じ実行ターン内)、生成されたラッパー要素に
           // 直接、確実に幅を適用する。
           var nameWrapEl = nameSel.parentNode;

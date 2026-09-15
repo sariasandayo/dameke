@@ -696,8 +696,11 @@
       });
     }, 400);
   }
-  function attachSearchCombo(selectId){
-    var select = q(selectId);
+  function attachSearchCombo(selectIdOrElement){
+    // id文字列で渡された場合はdocument.getElementByIdで探す(まだページに挿入されていない、
+    // 構築中のデタッチされたDOMツリー内の要素は見つからない)。要素そのものが直接渡された
+    // 場合は、ライブかどうかに関わらずそのまま使える。
+    var select = typeof selectIdOrElement === 'string' ? q(selectIdOrElement) : selectIdOrElement;
     if(!select || select.getAttribute('data-v082h-search')) return;
     select.setAttribute('data-v082h-search', '1');
 
