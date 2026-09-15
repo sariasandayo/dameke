@@ -197,6 +197,15 @@ const EXCLUDED_FROM_MAPPING = new Set([
   // 区別できない。チャンピオンズ未参戦のため、対応表自体から除外する。
 ]);
 
+// data_item_images.js側のslug(PokeAPIのスプライト画像用の命名規則)は、Pokemon Champions側の
+// 実際の英語表示名と必ずしも一致しない。特に近年追加されたメガストーンで、両者の命名が
+// 食い違うケースが確認されている(例: data_item_images.js側は"feraligatrite"だが、Pokemon
+// Champions側の実際の表示名は"Feraligite")。判明した分をここで個別に補正する。
+// キー: data_item_images.js側のslug(正規化前)、値: Pokemon Champions側の実際の英語名。
+const ITEM_NAME_OVERRIDES = {
+  'feraligatrite': 'Feraligite',
+};
+
 function normalizeSlug(s) {
   const cleaned = String(s || '').toLowerCase().replace(/[^a-z0-9-]/g, '');
   // PokeAPI側は "garchomp-mega" のように種族名が先、championsbattledata側は
@@ -294,7 +303,12 @@ function loadNameMap(p) { return readJsonIfExists(p) || {}; }
 
 function buildReverseMap(jaToEn) {
   const rev = {};
-  for (const [ja, en] of Object.entries(jaToEn)) rev[normalizeSlug(en)] = ja;
+  for (const [ja, en] of Object.entries(jaToEn)) {
+    // data_item_images.js側のslugがPokemon Champions側の実際の表示名と食い違うことが判明
+    // している場合は、正規化済みのオーバーライド後の値を逆引きキーとして使う。
+    const overridden = ITEM_NAME_OVERRIDES[en] || en;
+    rev[normalizeSlug(overridden)] = ja;
+  }
   return rev;
 }
 
@@ -486,7 +500,9 @@ async function main() {
 
   summary(`未対応ポケモン: ${auditLog.unmatchedPokemon.length} 件`);
   summary(`未対応特性: ${new Set(auditLog.unmatchedAbilities).size} 種`);
-  summary(`未対応持ち物: ${new Set(auditLog.unmatchedItems).size} 種`);
+  var unmatchedItemNames = Array.from(new Set(auditLog.unmatchedItems));
+  summary(`未対応持ち物: ${unmatchedItemNames.length} 種`);
+  if(unmatchedItemNames.length) summary(`  - サンプル(未対応持ち物の英語名): ${unmatchedItemNames.join(', ')}`);
   summary(`未対応技: ${new Set(auditLog.unmatchedMoves).size} 種`);
   summary(`未対応性格: ${new Set(auditLog.unmatchedNatures).size} 種`);
   summary('✅ data.usage.json を更新しました。');
