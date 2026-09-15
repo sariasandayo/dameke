@@ -204,6 +204,19 @@ const EXCLUDED_FROM_MAPPING = new Set([
 // キー: data_item_images.js側のslug(正規化前)、値: Pokemon Champions側の実際の英語名。
 const ITEM_NAME_OVERRIDES = {
   'feraligatrite': 'Feraligite',
+  // 以下、2回目のJob Summaryで判明した残り分。data_item_images.js側のslugは主に旧世代の
+  // 命名規則(PokeAPIのスプライト命名)を踏襲しているが、Pokemon Champions側は最新の公式
+  // 名称を採用しており、一部で表記が食い違う。
+  'skarmoryite': 'Skarmorite', // エアームドナイト
+  'stick': 'Leek', // ながねぎ(旧名"Stick"のままだったが、現在の公式名は"Leek")
+  'starmienite': 'Starminite', // スターミナイト
+  // Scrafty用ストーンは、通常の命名規則(ポケモン名+ite)ではなく、公式に意図的に短縮された
+  // 名称"Scraftinite"が採用されている(要出典: Pokemon Champions公式UI表記)。
+  'scraftyite': 'Scraftinite', // ズルズキナイト
+  'excadrillite': 'Excadrite', // ドリュウズナイト
+  // Scolipede用ストーンも同様に、通常の命名規則ではなく公式に短縮された名称"Scolipite"が
+  // 採用されている(Bulbapedia記載: 日本語名ペンドラナイト、英語Scolipite)。
+  'scolipedite': 'Scolipite', // ペンドラナイト
 };
 
 function normalizeSlug(s) {
