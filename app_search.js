@@ -380,7 +380,7 @@
       filters.moveConditions.forEach(function(cond, idx){
         var row = document.createElement('div'); row.className = 'dameke-search-move-filter-grid dameke-search-move-filter-slot';
         var row1 = document.createElement('div'); row1.className = 'dameke-search-move-filter-row1';
-        var row2 = document.createElement('div'); row2.className = 'dameke-search-move-filter-row2';
+        var row2 = document.createElement('div'); row2.className = 'dameke-search-move-filter-row2 dameke-search-move-filter-row2-box';
 
         // 技名選択欄: 以前は検索コンボの非同期ラップ処理(Promise.resolve().then()での遅延)
         // が幅の不具合の原因だったため、いったんプレーンなselectのみに戻していた。ひらがな/
@@ -401,36 +401,21 @@
           // document.getElementByIdでは見つからず、id経由だと無反応になってしまう。
           window.__damekeAttachSearchCombo(nameSel);
           // ラップが完了した直後(同期的に、同じ実行ターン内)、生成されたラッパー要素に
-          // 直接、確実に幅を適用する。
+          // 直接、確実に幅を適用する。row1にはこの技名欄しか入っていないため、100%
+          // (row1いっぱい)にする。
           var nameWrapEl = nameSel.parentNode;
           if(nameWrapEl && nameWrapEl.classList && nameWrapEl.classList.contains('v082h-search-combo')){
-            nameWrapEl.style.setProperty('width', '33%', 'important');
-            nameWrapEl.style.setProperty('max-width', '33%', 'important');
-            nameWrapEl.style.setProperty('flex', '0 1 33%', 'important');
+            nameWrapEl.style.setProperty('width', '100%', 'important');
+            nameWrapEl.style.setProperty('max-width', '100%', 'important');
+            nameWrapEl.style.setProperty('flex', '1 1 100%', 'important');
             nameWrapEl.style.setProperty('box-sizing', 'border-box', 'important');
-            // 診断用: このパネルはページ読み込み時に1度だけ構築され、以降タブを
-            // 切り替えても再構築されない(検索パネルの表示自体は<div hidden>で
-            // 切り替えるだけの仕組みのため)。つまり、このコードが実行される時点では
-            // 検索タブがまだ非表示(幅0px)の可能性が高く、その場での計測は当てにならない。
-            // 実際に検索タブを開いて見た目を確認した状態で、コンソールから
-            // window.__damekeDiagMoveNameWidth() を呼び出せば、その時点の正しい実測値が
-            // 得られる。
-            window.__damekeDiagMoveNameWidth = function(){
-              try{
-                var rect = nameWrapEl.getBoundingClientRect();
-                var row1Rect = row1.getBoundingClientRect();
-                console.log('[技名欄diag] wrap実測幅:', rect.width, 'px / row1実測幅:', row1Rect.width, 'px / 比率:', (rect.width/row1Rect.width*100).toFixed(1)+'%');
-                console.log('[技名欄diag] wrap computedStyle:', window.getComputedStyle(nameWrapEl).width, window.getComputedStyle(nameWrapEl).flex);
-                console.log('[技名欄diag] row1 computedStyle:', window.getComputedStyle(row1).display, window.getComputedStyle(row1).width);
-              }catch(e){ console.warn('[技名欄diag] 測定失敗', e); }
-            };
           }
         } else {
           // 検索コンボの仕組み自体が読み込まれていない場合の保険。プレーンなselectのまま
           // 幅だけは確実に指定する。
-          nameSel.style.setProperty('width', '33%', 'important');
-          nameSel.style.setProperty('max-width', '33%', 'important');
-          nameSel.style.setProperty('flex', '0 1 33%', 'important');
+          nameSel.style.setProperty('width', '100%', 'important');
+          nameSel.style.setProperty('max-width', '100%', 'important');
+          nameSel.style.setProperty('flex', '1 1 100%', 'important');
           nameSel.style.setProperty('box-sizing', 'border-box', 'important');
         }
 
@@ -448,7 +433,13 @@
         contactSel.value = cond.contact || '';
         var targetSel = makeCompactSelect(moveFilterTargetValues.map(function(v){ return {id:v, name:v}; }), '範囲指定なし');
         targetSel.value = cond.target;
-        [typeSel, catSel, powerInput, accInput, ppSel, contactSel, targetSel].forEach(function(el){ row2.appendChild(el); });
+        // 2段目(row2)は、薄い枠で囲んだ箱の中に、さらに2段に分けて配置する
+        // (1段目: タイプ/分類/威力下限/命中下限、2段目: PP/接触/範囲)。
+        var row2a = document.createElement('div'); row2a.className = 'dameke-search-move-filter-row2-sub';
+        var row2b = document.createElement('div'); row2b.className = 'dameke-search-move-filter-row2-sub';
+        [typeSel, catSel, powerInput, accInput].forEach(function(el){ row2a.appendChild(el); });
+        [ppSel, contactSel, targetSel].forEach(function(el){ row2b.appendChild(el); });
+        row2.appendChild(row2a); row2.appendChild(row2b);
 
         // 技名を指定した場合はそれのみで判定(2段目は無効化)、2段目のいずれかを指定した場合は
         // 技名を無効化する、相互排他の関係。
@@ -969,7 +960,7 @@
     // 1段目: 技名(指定した場合はこれのみで判定)。2段目: タイプ/分類/威力下限/命中下限/PP/範囲
     // (いずれかを指定した場合、AND条件で判定)。どちらか一方に入力があれば、もう一方は無効化。
     var row1 = document.createElement('div'); row1.className = 'dameke-search-move-filter-row1';
-    var row2 = document.createElement('div'); row2.className = 'dameke-search-move-filter-row2';
+    var row2 = document.createElement('div'); row2.className = 'dameke-search-move-filter-row2 dameke-search-move-filter-row2-box';
 
     var nameF = document.createElement('input'); nameF.type='text'; nameF.placeholder='技名';
     row1.appendChild(nameF);
@@ -983,7 +974,13 @@
     var contactF = makeCompactSelect([{id:'true',name:'接触'},{id:'false',name:'非接触'}], '接触指定なし');
     var targetValues = Array.from(new Set(DATA.moves.map(function(m){ return m.target; }).filter(Boolean))).sort();
     var targetF = makeCompactSelect(targetValues.map(function(v){ return {id:v, name:v}; }), '範囲指定なし');
-    [typeF, catF, powerF, accF, ppF, contactF, targetF].forEach(function(el){ row2.appendChild(el); });
+    // 2段目(row2)は、薄い枠で囲んだ箱の中に、さらに2段に分けて配置する
+    // (1段目: タイプ/分類/威力下限/命中下限、2段目: PP/接触/範囲)。
+    var row2aDetail = document.createElement('div'); row2aDetail.className = 'dameke-search-move-filter-row2-sub';
+    var row2bDetail = document.createElement('div'); row2bDetail.className = 'dameke-search-move-filter-row2-sub';
+    [typeF, catF, powerF, accF].forEach(function(el){ row2aDetail.appendChild(el); });
+    [ppF, contactF, targetF].forEach(function(el){ row2bDetail.appendChild(el); });
+    row2.appendChild(row2aDetail); row2.appendChild(row2bDetail);
 
     function updateMoveFilterExclusivity(){
       var row2HasInput = !!(typeF.value || catF.value || powerF.value || accF.value || ppF.value || contactF.value || targetF.value);

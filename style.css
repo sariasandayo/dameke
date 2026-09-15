@@ -664,7 +664,7 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 /* 技名欄(row1)内の検索コンボだけは、上の汎用ルール(max-width:220px)より優先して33%幅にする。
    構造セレクタでの詳細度を上のルールより高くすることで、JS側での後付けのインラインstyle
    指定に頼らず、宣言的なCSSだけで確実に反映されるようにする。 */
-#damekeSearchFilterHost .dameke-search-move-filter-row1 .v082h-search-combo{width:33% !important;max-width:33% !important;flex:0 1 33% !important;box-sizing:border-box;}
+#damekeSearchFilterHost .dameke-search-move-filter-row1 .v082h-search-combo{width:100% !important;max-width:100% !important;flex:1 1 100% !important;box-sizing:border-box;}
 #damekeSearchFilterHost .v082h-search-input{font-size:.82rem;padding:6px 8px;min-height:0;}
 .dameke-search-inline-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center;}
 .dameke-search-text-input{width:100%;padding:6px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.82rem;margin-bottom:10px;box-sizing:border-box;}
@@ -746,17 +746,21 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 
 .dameke-search-move-filter-grid{display:flex;flex-direction:column;gap:5px;margin-top:8px;}
 .dameke-search-move-filter-row1{display:flex;width:100%;box-sizing:border-box;}
-.dameke-search-move-filter-row1 input{padding:5px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:.78rem;flex:0 1 33%;max-width:33%;min-width:0;}
-.dameke-search-move-filter-row2{display:flex;gap:5px;flex-wrap:nowrap;}
-.dameke-search-move-filter-row2 > *{flex:1 1 0;min-width:0;}
-/* 並び順: タイプ(1) 分類(2) 威力(3) 命中(4) PP(5) 接触技(6) 範囲(7)。
-   タイプ・分類・範囲は従来通りの幅(flex:1)を維持し、威力・命中・PP・接触技の4つは
-   その分だけ幅を詰めて均等割りする(4項目の合計が、従来の3項目分の幅に収まるようにする)。 */
-.dameke-search-move-filter-row2 > :nth-child(3),
-.dameke-search-move-filter-row2 > :nth-child(4),
-.dameke-search-move-filter-row2 > :nth-child(5),
-.dameke-search-move-filter-row2 > :nth-child(6){flex:.75 1 0;}
-.dameke-search-move-filter-row2 input{padding:5px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:.78rem;width:100%;}
+.dameke-search-move-filter-row1 input{padding:5px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:.78rem;flex:1 1 100%;max-width:100%;min-width:0;}
+/* row2は薄い枠で囲んだ箱とし、中に2段のサブ行を並べる
+   (1段目: タイプ/分類/威力下限/命中下限、2段目: PP/接触技/範囲)。 */
+.dameke-search-move-filter-row2-box{display:flex;flex-direction:column;gap:5px;border:1px solid #e5e7eb;border-radius:6px;padding:6px;}
+.dameke-search-move-filter-row2-sub{display:flex;gap:5px;flex-wrap:nowrap;}
+.dameke-search-move-filter-row2-sub > *{flex:1 1 0;min-width:0;}
+/* 1段目(タイプ/分類/威力/命中): タイプ・分類は従来通りの幅(flex:1)を維持し、
+   威力・命中の2つはその分だけ幅を詰める。
+   2段目(PP/接触/範囲): 範囲は従来通りの幅(flex:1)を維持し、PP・接触技の2つは
+   その分だけ幅を詰める。 */
+.dameke-search-move-filter-row2-sub:first-child > :nth-child(3),
+.dameke-search-move-filter-row2-sub:first-child > :nth-child(4){flex:.75 1 0;}
+.dameke-search-move-filter-row2-sub:last-child > :nth-child(1),
+.dameke-search-move-filter-row2-sub:last-child > :nth-child(2){flex:.75 1 0;}
+.dameke-search-move-filter-row2-sub input{padding:5px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:.78rem;width:100%;}
 .dameke-search-move-filter-grid select:disabled,.dameke-search-move-filter-grid input:disabled{background:#f3f4f6;color:#9ca3af;}
 .dameke-search-move-list{max-height:320px;overflow-y:auto;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;margin-bottom:14px;}
 .dameke-search-move-row{display:grid;grid-template-columns:1.3fr .7fr .55fr .5fr .5fr .4fr .4fr .75fr;gap:6px;padding:5px 8px;border-bottom:1px solid #f1f5f9;font-size:.74rem;align-items:center;}
@@ -779,8 +783,9 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
   .dameke-search-matchup-cell b{font-size:.72rem;}
   .dameke-search-move-filter-grid{gap:3px;}
   .dameke-search-move-filter-row1 input,.dameke-search-move-filter-row1 .dameke-search-move-name-select{font-size:.66rem;}
-  .dameke-search-move-filter-row2{gap:2px;}
-  .dameke-search-move-filter-row2 select,.dameke-search-move-filter-row2 input{font-size:.6rem;padding:3px 2px;}
+  .dameke-search-move-filter-row2-box{gap:2px;padding:3px;}
+  .dameke-search-move-filter-row2-sub{gap:2px;}
+  .dameke-search-move-filter-row2-sub select,.dameke-search-move-filter-row2-sub input{font-size:.6rem;padding:3px 2px;}
 }
 
 /* ==================== 補完ポケモン出力ツール ==================== */
