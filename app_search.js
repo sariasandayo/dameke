@@ -12,6 +12,11 @@
   var TYPE_ORDER = ALL_TYPES;
   var TYPE_COLOR_MAP = { 'なし':'none', 'ノーマル':'normal', 'ほのお':'fire', 'みず':'water', 'でんき':'electric', 'くさ':'grass', 'こおり':'ice', 'かくとう':'fighting', 'どく':'poison', 'じめん':'ground', 'ひこう':'flying', 'エスパー':'psychic', 'むし':'bug', 'いわ':'rock', 'ゴースト':'ghost', 'ドラゴン':'dragon', 'あく':'dark', 'はがね':'steel', 'フェアリー':'fairy', 'ステラ':'stellar' };
   function typeColorClass(t){ return 'dameke-type-' + (TYPE_COLOR_MAP[t] || 'none'); }
+  // 専用Z技(てんこがすめつぼうのひかり等)は、ダメージ計算式の内部処理で技名参照が必要なため
+  // DATA.moves自体には実体が登録されているが、ユーザーが直接選べる一覧には出すべきではない
+  // (ダメージ計算機の技選択など、他の画面と同じ扱いにする)。「選択可能な技一覧」をここで
+  // 一元的に定義し、以後この検索機能内ではDATA.movesの代わりにこちらを使う。
+  var SELECTABLE_MOVES = DATA.moves.filter(function(m){ return !(DATA.isExcludedSignatureZMove && DATA.isExcludedSignatureZMove(m)); });
 
   // ==================== 使用率データ (v2.1.0) ====================
   // Pokemon Champions Battle Data (https://championsbattledata.com/) から日次取得した
@@ -206,7 +211,7 @@
       var allSlotsOk = activeMoveConds.every(function(cond){
         if(cond.name) return learned.indexOf(cond.name) >= 0;
         return learned.some(function(moveName){
-          var m = DATA.moves.find(function(x){ return x.name === moveName; });
+          var m = SELECTABLE_MOVES.find(function(x){ return x.name === moveName; });
           if(!m) return false;
           if(cond.type && m.type !== cond.type) return false;
           if(cond.category && m.category !== cond.category) return false;
@@ -246,33 +251,17 @@
     items.forEach(function(item){ var op=document.createElement('option'); op.value=item.id; op.textContent=item.name; select.appendChild(op); });
   }
   var comboIdCounter = 0;
-  function makeCompactSelect(items, placeholder, withSearch, forceWidthPercent){
+  function makeCompactSelect(items, placeholder, withSearch){
     var id = 'damekeSearchCombo' + (comboIdCounter++);
     var select = document.createElement('select');
     select.id = id;
     select.className = 'dameke-search-compact-select';
     fillSelect(select, items, placeholder);
-    if(withSearch && window.__damekeAttachSearchCombo){
-      Promise.resolve().then(function(){ window.__damekeAttachSearchCombo(id); });
-    }
-    if(forceWidthPercent != null){
-      // 非同期のattachSearchCombo()がいつ・どのように完了するかに一切依存しない、根本的な
-      // 解決策: selectを最初から自前の固定幅コンテナで包んでおく。後でattachSearchCombo()が
-      // このselectを独自の.v082h-search-comboでラップしても、それは単にこのコンテナの内側に
-      // 挿入されるだけなので、外側のコンテナの幅で確実に制約される。タイミングや例外の有無に
-      // 一切左右されない、最も確実な方法。
-      var sizedWrap = document.createElement('div');
-      sizedWrap.style.setProperty('flex', '0 1 ' + forceWidthPercent + '%', 'important');
-      sizedWrap.style.setProperty('width', forceWidthPercent + '%', 'important');
-      sizedWrap.style.setProperty('max-width', forceWidthPercent + '%', 'important');
-      sizedWrap.style.setProperty('min-width', '0', 'important');
-      sizedWrap.style.setProperty('box-sizing', 'border-box', 'important');
-      select.style.setProperty('width', '100%', 'important');
-      select.style.setProperty('box-sizing', 'border-box', 'important');
-      sizedWrap.appendChild(select);
-      sizedWrap._damekeSelect = select; // callers can still read/set .value via this if needed
-      return sizedWrap;
-    }
+    // 呼び出し直後にelementそのものをattachSearchCombo()へ直接渡す(id文字列経由の
+    // document.getElementById検索や、Promiseによる呼び出し遅延はしない)。要素がまだ
+    // ページに挿入されていないデタッチされたDOMツリー内にあっても確実に動作する、最も
+    // 頑健な方式。
+    if(withSearch && window.__damekeAttachSearchCombo) window.__damekeAttachSearchCombo(select);
     return select;
   }
   function buildStatRangeRow(container, label, key, bounds){
@@ -373,8 +362,8 @@
       renderMoveSlots();
     });
     host.appendChild(addMoveBtn);
-    var moveFilterPpValues = Array.from(new Set(DATA.moves.map(function(m){ return m.pp; }).filter(function(v){ return v!=null; }))).sort(function(a,b){return a-b;});
-    var moveFilterTargetValues = Array.from(new Set(DATA.moves.map(function(m){ return m.target; }).filter(Boolean))).sort();
+    var moveFilterPpValues = Array.from(new Set(SELECTABLE_MOVES.map(function(m){ return m.pp; }).filter(function(v){ return v!=null; }))).sort(function(a,b){return a-b;});
+    var moveFilterTargetValues = Array.from(new Set(SELECTABLE_MOVES.map(function(m){ return m.target; }).filter(Boolean))).sort();
     function renderMoveSlots(){
       moveListHost.innerHTML = '';
       filters.moveConditions.forEach(function(cond, idx){
@@ -382,42 +371,16 @@
         var row1 = document.createElement('div'); row1.className = 'dameke-search-move-filter-row1';
         var row2 = document.createElement('div'); row2.className = 'dameke-search-move-filter-row2 dameke-search-move-filter-row2-box';
 
-        // 技名選択欄: 以前は検索コンボの非同期ラップ処理(Promise.resolve().then()での遅延)
-        // が幅の不具合の原因だったため、いったんプレーンなselectのみに戻していた。ひらがな/
-        // カタカナ対応の入力機能を復活させるにあたり、今回はattachSearchCombo()を
-        // Promiseで遅延させず、selectをrow1に追加した直後、同じ同期実行ターン内で直接
-        // 呼び出す。この関数自体は元々同期処理(async/Promiseを一切含まない)なので、
-        // 呼び出すタイミングさえ遅延させなければ、ラップ完了直後に幅を再設定でき、
-        // タイミングのずれが生じる余地が一切なくなる。
+        // 技名選択欄: ひらがな/カタカナでの絞り込み検索ができるよう、検索コンボ機能で
+        // ラップする。幅は(この要素の有無に関わらず)style.css側の宣言的なルールで
+        // 一元的に指定しているため、ここでJS側から個別にstyleを設定する必要はない。
         var nameSel = document.createElement('select');
         nameSel.id = 'damekeSearchCombo' + (comboIdCounter++);
         nameSel.className = 'dameke-search-move-name-select';
-        fillSelect(nameSel, DATA.moves, '技名指定なし');
+        fillSelect(nameSel, SELECTABLE_MOVES, '技名指定なし');
         nameSel.value = cond.name;
         row1.appendChild(nameSel);
-        if(window.__damekeAttachSearchCombo){
-          // id文字列(document.getElementById経由)ではなく、要素そのものを直接渡す。
-          // この時点ではrow1はまだページに挿入されていないデタッチされたDOMツリーのため、
-          // document.getElementByIdでは見つからず、id経由だと無反応になってしまう。
-          window.__damekeAttachSearchCombo(nameSel);
-          // ラップが完了した直後(同期的に、同じ実行ターン内)、生成されたラッパー要素に
-          // 直接、確実に幅を適用する。row1にはこの技名欄しか入っていないため、100%
-          // (row1いっぱい)にする。
-          var nameWrapEl = nameSel.parentNode;
-          if(nameWrapEl && nameWrapEl.classList && nameWrapEl.classList.contains('v082h-search-combo')){
-            nameWrapEl.style.setProperty('width', '100%', 'important');
-            nameWrapEl.style.setProperty('max-width', '100%', 'important');
-            nameWrapEl.style.setProperty('flex', '1 1 100%', 'important');
-            nameWrapEl.style.setProperty('box-sizing', 'border-box', 'important');
-          }
-        } else {
-          // 検索コンボの仕組み自体が読み込まれていない場合の保険。プレーンなselectのまま
-          // 幅だけは確実に指定する。
-          nameSel.style.setProperty('width', '100%', 'important');
-          nameSel.style.setProperty('max-width', '100%', 'important');
-          nameSel.style.setProperty('flex', '1 1 100%', 'important');
-          nameSel.style.setProperty('box-sizing', 'border-box', 'important');
-        }
+        if(window.__damekeAttachSearchCombo) window.__damekeAttachSearchCombo(nameSel);
 
         var typeSel = makeCompactSelect(ALL_TYPES.map(function(t){return {id:t,name:t};}), 'タイプ指定なし');
         typeSel.value = cond.type;
@@ -931,7 +894,7 @@
   function makeNote(text){ var d=document.createElement('div'); d.className='dameke-adjust-summary-note'; d.textContent=text; return d; }
 
   function renderMoveSection(host, learnedNames, p){
-    var moveObjsAll = learnedNames.map(function(name){ return DATA.moves.find(function(m){ return m.name===name; }); }).filter(Boolean);
+    var moveObjsAll = learnedNames.map(function(name){ return SELECTABLE_MOVES.find(function(m){ return m.name===name; }); }).filter(Boolean);
     // 技の採用率(使用率データがある場合のみ)。技名 -> {rate, isTop10} のマップを作る。
     var moveRateMap = {};
     var usageEntryForMoves = usagePokemonEntry(p.name);
@@ -969,10 +932,10 @@
     var catF = makeCompactSelect([{id:'物理',name:'物理'},{id:'特殊',name:'特殊'},{id:'変化',name:'変化'}], '分類指定なし');
     var powerF = document.createElement('input'); powerF.type='number'; powerF.placeholder='威力の下限';
     var accF = document.createElement('input'); accF.type='number'; accF.placeholder='命中の下限';
-    var ppValues = Array.from(new Set(DATA.moves.map(function(m){ return m.pp; }).filter(function(v){ return v!=null; }))).sort(function(a,b){return a-b;});
+    var ppValues = Array.from(new Set(SELECTABLE_MOVES.map(function(m){ return m.pp; }).filter(function(v){ return v!=null; }))).sort(function(a,b){return a-b;});
     var ppF = makeCompactSelect(ppValues.map(function(v){ return {id:String(v), name:String(v)}; }), 'PP指定なし');
     var contactF = makeCompactSelect([{id:'true',name:'接触'},{id:'false',name:'非接触'}], '接触指定なし');
-    var targetValues = Array.from(new Set(DATA.moves.map(function(m){ return m.target; }).filter(Boolean))).sort();
+    var targetValues = Array.from(new Set(SELECTABLE_MOVES.map(function(m){ return m.target; }).filter(Boolean))).sort();
     var targetF = makeCompactSelect(targetValues.map(function(v){ return {id:v, name:v}; }), '範囲指定なし');
     // 2段目(row2)は、薄い枠で囲んだ箱の中に、さらに2段に分けて配置する
     // (1段目: タイプ/分類/威力下限/命中下限、2段目: PP/接触/範囲)。

@@ -747,6 +747,7 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-search-move-filter-grid{display:flex;flex-direction:column;gap:5px;margin-top:8px;}
 .dameke-search-move-filter-row1{display:flex;width:100%;box-sizing:border-box;}
 .dameke-search-move-filter-row1 input{padding:5px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:.78rem;flex:1 1 100%;max-width:100%;min-width:0;}
+.dameke-search-move-filter-row1 > .dameke-search-move-name-select{flex:1 1 100%;max-width:100%;min-width:0;box-sizing:border-box;}
 /* row2は薄い枠で囲んだ箱とし、中に2段のサブ行を並べる
    (1段目: タイプ/分類/威力下限/命中下限、2段目: PP/接触技/範囲)。 */
 .dameke-search-move-filter-row2-box{display:flex;flex-direction:column;gap:5px;border:1px solid #e5e7eb;border-radius:6px;padding:6px;}
