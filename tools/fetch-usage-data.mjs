@@ -222,75 +222,78 @@ function buildReverseMap(jaToEn) {
 }
 
 // ---- 1匹分の battleSummary から、公開用JSONの1エントリを作る ----
-function buildPokemonEntry(jaName, championsPokemon, format, nameMaps, auditLog, reversePokemonMap) {
-  const bs = championsPokemon?.summary?.battleSummary?.Current?.[format];
-  if (!bs) return null;
-  const top = bs.top || {};
-  const values = bs.values || {};
+async function fetchBattleRows(format, showdownId){
+  const url = `https://championsbattledata.com/api/battle/${format}/${encodeURIComponent(showdownId)}`;
+  const data = await fetchJsonWithRetry(url, { retries: RETRY_COUNT });
+  return Array.isArray(data.rows) ? data.rows : [];
+}
 
-  function mapList(categoryKey, jaToEnMap, auditKey) {
-    const names = values[categoryKey] || [];
-    const topEntry = top[categoryKey];
+async function buildPokemonEntry(jaName, championsPokemon, format, nameMaps, auditLog, reversePokemonMap){
+  // メインの/apiインデックスのbattleSummaryは1位(top)しか%を持たないため、ポケモンごとの
+  // 詳細エンドポイント(/api/battle/{format}/{showdownId})を別途取得する。こちらは各カテゴリ
+  // 最大10位まで、すべての順位に%(または努力値配分の内訳)が付与されている。
+  let rows;
+  try {
+    rows = await fetchBattleRows(format, championsPokemon.showdownId || championsPokemon.slug);
+  } catch (e) {
+    auditLog.unmatchedPokemon.push(`${jaName}(battle取得失敗:${e.message})`);
+    return null;
+  }
+  if (!rows.length) return null;
+
+  function rowsFor(category){ return rows.filter(r => r.category === category).sort((a,b) => (a.rank||0) - (b.rank||0)); }
+
+  function mapCategory(categoryKey, jaToEnMap, auditKey){
+    const revMap = buildReverseMap(jaToEnMap);
     const out = [];
-    names.forEach((enName) => {
-      const revMap = buildReverseMap(jaToEnMap);
-      const ja = revMap[normalizeSlug(enName)];
-      if (!ja) { auditLog[auditKey].push(enName); return; }
-      // rateは値配列自体には付与されていないため、topエントリのみ%が既知。
-      // top以外の順位のrate%は取得できないため、topの1件だけrateを持たせ、
-      // それ以外は「収録されているが割合は不明」として rate:null にする。
-      const isTop = topEntry && topEntry.name === enName;
-      out.push({ id: ja, rate: isTop && topEntry.percentage_value != null ? Number(topEntry.percentage_value.toFixed(1)) : null });
+    rowsFor(categoryKey).forEach((row) => {
+      const ja = revMap[normalizeSlug(row.name)];
+      if (!ja) { auditLog[auditKey].push(row.name); return; }
+      const rate = row.percentage_value != null ? Number(Number(row.percentage_value).toFixed(1)) : null;
+      out.push({ id: ja, rate });
     });
     return out;
   }
 
-  const abilities = mapList('ability', nameMaps.abilities, 'unmatchedAbilities');
-  const items = mapList('held_item', nameMaps.items, 'unmatchedItems');
-  const moves = mapList('move', nameMaps.moves, 'unmatchedMoves');
-  const natures = mapList('stat_alignment', nameMaps.natures, 'unmatchedNatures');
+  const abilities = mapCategory('ability', nameMaps.abilities, 'unmatchedAbilities');
+  const items = mapCategory('held_item', nameMaps.items, 'unmatchedItems');
+  const moves = mapCategory('move', nameMaps.moves, 'unmatchedMoves');
+  const natures = mapCategory('stat_alignment', nameMaps.natures, 'unmatchedNatures');
 
-  // 努力値配分(stat_points)は日本語訳の必要がない数値情報なので、"HP 32 / Atk 0 / ..." 形式
-  // から、だめけー側の表記(H/A/B/C/D/S)へ変換するだけでよい。
+  // 努力値配分(stat_points)は日本語訳の必要がない数値情報。各順位のhp_points等の内訳から、
+  // だめけー側の表記(H32/A0/B20/C14/D0/S0)へ、全順位について統一して変換する。
   function formatEvSpread(row){
-    if (!row) return null;
     const parts = [];
-    if (row.hp_points != null) parts.push('H' + row.hp_points);
-    if (row.attack_points != null) parts.push('A' + row.attack_points);
-    if (row.defense_points != null) parts.push('B' + row.defense_points);
-    if (row.sp_atk_points != null) parts.push('C' + row.sp_atk_points);
-    if (row.sp_def_points != null) parts.push('D' + row.sp_def_points);
-    if (row.speed_points != null) parts.push('S' + row.speed_points);
+    if (row.hp_points !== '' && row.hp_points != null) parts.push('H' + row.hp_points);
+    if (row.attack_points !== '' && row.attack_points != null) parts.push('A' + row.attack_points);
+    if (row.defense_points !== '' && row.defense_points != null) parts.push('B' + row.defense_points);
+    if (row.sp_atk_points !== '' && row.sp_atk_points != null) parts.push('C' + row.sp_atk_points);
+    if (row.sp_def_points !== '' && row.sp_def_points != null) parts.push('D' + row.sp_def_points);
+    if (row.speed_points !== '' && row.speed_points != null) parts.push('S' + row.speed_points);
     return parts.length ? parts.join('/') : null;
   }
-  const evSpreads = [];
-  {
-    const rawList = values.stat_points || []; // 生の文字列("HP 32 / Atk 0 / ...")の配列
-    const topRow = top.stat_points;
-    rawList.forEach((rawLabel, idx) => {
-      // valuesの配列自体は文字列のみで各行の内訳を持たないため、top(1位)だけは実際の内訳
-      // (hp_points等)とrate%が分かる。それ以外は文字列表示のみ、rateはnullとする。
-      const isTop = idx === 0 && topRow;
-      const label = isTop ? (formatEvSpread(topRow) || rawLabel) : rawLabel;
-      const rate = isTop && topRow.percentage_value != null ? Number(topRow.percentage_value.toFixed(1)) : null;
-      evSpreads.push({ label, rate });
-    });
-  }
+  const evSpreads = rowsFor('stat_points').map((row) => {
+    const label = formatEvSpread(row);
+    const rate = row.percentage_value != null ? Number(Number(row.percentage_value).toFixed(1)) : null;
+    return label ? { label, rate } : null;
+  }).filter(Boolean);
 
   // 味方ポケモンは、既に構築済みのポケモンID対応表(英語battleName -> だめけー日本語名)の
   // 逆引きで変換する。変換できない場合はその行だけ除外し、監査対象に記録する。
-  const teammates = (values.teammate || [])
-    .map((enName) => {
-      const jaName = reversePokemonMap.get(normalizeSlug(enName));
-      if (!jaName) { auditLog.unmatchedTeammates.push(enName); return null; }
-      return { id: jaName, rate: null };
+  const teammates = rowsFor('teammate')
+    .map((row) => {
+      const teamJaName = reversePokemonMap.get(normalizeSlug(row.name));
+      if (!teamJaName) { auditLog.unmatchedTeammates.push(row.name); return null; }
+      return { id: teamJaName, rate: null };
     })
     .filter(Boolean);
 
   // position(=column_position)は、その形式(シングル/ダブル)における使用率ランキング上の
-  // 列位置であり、実質的にそのポケモン自体の使用率順位として扱える。カテゴリによらず同じ
-  // ポケモン+形式では共通の値なので、topのどれか(move)から取得する。
-  const rank = bs.top?.move?.position ?? bs.position ?? null;
+  // 列位置であり、実質的にそのポケモン自体の使用率順位として扱える。ポケモンごとの詳細
+  // エンドポイントにはこの値が含まれないため、メインインデックス側(championsPokemon)から
+  // 引き続き取得する。
+  const bs = championsPokemon?.summary?.battleSummary?.Current?.[format];
+  const rank = bs?.top?.move?.position ?? bs?.position ?? null;
 
   return {
     sourcePokemonId: championsPokemon.slug,
@@ -352,13 +355,17 @@ async function main() {
 
   const formatsOut = { singles: null, doubles: null };
   let anyFormatSucceeded = false;
+  const REQUEST_DELAY_MS = 150; // ポケモンごとの詳細エンドポイントを多数叩くため、サーバー
+  // への負荷を抑えるために一定間隔を空ける。
+  function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 
   for (const [outKey, apiFormat] of [['singles', 'Singles'], ['doubles', 'Doubles']]) {
     try {
       const pokemonOut = {};
       let count = 0;
       for (const [jaName, championsPokemon] of Object.entries(pokemonIdMap)) {
-        const entry = buildPokemonEntry(jaName, championsPokemon, apiFormat, nameMaps, auditLog, reversePokemonMap);
+        const entry = await buildPokemonEntry(jaName, championsPokemon, apiFormat, nameMaps, auditLog, reversePokemonMap);
+        await sleep(REQUEST_DELAY_MS);
         if (!entry) continue;
         pokemonOut[jaName] = entry;
         count++;
