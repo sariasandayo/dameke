@@ -1773,41 +1773,6 @@
     buildLayoutAndZones();
   }
   function init(){ document.body.classList.add('v082h-ui'); initializeLayoutAndZones(); setActiveSide('attacker'); bind(); refreshAll(); setupResult(); }
-    window.DAMEKE_UI_V082H_COND_DEBUG=function(){
-    function info(el){
-      if(!el) return {found:false};
-      var cs=window.getComputedStyle(el);
-      return {found:true,tag:el.tagName,className:el.className,inlineStyle:el.getAttribute('style'),computedDisplay:cs.display,computedGridTemplateColumns:cs.gridTemplateColumns,childCount:el.children.length,open:el.open};
-    }
-    var wrap=document.querySelector('.v082h-cond-wrap');
-    var detailsInWrap=wrap?all('details',wrap).filter(function(d){return d.parentNode===wrap;}):[];
-    var doubleFolds=all('.v082h-double-fold');
-    return {
-      wrap: info(wrap),
-      atk: info(detailsInWrap[0]),
-      def: info(detailsInWrap[1]),
-      doubleFoldCount: doubleFolds.length,
-      doubleFolds: doubleFolds.map(info)
-    };
-  };
-  window.DAMEKE_UI_V082H_ABILITY_DEBUG=function(){
-    function info(id){
-      var sel=q(id);
-      if(!sel) return {found:false};
-      var combo=sel.closest('.v082h-search-combo');
-      var label=sel.closest('label');
-      return {
-        found:true,
-        hasSearchAttr: sel.getAttribute('data-v082h-search'),
-        selectHidden: sel.classList.contains('v082h-hide'),
-        comboExists: !!combo,
-        comboHasInput: combo ? !!combo.querySelector('.v082h-search-input') : false,
-        labelClassName: label ? label.className : null,
-        labelText: label ? label.textContent : null
-      };
-    }
-    return { attacker: info('attackerAbilitySelect'), defender: info('defenderAbilitySelect') };
-  };
   window.__damekeInitV082h = init;
 })();
 
