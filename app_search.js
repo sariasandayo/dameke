@@ -408,16 +408,22 @@
             nameWrapEl.style.setProperty('max-width', '33%', 'important');
             nameWrapEl.style.setProperty('flex', '0 1 33%', 'important');
             nameWrapEl.style.setProperty('box-sizing', 'border-box', 'important');
-            // 診断用: 実機での実測値をコンソールに出す(これまでの調査では原因を特定
-            // できなかったため、次回はここの出力を見て切り分ける)。
-            setTimeout(function(){
+            // 診断用: このパネルはページ読み込み時に1度だけ構築され、以降タブを
+            // 切り替えても再構築されない(検索パネルの表示自体は<div hidden>で
+            // 切り替えるだけの仕組みのため)。つまり、このコードが実行される時点では
+            // 検索タブがまだ非表示(幅0px)の可能性が高く、その場での計測は当てにならない。
+            // 実際に検索タブを開いて見た目を確認した状態で、コンソールから
+            // window.__damekeDiagMoveNameWidth() を呼び出せば、その時点の正しい実測値が
+            // 得られる。
+            window.__damekeDiagMoveNameWidth = function(){
               try{
                 var rect = nameWrapEl.getBoundingClientRect();
                 var row1Rect = row1.getBoundingClientRect();
                 console.log('[技名欄diag] wrap実測幅:', rect.width, 'px / row1実測幅:', row1Rect.width, 'px / 比率:', (rect.width/row1Rect.width*100).toFixed(1)+'%');
                 console.log('[技名欄diag] wrap computedStyle:', window.getComputedStyle(nameWrapEl).width, window.getComputedStyle(nameWrapEl).flex);
+                console.log('[技名欄diag] row1 computedStyle:', window.getComputedStyle(row1).display, window.getComputedStyle(row1).width);
               }catch(e){ console.warn('[技名欄diag] 測定失敗', e); }
-            }, 0);
+            };
           }
         } else {
           // 検索コンボの仕組み自体が読み込まれていない場合の保険。プレーンなselectのまま
