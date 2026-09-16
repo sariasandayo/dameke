@@ -56,6 +56,7 @@
     if(panelName === 'search' && window.__damekeRenderSearchPanel) window.__damekeRenderSearchPanel();
     if(panelName === 'complement' && window.__damekeRenderComplementPanel) window.__damekeRenderComplementPanel();
     if(panelName === 'partytype' && window.__damekeRenderPartyTypePanel) window.__damekeRenderPartyTypePanel();
+    if(panelName === 'minigame' && window.__damekeRenderMinigamePanel) window.__damekeRenderMinigamePanel();
   }
   window.__damekeShowPanel = showPanel;
 

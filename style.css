@@ -764,7 +764,7 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-search-move-filter-row2-sub input{padding:5px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:.78rem;width:100%;}
 .dameke-search-move-filter-grid select:disabled,.dameke-search-move-filter-grid input:disabled{background:#f3f4f6;color:#9ca3af;}
 .dameke-search-move-list{max-height:320px;overflow-y:auto;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;margin-bottom:14px;}
-.dameke-search-move-row{display:grid;grid-template-columns:1.3fr .7fr .55fr .5fr .5fr .4fr .4fr .75fr;gap:6px;padding:5px 8px;border-bottom:1px solid #f1f5f9;font-size:.74rem;align-items:center;}
+.dameke-search-move-row{display:grid;grid-template-columns:1.15fr .85fr .55fr .5fr .5fr .4fr .4fr .75fr;gap:6px;padding:5px 8px;border-bottom:1px solid #f1f5f9;font-size:.74rem;align-items:center;}
 .dameke-search-move-row > *{min-width:0;overflow:hidden;}
 .dameke-search-move-name{font-weight:700;color:#111827;text-overflow:ellipsis;white-space:nowrap;}
 .dameke-search-move-row:last-child{border-bottom:none;}
@@ -772,10 +772,10 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 @media(max-width:640px){
   .dameke-search-result-host{grid-template-columns:repeat(auto-fill,minmax(72px,1fr));}
   .dameke-search-thumb{width:44px;height:44px;}
-  .dameke-search-move-row{grid-template-columns:1fr .55fr .4fr .35fr .35fr .3fr .3fr .55fr;font-size:.56rem;gap:2px;padding:3px 3px;}
+  .dameke-search-move-row{grid-template-columns:.85fr .7fr .4fr .35fr .35fr .3fr .3fr .55fr;font-size:.56rem;gap:2px;padding:3px 3px;}
   .dameke-search-detail-image{width:84px;height:84px;}
   .dameke-search-detail-radar-host{width:84px;height:84px;}
-  .dameke-search-combined-stat-table{grid-template-columns:2.3fr repeat(6,1fr) 1.1fr !important;justify-content:stretch !important;width:100%;gap:3px !important;font-size:.64rem;padding:5px;}
+  .dameke-search-combined-stat-table{grid-template-columns:1.9fr repeat(6,minmax(3.4em,1fr)) minmax(3.6em,1.1fr) !important;justify-content:stretch !important;width:100%;gap:3px !important;font-size:.64rem;padding:5px;}
   .dameke-search-combined-stat-table .dameke-adjust-evspec-rowlabel{white-space:nowrap;font-size:.6rem;overflow:visible;}
   .dameke-search-combined-stat-table .dameke-adjust-evspec-cell{white-space:normal;overflow-wrap:anywhere;line-height:1.15;padding:1px 0;}
   .dameke-search-matchup-grid{grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:3px;}
@@ -895,4 +895,60 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-coverage-breakdown-chip .dameke-party-type-badge{white-space:nowrap;}
 @media(max-width:640px){
   .dameke-coverage-moves-host{grid-template-columns:1fr 1fr;}
+}
+
+/* ==================== ミニゲーム ==================== */
+.dameke-minigame-tab-host{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.dameke-minigame-switch-btn{border:1px solid #d1d5db;background:#f9fafb;color:#4b5563;border-radius:8px;padding:7px 14px;font-size:.85rem;font-weight:700;cursor:pointer;}
+.dameke-minigame-switch-btn-active{background:#2563eb;border-color:#2563eb;color:#fff;}
+.dameke-minigame-game-host{display:flex;flex-direction:column;gap:4px;}
+
+/* ---- ポケモンWordle ---- */
+.dameke-wordle-wrap{display:flex;flex-direction:column;gap:2px;}
+.dameke-wordle-title{margin:0 0 4px;font-size:1.05rem;}
+.dameke-wordle-rules-fold{margin-top:0;margin-bottom:12px;}
+.dameke-wordle-rules-fold summary{cursor:pointer;font-weight:700;font-size:.85rem;color:#374151;}
+.dameke-wordle-rules-body{margin-top:8px;font-size:.78rem;color:#4b5563;line-height:1.6;}
+.dameke-wordle-rules-body p{margin:0 0 8px;}
+.dameke-wordle-rules-body p:last-child{margin-bottom:0;}
+.dameke-wordle-actions{margin-bottom:4px;}
+.dameke-wordle-giveup-btn{border-color:#f3a6a6;color:#b91c1c;background:#fef2f2;}
+.dameke-wordle-message{min-height:0;}
+.dameke-wordle-win-banner{background:#ecfdf3;border:1px solid #6aaa64;color:#166534;border-radius:8px;padding:10px 14px;font-weight:700;margin:6px 0;}
+.dameke-wordle-lose-banner{background:#f9fafb;border:1px solid #d1d5db;color:#374151;border-radius:8px;padding:10px 14px;font-weight:700;margin:6px 0;}
+.dameke-wordle-retry-btn{background:#2563eb;border-color:#2563eb;color:#fff;margin-bottom:10px;}
+
+/* 入力欄(左)と使った文字表(右)を横並びにする */
+.dameke-wordle-board-row{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;}
+.dameke-wordle-rows{display:flex;flex-direction:column;gap:6px;margin:6px 0 10px;flex:1 1 320px;min-width:260px;}
+.dameke-wordle-hint-section{flex:0 0 auto;}
+
+.dameke-wordle-row{display:flex;align-items:center;gap:10px;}
+.dameke-wordle-row-thumb{width:40px;height:40px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;}
+.dameke-wordle-row-thumb img{max-width:100%;max-height:100%;}
+.dameke-wordle-row-thumb-missing{background:#e5e7eb;border-radius:6px;}
+.dameke-wordle-letters{display:flex;gap:5px;}
+.dameke-wordle-letter-box{width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;border-radius:6px;color:#fff;background:#9ca3af;}
+
+/* 自由入力欄+決定ボタン: 高さを揃える(同じheight/box-sizingを指定) */
+.dameke-wordle-row-input{flex-wrap:wrap;}
+.dameke-wordle-text-input,.dameke-wordle-submit-btn{height:38px;box-sizing:border-box;font-size:.85rem;}
+.dameke-wordle-text-input{flex:1 1 220px;max-width:260px;padding:0 10px;border:1px solid #d1d5db;border-radius:8px;}
+.dameke-wordle-submit-btn{margin-bottom:0;padding:0 16px;}
+.dameke-wordle-row-input-inactive .dameke-wordle-text-input,.dameke-wordle-row-input-inactive .dameke-wordle-submit-btn{opacity:.5;}
+.dameke-wordle-input-error{color:#b91c1c;font-size:.76rem;font-weight:700;flex:1 1 100%;}
+
+.dameke-wordle-hint-table{display:flex;flex-direction:column;gap:3px;margin-bottom:6px;}
+.dameke-wordle-hint-row{display:grid;grid-template-columns:repeat(5,32px);gap:3px;}
+.dameke-wordle-hint-cell{display:flex;align-items:center;justify-content:center;height:28px;border-radius:5px;background:#f3f4f6;color:#374151;font-size:.78rem;font-weight:700;}
+.dameke-wordle-hint-cell-empty{background:transparent;}
+.dameke-wordle-cell-green{background:#6aaa64;color:#fff;}
+.dameke-wordle-cell-yellow{background:#c9b458;color:#fff;}
+.dameke-wordle-cell-gray{background:#9ca3af;color:#fff;}
+@media(max-width:480px){
+  .dameke-wordle-letter-box{width:30px;height:30px;font-size:.85rem;}
+  .dameke-wordle-row-thumb{width:32px;height:32px;}
+  .dameke-wordle-hint-row{grid-template-columns:repeat(5,26px);}
+  .dameke-wordle-hint-cell{height:24px;font-size:.68rem;}
+  .dameke-wordle-text-input{max-width:none;}
 }
