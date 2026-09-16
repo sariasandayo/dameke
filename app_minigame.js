@@ -268,10 +268,6 @@
     function renderMessage(){
       messageHost.innerHTML = '';
       if(wordleState.won){
-        var win = document.createElement('div');
-        win.className = 'dameke-wordle-win-banner';
-        win.textContent = '正解！ ' + wordleState.guesses.length + '回で「' + wordleState.answer + '」を当てました！';
-        messageHost.appendChild(win);
         appendRetryButton();
       } else if(wordleState.finished){
         var lose = document.createElement('div');
@@ -302,6 +298,14 @@
         lettersWrap.appendChild(box);
       });
       row.appendChild(lettersWrap);
+      // 正解した行(全マス緑)には、正解の解答の横に小さく「正解！」を添える
+      // (決定ボタンと同程度の大きさ。以前あった大きなメッセージ枠の代わり)。
+      if(colors.every(function(c){ return c === 'green'; })){
+        var correctLabel = document.createElement('span');
+        correctLabel.className = 'dameke-search-add-btn dameke-wordle-correct-label';
+        correctLabel.textContent = '正解！';
+        row.appendChild(correctLabel);
+      }
       return row;
     }
 

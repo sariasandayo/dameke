@@ -914,7 +914,7 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-wordle-actions{margin-bottom:4px;}
 .dameke-wordle-giveup-btn{border-color:#f3a6a6;color:#b91c1c;background:#fef2f2;}
 .dameke-wordle-message{min-height:0;}
-.dameke-wordle-win-banner{background:#ecfdf3;border:1px solid #6aaa64;color:#166534;border-radius:8px;padding:10px 14px;font-weight:700;margin:6px 0;}
+.dameke-wordle-correct-label{height:38px;box-sizing:border-box;display:inline-flex;align-items:center;padding:0 14px;margin:0;background:#6aaa64;border-color:#6aaa64;color:#fff;font-weight:800;border-radius:8px;cursor:default;}
 .dameke-wordle-lose-banner{background:#f9fafb;border:1px solid #d1d5db;color:#374151;border-radius:8px;padding:10px 14px;font-weight:700;margin:6px 0;}
 .dameke-wordle-retry-btn{background:#2563eb;border-color:#2563eb;color:#fff;margin-bottom:10px;}
 
@@ -946,15 +946,16 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-wordle-cell-yellow{background:#c9b458;color:#fff;}
 .dameke-wordle-cell-gray{background:#9ca3af;color:#fff;}
 @media(max-width:480px){
-  .dameke-wordle-board-row{gap:8px;flex-wrap:nowrap;}
+  .dameke-wordle-board-row{gap:14px;flex-wrap:nowrap;}
   .dameke-wordle-rows{min-width:0;flex:1 1 auto;gap:4px;}
   .dameke-wordle-letter-box{width:24px;height:24px;font-size:.72rem;border-radius:4px;}
   .dameke-wordle-row{gap:4px;}
   .dameke-wordle-row-thumb{width:24px;height:24px;}
   .dameke-wordle-letters{gap:3px;}
   .dameke-wordle-row-input{flex-wrap:nowrap;}
-  .dameke-wordle-text-input{flex:1 1 auto;max-width:none;min-width:0;padding:0 6px;font-size:.72rem;}
+  .dameke-wordle-text-input{flex:0 1 130px;max-width:130px;min-width:0;padding:0 6px;font-size:.72rem;}
   .dameke-wordle-submit-btn{padding:0 8px;font-size:.72rem;flex:0 0 auto;}
+  .dameke-wordle-correct-label{height:24px;padding:0 10px;font-size:.72rem;}
   .dameke-wordle-hint-section{flex:0 0 auto;}
   .dameke-wordle-hint-row{grid-template-columns:repeat(5,22px);gap:2px;}
   .dameke-wordle-hint-cell{height:20px;font-size:.6rem;}
