@@ -244,6 +244,45 @@
     } catch(e){ return ''; }
   }
 
+  // state.attackerItemSelect/defenderItemSelect hold the <select>'s raw value, which is the
+  // item's id (e.g. "none" for 持ち物なし), not its displayed name ("なし") -- buildMiniThumb's
+  // "no item" check compares against the displayed name, so the id must be resolved to its name
+  // first here, the same way the live calculator's itemNameForSide() does via option textContent.
+  function itemNameFromId(id){
+    var d = window.DAMEKE_DATA;
+    if(!d || !d.items) return id;
+    var item = d.items.find(function(it){ return it.id === id; });
+    return item ? item.name : id;
+  }
+
+  // 計算履歴カードのプレビューにも、下部固定枠(v082hResultPanel)と同じ考え方で天候・フィールドの
+  // 状態を色分け反映する(色の意味は詳細の天候・フィールド表示で確認できるので、あくまで一目で
+  // 状況の変化がわかるための補助表現。サイズ・レイアウトには影響させない)。
+  var HISTORY_PREVIEW_BASE_COLOR = '#fff';
+  var HISTORY_WEATHER_TINT_COLOR = {
+    'にほんばれ': '#fdf6e3', 'おおひでり': '#fdf6e3',
+    'あめ': '#e8f1fe', 'おおあめ': '#e8f1fe',
+    'すなあらし': '#f7ecdb',
+    'ゆき': '#eafbfd',
+    'らんきりゅう': '#eceef2',
+    'ノーてんき・エアロック': '#eef0f2'
+  };
+  var HISTORY_FIELD_TINT_COLOR = {
+    'エレキフィールド': '#fff6cc',
+    'グラスフィールド': '#e3f7e3',
+    'ミストフィールド': '#fbe6f0',
+    'サイコフィールド': '#f1e6fb'
+  };
+  function applyHistoryPreviewFieldTint(box, state){
+    if(!box) return;
+    var weatherVal = state && state.weatherSelect;
+    var fieldVal = state && state.fieldSelect;
+    var wColor = (weatherVal && HISTORY_WEATHER_TINT_COLOR[weatherVal]) || HISTORY_PREVIEW_BASE_COLOR;
+    var fColor = (fieldVal && HISTORY_FIELD_TINT_COLOR[fieldVal]) || HISTORY_PREVIEW_BASE_COLOR;
+    box.style.setProperty('--dameke-weather-tint', wColor);
+    box.style.setProperty('--dameke-field-tint', fColor);
+  }
+
   // ---- Miniature HP-bar reproduction (images, names/move, dmg/rate, certainty/faint rate, HP
   // bar) for a history card, using the same PokeAPI sprite id map the calculator uses.
   function buildMiniThumb(japaneseName, itemName){
@@ -321,6 +360,7 @@
     if(!snapshot) snapshot = computeResultSnapshotLive(state); // old entry, no saved snapshot
     var box = document.createElement('div');
     box.className = 'dameke-history-preview';
+    applyHistoryPreviewFieldTint(box, state);
     if(!snapshot){
       box.classList.add('dameke-history-preview-unavailable');
       box.textContent = '再計算できませんでした（保存時と技・ポケモンの構成が変わった可能性があります）。';
@@ -329,7 +369,7 @@
     var result = snapshot, faintPct = snapshot.faintPct;
     var row = document.createElement('div');
     row.className = 'dameke-history-header-row';
-    row.appendChild(buildMiniThumb(result.attackerName, state && state.attackerItemSelect));
+    row.appendChild(buildMiniThumb(result.attackerName, state && itemNameFromId(state.attackerItemSelect)));
     var textCol = document.createElement('div');
     textCol.className = 'dameke-history-text-col';
     var namesLine = document.createElement('div');
@@ -350,7 +390,7 @@
     textCol.appendChild(dmgLine);
     textCol.appendChild(koLine);
     row.appendChild(textCol);
-    row.appendChild(buildMiniThumb(result.defenderName, state && state.defenderItemSelect));
+    row.appendChild(buildMiniThumb(result.defenderName, state && itemNameFromId(state.defenderItemSelect)));
     box.appendChild(row);
 
     var curHp = result.defenderCurrentHp, maxHp = result.defenderMaxHp;
@@ -469,7 +509,7 @@
   // Fields already shown elsewhere in the card (basic selectors, HP, stats, gender -- both the
   // real field genderValue() reads and the unused static one -- and the EV quick-preset
   // selectors) are excluded so "詳細" only adds genuinely new information.
-  var STAT_DETAIL_ID_SUFFIXES = ['_nature', '_iv', '_ev', '_rank'];
+  var STAT_DETAIL_ID_SUFFIXES = ['_nature', '_iv', '_ev', '_rank', '_actual'];
   var ALREADY_SHOWN_IDS = ['attackerSelect','defenderSelect','moveSelect','attackerLevel','defenderLevel','attackerCurrentHp','defenderCurrentHp','attackerSexSelect','defenderSexSelect','attackerGender','defenderGender','v082hEvPreset_attacker','v082hEvPreset_defender','attackerAbilitySelect','defenderAbilitySelect','attackerItemSelect','defenderItemSelect'];
   function isAlreadyShownElsewhere(id){
     if(ALREADY_SHOWN_IDS.indexOf(id) >= 0) return true;

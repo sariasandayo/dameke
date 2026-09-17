@@ -154,6 +154,29 @@ button:hover { background: #e0e7ff; }
 .v082h-double-fold{margin-top:6px;}
 .v082h-double-fold>summary{font-size:.85rem;font-weight:600;}
 .v082h-result-panel{background:#f9fafb;border:1px solid #e5e7eb;border-radius:14px;padding:12px;margin-bottom:12px;}
+/* 下部固定枠(v082hResultPanel)専用: 左下から右上への対角線で背景を二分し、
+   左側(左上寄りの三角形)を天候、右側(右下寄りの三角形)をフィールドの状態に応じた
+   淡い色で塗り分ける。JS側(updateResultPanelFieldTint)が --dameke-weather-tint /
+   --dameke-field-tint の2つのCSS変数に色を設定し、実際の三角形分割はここのclip-pathで
+   行う(サイズ・余白・レイアウトには一切影響しない)。 */
+#v082hResultPanel{
+  --dameke-weather-tint:#f9fafb;
+  --dameke-field-tint:#f9fafb;
+  position:relative;
+  isolation:isolate;
+  background-color:var(--dameke-weather-tint);
+  transition:background-color .2s ease;
+}
+#v082hResultPanel::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  z-index:-1;
+  border-radius:inherit;
+  clip-path:polygon(0 100%, 100% 0, 100% 100%);
+  background-color:var(--dameke-field-tint);
+  transition:background-color .2s ease;
+}
 .v082h-hp-infoline{font-weight:800;font-size:.92rem;color:#1f2937;margin-bottom:6px;}
 .v082h-result-sidegrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));justify-items:center;gap:0 10px;margin-top:8px;}
 .v082h-result-col{display:flex;flex-direction:column;}
@@ -315,7 +338,25 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-history-card-actions button:hover{transform:translateY(-1px);box-shadow:0 3px 8px rgba(15,23,42,.22);}
 .dameke-history-card-actions button.dameke-history-load{background:#111827;color:#fff;border-color:#111827;}
 .dameke-history-empty{color:#9ca3af;font-size:.88rem;}
-.dameke-history-preview{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;}
+.dameke-history-preview{
+  --dameke-weather-tint:#fff;
+  --dameke-field-tint:#fff;
+  position:relative;
+  isolation:isolate;
+  background-color:var(--dameke-weather-tint);
+  border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;
+}
+/* 計算履歴のプレビューカードも、下部固定枠と同じ左下→右上の対角線分割で、左側(左上寄り)を
+   天候、右側(右下寄り)をフィールドの色分けとして再現する(サイズ・レイアウトには影響しない)。 */
+.dameke-history-preview::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  z-index:-1;
+  border-radius:inherit;
+  clip-path:polygon(0 100%, 100% 0, 100% 100%);
+  background-color:var(--dameke-field-tint);
+}
 .dameke-history-preview-unavailable{color:#9ca3af;font-size:.85rem;text-align:center;padding:16px 8px;}
 .dameke-history-header-row{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:2px;}
 .dameke-history-text-col{flex:0 1 auto;min-width:0;max-width:60%;text-align:center;}

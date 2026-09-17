@@ -1305,6 +1305,8 @@
 
   function restructureConditions(){
     var field=convertToDetails(findSectionByTitle('場'),'場','sub-card v082h-section-details');
+    // 天候・フィールドを変える特性の自動反映(v2.2.0)が、この折り畳み(details)自体を開けるよう公開する。
+    window.__damekeFieldFoldDetails = field;
 
     var atk=buildConditionDetails('攻撃側条件',
       ['attackerStatus','attackerEmbargo','attackerStealthRock','attackerSpikes','attackerSteelSurge','electrify','plasmaShower','charge','meFirst','attackerRootedSmacked','attackerMagnetRise','attackerTelekinesis','attackerBodyPurge','attackerTailwind','attackerGMaxRapidStrike','attackerFocusEnergy','attackerLockOn','attackerMicleBerry'],
@@ -1583,6 +1585,35 @@
     return track;
   }
   function resultRow(container, label, value){ var item=make('div','v082h-result-item'); item.appendChild(make('span','v082h-result-key',label)); item.appendChild(make('span','v082h-result-value',value||'未計算')); container.appendChild(item); }
+  // 下部固定枠(v082hResultPanel)自体の背景を、左下から右上への対角線で二分し、
+  // 左側(左上寄り)の三角形を天候、右側(右下寄り)の三角形をフィールドの状態に応じた
+  // 淡い色で塗り分けることで、状況が変わったことだけを一目でわかるようにする
+  // (パネルのサイズ・余白・レイアウトには一切影響させない。色はCSS変数として
+  // panel.style に設定し、実際の三角形分割・描画はstyle.css側のclip-pathで行う)。
+  var RESULT_PANEL_BASE_COLOR = '#f9fafb';
+  var WEATHER_TINT_COLOR = {
+    'にほんばれ': '#fdf6e3', 'おおひでり': '#fdf6e3',
+    'あめ': '#e8f1fe', 'おおあめ': '#e8f1fe',
+    'すなあらし': '#f7ecdb',
+    'ゆき': '#eafbfd',
+    'らんきりゅう': '#eceef2',
+    'ノーてんき・エアロック': '#eef0f2'
+  };
+  var FIELD_TINT_COLOR = {
+    'エレキフィールド': '#fff6cc',
+    'グラスフィールド': '#e3f7e3',
+    'ミストフィールド': '#fbe6f0',
+    'サイコフィールド': '#f1e6fb'
+  };
+  function updateResultPanelFieldTint(panel){
+    if(!panel) return;
+    var weatherSel = document.getElementById('weatherSelect');
+    var fieldSel = document.getElementById('fieldSelect');
+    var wColor = (weatherSel && WEATHER_TINT_COLOR[weatherSel.value]) || RESULT_PANEL_BASE_COLOR;
+    var fColor = (fieldSel && FIELD_TINT_COLOR[fieldSel.value]) || RESULT_PANEL_BASE_COLOR;
+    panel.style.setProperty('--dameke-weather-tint', wColor);
+    panel.style.setProperty('--dameke-field-tint', fColor);
+  }
   function renderResult(){
     var src=q('summary'); if(!src) return;
     var lines=summaryLines();
@@ -1608,6 +1639,7 @@
         if(rollsEl.previousElementSibling && rollsEl.previousElementSibling.tagName==='H3') rollsEl.previousElementSibling.classList.add('v082h-hide');
       }
     }
+    updateResultPanelFieldTint(panel);
     panel.innerHTML='';
     var headParts = String(head||'').split(' → ');
     var attackerMovePart = (headParts[0]||'').split(' の ');
@@ -1733,7 +1765,7 @@
   function setupResult(){ var s=q('summary'), t=q('trace'); if(!s) return; var obs=new MutationObserver(renderResult); obs.observe(s,{childList:true,subtree:true,characterData:true}); if(t) obs.observe(t,{childList:true,subtree:true,characterData:true}); setTimeout(renderResult,0); }
   function refreshAll(){ updateAbilityButtons('attacker'); updateAbilityButtons('defender'); updateConditional(); renderResult(); updateNatureStatColors('attacker'); updateNatureStatColors('defender'); updateReadOnlyStatRows('attacker'); updateReadOnlyStatRows('defender'); updateRemainingEvDisplay('attacker'); updateRemainingEvDisplay('defender'); if(window.__damekeUpdateMoveTypeColor) window.__damekeUpdateMoveTypeColor(); }
   window.__damekeRefreshAll = refreshAll;
-  function bind(){ ['attackerSelect','defenderSelect'].forEach(function(id){ var e=q(id); if(e) e.addEventListener('change',function(){ setTimeout(refreshAll,0); }); }); ['moveSelect','attackerAbilitySelect','defenderAbilitySelect','attackerItemSelect','attackerTeraType'].forEach(function(id){ var e=q(id); if(e) e.addEventListener('change',function(){ setTimeout(updateConditional,0); }); }); }
+  function bind(){ ['attackerSelect','defenderSelect'].forEach(function(id){ var e=q(id); if(e) e.addEventListener('change',function(){ setTimeout(refreshAll,0); }); }); ['moveSelect','attackerAbilitySelect','defenderAbilitySelect','attackerItemSelect','attackerTeraType'].forEach(function(id){ var e=q(id); if(e) e.addEventListener('change',function(){ setTimeout(updateConditional,0); }); }); ['attackerAbilitySelect','defenderAbilitySelect'].forEach(function(id){ var e=q(id); if(e) e.addEventListener('change',function(){ if(window.__damekeApplyAbilityFieldAuto) window.__damekeApplyAbilityFieldAuto(e.value); }); }); }
 
   function safeStep(name, fn){ try{ fn(); }catch(e){ if(window.console && console.error) console.error('[v082h] '+name+' failed:', e); } }
   function finalizeSearchCombos(){
@@ -1979,6 +2011,9 @@
     if(withLinked) applyLinked(side, p);
     if(typeof window.__damekeUpdateTypeColors === 'function') window.__damekeUpdateTypeColors();
     setDefaultAbility(side, p);
+    // ポケモン選択に伴い特性が自動設定された分も、天候・フィールドの自動入力トリガーの対象に含める
+    // (setDefaultAbilityはsetSelectSilent経由で'change'を発火しないため、ここで直接呼ぶ)。
+    if(window.__damekeApplyAbilityFieldAuto) window.__damekeApplyAbilityFieldAuto(firstAbilityName(p));
     // Refresh visible ability chips when a form button commits a new Pokemon.
     // Keep the ability buttons synchronized with the committed Pokemon.
     var abilityHost = byIdLocal('v082hAbilityButtons_' + prefix) || byIdLocal('v082gAbilityButtons_' + prefix) || byIdLocal('v082fAbilityButtons_' + prefix);
@@ -2169,6 +2204,48 @@
 
 /* Form-change runtime END */
 
+// 天候・フィールドを変える特性の自動反映(v2.2.0)
+// 攻撃側/防御側いずれかの特性が該当特性になった場合(手動でのプルダウン選択・特性チップの
+// クリック・ポケモン選択に伴う自動設定のいずれでも)、天候/フィールドの入力欄に対応する値を
+// 自動入力する。あくまで自動入力するだけで内部値を固定するわけではなく、その後の手動上書きや
+// 別の特性による上書きは自由に行える。自動入力があった場合は「場」の折り畳みを開く
+// (手動で閉じることもできる)。
+(function(){
+  'use strict';
+  var TRIGGERS = {
+    'ひでり': ['weatherSelect', 'にほんばれ'],
+    'あめふらし': ['weatherSelect', 'あめ'],
+    'すなおこし': ['weatherSelect', 'すなあらし'],
+    'ゆきふらし': ['weatherSelect', 'ゆき'],
+    'おわりのだいち': ['weatherSelect', 'おおひでり'],
+    'はじまりのうみ': ['weatherSelect', 'おおあめ'],
+    'デルタストリーム': ['weatherSelect', 'らんきりゅう'],
+    'ノーてんき': ['weatherSelect', 'ノーてんき・エアロック'],
+    'エアロック': ['weatherSelect', 'ノーてんき・エアロック'],
+    'エレキメイカー': ['fieldSelect', 'エレキフィールド'],
+    'グラスメイカー': ['fieldSelect', 'グラスフィールド'],
+    'ミストメイカー': ['fieldSelect', 'ミストフィールド'],
+    'サイコメイカー': ['fieldSelect', 'サイコフィールド']
+  };
+  function openFieldFold(){
+    // 「場」セクションは起動時にrestructureConditions()がsection→detailsへ組み替える
+    // (id等は振られないため、その際に公開されるwindow.__damekeFieldFoldDetailsを使う)。
+    var fold = window.__damekeFieldFoldDetails;
+    if(fold && !fold.open) fold.open = true;
+  }
+  window.__damekeApplyAbilityFieldAuto = function(abilityName){
+    var trig = TRIGGERS[String(abilityName || '').trim()];
+    if(!trig) return;
+    var sel = document.getElementById(trig[0]);
+    if(!sel) return;
+    if(sel.value !== trig[1]){
+      sel.value = trig[1];
+      try{ sel.dispatchEvent(new Event('change', {bubbles:true})); }
+      catch(e){ try{ var ev=document.createEvent('Event'); ev.initEvent('change', true, true); sel.dispatchEvent(ev); }catch(e2){} }
+    }
+    openFieldFold();
+  };
+})();
 
 
 
