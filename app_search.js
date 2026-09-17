@@ -239,7 +239,10 @@
     // メガニウム・メガヤンマ等、名前がたまたま「メガ」で始まるだけの通常フォルムのポケモンを
     // 誤ってメガシンカ扱いしないようにするため(これらのformLabelは「通常」等であり、
     // 実際にメガシンカ後のポケモンのformLabelは「メガ」「メガX」「メガY」「メガZ」のいずれか)。
-    var isMegaForm = String(p.formLabel || '').indexOf('メガ') === 0;
+    // ゲンシグラードン(formLabel:「ゲンシグラードン」)・ゲンシカイオーガ(formLabel:
+    // 「ゲンシカイキ」)は、専用アイテムで見た目・種族値・特性が変化するという点でメガシンカと
+    // 同様の扱いをするため、この判定に含める。
+    var isMegaForm = String(p.formLabel || '').indexOf('メガ') === 0 || String(p.formLabel || '').indexOf('ゲンシ') === 0;
     if(filters.megaOnly && !isMegaForm) return false;
     if(filters.megaExclude && isMegaForm) return false;
     return true;

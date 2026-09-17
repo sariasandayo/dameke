@@ -1,4 +1,4 @@
-// v1.9.0 ミニゲーム
+// v2.2.0 ミニゲーム
 // ハンバーガーメニュー最下部の「ミニゲーム」パネル。内部にゲーム切り替えの枠組みを持ち、
 // 現時点では「ポケモンWordle」のみを収録するが、今後別のミニゲームを追加できるよう、
 // スイッチャー(GAMES配列に追加するだけ)+ホスト(現在選択中のゲームのUIを描画する領域)
@@ -27,7 +27,9 @@
   // ==================== ゲーム切り替えの枠組み ====================
   var GAMES = [
     { id: 'wordle', label: 'ポケモンWordle', render: renderWordleGame },
-    { id: 'stathl', label: '種族値High&Low', render: renderStatHLGame }
+    { id: 'stathl', label: '種族値High&Low', render: renderStatHLGame },
+    { id: 'statchart', label: '種族値チャートクイズ', render: renderStatChartGame },
+    { id: 'randomgen', label: 'ランダムポケモン出力', render: renderRandomGenGame }
   ];
   var currentGameId = GAMES[0].id;
 
@@ -405,23 +407,13 @@
     { key: 'LOW', label: 'LOW（低い）', cls: 'dameke-stathl-guess-btn-low' }
   ];
 
-  // ---- 括弧が入れ子になっているか(深さ2以上に達するか)を判定する ----
-  function hasNestedParens(name){
-    var depth = 0, maxDepth = 0;
-    Array.from(String(name || '')).forEach(function(c){
-      if(c === '(' || c === '（'){ depth++; if(depth > maxDepth) maxDepth = depth; }
-      else if(c === ')' || c === '）'){ if(depth > 0) depth--; }
-    });
-    return maxDepth >= 2;
-  }
-
   // ---- パネル表示用に、名前を1～2行に分割する ----
-  // 括弧書きがあれば、その開き括弧の直前で改行する(名前部分と括弧部分の2行)。
-  // ただし括弧が入れ子(例:ネクロズマ(たそがれのたてがみ(ウルトラネクロズマ)))の場合は
-  // 改行せず1行のまま返す(この1行が両パネル共通の最大幅の基準になる)。
+  // 括弧書きがあれば、その最初の開き括弧の直前で改行する(名前部分と括弧部分の2行)。
+  // 括弧が入れ子(例:ネクロズマ(たそがれのたてがみ(ウルトラネクロズマ)))であっても、
+  // 改行するのはこの最初の1箇所だけで、入れ子部分では再改行しない(2行目の中に
+  // 入れ子の括弧がそのまま残る)。
   function formatPanelNameLines(name){
     var s = String(name || '');
-    if(hasNestedParens(s)) return [s];
     var idx = -1;
     for(var i = 0; i < s.length; i++){
       var c = s[i];
@@ -474,7 +466,7 @@
   }
 
   function newStatHLGame(){
-    statHLState = { correctCount: 0, streak: 0, wrongCount: 0, finished: false };
+    statHLState = { correctCount: 0, streak: 0, bestStreak: 0, wrongCount: 0, finished: false };
     newStatHLRound(true);
   }
 
@@ -500,9 +492,8 @@
       '<p>最終進化のポケモンから2体をランダムに表示します。左側が基準、右側が予想対象です。</p>' +
       '<p>対象の種族値(H・A・B・C・D・Sから選択。「ミックス」の場合は毎回ランダムな1つ)について、' +
       '右側のポケモンが左側の基準ポケモンと比べて「HIGH(高い)」「SAME(同じ)」「LOW(低い)」のどれかを予想してください。</p>' +
-      '<p>「基準の数値」を「見る」にしていると、基準ポケモンの数値は常に見えており、決定すると予想対象の数値も見えるようになります。' +
-      '「隠す」にしていると、決定した後も含めて数値は一切表示されません(正誤の結果だけで進めます)。</p>' +
-      '<p>「見る」の場合のみ、「ヒント」を押すと決定前に基準ポケモンの数値だけ先に確認できます。</p>' +
+      '<p>「基準の数値」を「見る」にしていると、基準ポケモンの数値は常に見えており、「隠す」にしていると、' +
+      '決定した後も含めて数値は一切表示されませんが、「ヒント」を押すと基準ポケモンの数値を確認できます。</p>' +
       '<p>正解すると、右側のポケモンが次の基準になり、新しい対象ポケモンが出てきます。3回間違えるとゲーム終了です。</p>';
     rulesFold.appendChild(rulesBody);
     wrap.appendChild(rulesFold);
@@ -573,7 +564,7 @@
     wrap.appendChild(guessRow);
 
     var messageHost = document.createElement('div');
-    messageHost.className = 'dameke-wordle-message';
+    messageHost.className = 'dameke-wordle-message dameke-stathl-message';
     wrap.appendChild(messageHost);
 
     host.appendChild(wrap);
@@ -614,10 +605,11 @@
       return panel;
     }
 
-    // 基準の数値をこのラウンドで見せてよいか(見る/隠すの設定に応じる)
+    // 基準の数値をこのラウンドで見せてよいか(見る/隠すの設定に応じる)。「見る」モードは常時
+    // 公開(ヒント不要)、「隠す」モードはヒントを押すまで(押した後は決定後も含めて)非公開。
     function computeBaseShow(){
-      if(statHLShowMode === 'hide') return false;
-      return statHLState.answered || statHLState.hintUsed;
+      if(statHLShowMode === 'view') return true;
+      return statHLState.hintUsed;
     }
     // 予想対象の数値をこのラウンドで見せてよいか
     function computeChallengerShow(){
@@ -649,10 +641,9 @@
         showValue: computeBaseShow(), roleLabel: '基準'
       }));
       // ヒントボタンはパネルの外、基準パネルの直下に置く。「見る」モードでは基準は
-      // 最初から常に公開されているため不要、「隠す」モードでは終始非公開のため
-      // 意味を持たない。いずれの場合もヒントで先出しする意義がある間(=決定前かつ
-      // 未使用)だけ表示する。
-      if(statHLShowMode === 'view' && !statHLState.answered){
+      // 最初から常に公開されているため不要。「隠す」モードでのみ表示し、押すと基準の
+      // 数値が(決定後も含めて)見えるようになる。1回押したら再度は不要なのでグレーアウト。
+      if(statHLShowMode === 'hide'){
         var hintBtn = document.createElement('button');
         hintBtn.type = 'button';
         hintBtn.className = 'dameke-search-add-btn dameke-stathl-hint-btn';
@@ -699,20 +690,20 @@
         labelSpan.textContent = def.label;
         btn.appendChild(labelSpan);
         if(statHLState.answered){
-          // 正解肢は選んだかどうかに関わらず常に緑+○で示し、外した場合は自分が
-          // 選んだ(不正解の)肢だけ赤+×で示す。
-          if(def.key === actual){
-            btn.classList.add('dameke-stathl-guess-btn-correct');
-            var okMark = document.createElement('span');
-            okMark.className = 'dameke-stathl-guess-mark';
-            okMark.textContent = '○';
-            btn.appendChild(okMark);
-          } else if(def.key === statHLState.guess){
-            btn.classList.add('dameke-stathl-guess-btn-incorrect');
-            var ngMark = document.createElement('span');
-            ngMark.className = 'dameke-stathl-guess-mark';
-            ngMark.textContent = '×';
-            btn.appendChild(ngMark);
+          // 正解肢は選んだかどうかに関わらず常に緑にするが、○印は実際に選んだ場合のみ
+          // 付ける(選ばなかった正解肢には印を付けない)。外した場合は、自分が選んだ
+          // (不正解の)肢だけ赤+×で示す。
+          if(def.key === actual) btn.classList.add('dameke-stathl-guess-btn-correct');
+          if(def.key === statHLState.guess){
+            var mark = document.createElement('span');
+            mark.className = 'dameke-stathl-guess-mark';
+            if(def.key === actual){
+              mark.textContent = '○';
+            } else {
+              btn.classList.add('dameke-stathl-guess-btn-incorrect');
+              mark.textContent = '×';
+            }
+            btn.appendChild(mark);
           }
         }
         if(!statHLState.answered){
@@ -734,6 +725,7 @@
       if(correct){
         statHLState.correctCount++;
         statHLState.streak++;
+        if(statHLState.streak > statHLState.bestStreak) statHLState.bestStreak = statHLState.streak;
       } else {
         statHLState.streak = 0;
         statHLState.wrongCount++;
@@ -750,7 +742,7 @@
       if(statHLState.finished){
         var over = document.createElement('div');
         over.className = 'dameke-stathl-gameover-message';
-        over.textContent = 'ゲームオーバー：正解数' + statHLState.correctCount + '、最終連続正解' + statHLState.streak;
+        over.textContent = 'ゲームオーバー：正解数' + statHLState.correctCount + '、最高連続正解' + statHLState.bestStreak;
         messageHost.appendChild(over);
         var retryBtn = document.createElement('button');
         retryBtn.type = 'button';
@@ -780,5 +772,732 @@
     renderPanels();
     renderGuessButtons();
     renderMessage();
+  }
+
+  // ==================== 種族値チャートクイズ ====================
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  function svgEl(tag, attrs){
+    var el = document.createElementNS(SVG_NS, tag);
+    Object.keys(attrs || {}).forEach(function(k){ el.setAttribute(k, attrs[k]); });
+    return el;
+  }
+
+  // タイプの色付きバッジ表示用(ポケモン管理などと同じ配色。この対応表自体は
+  // 各ファイルにそれぞれ持たせる既存の構成に合わせて、ここにも独自に持つ)。
+  var STATCHART_TYPE_COLOR_MAP = { 'なし':'none', 'ノーマル':'normal', 'ほのお':'fire', 'みず':'water', 'でんき':'electric', 'くさ':'grass', 'こおり':'ice', 'かくとう':'fighting', 'どく':'poison', 'じめん':'ground', 'ひこう':'flying', 'エスパー':'psychic', 'むし':'bug', 'いわ':'rock', 'ゴースト':'ghost', 'ドラゴン':'dragon', 'あく':'dark', 'はがね':'steel', 'フェアリー':'fairy', 'ステラ':'stellar' };
+  function statChartTypeColorClass(t){ return 'dameke-type-' + (STATCHART_TYPE_COLOR_MAP[t] || 'none'); }
+
+  // ---- チャンピオンズ参戦済み判定(ポケモン検索の「チャンピオンズ参戦済のみ」と同じロジック) ----
+  function statChartLearnsetKeyFor(name){
+    var m = String(name || '').match(/^(.+?)\(([^)]+)\)$/);
+    return m ? (m[1] + '_' + m[2]) : name;
+  }
+  function statChartHasChampionsEntry(p){
+    var LS = window.DAMEKE_LEARNSETS;
+    if(!LS) return false;
+    return LS.hasLearnset(statChartLearnsetKeyFor(p.name));
+  }
+
+  function getStatChartPool(finalOnly, championsOnly){
+    return (DATA.pokemons || []).filter(function(p){
+      if(!p.baseStats) return false;
+      if(finalOnly && p.canEvolve) return false;
+      if(championsOnly && !statChartHasChampionsEntry(p)) return false;
+      return true;
+    });
+  }
+
+  // ---- 種族値・(現在公開済みの)タイプ/特性ヒントすべてに一致するポケモンを探す ----
+  // 未公開のヒント(まだ押していない分)は判定に含めない。種族値が完全一致するポケモンが
+  // 複数いる場合、その全員が正解候補になる。
+  function findStatChartMatches(target, revealedTypeCount, revealedAbilityCount){
+    return (DATA.pokemons || []).filter(function(p){
+      if(!p.baseStats) return false;
+      return STAT_KEYS.every(function(k){ return p.baseStats[k] === target.baseStats[k]; });
+    }).filter(function(p){
+      for(var i = 0; i < revealedTypeCount; i++){
+        if((p.types || [])[i] !== (target.types || [])[i]) return false;
+      }
+      return true;
+    }).filter(function(p){
+      for(var i = 0; i < revealedAbilityCount; i++){
+        if((p.abilities || [])[i] !== (target.abilities || [])[i]) return false;
+      }
+      return true;
+    });
+  }
+
+  var statChartFinalOnly = false;
+  var statChartChampionsOnly = false;
+  var statChartState = null;
+
+  function newStatChartQuestion(){
+    var pool = getStatChartPool(statChartFinalOnly, statChartChampionsOnly);
+    statChartState.pool = pool;
+    statChartState.target = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
+    statChartState.revealedTypeCount = 0;
+    statChartState.revealedAbilityCount = 0;
+    statChartState.answered = false;
+    statChartState.correct = null;
+    statChartState.gaveUp = false;
+    statChartState.guessName = null;
+  }
+
+  function newStatChartGame(){
+    statChartState = {};
+    newStatChartQuestion();
+  }
+
+  // ---- 種族値レーダーチャート(SVG) ----
+  // 目盛りの上限は200だが、それを超える値はそのまま外側にはみ出させる(クランプしない)。
+  var STATCHART_STAT_LABELS = { H: 'HP', A: 'こうげき', B: 'ぼうぎょ', C: 'とくこう', D: 'とくぼう', S: 'すばやさ' };
+  // 上がHPで、時計回りにHP→とくこう→とくぼう→すばやさ→ぼうぎょ→こうげき、の順で配置する。
+  var STATCHART_AXIS_ORDER = ['H', 'C', 'D', 'S', 'B', 'A'];
+  function statChartPointAtRadius(index, r, cx, cy){
+    var angleDeg = -90 + index * 60;
+    var rad = angleDeg * Math.PI / 180;
+    return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)];
+  }
+  function buildRadarChart(baseStats){
+    var size = 440, cx = 220, cy = 220, maxR = 120, farR = 150;
+    var svg = svgEl('svg', { viewBox: '0 0 ' + size + ' ' + size, class: 'dameke-statchart-svg' });
+
+    // 目盛りの補助線(50/100/150/200)
+    [50, 100, 150, 200].forEach(function(ringVal){
+      var pts = STATCHART_AXIS_ORDER.map(function(k, i){
+        var r = maxR * (ringVal / 200);
+        return statChartPointAtRadius(i, r, cx, cy).join(',');
+      }).join(' ');
+      svg.appendChild(svgEl('polygon', { points: pts, class: 'dameke-statchart-grid' + (ringVal === 200 ? ' dameke-statchart-grid-outer' : '') }));
+    });
+
+    // 軸線(はみ出す分もカバーできるよう、目盛り最外周よりさらに外まで伸ばしておく)
+    STATCHART_AXIS_ORDER.forEach(function(k, i){
+      var far = statChartPointAtRadius(i, farR, cx, cy);
+      svg.appendChild(svgEl('line', { x1: cx, y1: cy, x2: far[0], y2: far[1], class: 'dameke-statchart-axis' }));
+    });
+
+    // 目盛りの数値(50刻み)を、目立たない文字で上の軸に沿って表示する。
+    [50, 100, 150, 200].forEach(function(ringVal){
+      var r = maxR * (ringVal / 200);
+      var pt = statChartPointAtRadius(0, r, cx, cy);
+      var tickText = svgEl('text', { x: pt[0] + 5, y: pt[1] - 2, class: 'dameke-statchart-tick-label', 'text-anchor': 'start' });
+      tickText.textContent = String(ringVal);
+      svg.appendChild(tickText);
+    });
+
+    // データ多角形(200を超える値はmaxRを超えてそのまま外側に描画される)
+    var dataPts = STATCHART_AXIS_ORDER.map(function(k, i){
+      var r = maxR * ((baseStats[k] || 0) / 200);
+      return statChartPointAtRadius(i, r, cx, cy).join(',');
+    }).join(' ');
+    svg.appendChild(svgEl('polygon', { points: dataPts, class: 'dameke-statchart-data' }));
+    STATCHART_AXIS_ORDER.forEach(function(k, i){
+      var r = maxR * ((baseStats[k] || 0) / 200);
+      var pt = statChartPointAtRadius(i, r, cx, cy);
+      svg.appendChild(svgEl('circle', { cx: pt[0], cy: pt[1], r: 3.5, class: 'dameke-statchart-data-dot' }));
+    });
+
+    // 軸ラベル(種族値名+実際の値)。左右どちら寄りかで文字の揃えを変える。
+    STATCHART_AXIS_ORDER.forEach(function(k, i){
+      var labelPt = statChartPointAtRadius(i, farR + 30, cx, cy);
+      var angleDeg = -90 + i * 60;
+      var cos = Math.cos(angleDeg * Math.PI / 180);
+      var anchor = cos > 0.3 ? 'start' : (cos < -0.3 ? 'end' : 'middle');
+      var nameText = svgEl('text', { x: labelPt[0], y: labelPt[1] - 3, class: 'dameke-statchart-label-name', 'text-anchor': anchor });
+      nameText.textContent = STATCHART_STAT_LABELS[k];
+      svg.appendChild(nameText);
+      var valText = svgEl('text', { x: labelPt[0], y: labelPt[1] + 13, class: 'dameke-statchart-label-value', 'text-anchor': anchor });
+      valText.textContent = String(baseStats[k]);
+      svg.appendChild(valText);
+    });
+
+    // 種族値合計を右下に表示する。
+    var total = STAT_KEYS.reduce(function(sum, k){ return sum + (baseStats[k] || 0); }, 0);
+    var totalText = svgEl('text', { x: size - 12, y: size - 14, class: 'dameke-statchart-total', 'text-anchor': 'end' });
+    totalText.textContent = '合計：' + total;
+    svg.appendChild(totalText);
+
+    return svg;
+  }
+
+  function renderStatChartGame(host){
+    if(!statChartState) newStatChartGame();
+
+    var wrap = document.createElement('div');
+    wrap.className = 'dameke-statchart-wrap';
+
+    var title = document.createElement('h3');
+    title.className = 'dameke-wordle-title';
+    title.textContent = '種族値チャートクイズ';
+    wrap.appendChild(title);
+
+    var rulesFold = document.createElement('details');
+    rulesFold.className = 'dameke-pokemon-edit-levelfold dameke-wordle-rules-fold';
+    var rulesSummary = document.createElement('summary');
+    rulesSummary.textContent = 'ルール';
+    rulesFold.appendChild(rulesSummary);
+    var rulesBody = document.createElement('div');
+    rulesBody.className = 'dameke-wordle-rules-body';
+    rulesBody.innerHTML =
+      '<p>ランダムに抽出されたポケモン1体の種族値(H・A・B・C・D・S)がレーダーチャートで表示されるので、' +
+      'ポケモンを当てるゲームです。</p>' +
+      '<p>「タイプ」「特性」の各ヒントボタンで、そのポケモンのタイプ・特性を1つずつ確認できます。</p>' +
+      '<p>入力欄にポケモン名を入力すると正誤判定します。</p>' +
+      '<p>なお、種族値と、その時点で公開済みのヒントすべてに一致するポケモンが他にもいる場合は、' +
+      'そのポケモンで答えても正解として扱われます。</p>';
+    rulesFold.appendChild(rulesBody);
+    wrap.appendChild(rulesFold);
+
+    var filterRow = document.createElement('div');
+    filterRow.className = 'dameke-stathl-mode-row';
+    var finalLabel = document.createElement('label');
+    finalLabel.className = 'dameke-stathl-mode-option';
+    var finalCb = document.createElement('input');
+    finalCb.type = 'checkbox';
+    finalCb.checked = statChartFinalOnly;
+    finalCb.addEventListener('change', function(){
+      statChartFinalOnly = finalCb.checked;
+      newStatChartGame();
+      renderAll();
+    });
+    finalLabel.appendChild(finalCb);
+    finalLabel.appendChild(document.createTextNode('最終進化のみ'));
+    filterRow.appendChild(finalLabel);
+    var champLabel = document.createElement('label');
+    champLabel.className = 'dameke-stathl-mode-option';
+    var champCb = document.createElement('input');
+    champCb.type = 'checkbox';
+    champCb.checked = statChartChampionsOnly;
+    champCb.addEventListener('change', function(){
+      statChartChampionsOnly = champCb.checked;
+      newStatChartGame();
+      renderAll();
+    });
+    champLabel.appendChild(champCb);
+    champLabel.appendChild(document.createTextNode('チャンピオンズ参戦済みのみ'));
+    filterRow.appendChild(champLabel);
+    wrap.appendChild(filterRow);
+
+    var chartHost = document.createElement('div');
+    chartHost.className = 'dameke-statchart-chart-host';
+    wrap.appendChild(chartHost);
+
+    var hintsFrame = document.createElement('div');
+    hintsFrame.className = 'dameke-statchart-hints-frame';
+    var hintsLegend = document.createElement('div');
+    hintsLegend.className = 'dameke-statchart-hints-legend';
+    hintsLegend.textContent = 'ヒント';
+    hintsFrame.appendChild(hintsLegend);
+    var hintsHost = document.createElement('div');
+    hintsHost.className = 'dameke-statchart-hints';
+    hintsFrame.appendChild(hintsHost);
+    wrap.appendChild(hintsFrame);
+
+    var answerRow = document.createElement('div');
+    answerRow.className = 'dameke-statchart-answer-row';
+    wrap.appendChild(answerRow);
+
+    var giveUpBtn = document.createElement('button');
+    giveUpBtn.type = 'button';
+    giveUpBtn.className = 'dameke-search-add-btn dameke-statchart-answer-btn dameke-wordle-giveup-btn';
+    giveUpBtn.textContent = 'ギブアップ';
+
+    var nextBtn = document.createElement('button');
+    nextBtn.type = 'button';
+    nextBtn.className = 'dameke-search-add-btn dameke-statchart-answer-btn dameke-wordle-retry-btn';
+    nextBtn.textContent = '次の問題へ';
+    nextBtn.addEventListener('click', function(){
+      newStatChartQuestion();
+      renderAll();
+    });
+
+    var messageHost = document.createElement('div');
+    messageHost.className = 'dameke-wordle-message dameke-stathl-message';
+    wrap.appendChild(messageHost);
+
+    host.appendChild(wrap);
+
+    function renderChart(){
+      chartHost.innerHTML = '';
+      if(!statChartState.target){
+        var empty = document.createElement('div');
+        empty.textContent = '条件に当てはまるポケモンがいません。絞り込みを見直してください。';
+        chartHost.appendChild(empty);
+        return;
+      }
+      chartHost.appendChild(buildRadarChart(statChartState.target.baseStats));
+    }
+
+    function buildTypeBadge(t){
+      var badge = document.createElement('span');
+      badge.className = 'dameke-party-type-badge dameke-statchart-type-badge ' + statChartTypeColorClass(t);
+      badge.textContent = t;
+      return badge;
+    }
+
+    function renderHints(){
+      hintsHost.innerHTML = '';
+      if(!statChartState.target) return;
+      var target = statChartState.target;
+
+      var typeRow = document.createElement('div');
+      typeRow.className = 'dameke-statchart-hint-row';
+      var typeBtn = document.createElement('button');
+      typeBtn.type = 'button';
+      typeBtn.className = 'dameke-search-add-btn dameke-statchart-hint-btn';
+      typeBtn.textContent = 'タイプ';
+      var typeMax = (target.types || []).length;
+      var typeExhausted = statChartState.revealedTypeCount >= typeMax;
+      typeBtn.disabled = statChartState.answered || typeExhausted;
+      if(typeExhausted) typeBtn.classList.add('dameke-statchart-hint-btn-exhausted');
+      typeBtn.addEventListener('click', function(){
+        statChartState.revealedTypeCount = Math.min(typeMax, statChartState.revealedTypeCount + 1);
+        renderHints();
+      });
+      typeRow.appendChild(typeBtn);
+      var typeValues = document.createElement('span');
+      typeValues.className = 'dameke-statchart-hint-values';
+      for(var i = 0; i < statChartState.revealedTypeCount; i++){
+        typeValues.appendChild(buildTypeBadge(target.types[i]));
+      }
+      typeRow.appendChild(typeValues);
+      hintsHost.appendChild(typeRow);
+
+      var abilityRow = document.createElement('div');
+      abilityRow.className = 'dameke-statchart-hint-row';
+      var abilityBtn = document.createElement('button');
+      abilityBtn.type = 'button';
+      abilityBtn.className = 'dameke-search-add-btn dameke-statchart-hint-btn';
+      abilityBtn.textContent = '特性';
+      var abilityMax = (target.abilities || []).length;
+      var abilityExhausted = statChartState.revealedAbilityCount >= abilityMax;
+      abilityBtn.disabled = statChartState.answered || abilityExhausted;
+      if(abilityExhausted) abilityBtn.classList.add('dameke-statchart-hint-btn-exhausted');
+      abilityBtn.addEventListener('click', function(){
+        statChartState.revealedAbilityCount = Math.min(abilityMax, statChartState.revealedAbilityCount + 1);
+        renderHints();
+      });
+      abilityRow.appendChild(abilityBtn);
+      var abilityValues = document.createElement('span');
+      abilityValues.className = 'dameke-statchart-hint-values';
+      abilityValues.textContent = (target.abilities || []).slice(0, statChartState.revealedAbilityCount).join('、');
+      abilityRow.appendChild(abilityValues);
+      hintsHost.appendChild(abilityRow);
+    }
+
+    function renderAnswerRow(){
+      answerRow.innerHTML = '';
+      if(!statChartState.target) return;
+      if(statChartState.answered){
+        answerRow.appendChild(nextBtn);
+        return;
+      }
+      var select = document.createElement('select');
+      select.className = 'dameke-statchart-answer-select';
+      (DATA.pokemons || []).forEach(function(p){
+        var op = document.createElement('option');
+        op.value = p.id; op.textContent = p.name;
+        select.appendChild(op);
+      });
+      select.value = '';
+      var placeholderOp = document.createElement('option');
+      placeholderOp.value = ''; placeholderOp.textContent = 'ポケモン名';
+      select.insertBefore(placeholderOp, select.firstChild);
+      select.value = '';
+      answerRow.appendChild(select);
+      if(window.__damekeAttachSearchCombo){
+        Promise.resolve().then(function(){ window.__damekeAttachSearchCombo(select); });
+      }
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'dameke-search-add-btn dameke-statchart-answer-btn';
+      btn.textContent = '決定';
+      btn.addEventListener('click', function(){
+        if(!select.value) return;
+        submitStatChartGuess(select.value);
+      });
+      answerRow.appendChild(btn);
+      giveUpBtn.hidden = false;
+      answerRow.appendChild(giveUpBtn);
+    }
+
+    function submitStatChartGuess(pokemonId){
+      var target = statChartState.target;
+      var guessed = (DATA.pokemons || []).find(function(p){ return p.id === pokemonId; });
+      if(!guessed || statChartState.answered) return;
+      var matches = findStatChartMatches(target, statChartState.revealedTypeCount, statChartState.revealedAbilityCount);
+      var correct = matches.some(function(p){ return p.id === guessed.id; });
+      statChartState.answered = true;
+      statChartState.correct = correct;
+      statChartState.gaveUp = false;
+      statChartState.guessName = guessed.name;
+      // 決定後は、その回のタイプ・特性ヒントをすべて公開する。
+      statChartState.revealedTypeCount = (target.types || []).length;
+      statChartState.revealedAbilityCount = (target.abilities || []).length;
+      renderAll();
+    }
+
+    function giveUpStatChart(){
+      var target = statChartState.target;
+      if(!target || statChartState.answered) return;
+      statChartState.answered = true;
+      statChartState.correct = false;
+      statChartState.gaveUp = true;
+      statChartState.guessName = null;
+      statChartState.revealedTypeCount = (target.types || []).length;
+      statChartState.revealedAbilityCount = (target.abilities || []).length;
+      renderAll();
+    }
+
+    giveUpBtn.addEventListener('click', giveUpStatChart);
+
+    function renderMessage(){
+      messageHost.innerHTML = '';
+      if(!statChartState.target || !statChartState.answered) return;
+      var target = statChartState.target;
+      var resultLine = document.createElement('div');
+      resultLine.className = statChartState.correct ? 'dameke-statchart-result-correct' : 'dameke-statchart-result-incorrect';
+      resultLine.textContent = statChartState.gaveUp ? 'ギブアップ' : (statChartState.correct ? '正解！' : '不正解');
+      messageHost.appendChild(resultLine);
+      if(statChartState.gaveUp){
+        // ギブアップ時は回答自体がないため、回答行は表示しない。
+      } else if(!statChartState.correct){
+        var guessLine = document.createElement('div');
+        guessLine.className = 'dameke-statchart-guess-line';
+        guessLine.textContent = 'あなたの回答：' + statChartState.guessName;
+        messageHost.appendChild(guessLine);
+      } else if(statChartState.guessName !== target.name){
+        var altLine = document.createElement('div');
+        altLine.className = 'dameke-statchart-guess-line';
+        altLine.textContent = 'あなたの回答（' + statChartState.guessName + '）も、公開済みの情報からは正解として扱っています。';
+        messageHost.appendChild(altLine);
+      }
+      var answerRowEl = document.createElement('div');
+      answerRowEl.className = 'dameke-statchart-answer-reveal';
+      var imgWrap = document.createElement('span');
+      imgWrap.className = 'dameke-stathl-thumb dameke-statchart-answer-thumb';
+      var img = window.__damekeBuildPokemonImage
+        ? window.__damekeBuildPokemonImage(target.name, function(){ imgWrap.classList.add('dameke-stathl-thumb-missing'); imgWrap.innerHTML = ''; })
+        : null;
+      if(img) imgWrap.appendChild(img); else imgWrap.classList.add('dameke-stathl-thumb-missing');
+      answerRowEl.appendChild(imgWrap);
+      var nameEl = document.createElement('span');
+      nameEl.className = 'dameke-statchart-answer-name';
+      nameEl.textContent = '正解：' + target.name;
+      answerRowEl.appendChild(nameEl);
+      messageHost.appendChild(answerRowEl);
+    }
+
+    function renderAll(){
+      renderChart();
+      renderHints();
+      renderAnswerRow();
+      renderMessage();
+    }
+
+    renderAll();
+  }
+
+  // ==================== ランダムポケモン出力 ====================
+  // ゲームではなく、条件を指定してランダムにポケモンを抽選・表示するだけの単純なツール。
+
+  // メガシンカ形態かどうか(formLabelが「メガ」「メガX」「メガY」等、「メガ」で始まるもの)。
+  // ポケモン自体の名前が偶然「メガ」で始まる場合(メガニウム、メガヤンマ等)と区別するため、
+  // 名前ではなくformLabelで判定する。ゲンシグラードン/ゲンシカイオーガ(formLabelが「ゲンシ」
+  // で始まる)も、専用アイテムで姿・種族値・特性が変化する点でメガシンカと同様に扱う。
+  function isMegaPokemon(p){
+    var label = p.formLabel || '';
+    return /^メガ/.test(label) || /^ゲンシ/.test(label);
+  }
+
+  // フォルム違い・メガシンカ前後の重複判定用グループキー。
+  // 同一種内で戦闘中に姿を変えられるもの(メガシンカ、フォルムチェンジ等)はformGroupが共通なのでそれを優先し、
+  // フォルムチェンジできない別種扱いのリージョンフォーム(アローラ等)はformGroupを持たないため、
+  // baseSpecies(フォルムをまたいで共通の名称)で束ねる。
+  function randomGenGroupKey(p){
+    return p.formGroup || p.baseSpecies || p.speciesKey || p.name;
+  }
+
+  function getRandomGenPool(finalOnly, championsOnly, megaOnly, megaExclude){
+    return (DATA.pokemons || []).filter(function(p){
+      if(!p.baseStats) return false;
+      if(finalOnly && p.canEvolve) return false;
+      if(championsOnly && !statChartHasChampionsEntry(p)) return false;
+      var mega = isMegaPokemon(p);
+      if(megaOnly && !mega) return false;
+      if(megaExclude && mega) return false;
+      return true;
+    });
+  }
+
+  function shuffleArray(list){
+    var a = list.slice();
+    for(var i = a.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+    }
+    return a;
+  }
+
+  // 指定数だけ抽選する。同一ポケモン(id)の重複は必ず避け、
+  // 可能な範囲でフォルム違い・メガシンカ前後(=randomGenGroupKeyが同じもの)の重複も避ける。
+  function drawRandomGenSet(pool, count){
+    var shuffled = shuffleArray(pool);
+    var results = [];
+    var usedIds = Object.create(null);
+    var usedGroups = Object.create(null);
+    shuffled.forEach(function(p){
+      if(results.length >= count) return;
+      var g = randomGenGroupKey(p);
+      if(usedGroups[g]) return;
+      usedGroups[g] = true;
+      usedIds[p.id] = true;
+      results.push(p);
+    });
+    if(results.length < count){
+      shuffled.forEach(function(p){
+        if(results.length >= count) return;
+        if(usedIds[p.id]) return;
+        usedIds[p.id] = true;
+        results.push(p);
+      });
+    }
+    return results;
+  }
+
+  var randomGenFinalOnly = false;
+  var randomGenChampionsOnly = true;
+  var randomGenMegaOnly = false;
+  var randomGenMegaExclude = false;
+  var randomGenCount = 6;
+  var randomGenState = null;
+
+  function newRandomGenSet(){
+    var pool = getRandomGenPool(randomGenFinalOnly, randomGenChampionsOnly, randomGenMegaOnly, randomGenMegaExclude);
+    randomGenState = { pool: pool, results: drawRandomGenSet(pool, randomGenCount) };
+  }
+
+  // 1枠だけ再抽選する。表示中の他の枠とid・(可能な範囲で)グループキーが被らないようにする。
+  function redrawRandomGenSlot(index){
+    if(!randomGenState) return;
+    var pool = randomGenState.pool;
+    var usedIds = Object.create(null);
+    var usedGroups = Object.create(null);
+    randomGenState.results.forEach(function(p, i){
+      if(i === index || !p) return;
+      usedIds[p.id] = true;
+      usedGroups[randomGenGroupKey(p)] = true;
+    });
+    var shuffled = shuffleArray(pool);
+    var pick = shuffled.filter(function(p){ return !usedIds[p.id]; })
+      .find(function(p){ return !usedGroups[randomGenGroupKey(p)]; });
+    if(!pick){
+      pick = shuffled.find(function(p){ return !usedIds[p.id]; }) || null;
+    }
+    randomGenState.results[index] = pick;
+  }
+
+  function renderRandomGenGame(host){
+    if(!randomGenState) newRandomGenSet();
+
+    var wrap = document.createElement('div');
+    wrap.className = 'dameke-randomgen-wrap';
+
+    var title = document.createElement('h3');
+    title.className = 'dameke-wordle-title';
+    title.textContent = 'ランダムポケモン出力';
+    wrap.appendChild(title);
+
+    var rulesFold = document.createElement('details');
+    rulesFold.className = 'dameke-pokemon-edit-levelfold dameke-wordle-rules-fold';
+    var rulesSummary = document.createElement('summary');
+    rulesSummary.textContent = 'このツールについて';
+    rulesFold.appendChild(rulesSummary);
+    var rulesBody = document.createElement('div');
+    rulesBody.className = 'dameke-wordle-rules-body';
+    rulesBody.innerHTML =
+      '<p>ポケモンをランダムに抽選・表示するツールです。同時に出力されるポケモンは重複しません。' +
+      'フォルム違いなども重ならないようにしています。</p>' +
+      '<p>各「再抽選」ボタンでは、そのポケモンだけを引き直します。</p>';
+    rulesFold.appendChild(rulesBody);
+    wrap.appendChild(rulesFold);
+
+    var filterRow = document.createElement('div');
+    filterRow.className = 'dameke-stathl-mode-row';
+
+    var finalLabel = document.createElement('label');
+    finalLabel.className = 'dameke-stathl-mode-option';
+    var finalCb = document.createElement('input');
+    finalCb.type = 'checkbox';
+    finalCb.checked = randomGenFinalOnly;
+    finalLabel.appendChild(finalCb);
+    finalLabel.appendChild(document.createTextNode('最終進化のみ'));
+    filterRow.appendChild(finalLabel);
+
+    var champLabel = document.createElement('label');
+    champLabel.className = 'dameke-stathl-mode-option';
+    var champCb = document.createElement('input');
+    champCb.type = 'checkbox';
+    champCb.checked = randomGenChampionsOnly;
+    champLabel.appendChild(champCb);
+    champLabel.appendChild(document.createTextNode('チャンピオンズ参戦済みのみ'));
+    filterRow.appendChild(champLabel);
+
+    var megaOnlyLabel = document.createElement('label');
+    megaOnlyLabel.className = 'dameke-stathl-mode-option';
+    var megaOnlyCb = document.createElement('input');
+    megaOnlyCb.type = 'checkbox';
+    megaOnlyCb.checked = randomGenMegaOnly;
+    megaOnlyLabel.appendChild(megaOnlyCb);
+    megaOnlyLabel.appendChild(document.createTextNode('メガシンカのみ'));
+    filterRow.appendChild(megaOnlyLabel);
+
+    var megaExcludeLabel = document.createElement('label');
+    megaExcludeLabel.className = 'dameke-stathl-mode-option';
+    var megaExcludeCb = document.createElement('input');
+    megaExcludeCb.type = 'checkbox';
+    megaExcludeCb.checked = randomGenMegaExclude;
+    megaExcludeLabel.appendChild(megaExcludeCb);
+    megaExcludeLabel.appendChild(document.createTextNode('メガシンカ除外'));
+    filterRow.appendChild(megaExcludeLabel);
+
+    wrap.appendChild(filterRow);
+
+    var countRow = document.createElement('div');
+    countRow.className = 'dameke-stathl-mode-row';
+    var countLabel = document.createElement('label');
+    countLabel.className = 'dameke-randomgen-count-label';
+    countLabel.appendChild(document.createTextNode('同時出力数：'));
+    var countSelect = document.createElement('select');
+    countSelect.className = 'dameke-randomgen-count-select';
+    for(var c = 1; c <= 6; c++){
+      var countOp = document.createElement('option');
+      countOp.value = String(c);
+      countOp.textContent = c + '体';
+      countSelect.appendChild(countOp);
+    }
+    countSelect.value = String(randomGenCount);
+    countLabel.appendChild(countSelect);
+    countRow.appendChild(countLabel);
+    wrap.appendChild(countRow);
+
+    var actionsRow = document.createElement('div');
+    actionsRow.className = 'dameke-randomgen-actions-row';
+    var redrawAllBtn = document.createElement('button');
+    redrawAllBtn.type = 'button';
+    redrawAllBtn.className = 'dameke-search-add-btn';
+    redrawAllBtn.textContent = '出力しなおす';
+    actionsRow.appendChild(redrawAllBtn);
+    wrap.appendChild(actionsRow);
+
+    var gridHost = document.createElement('div');
+    gridHost.className = 'dameke-randomgen-grid';
+    wrap.appendChild(gridHost);
+
+    host.appendChild(wrap);
+
+    function renderGrid(){
+      gridHost.innerHTML = '';
+      if(!randomGenState.pool.length){
+        var empty = document.createElement('div');
+        empty.className = 'dameke-randomgen-empty';
+        empty.textContent = '条件に当てはまるポケモンがいません。絞り込みを見直してください。';
+        gridHost.appendChild(empty);
+        return;
+      }
+      randomGenState.results.forEach(function(p, idx){
+        var card = document.createElement('div');
+        card.className = 'dameke-randomgen-card';
+
+        var body = document.createElement('div');
+        body.className = 'dameke-randomgen-card-body';
+        if(p){
+          var imgWrap = document.createElement('div');
+          imgWrap.className = 'dameke-randomgen-thumb';
+          var img = window.__damekeBuildPokemonImage
+            ? window.__damekeBuildPokemonImage(p.name, function(){ imgWrap.classList.add('dameke-randomgen-thumb-missing'); imgWrap.innerHTML = ''; })
+            : null;
+          if(img) imgWrap.appendChild(img); else imgWrap.classList.add('dameke-randomgen-thumb-missing');
+          body.appendChild(imgWrap);
+
+          var nameEl = document.createElement('div');
+          nameEl.className = 'dameke-randomgen-name';
+          nameEl.textContent = p.name;
+          body.appendChild(nameEl);
+
+          var typesRow = document.createElement('div');
+          typesRow.className = 'dameke-randomgen-types';
+          (p.types || []).forEach(function(t){
+            var badge = document.createElement('span');
+            badge.className = 'dameke-party-type-badge dameke-statchart-type-badge ' + statChartTypeColorClass(t);
+            badge.textContent = t;
+            typesRow.appendChild(badge);
+          });
+          body.appendChild(typesRow);
+        } else {
+          var none = document.createElement('div');
+          none.className = 'dameke-randomgen-card-empty';
+          none.textContent = '候補切れ';
+          body.appendChild(none);
+        }
+        card.appendChild(body);
+
+        var redrawRow = document.createElement('div');
+        redrawRow.className = 'dameke-randomgen-redraw-row';
+        var redrawBtn = document.createElement('button');
+        redrawBtn.type = 'button';
+        redrawBtn.className = 'dameke-search-add-btn dameke-randomgen-redraw-btn';
+        redrawBtn.textContent = '再抽選';
+        redrawBtn.addEventListener('click', function(){
+          redrawRandomGenSlot(idx);
+          renderGrid();
+        });
+        redrawRow.appendChild(redrawBtn);
+        card.appendChild(redrawRow);
+
+        gridHost.appendChild(card);
+      });
+    }
+
+    finalCb.addEventListener('change', function(){
+      randomGenFinalOnly = finalCb.checked;
+      newRandomGenSet();
+      renderGrid();
+    });
+    champCb.addEventListener('change', function(){
+      randomGenChampionsOnly = champCb.checked;
+      newRandomGenSet();
+      renderGrid();
+    });
+    megaOnlyCb.addEventListener('change', function(){
+      randomGenMegaOnly = megaOnlyCb.checked;
+      if(randomGenMegaOnly && randomGenMegaExclude){
+        randomGenMegaExclude = false;
+        megaExcludeCb.checked = false;
+      }
+      newRandomGenSet();
+      renderGrid();
+    });
+    megaExcludeCb.addEventListener('change', function(){
+      randomGenMegaExclude = megaExcludeCb.checked;
+      if(randomGenMegaExclude && randomGenMegaOnly){
+        randomGenMegaOnly = false;
+        megaOnlyCb.checked = false;
+      }
+      newRandomGenSet();
+      renderGrid();
+    });
+    countSelect.addEventListener('change', function(){
+      randomGenCount = parseInt(countSelect.value, 10) || 1;
+      newRandomGenSet();
+      renderGrid();
+    });
+    redrawAllBtn.addEventListener('click', function(){
+      newRandomGenSet();
+      renderGrid();
+    });
+
+    renderGrid();
   }
 })();

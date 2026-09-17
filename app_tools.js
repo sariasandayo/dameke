@@ -879,6 +879,24 @@
     return table;
   }
 
+  // ---- レックウザ/メガレックウザの判定 ----
+  // 通常のメガシンカは「～ナイト」等の専用アイテムを持たせることが条件(formLinkedItem経由で
+  // 判定)だが、レックウザだけは特別で、持ち物ではなく技に「ガリョウテンセイ」を持っているかが
+  // メガシンカの条件になる。そのため、他のメガシンカとは別扱いで判定する。
+  var RAYQUAZA_ASCENT_MOVE = 'ガリョウテンセイ';
+  function isRayquazaFormGroup(p){ return !!(p && p.formGroup === 'レックウザ'); }
+  // 通常/メガのどちらを渡しても、同じフォルムグループの中から「メガ」形態そのものを返す
+  // (アイテムに一切依存しない。findFormByLinkedItemの、持ち物の代わりに常にformLabelで
+  // 「メガ」形態を直接探すバージョンに相当)。
+  function getFormGroupMegaForm(p, Ddata){
+    if(!p || !p.formGroup || !Ddata || !Ddata.getFormCandidates) return null;
+    var list = Ddata.getFormCandidates(p);
+    return list.find(function(c){ return String(c.formLabel||'').indexOf('メガ') === 0; }) || null;
+  }
+  function entryHasAscentMove(entry){
+    return !!(entry && Array.isArray(entry.moves) && entry.moves.indexOf(RAYQUAZA_ASCENT_MOVE) >= 0);
+  }
+
   // Shared by buildPokemonCard() (management context, with edit/delete) and
   // buildSelectablePokemonCard() (party-selector context, with a selection toggle) -- builds the
   // thumbnail + info block, leaving card-level chrome (actions, selection state) to the caller.
@@ -895,12 +913,25 @@
     // (baseForm)を基準にmegaFormを求める。保存済みポケモンがメガ後の姿そのものである場合は、
     // 初期状態からトグルをON(isMega=true)にして表示する。
     var baseForm = (pokemon && Ddata.getFormDefaultPokemon) ? Ddata.getFormDefaultPokemon(pokemon) : pokemon;
-    var megaForm = (pokemon && Ddata.findFormByLinkedItem) ? Ddata.findFormByLinkedItem(pokemon, item) : null;
+    var megaForm, megaToggleEnabled;
+    if(isRayquazaFormGroup(pokemon)){
+      // レックウザ系統は持ち物でなく、保存されている技に「ガリョウテンセイ」があるかで
+      // トグルの可否を決める。
+      megaForm = getFormGroupMegaForm(pokemon, Ddata);
+      megaToggleEnabled = entryHasAscentMove(entry);
+    } else {
+      megaForm = (pokemon && Ddata.findFormByLinkedItem) ? Ddata.findFormByLinkedItem(pokemon, item) : null;
+      megaToggleEnabled = true;
+    }
     if(megaForm && baseForm && megaForm.name === baseForm.name) megaForm = null;
     var startsAsMega = !!(pokemon && megaForm && pokemon.name === megaForm.name);
+    // ガリョウテンセイを持たないままメガレックウザとして保存されている場合、表示自体は
+    // メガレックウザのまま、トグル(切り替え)だけを出さない。逆に通常レックウザ側で技がない
+    // 場合は、そもそも切り替え先(メガ)が存在しないのと同じ扱いにする。
+    if(!megaToggleEnabled && !startsAsMega) megaForm = null;
     // トグルが表示される場合、カードに専用クラスを付与しCSS側で上部に余白を確保する
     // (スマホ幅で名前・タイプ・画像と重なってトグルが埋もれてしまう不具合の対策)。
-    if(megaForm && card) card.classList.add('dameke-pokemon-card-has-mega-toggle');
+    if(megaForm && megaToggleEnabled && card) card.classList.add('dameke-pokemon-card-has-mega-toggle');
 
     var main = document.createElement('div');
     main.className = 'dameke-pokemon-card-main';
@@ -920,7 +951,7 @@
       // ないカードも同じ高さの余白を確保し、隣に並ぶトグルありのカードと表示位置が揃う。
       var toggleRow = document.createElement('div');
       toggleRow.className = 'dameke-pokemon-mega-toggle-row';
-      if(megaForm){
+      if(megaForm && megaToggleEnabled){
         var toggleBtn = document.createElement('button');
         toggleBtn.type = 'button';
         toggleBtn.className = 'dameke-pokemon-mega-toggle' + (isMega ? ' dameke-pokemon-mega-toggle-active' : '');
@@ -930,6 +961,13 @@
           renderVariable(isMega ? baseForm : megaForm, !isMega);
         });
         toggleRow.appendChild(toggleBtn);
+      } else if(megaForm && !megaToggleEnabled && isMega){
+        // メガレックウザとして保存されているが技にガリョウテンセイがないため、切り替え不可能
+        // であることを示す注記を(ボタンの代わりに)表示する。
+        var lockedNote = document.createElement('span');
+        lockedNote.className = 'dameke-pokemon-mega-toggle-locked';
+        lockedNote.textContent = '技にガリョウテンセイがないため切替不可';
+        toggleRow.appendChild(lockedNote);
       }
       variableHost.appendChild(toggleRow);
 
@@ -1309,7 +1347,16 @@
       var selectedItem = d.items.find(function(it){ return it.id === itemSel.value; });
       var itemName = selectedItem ? selectedItem.name : null;
       var baseForm = (selectedPokemon && d.getFormDefaultPokemon) ? d.getFormDefaultPokemon(selectedPokemon) : selectedPokemon;
-      var megaForm = (selectedPokemon && itemName && d.findFormByLinkedItem) ? d.findFormByLinkedItem(selectedPokemon, itemName) : null;
+      var megaForm;
+      if(isRayquazaFormGroup(selectedPokemon)){
+        // レックウザ系統は持ち物でなく、技にガリョウテンセイがあるかどうかでメガ扱いにするかを
+        // 決める(選択中の入力が既にメガレックウザ本体である場合も含む)。
+        var rayVals = currentEditMoveValues();
+        var rayHasAscent = rayVals.indexOf(RAYQUAZA_ASCENT_MOVE) >= 0;
+        megaForm = rayHasAscent ? getFormGroupMegaForm(selectedPokemon, d) : null;
+      } else {
+        megaForm = (selectedPokemon && itemName && d.findFormByLinkedItem) ? d.findFormByLinkedItem(selectedPokemon, itemName) : null;
+      }
       if(megaForm && baseForm && megaForm.name === baseForm.name) megaForm = null;
 
       if(megaForm){
@@ -1492,6 +1539,7 @@
       moveGrid.appendChild(makeField('技'+i, moveSel));
     }
     form.appendChild(moveGrid);
+
     var showAllLabel = document.createElement('label'); showAllLabel.className='dameke-pokemon-showall-label';
     var showAllCb = document.createElement('input'); showAllCb.type='checkbox'; showAllCb.id='damekePokeEdit_moveShowAll';
     showAllLabel.appendChild(showAllCb); showAllLabel.appendChild(document.createTextNode('全技表示'));
@@ -1546,12 +1594,51 @@
       for(var mi3=1;mi3<=4;mi3++){ var s=q('damekePokeEdit_move'+mi3); if(s && s._v082hRefreshOptions) s._v082hRefreshOptions(); }
       if(abilitySel._v082hRefreshOptions) abilitySel._v082hRefreshOptions();
     }
+
+    // レックウザ/メガレックウザの判定(技「ガリョウテンセイ」がキー)。メガレックウザが選択
+    // されている間、現在の4つの技欄を見て、(1)ガリョウテンセイが既にあればそのまま、
+    // (2)未選択(なし)の枠があれば1つをガリョウテンセイで埋め、(3)どちらでもなければ
+    // (4つとも別の技で埋まっている)切り替え不可能である旨を表示するだけに留める。
+    function currentEditMoveValues(){
+      var vals = [];
+      for(var i=1;i<=4;i++){ var s=q('damekePokeEdit_move'+i); vals.push(s ? s.value : 'none'); }
+      return vals;
+    }
+    function setEditMoveValue(idx, val){
+      var s = q('damekePokeEdit_move'+idx);
+      if(!s) return;
+      s.value = val;
+      if(s._v082hRefreshOptions) s._v082hRefreshOptions();
+      updateMoveSelectColor(idx);
+    }
+    // レックウザ/メガレックウザについて、技にガリョウテンセイが無ければ(空き枠があれば)自動で
+    // 1つをガリョウテンセイにして補う。画面上の注記表示は行わない(不要のため)。特性欄をメガ
+    // シンカポケモンと同様の見た目(メガ前特性/メガ後特性の2列)に切り替えるかどうかは、この
+    // 判定結果を使ってrebuildAbilityField側で判定する。
+    function updateRayquazaMegaState(){
+      var selected = findPokemonById(pokemonSel.value);
+      var isMegaRayquaza = !!(selected && isRayquazaFormGroup(selected) && String(selected.formLabel||'').indexOf('メガ') === 0);
+      if(!isMegaRayquaza) return;
+      var vals = currentEditMoveValues();
+      var hasAscent = vals.indexOf(RAYQUAZA_ASCENT_MOVE) >= 0;
+      if(!hasAscent){
+        var emptyIdx = -1;
+        for(var i=0;i<4;i++){ if(!vals[i] || vals[i]==='none'){ emptyIdx = i; break; } }
+        if(emptyIdx >= 0) setEditMoveValue(emptyIdx+1, RAYQUAZA_ASCENT_MOVE);
+      }
+    }
+    updateRayquazaMegaState();
+    // 特性欄は技欄が存在するより前に一度組み立てられているため(レックウザ系統はそこではまだ
+    // 技の状態を判定できない)、技の初期値が反映され終えたこの時点で改めて組み立て直す。これに
+    // より、既にガリョウテンセイを技に持つメガレックウザのエントリを開いたときも、最初の表示
+    // からメガ前特性/メガ後特性の2列表示になる。
+    rebuildAbilityField();
+
     for(var mi4=1;mi4<=4;mi4++){
       updateMoveSelectColor(mi4);
-      (function(idx){ q('damekePokeEdit_move'+idx).addEventListener('change', function(){ updateMoveSelectColor(idx); }); })(mi4);
+      (function(idx){ q('damekePokeEdit_move'+idx).addEventListener('change', function(){ updateMoveSelectColor(idx); updateRayquazaMegaState(); rebuildAbilityField(); }); })(mi4);
     }
     pokemonSel.addEventListener('change', function(){
-      rebuildAbilityField();
       refreshMoveOptionsInEditForm();
       if(pokemonSel._v082hRefreshOptions) pokemonSel._v082hRefreshOptions();
       var selectedForGender = findPokemonById(pokemonSel.value);
@@ -1561,9 +1648,10 @@
         if(linkedItem){
           itemSel.value = linkedItem.id;
           if(itemSel._v082hRefreshOptions) itemSel._v082hRefreshOptions();
-          rebuildAbilityField();
         }
       }
+      updateRayquazaMegaState();
+      rebuildAbilityField();
       updateStatsPreview();
     });
     itemSel.addEventListener('change', function(){
@@ -1956,10 +2044,18 @@
 
     var Ddata = D();
     var baseForm = (pokemon && Ddata.getFormDefaultPokemon) ? Ddata.getFormDefaultPokemon(pokemon) : pokemon;
-    var megaForm = (pokemon && Ddata.findFormByLinkedItem) ? Ddata.findFormByLinkedItem(pokemon, item) : null;
+    var megaForm, megaToggleEnabled;
+    if(isRayquazaFormGroup(pokemon)){
+      megaForm = getFormGroupMegaForm(pokemon, Ddata);
+      megaToggleEnabled = entryHasAscentMove(entry);
+    } else {
+      megaForm = (pokemon && Ddata.findFormByLinkedItem) ? Ddata.findFormByLinkedItem(pokemon, item) : null;
+      megaToggleEnabled = true;
+    }
     if(megaForm && baseForm && megaForm.name === baseForm.name) megaForm = null;
     var startsAsMega = !!(pokemon && megaForm && pokemon.name === megaForm.name);
-    if(megaForm) card.classList.add('dameke-pokemon-card-has-mega-toggle');
+    if(!megaToggleEnabled && !startsAsMega) megaForm = null;
+    if(megaForm && megaToggleEnabled) card.classList.add('dameke-pokemon-card-has-mega-toggle');
 
     // メガシンカの有無で変化する部分(サムネイル+名前+タイプ+特性+実数値)をまとめて再構築できる
     // よう、専用のホストにまとめる(ポケモン管理のカードと同じ考え方)。
@@ -1976,7 +2072,7 @@
       // ないカードも同じ高さの余白を確保し、隣に並ぶトグルありのカードと表示位置が揃う。
       var toggleRow = document.createElement('div');
       toggleRow.className = 'dameke-pokemon-mega-toggle-row dameke-pokemon-mega-toggle-row-compact';
-      if(megaForm){
+      if(megaForm && megaToggleEnabled){
         var toggleBtn = document.createElement('button');
         toggleBtn.type = 'button';
         toggleBtn.className = 'dameke-pokemon-mega-toggle dameke-pokemon-mega-toggle-compact' + (isMega ? ' dameke-pokemon-mega-toggle-active' : '');
@@ -1986,6 +2082,11 @@
           renderVariable(isMega ? baseForm : megaForm, !isMega);
         });
         toggleRow.appendChild(toggleBtn);
+      } else if(megaForm && !megaToggleEnabled && isMega){
+        var lockedNote = document.createElement('span');
+        lockedNote.className = 'dameke-pokemon-mega-toggle-locked';
+        lockedNote.textContent = '技にガリョウテンセイがないため切替不可';
+        toggleRow.appendChild(lockedNote);
       }
       variableHost.appendChild(toggleRow);
 

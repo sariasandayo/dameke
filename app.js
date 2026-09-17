@@ -2126,11 +2126,15 @@
       ts.dataset.v091Form = '1';
       ts.addEventListener('change', function(){ setTimeout(function(){ handleLinkedManual(side, 'tera'); }, 0); });
     }
-    var ss = ensureSexField(side);
-    if(ss && !ss.dataset.v091Form){
-      ss.dataset.v091Form = '1';
-      ss.addEventListener('change', function(){ setTimeout(function(){ handleLinkedManual(side, 'sex'); }, 0); });
-    }
+    // 性別セレクトの'change'にはhandleLinkedManualを繋がない。性別は(handleLinkedManualの上の
+    // コメントの通り)もうフォルム切り替えを引き起こさない設計になっており、handleLinkedManual
+    // 内でも'sex'というkindは持ち物/テラスタルの判定に一切使われず、実質的に「(性別変更とは無関係
+    // な)持ち物・テラスタルの整合性チェックを性別変更のたびに再実行するだけ」になっていた。
+    // これが原因で、ゲンシグラードン/ゲンシカイオーガ(性別「不明」固定)をポケモン選択欄から
+    // 直接選んだ際、setTypeDefaults側の性別自動設定が(持ち物の連動反映がまだ済んでいない
+    // タイミングで)性別セレクトに'change'を発火させてしまい、「専用アイテムを持っていない」と
+    // 誤判定されて強制的に通常フォルム(グラードン/カイオーガ)へ戻されてしまっていた。
+    ensureSexField(side);
   }
   function attachAll(){ attachSide('A'); attachSide('D'); }
   function removeLegacyNodes(){
