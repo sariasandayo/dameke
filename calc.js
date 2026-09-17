@@ -158,12 +158,17 @@
     var ks = keys(pokemon); for(var i=0;i<ks.length;i++){ if(map[ks[i]]) return map[ks[i]]; }
     return map.default || def;
   }
+  // メガゲンガー・ディグダ(通常/アローラ)・ダグトリオ(通常/アローラ)・スナバァ・シロデスナは、
+  // テレキネシスのチェックの有無に関わらず無効(接地判定・命中判定のどちらにも影響しない)。
+  var TELEKINESIS_IMMUNE_NAMES = ['メガゲンガー','ディグダ','ディグダ(アローラ)','ダグトリオ','ダグトリオ(アローラ)','スナバァ','シロデスナ'];
+  function isTelekinesisImmune(p){ return pokemonMatches(p, TELEKINESIS_IMMUNE_NAMES); }
   H.pokemonKeys = H.pokemonKeys || keys;
   H.pokemonMatches = H.pokemonMatches || pokemonMatches;
   H.itemTargetsPokemon = H.itemTargetsPokemon || itemTargetsPokemon;
   H.abilityTag = H.abilityTag || abilityTag;
   H.itemTag = H.itemTag || itemTag;
   H.formMoveType = H.formMoveType || formMoveType;
+  H.isTelekinesisImmune = H.isTelekinesisImmune || isTelekinesisImmune;
   H.__earlyV048051 = true;
 })();
 
@@ -323,7 +328,7 @@
     if(ab.active && (window.DAMEKE_DATA_HELPERS.abilityTag(ab.ability,'levitate') || ab.ability.name === 'ふゆう' || ab.ability.name === 'うなぎのぼり')) return {grounded:false, reason:'特性'+ab.ability.name};
     if(itState.active && item.kind === 'Floating') return {grounded:false, reason:'ふうせん'};
     if(o[prefix+'MagnetRise']) return {grounded:false, reason:'でんじふゆう'};
-    if(o[prefix+'Telekinesis']) return {grounded:false, reason:'テレキネシス'};
+    if(o[prefix+'Telekinesis'] && !window.DAMEKE_DATA_HELPERS.isTelekinesisImmune(p)) return {grounded:false, reason:'テレキネシス'};
     return {grounded:true, reason:'その他'};
   }
 function hpBlock(side,p,stt,item,itState,ab,special,o){const prefix=side==='A'?'attacker':'defender',max=stt.H;const raw=o[prefix+'CurrentHpInput']===''||o[prefix+'CurrentHpInput']==null?max:cl(i(o[prefix+'CurrentHpInput'],max),1,max);let hd=0,notes=[];const immune=(itState.active&&item.kind==='HazardImmune')||(ab.active&&window.DAMEKE_DATA_HELPERS.abilityTag(ab.ability,'hazardImmune'));if(immune)notes.push('あつぞこブーツまたはマジックガードにより設置技0');if(!immune&&o[prefix+'StealthRock']){const d=hazardType(max,'いわ',p.types);hd+=d;notes.push('ステロ='+d);}if(!immune&&o[prefix+'SteelSurge']){const d=hazardType(max,'はがね',p.types);hd+=d;notes.push('キョダイコウジン='+d);}const sp=cl(i(o[prefix+'Spikes'],0),0,3);if(!immune&&sp>0){if(grounded(p,ab,itState,item,o)){const d=sp===1?hazardDamage(max,1,8):sp===2?hazardDamage(max,1,6):hazardDamage(max,1,4);hd+=d;notes.push('まきびし'+sp+'回='+d);}else notes.push('まきびし=0（繰り出し時非接地扱い）');}const after=Math.max(0,raw-hd);return{maxFinal:special?max*2:max,currentFinal:special?after*2:after,hazardDamage:hd,notes:notes.join('、')||'なし'};}
@@ -1207,8 +1212,9 @@ function abilityImmunity(result,o,moveType){var table={'こんがりボディ':'
 
     var thunderMoves=['かみなり','ぼうふう','かみなりあらし','こがらしあらし','ねっさのあらし'];
     var rainAlwaysHit = (o.defenderEffectiveWeather||o.weather)==='あめ' && thunderMoves.indexOf(n)>=0;
-    if(o.defenderTelekinesis || special==='zmove' || special==='special_z' || special==='dynamax' || special==='gmax' || moveDataAlwaysHit(effMove) || rainAlwaysHit){
-      var why = o.defenderTelekinesis?'防御側テレキネシス':(special!=='none'?'攻撃側強化技選択中':(rainAlwaysHit?'防御側あめ+天候技':'技データが必中'));
+    var defenderTelekinesisActive = o.defenderTelekinesis && !(input.defender && window.DAMEKE_DATA_HELPERS.isTelekinesisImmune(input.defender));
+    if(defenderTelekinesisActive || special==='zmove' || special==='special_z' || special==='dynamax' || special==='gmax' || moveDataAlwaysHit(effMove) || rainAlwaysHit){
+      var why = defenderTelekinesisActive?'防御側テレキネシス':(special!=='none'?'攻撃側強化技選択中':(rainAlwaysHit?'防御側あめ+天候技':'技データが必中'));
       return {result:'必中', reason:why, invalidated:false};
     }
 
