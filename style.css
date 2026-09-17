@@ -924,7 +924,7 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-wordle-hint-section{flex:0 0 auto;}
 
 .dameke-wordle-row{display:flex;align-items:center;gap:10px;}
-.dameke-wordle-row-thumb{width:64px;height:64px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;}
+.dameke-wordle-row-thumb{width:88px;height:88px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;}
 .dameke-wordle-row-thumb img{max-width:100%;max-height:100%;}
 .dameke-wordle-row-thumb-missing{background:#e5e7eb;border-radius:6px;}
 .dameke-wordle-letters{display:flex;gap:5px;}
@@ -945,12 +945,54 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-wordle-cell-green{background:#6aaa64;color:#fff;}
 .dameke-wordle-cell-yellow{background:#c9b458;color:#fff;}
 .dameke-wordle-cell-gray{background:#9ca3af;color:#fff;}
+/* ---- 種族値High&Low ---- */
+.dameke-stathl-wrap{display:flex;flex-direction:column;gap:2px;}
+.dameke-stathl-mode-row{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;}
+.dameke-stathl-mode-label{margin:0;}
+.dameke-stathl-mode-option{display:inline-flex;align-items:center;gap:4px;font-size:.82rem;color:#374151;cursor:pointer;}
+.dameke-stathl-score{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:10px;font-size:.82rem;font-weight:700;color:#374151;}
+.dameke-stathl-panels{display:flex;align-items:flex-start;justify-content:center;gap:18px;flex-wrap:wrap;margin-bottom:12px;}
+/* 基準/予想対象の各列(パネル本体+ヒントボタン)。ヒントボタンはパネルの外・直下に
+   置くので、パネル自体の大きさはヒントボタンの有無に左右されない。 */
+.dameke-stathl-side{display:flex;flex-direction:column;align-items:center;gap:6px;}
+/* 両パネルをまったく同じ大きさにするため、幅・高さを固定しoverflowはhiddenで
+   吸収する(名前の最大幅は、括弧が入れ子になった最長の名前が1行で収まる想定)。 */
+.dameke-stathl-panel{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:4px;width:300px;height:196px;box-sizing:border-box;padding:10px;border:1px solid #d1d5db;border-radius:10px;background:#f9fafb;text-align:center;overflow:hidden;}
+.dameke-stathl-panel-correct{border-color:#6aaa64;background:#eef7ec;}
+.dameke-stathl-panel-incorrect{border-color:#dc2626;background:#fdecec;}
+.dameke-stathl-role{font-size:.72rem;font-weight:700;color:#6b7280;}
+.dameke-stathl-thumb{width:80px;height:80px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;}
+.dameke-stathl-thumb img{max-width:100%;max-height:100%;}
+.dameke-stathl-thumb-missing{background:#e5e7eb;border-radius:6px;}
+.dameke-stathl-name{font-size:.6rem;font-weight:700;color:#1f2937;line-height:1.25;}
+.dameke-stathl-name-line{word-break:break-word;white-space:normal;}
+.dameke-stathl-statvalue{font-size:.8rem;font-weight:700;color:#111827;}
+.dameke-stathl-statvalue-hidden{color:#9ca3af;}
+.dameke-stathl-hint-btn{margin:0;}
+.dameke-stathl-vs{font-weight:800;color:#6b7280;font-size:.9rem;align-self:center;}
+.dameke-stathl-guess-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+.dameke-stathl-guess-btn{margin-bottom:0;display:inline-flex;align-items:center;gap:6px;}
+.dameke-stathl-guess-btn-high{border-color:#ef4444;color:#b91c1c;background:#fef2f2;}
+.dameke-stathl-guess-btn-same{border-color:#9333ea;color:#7e22ce;background:#faf5ff;}
+.dameke-stathl-guess-btn-low{border-color:#3b82f6;color:#1d4ed8;background:#eff6ff;}
+.dameke-stathl-guess-btn-correct{background:#6aaa64!important;border-color:#6aaa64!important;color:#fff!important;}
+.dameke-stathl-guess-btn-incorrect{background:#dc2626!important;border-color:#dc2626!important;color:#fff!important;}
+.dameke-stathl-guess-mark{font-weight:900;}
+.dameke-stathl-gameover-message{font-weight:700;color:#374151;margin:6px 0;}
+@media(max-width:480px){
+  .dameke-stathl-panels{gap:10px;}
+  .dameke-stathl-panel{width:220px;height:172px;padding:8px;}
+  .dameke-stathl-thumb{width:56px;height:56px;}
+  .dameke-stathl-name{font-size:.44rem;}
+  .dameke-stathl-guess-row{gap:6px;}
+  .dameke-stathl-guess-btn{font-size:.72rem;padding:0 10px;}
+}
 @media(max-width:480px){
   .dameke-wordle-board-row{gap:14px;flex-wrap:nowrap;}
   .dameke-wordle-rows{min-width:0;flex:1 1 auto;gap:4px;}
   .dameke-wordle-letter-box{width:24px;height:24px;font-size:.72rem;border-radius:4px;}
   .dameke-wordle-row{gap:4px;}
-  .dameke-wordle-row-thumb{width:38px;height:38px;}
+  .dameke-wordle-row-thumb{width:50px;height:50px;}
   .dameke-wordle-letters{gap:3px;}
   .dameke-wordle-row-input{flex-wrap:nowrap;}
   .dameke-wordle-text-input{flex:0 1 130px;max-width:130px;min-width:0;padding:0 6px;font-size:.72rem;}
