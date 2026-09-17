@@ -924,7 +924,7 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-wordle-hint-section{flex:0 0 auto;}
 
 .dameke-wordle-row{display:flex;align-items:center;gap:10px;}
-.dameke-wordle-row-thumb{width:40px;height:40px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;}
+.dameke-wordle-row-thumb{width:64px;height:64px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;}
 .dameke-wordle-row-thumb img{max-width:100%;max-height:100%;}
 .dameke-wordle-row-thumb-missing{background:#e5e7eb;border-radius:6px;}
 .dameke-wordle-letters{display:flex;gap:5px;}
@@ -950,7 +950,7 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
   .dameke-wordle-rows{min-width:0;flex:1 1 auto;gap:4px;}
   .dameke-wordle-letter-box{width:24px;height:24px;font-size:.72rem;border-radius:4px;}
   .dameke-wordle-row{gap:4px;}
-  .dameke-wordle-row-thumb{width:24px;height:24px;}
+  .dameke-wordle-row-thumb{width:38px;height:38px;}
   .dameke-wordle-letters{gap:3px;}
   .dameke-wordle-row-input{flex-wrap:nowrap;}
   .dameke-wordle-text-input{flex:0 1 130px;max-width:130px;min-width:0;padding:0 6px;font-size:.72rem;}

@@ -684,7 +684,18 @@
 
   function q(id){ return document.getElementById(id); }
   function D(){ return window.DAMEKE_DATA; }
-  function findPokemonById(id){ var d=D(); return d && d.pokemons ? d.pokemons.find(function(p){ return p.id===id; }) : null; }
+  function findPokemonById(id){
+    var d=D();
+    if(!d || !d.pokemons) return null;
+    var exact = d.pokemons.find(function(p){ return p.id===id; });
+    if(exact) return exact;
+    if(!id) return null;
+    // 全角/半角数字などの表記ゆれで完全一致しない場合のフォールバック。
+    // 過去に保存されたパーティ/履歴データが、データ修正前の表記のIDを保持していても
+    // 参照できるよう、NFKC正規化した上で再照合する(現行データの参照結果は変えない)。
+    var normalizedTarget = String(id).normalize('NFKC');
+    return d.pokemons.find(function(p){ return String(p.id).normalize('NFKC') === normalizedTarget; }) || null;
+  }
   function findMoveById(id){ var d=D(); return d && d.moves ? d.moves.find(function(m){ return m.id===id; }) : null; }
 
   function loadPokemonList(){
