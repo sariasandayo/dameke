@@ -859,7 +859,9 @@
     return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)];
   }
   function buildRadarChart(baseStats){
-    var size = 440, cx = 220, cy = 220, maxR = 120, farR = 150;
+    // ラベル・数値・合計の文字サイズを大きくした分、はみ出さないようキャンバス自体を
+    // 一回り広げておく(チャート本体の半径maxR/farRは変えない)。
+    var size = 480, cx = 240, cy = 240, maxR = 120, farR = 150;
     var svg = svgEl('svg', { viewBox: '0 0 ' + size + ' ' + size, class: 'dameke-statchart-svg' });
 
     // 目盛りの補助線(50/100/150/200)
@@ -900,21 +902,21 @@
 
     // 軸ラベル(種族値名+実際の値)。左右どちら寄りかで文字の揃えを変える。
     STATCHART_AXIS_ORDER.forEach(function(k, i){
-      var labelPt = statChartPointAtRadius(i, farR + 30, cx, cy);
+      var labelPt = statChartPointAtRadius(i, farR + 18, cx, cy);
       var angleDeg = -90 + i * 60;
       var cos = Math.cos(angleDeg * Math.PI / 180);
       var anchor = cos > 0.3 ? 'start' : (cos < -0.3 ? 'end' : 'middle');
-      var nameText = svgEl('text', { x: labelPt[0], y: labelPt[1] - 3, class: 'dameke-statchart-label-name', 'text-anchor': anchor });
+      var nameText = svgEl('text', { x: labelPt[0], y: labelPt[1] - 4, class: 'dameke-statchart-label-name', 'text-anchor': anchor });
       nameText.textContent = STATCHART_STAT_LABELS[k];
       svg.appendChild(nameText);
-      var valText = svgEl('text', { x: labelPt[0], y: labelPt[1] + 13, class: 'dameke-statchart-label-value', 'text-anchor': anchor });
+      var valText = svgEl('text', { x: labelPt[0], y: labelPt[1] + 17, class: 'dameke-statchart-label-value', 'text-anchor': anchor });
       valText.textContent = String(baseStats[k]);
       svg.appendChild(valText);
     });
 
     // 種族値合計を右下に表示する。
     var total = STAT_KEYS.reduce(function(sum, k){ return sum + (baseStats[k] || 0); }, 0);
-    var totalText = svgEl('text', { x: size - 12, y: size - 14, class: 'dameke-statchart-total', 'text-anchor': 'end' });
+    var totalText = svgEl('text', { x: size - 14, y: size - 16, class: 'dameke-statchart-total', 'text-anchor': 'end' });
     totalText.textContent = '合計：' + total;
     svg.appendChild(totalText);
 

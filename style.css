@@ -985,10 +985,17 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-stathl-message{text-align:center;}
 .dameke-stathl-gameover-message{font-weight:700;color:#374151;margin:6px 0;}
 @media(max-width:480px){
-  .dameke-stathl-panels{gap:10px;}
-  .dameke-stathl-panel{width:210px;height:148px;padding:8px;}
-  .dameke-stathl-thumb{width:56px;height:56px;}
-  .dameke-stathl-name{font-size:.52rem;}
+  /* スマホ幅では、パネル幅を「最長のポケモン名が1行で収まる幅」で固定するのをやめ、
+     左右の枠(側)をflexで画面幅いっぱいに均等配分することで、常に横並びを維持する。
+     ポケモン名は(括弧書きの区切り以外でも)複数行に折り返してよいことにする代わりに、
+     文字サイズはこれまでより大きめにする。 */
+  .dameke-stathl-panels{gap:6px;flex-wrap:nowrap;}
+  .dameke-stathl-side{flex:1 1 0;min-width:0;}
+  .dameke-stathl-panel{width:100%;height:auto;min-height:150px;padding:6px;box-sizing:border-box;}
+  .dameke-stathl-thumb{width:48px;height:48px;}
+  .dameke-stathl-name{font-size:.72rem;height:auto;min-height:2.6em;}
+  .dameke-stathl-statvalue{font-size:.74rem;}
+  .dameke-stathl-vs{flex:0 0 auto;}
   .dameke-stathl-guess-row{gap:6px;}
   .dameke-stathl-guess-btn{font-size:.72rem;padding:0 10px;}
 }
@@ -1018,9 +1025,9 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-statchart-tick-label{font-size:8px;fill:#b0b6c0;}
 .dameke-statchart-data{fill:rgba(37,99,235,.28);stroke:#2563eb;stroke-width:2;}
 .dameke-statchart-data-dot{fill:#2563eb;}
-.dameke-statchart-label-name{font-size:10px;font-weight:700;fill:#374151;}
-.dameke-statchart-label-value{font-size:11px;font-weight:800;fill:#111827;}
-.dameke-statchart-total{font-size:11px;font-weight:800;fill:#4b5563;}
+.dameke-statchart-label-name{font-size:18px;font-weight:700;fill:#374151;}
+.dameke-statchart-label-value{font-size:19px;font-weight:800;fill:#111827;}
+.dameke-statchart-total{font-size:18px;font-weight:800;fill:#4b5563;}
 .dameke-statchart-hints-frame{border:1px solid #d8dce3;border-radius:8px;padding:14px 10px 10px;margin:6px 0 10px;position:relative;}
 .dameke-statchart-hints-legend{position:absolute;top:-9px;left:10px;background:#fff;padding:0 6px;font-size:.75rem;font-weight:700;color:#6b7280;}
 .dameke-statchart-hints{display:flex;flex-direction:column;gap:8px;}
@@ -1040,10 +1047,10 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-statchart-answer-thumb{width:64px;height:64px;}
 .dameke-statchart-answer-name{font-weight:700;color:#1f2937;}
 @media(max-width:480px){
-  .dameke-statchart-label-name{font-size:8px;}
-  .dameke-statchart-label-value{font-size:9px;}
+  .dameke-statchart-label-name{font-size:15px;}
+  .dameke-statchart-label-value{font-size:16px;}
   .dameke-statchart-tick-label{font-size:7px;}
-  .dameke-statchart-total{font-size:9px;}
+  .dameke-statchart-total{font-size:15px;}
   .dameke-statchart-answer-row .v082h-search-combo{flex:1 1 auto;max-width:none;}
 }
 
