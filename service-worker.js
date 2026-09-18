@@ -15,7 +15,7 @@
 // 手動で揃えている。アプリを更新するときは、キャッシュバスターと合わせてここの
 // CACHE_VERSION も必ず書き換えること(揃え忘れると新しいSWが古いキャッシュ名のまま
 // 動いてしまい、更新が反映されない)。
-const CACHE_VERSION = '20260917w';
+const CACHE_VERSION = '20260917z';
 const SHELL_CACHE = 'dameke-shell-' + CACHE_VERSION;
 const IMAGE_CACHE = 'dameke-images-v1'; // 画像キャッシュはバージョン更新のたびに消さない
 
@@ -37,6 +37,7 @@ const SHELL_FILES = [
   './data.js',
   './data_item_images.js',
   './data_learnsets.js',
+  './data_regulations.js',
   './data_pokemon_images.js',
   './icon/favicon.ico',
   './icon/favicon-32.png',

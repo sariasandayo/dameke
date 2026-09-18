@@ -1221,7 +1221,7 @@
     return p.formGroup || p.baseSpecies || p.speciesKey || p.name;
   }
 
-  function getRandomGenPool(finalOnly, championsOnly, megaOnly, megaExclude){
+  function getRandomGenPool(finalOnly, championsOnly, megaOnly, megaExclude, regulations){
     return (DATA.pokemons || []).filter(function(p){
       if(!p.baseStats) return false;
       if(finalOnly && p.canEvolve) return false;
@@ -1229,6 +1229,11 @@
       var mega = isMegaPokemon(p);
       if(megaOnly && !mega) return false;
       if(megaExclude && mega) return false;
+      if(regulations && regulations.length){
+        var R = window.DAMEKE_REGULATIONS;
+        var regTag = R ? R.regulationOf(p.name) : null;
+        if(regulations.indexOf(regTag) === -1) return false;
+      }
       return true;
     });
   }
@@ -1272,11 +1277,12 @@
   var randomGenChampionsOnly = true;
   var randomGenMegaOnly = false;
   var randomGenMegaExclude = false;
+  var randomGenRegulations = [];
   var randomGenCount = 6;
   var randomGenState = null;
 
   function newRandomGenSet(){
-    var pool = getRandomGenPool(randomGenFinalOnly, randomGenChampionsOnly, randomGenMegaOnly, randomGenMegaExclude);
+    var pool = getRandomGenPool(randomGenFinalOnly, randomGenChampionsOnly, randomGenMegaOnly, randomGenMegaExclude, randomGenRegulations);
     randomGenState = { pool: pool, results: drawRandomGenSet(pool, randomGenCount) };
   }
 
@@ -1326,7 +1332,7 @@
     wrap.appendChild(rulesFold);
 
     var filterRow = document.createElement('div');
-    filterRow.className = 'dameke-stathl-mode-row';
+    filterRow.className = 'dameke-stathl-mode-row dameke-search-section-gap';
 
     var finalLabel = document.createElement('label');
     finalLabel.className = 'dameke-stathl-mode-option';
@@ -1366,8 +1372,35 @@
 
     wrap.appendChild(filterRow);
 
+    // レギュレーション絞り込み(複数選択可。何もチェックしなければ絞り込みなし)。
+    var regFold = document.createElement('details');
+    regFold.className = 'dameke-pokemon-edit-levelfold';
+    var regSummary = document.createElement('summary');
+    regSummary.textContent = 'レギュレーション';
+    regFold.appendChild(regSummary);
+    var regRow = document.createElement('div'); regRow.className = 'dameke-stathl-mode-row';
+    var RG = window.DAMEKE_REGULATIONS;
+    if(RG){
+      RG.tagOrder.forEach(function(tag){
+        var label = document.createElement('label'); label.className = 'dameke-stathl-mode-option';
+        var cb = document.createElement('input'); cb.type = 'checkbox';
+        cb.checked = randomGenRegulations.indexOf(tag) >= 0;
+        cb.addEventListener('change', function(){
+          var idx = randomGenRegulations.indexOf(tag);
+          if(cb.checked && idx === -1) randomGenRegulations.push(tag);
+          else if(!cb.checked && idx >= 0) randomGenRegulations.splice(idx, 1);
+          newRandomGenSet();
+          renderGrid();
+        });
+        label.appendChild(cb); label.appendChild(document.createTextNode(RG.labels[tag]));
+        regRow.appendChild(label);
+      });
+    }
+    regFold.appendChild(regRow);
+    wrap.appendChild(regFold);
+
     var countRow = document.createElement('div');
-    countRow.className = 'dameke-stathl-mode-row';
+    countRow.className = 'dameke-stathl-mode-row dameke-search-section-gap';
     var countLabel = document.createElement('label');
     countLabel.className = 'dameke-randomgen-count-label';
     countLabel.appendChild(document.createTextNode('同時出力数：'));

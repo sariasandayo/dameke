@@ -162,7 +162,8 @@
       finalEvoOnly: false,
       championsOnly: false,
       megaOnly: false,
-      megaExclude: false
+      megaExclude: false,
+      regulations: []
     };
   }
   var filters = defaultFilters();
@@ -234,6 +235,11 @@
     if(!inRange(p.weight, filters.weightRange)) return false;
     if(filters.finalEvoOnly && p.canEvolve) return false;
     if(filters.championsOnly && !hasChampionsEntry(p)) return false;
+    if(filters.regulations.length){
+      var R = window.DAMEKE_REGULATIONS;
+      var regTag = R ? R.regulationOf(p.name) : null;
+      if(filters.regulations.indexOf(regTag) === -1) return false;
+    }
     // メガシンカ後のポケモンは、だめけーの命名規則上、名前が必ず「メガ」で始まる。
     // 名前が「メガ」で始まるかどうかではなく、フォルムのラベル(formLabel)を見て判定する。
     // メガニウム・メガヤンマ等、名前がたまたま「メガ」で始まるだけの通常フォルムのポケモンを
@@ -471,6 +477,32 @@
     megaExcludeLabel.appendChild(megaExcludeCb); megaExcludeLabel.appendChild(document.createTextNode('メガシンカポケモン除外'));
     checksRow.appendChild(finalLabel); checksRow.appendChild(champLabel); checksRow.appendChild(megaOnlyLabel); checksRow.appendChild(megaExcludeLabel);
     host.appendChild(checksRow);
+
+    // レギュレーション絞り込み(複数選択可。何もチェックしなければ絞り込みなし)。
+    var regFold = document.createElement('details');
+    regFold.className = 'dameke-pokemon-edit-levelfold';
+    var regSummary = document.createElement('summary');
+    regSummary.textContent = 'レギュレーション';
+    regFold.appendChild(regSummary);
+    var regRow = document.createElement('div'); regRow.className = 'dameke-speed-cond-row';
+    var R = window.DAMEKE_REGULATIONS;
+    if(R){
+      R.tagOrder.forEach(function(tag){
+        var label = document.createElement('label'); label.className = 'check';
+        var cb = document.createElement('input'); cb.type = 'checkbox';
+        cb.checked = filters.regulations.indexOf(tag) >= 0;
+        cb.addEventListener('change', function(){
+          var idx = filters.regulations.indexOf(tag);
+          if(cb.checked && idx === -1) filters.regulations.push(tag);
+          else if(!cb.checked && idx >= 0) filters.regulations.splice(idx, 1);
+          renderResults();
+        });
+        label.appendChild(cb); label.appendChild(document.createTextNode(R.labels[tag]));
+        regRow.appendChild(label);
+      });
+    }
+    regFold.appendChild(regRow);
+    host.appendChild(regFold);
 
     var clearBtn = document.createElement('button');
     clearBtn.type = 'button'; clearBtn.className = 'dameke-search-clear-btn dameke-search-section-gap';
