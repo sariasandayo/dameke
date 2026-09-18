@@ -19,14 +19,25 @@
   <link rel="apple-touch-icon" sizes="180x180" href="./icon/apple-touch-icon.png">
   <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjogIuOBoOOCgeOBkeODvCBXZWIiLCAic2hvcnRfbmFtZSI6ICLjgaDjgoHjgZHjg7wiLCAiZGVzY3JpcHRpb24iOiAi6Z2e5YWs5byP44O76Z2e5Za25Yip44Gu44Od44Kx44Oi44Oz44OA44Oh44O844K46KiI566X5qmf44Gn44GZ77yI44OB44Oj44Oz44OU44Kq44Oz44K65a++5b+c77yJ44CC5bqD5ZGK44O755m76Yyy5LiA5YiH44Gq44GX77yBIiwgInN0YXJ0X3VybCI6ICIuLyIsICJzY29wZSI6ICIuLyIsICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLCAiYmFja2dyb3VuZF9jb2xvciI6ICIjZjVmN2ZiIiwgInRoZW1lX2NvbG9yIjogIiMxNzIwMzMiLCAiaWNvbnMiOiBbeyJzcmMiOiAiLi9pY29uL2ljb24tMTkyLnBuZyIsICJzaXplcyI6ICIxOTJ4MTkyIiwgInR5cGUiOiAiaW1hZ2UvcG5nIiwgInB1cnBvc2UiOiAiYW55In0sIHsic3JjIjogIi4vaWNvbi9pY29uLTUxMi5wbmciLCAic2l6ZXMiOiAiNTEyeDUxMiIsICJ0eXBlIjogImltYWdlL3BuZyIsICJwdXJwb3NlIjogImFueSJ9LCB7InNyYyI6ICIuL2ljb24vaWNvbi1tYXNrYWJsZS01MTIucG5nIiwgInNpemVzIjogIjUxMng1MTIiLCAidHlwZSI6ICJpbWFnZS9wbmciLCAicHVycG9zZSI6ICJtYXNrYWJsZSJ9XX0=">
   <meta name="theme-color" content="#172033">
-  <link rel="stylesheet" href="style.css?v=20260917s" />
+  <link rel="stylesheet" href="style.css?v=20260917w" />
 </head>
 <body>
   <header class="app-header">
     <button type="button" id="damekeMenuBtn" class="dameke-menu-btn" aria-label="メニュー">
       <span></span><span></span><span></span>
     </button>
-    <h1>だめけー Web v2.2.0</h1>
+    <div class="dameke-theme-switch-wrap">
+      <span class="dameke-theme-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><line x1="12" y1="2" x2="12" y2="4"></line><line x1="12" y1="20" x2="12" y2="22"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="2" y1="12" x2="4" y2="12"></line><line x1="20" y1="12" x2="22" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+      </span>
+      <button type="button" id="damekeThemeToggleBtn" class="dameke-theme-switch" role="switch" aria-checked="false" aria-label="ダークモード切り替え">
+        <span class="dameke-theme-switch-knob"></span>
+      </button>
+      <span class="dameke-theme-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+      </span>
+    </div>
+    <h1>だめけー Web v2.3.0</h1>
     <p>for Pokémon Champions</p>
     <nav id="damekeMenuNav" class="dameke-menu-nav" hidden>
       <button type="button" class="dameke-menu-item" data-panel="calculator">ダメージ計算</button>
@@ -601,22 +612,32 @@
       </section>
     </main>
   </div>
-<script src="data.js?v=20260917s"></script>
-<script src="data_learnsets.js?v=20260917s"></script>
-<script src="data_pokemon_images.js?v=20260917s"></script>
-<script src="data_item_images.js?v=20260917s"></script>
-<script src="calc.js?v=20260917s"></script>
+<script src="data.js?v=20260917w"></script>
+<script src="data_learnsets.js?v=20260917w"></script>
+<script src="data_pokemon_images.js?v=20260917w"></script>
+<script src="data_item_images.js?v=20260917w"></script>
+<script src="calc.js?v=20260917w"></script>
   
-<script src="app.js?v=20260917s"></script>
-<script src="app_tools.js?v=20260917s"></script>
-<script src="app_adjust.js?v=20260917s"></script>
-<script src="app_speed.js?v=20260917s"></script>
-<script src="app_evopt.js?v=20260917s"></script>
-<script src="app_coverage.js?v=20260917s"></script>
-<script src="app_search.js?v=20260917s"></script>
-<script src="app_complement.js?v=20260917s"></script>
-<script src="app_partytype.js?v=20260917s"></script>
-<script src="app_minigame.js?v=20260917s"></script>
-  
+<script src="app.js?v=20260917w"></script>
+<script src="app_tools.js?v=20260917w"></script>
+<script src="app_adjust.js?v=20260917w"></script>
+<script src="app_speed.js?v=20260917w"></script>
+<script src="app_evopt.js?v=20260917w"></script>
+<script src="app_coverage.js?v=20260917w"></script>
+<script src="app_search.js?v=20260917w"></script>
+<script src="app_complement.js?v=20260917w"></script>
+<script src="app_partytype.js?v=20260917w"></script>
+<script src="app_minigame.js?v=20260917w"></script>
+<script>
+  // オフライン対応(Service Worker登録)。対応していないブラウザでは単に何も起きず、
+  // 通常通りオンラインで動作する。
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('./service-worker.js').catch(function(err){
+        console.warn('[sw] registration failed', err);
+      });
+    });
+  }
+</script>
 </body>
 </html>

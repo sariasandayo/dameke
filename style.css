@@ -1,78 +1,195 @@
+/* ==== ダークモード用カラートークン ====
+   サイト全体で使う「地の色・文字色・境界線色」をCSS変数化し、ここでライト/ダークの
+   2セットを定義する。タイプ色・HPバー色・天候/フィールドの淡色バッジなど、色そのものに
+   意味がある部分(タイプ相性など)はあえてトークン化せず、ライト/ダークどちらでも同じ色の
+   ままにしている(実際のバッジ配色は変更していない)。
+   既定はOSの配色設定(prefers-color-scheme)に追従し、ハンバーガーメニューの切り替えボタンで
+   手動上書きできる(<html data-theme="light"|"dark">をJS側で付け外しする)。 */
+:root{
+  --dameke-page-bg:#f5f7fb;
+  --dameke-surface:#fff;
+  --dameke-surface-alt:#f9fafb;
+  --dameke-surface-alt2:#f3f4f6;
+  --dameke-surface-subtle:#f1f5f9;
+  --dameke-surface-faint:#f8fafc;
+  --dameke-surface-faint2:#fafafa;
+  --dameke-border:#e5e7eb;
+  --dameke-border-strong:#d1d5db;
+  --dameke-border-subtle:#cbd5e1;
+  --dameke-border-slate:#e2e8f0;
+  --dameke-text:#111827;
+  --dameke-text-secondary:#374151;
+  --dameke-text-heading:#1f2937;
+  --dameke-text-slate:#334155;
+  --dameke-text-muted:#6b7280;
+  --dameke-text-mid:#4b5563;
+  --dameke-attacker-tint:#fff8f8;
+  --dameke-attacker-tint-border:#f1d8d8;
+  --dameke-defender-tint:#f7faff;
+  --dameke-defender-tint-border:#d7e3f4;
+  --dameke-text-faint:#9ca3af;
+  --dameke-tint-red-bg:#fef2f2;
+  --dameke-tint-red-border:#fecaca;
+  --dameke-tint-red-text:#b91c1c;
+  --dameke-tint-green-bg:#f0fdf4;
+  --dameke-tint-green-border:#bbf7d0;
+  --dameke-tint-blue-bg:#eff6ff;
+  --dameke-tint-blue-border:#bfdbfe;
+  --dameke-tint-emerald-bg:#ecfdf5;
+  --dameke-tint-emerald-text:#059669;
+  --dameke-tint-yellow-bg:#fef9c3;
+  --dameke-tint-yellow-text:#713f12;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --dameke-page-bg:#0f172a;
+    --dameke-surface:#1e293b;
+    --dameke-surface-alt:#1a2436;
+    --dameke-surface-alt2:#26324a;
+    --dameke-surface-subtle:#1e293b;
+    --dameke-surface-faint:#1a2436;
+    --dameke-surface-faint2:#1a2436;
+    --dameke-border:#334155;
+    --dameke-border-strong:#475569;
+    --dameke-border-subtle:#3b4a5e;
+    --dameke-border-slate:#334155;
+    --dameke-text:#f1f5f9;
+    --dameke-text-secondary:#cbd5e1;
+    --dameke-text-heading:#e2e8f0;
+    --dameke-text-slate:#cbd5e1;
+    --dameke-text-muted:#94a3b8;
+    --dameke-text-mid:#a8b3c2;
+    --dameke-text-faint:#7c8797;
+    --dameke-attacker-tint:#3a2229;
+    --dameke-attacker-tint-border:#6b3946;
+    --dameke-defender-tint:#1a3866;
+    --dameke-defender-tint-border:#2f5c9e;
+    --dameke-tint-red-bg:#3a2124;
+    --dameke-tint-red-border:#6b3538;
+    --dameke-tint-red-text:#fca5a5;
+    --dameke-tint-green-bg:#16291f;
+    --dameke-tint-green-border:#2f5942;
+    --dameke-tint-blue-bg:#182a3f;
+    --dameke-tint-blue-border:#2f4a6b;
+    --dameke-tint-emerald-bg:#122a20;
+    --dameke-tint-emerald-text:#34d399;
+    --dameke-tint-yellow-bg:#4a3f10;
+    --dameke-tint-yellow-text:#fde68a;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --dameke-page-bg:#0f172a;
+  --dameke-surface:#1e293b;
+  --dameke-surface-alt:#1a2436;
+  --dameke-surface-alt2:#26324a;
+  --dameke-surface-subtle:#1e293b;
+  --dameke-surface-faint:#1a2436;
+  --dameke-surface-faint2:#1a2436;
+  --dameke-border:#334155;
+  --dameke-border-strong:#475569;
+  --dameke-border-subtle:#3b4a5e;
+  --dameke-border-slate:#334155;
+  --dameke-text:#f1f5f9;
+  --dameke-text-secondary:#cbd5e1;
+  --dameke-text-heading:#e2e8f0;
+  --dameke-text-slate:#cbd5e1;
+  --dameke-text-muted:#94a3b8;
+  --dameke-text-mid:#a8b3c2;
+  --dameke-text-faint:#7c8797;
+  --dameke-attacker-tint:#3a2229;
+  --dameke-attacker-tint-border:#6b3946;
+  --dameke-defender-tint:#1a3866;
+  --dameke-defender-tint-border:#2f5c9e;
+  --dameke-tint-red-bg:#3a2124;
+  --dameke-tint-red-border:#6b3538;
+  --dameke-tint-red-text:#fca5a5;
+  --dameke-tint-green-bg:#16291f;
+  --dameke-tint-green-border:#2f5942;
+  --dameke-tint-blue-bg:#182a3f;
+  --dameke-tint-blue-border:#2f4a6b;
+  --dameke-tint-emerald-bg:#122a20;
+  --dameke-tint-emerald-text:#34d399;
+  --dameke-tint-yellow-bg:#4a3f10;
+  --dameke-tint-yellow-text:#fde68a;
+  color-scheme:dark;
+}
 /* ==== base layout ==== */
 * { box-sizing: border-box; }
-body { margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f7fb; color: #1f2937; }
+body { margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--dameke-page-bg); color: var(--dameke-text-heading); }
 .app-header { padding: 18px 24px; background: #111827; color: #fff; }
 .app-header h1 { margin: 0 0 4px; font-size: 22px; }
-.app-header p { margin: 0; color: #d1d5db; }
+.app-header p { margin: 0; color: #d1d5db; } /* ヘッダーは常に暗色背景固定のため、文字色もテーマに連動させない */
 .layout { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; padding: 16px; align-items: start; }
 body:not(.v082h-ready) .layout { visibility: hidden; }
-.card,.sub-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; box-shadow: 0 1px 3px rgba(15,23,42,.08); }
+.card,.sub-card { background:var(--dameke-surface); border: 1px solid var(--dameke-border); border-radius: 14px; box-shadow: 0 1px 3px rgba(15,23,42,.08); }
 .card { padding: 16px; }
 .sub-card { padding: 12px; margin: 12px 0; }
 .side-by-side { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
 .side-panel { margin: 0; }
 h2,h3 { margin: 0 0 10px; }
 h2 { font-size: 20px; }
-h3 { font-size: 15px; color: #374151; }
+h3 { font-size: 15px; color: var(--dameke-text-secondary); }
 .grid { display: grid; gap: 10px; margin-bottom: 10px; }
 .grid.two { grid-template-columns: repeat(2,minmax(0,1fr)); }
 .grid.three { grid-template-columns: repeat(3,minmax(0,1fr)); }
 .grid.four { grid-template-columns: repeat(4,minmax(0,1fr)); }
 .compact-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
-label { display: grid; gap: 4px; font-size: 12px; color: #4b5563; }
+label { display: grid; gap: 4px; font-size: 12px; color: var(--dameke-text-mid); }
 label.check { display: flex; gap: 6px; align-items: center; min-height: 34px; }
-input,select,button { font: inherit; border: 1px solid #d1d5db; border-radius: 8px; padding: 7px 8px; background: #fff; min-width: 0; }
+input,select,button { font: inherit; border: 1px solid var(--dameke-border-strong); border-radius: 8px; padding: 7px 8px; background:var(--dameke-surface); min-width: 0; }
 button { cursor: pointer; background: #eef2ff; border-color: #c7d2fe; color: #1e3a8a; font-weight: 600; }
 button:hover { background: #e0e7ff; }
 .actions { display: flex; gap: 10px; margin-top: 14px; }
 .actions button:first-child { background: #2563eb; border-color: #2563eb; color: #fff; }
-.stat-grid-wrap { overflow-x:auto; border:1px solid #e5e7eb; border-radius:10px; }
+.stat-grid-wrap { overflow-x:auto; border:1px solid var(--dameke-border); border-radius:10px; }
 .stat-grid { min-width:410px; }
 .hp-tools { grid-template-columns: 1fr repeat(3,72px); }
 .hp-tools button{min-height:34px;padding-left:4px;padding-right:4px}
-.operation-panel{border:1px dashed #cbd5e1;border-radius:10px;padding:10px;background:#f8fafc}
+.operation-panel{border:1px dashed var(--dameke-border-subtle);border-radius:10px;padding:10px;background:var(--dameke-surface-faint)}
 .operation-title{font-size:12px;font-weight:700;color:#475569;margin-bottom:8px}
 .operation-buttons{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
-.operation-display{font-size:12px;color:#334155;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:8px;min-height:34px}
-.summary{background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:10px;line-height:1.7}
-.output{background:#0b1020;color:#e5e7eb;border-radius:10px;padding:12px;min-height:54px;overflow:auto;white-space:pre-wrap}
+.operation-display{font-size:12px;color:var(--dameke-text-slate);background:var(--dameke-surface);border:1px solid var(--dameke-border-slate);border-radius:8px;padding:8px;min-height:34px}
+.summary{background:var(--dameke-surface-alt);border:1px solid var(--dameke-border);border-radius:10px;padding:10px;line-height:1.7}
+.output{background:#0b1020;color:var(--dameke-border);border-radius:10px;padding:12px;min-height:54px;overflow:auto;white-space:pre-wrap}
 .trace{min-height:520px;font-size:12px}
 .result-card pre#trace{margin-bottom:0;}
 .v082h-calc-table{width:100%;border-collapse:collapse;margin:0 0 10px;font-size:12px;table-layout:fixed;}
-.v082h-calc-table th{text-align:left;padding:5px 8px;background:#f1f5f9;color:#334155;font-weight:700;border:1px solid #e2e8f0;white-space:nowrap;}
+.v082h-calc-table th{text-align:left;padding:5px 8px;background:var(--dameke-surface-subtle);color:var(--dameke-text-slate);font-weight:700;border:1px solid var(--dameke-border-slate);white-space:nowrap;}
 .v082h-calc-table th:first-child{width:132px;}
-.v082h-calc-table td{padding:5px 8px;border:1px solid #e2e8f0;color:#1f2937;overflow-wrap:break-word;}
+.v082h-calc-table td{padding:5px 8px;border:1px solid var(--dameke-border-slate);color:var(--dameke-text-heading);overflow-wrap:break-word;}
 .v082h-rate-up{color:#dc2626;font-weight:700;}
 .v082h-rate-down{color:#2563eb;font-weight:700;}
 
 /* ==== v082h main UI ==== */
 .v082h-hide{display:none!important;}
 .v082h-side-tabs{display:none;gap:6px;margin-bottom:8px;box-sizing:border-box;width:100%;max-width:320px;min-width:0;}
-.v082h-side-tabs button{box-sizing:border-box;flex:1 1 0;width:0;min-width:0;padding:6px;border-radius:8px;font-weight:700;font-size:.82rem;background:#f1f5f9;border:1px solid #cbd5e1;color:#475569;}
+.v082h-side-tabs button{box-sizing:border-box;flex:1 1 0;width:0;min-width:0;padding:6px;border-radius:8px;font-weight:700;font-size:.82rem;background:var(--dameke-surface-subtle);border:1px solid var(--dameke-border-subtle);color:var(--dameke-text-secondary);}
 .v082h-side-tabs button.active{background:#2563eb;border-color:#2563eb;color:#fff;}
 .v082h-root-basic{width:100%;box-sizing:border-box;}
 .v082h-basic-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);width:100%;box-sizing:border-box;gap:10px;margin-top:10px;}
 .v082h-box{margin:0;width:320px;}
 .v082h-box-head{display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .v082h-box-head h3{margin:0;}
-.v082h-attacker,.v082h-section-details.v082h-attacker{background:#fff8f8;border-color:#f1d8d8;}
-.v082h-defender,.v082h-section-details.v082h-defender{background:#f7faff;border-color:#d7e3f4;}
-.v082h-attacker .v082h-ability-panel,.v082h-attacker .v082h-stats-panel,.v082h-attacker .v082h-double-fold{background:#fff8f8;border-color:#f1d8d8;}
-.v082h-defender .v082h-ability-panel,.v082h-defender .v082h-stats-panel,.v082h-defender .v082h-double-fold{background:#f7faff;border-color:#d7e3f4;}
+.v082h-attacker,.v082h-section-details.v082h-attacker{background:var(--dameke-attacker-tint);border-color:var(--dameke-attacker-tint-border);}
+.v082h-defender,.v082h-section-details.v082h-defender{background:var(--dameke-defender-tint);border-color:var(--dameke-defender-tint-border);}
+.v082h-attacker .v082h-ability-panel,.v082h-attacker .v082h-stats-panel,.v082h-attacker .v082h-double-fold{background:var(--dameke-attacker-tint);border-color:var(--dameke-attacker-tint-border);}
+.v082h-defender .v082h-ability-panel,.v082h-defender .v082h-stats-panel,.v082h-defender .v082h-double-fold{background:var(--dameke-defender-tint);border-color:var(--dameke-defender-tint-border);}
 .v082h-box input,.v082h-box select{min-width:0;}
 .v082h-pokemon-field{margin-bottom:6px;}
 .v082h-search-combo{position:relative;}
 .v082h-search-input{width:100%;}
-.v082h-search-list{position:absolute;top:100%;left:0;right:0;z-index:1000;margin:2px 0 0;padding:2px;list-style:none;background:#fff;border:1px solid #cbd5e1;border-radius:8px;box-shadow:0 4px 12px rgba(15,23,42,.14);max-height:220px;overflow-y:auto;overscroll-behavior:contain;}
+.v082h-search-list{position:absolute;top:100%;left:0;right:0;z-index:1000;margin:2px 0 0;padding:2px;list-style:none;background:var(--dameke-surface);border:1px solid var(--dameke-border-subtle);border-radius:8px;box-shadow:0 4px 12px rgba(15,23,42,.14);max-height:220px;overflow-y:auto;overscroll-behavior:contain;}
 .v082h-search-list-up{top:auto;bottom:100%;margin:0 0 2px;}
 .v082h-search-item{padding:5px 8px;font-size:12px;font-weight:400;border-radius:5px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .v082h-search-item:hover,.v082h-search-item.active{background:#eef2ff;}
 .v082h-type-grid{margin-top:4px;}
 .v082h-mini-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:8px;}
-.v082h-details,.v082h-section-details{border:1px solid #d8dee9;border-radius:12px;padding:8px 10px;margin:8px 0;background:#f8fafc;}
-.v082h-details>summary,.v082h-section-details>summary{cursor:pointer;font-weight:700;color:#334155;}
-.v082h-type-effects{font-size:.86rem;opacity:.82;padding:6px 8px;background:#fbfdff;}
-.v082h-type-effects>summary{font-weight:600;color:#64748b;}
+.v082h-details,.v082h-section-details{border:1px solid var(--dameke-border-slate);border-radius:12px;padding:8px 10px;margin:8px 0;background:var(--dameke-surface-faint);}
+.v082h-details>summary,.v082h-section-details>summary{cursor:pointer;font-weight:700;color:var(--dameke-text-slate);}
+.v082h-type-effects{font-size:.86rem;opacity:.82;padding:6px 8px;background:var(--dameke-surface-faint);}
+.v082h-type-effects>summary{font-weight:600;color:var(--dameke-text-muted);}
 .v082h-zone label{margin-top:8px;}
 .v082h-toolbar{display:flex;gap:10px;align-items:stretch;justify-content:space-between;flex-wrap:wrap;width:100%;box-sizing:border-box;margin:8px 0 12px;}
 
@@ -90,7 +207,7 @@ button:hover { background: #e0e7ff; }
 
 /* Grouped 2-button frames (履歴 / ポケ管理): small label + segmented-control pair */
 .dameke-btn-group{display:inline-flex;flex-direction:column;gap:3px;align-items:flex-start;}
-.dameke-btn-group-label{font-size:.62rem;font-weight:700;color:#9ca3af;letter-spacing:.04em;padding-left:2px;}
+.dameke-btn-group-label{font-size:.62rem;font-weight:700;color:var(--dameke-text-faint);letter-spacing:.04em;padding-left:2px;}
 .dameke-btn-group-buttons{display:flex;box-shadow:0 1px 4px rgba(15,23,42,.18);border:1px solid rgba(15,23,42,.06);border-radius:999px;}
 .dameke-btn-group-btn{border:none;padding:7px 8px;font-size:.8rem;font-weight:700;cursor:pointer;color:#fff;width:76px;text-align:center;transition:transform .12s,box-shadow .12s;position:relative;box-sizing:border-box;white-space:nowrap;}
 .dameke-btn-group-btn:first-child{border-radius:999px 0 0 999px;}
@@ -103,8 +220,8 @@ button:hover { background: #e0e7ff; }
 .dameke-btn-group-btn:active{transform:translateY(0);box-shadow:none;}
 .v082h-muted{font-size:.86rem;opacity:.72;}
 .v082h-secondary-action{opacity:.62;font-size:.9rem;padding:6px 9px;margin-top:16px;display:inline-block;}
-.v082h-ability-panel{border:1px solid #e5e7eb;border-radius:12px;padding:8px 10px;margin:8px 0;background:#fff;}
-.v082h-minititle{font-weight:700;color:#334155;margin-bottom:6px;}
+.v082h-ability-panel{border:1px solid var(--dameke-border);border-radius:12px;padding:8px 10px;margin:8px 0;background:var(--dameke-surface);}
+.v082h-minititle{font-weight:700;color:var(--dameke-text-slate);margin-bottom:6px;}
 .v082h-minititle-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;}
 .v082h-minititle-row .v082h-minititle{margin-bottom:0;}
 .v082h-stats-adjust-btn{border:none;border-radius:6px;padding:6px 12px;font-size:.72rem;font-weight:700;color:#fff;cursor:pointer;white-space:nowrap;box-sizing:border-box;height:30px;transition:transform .12s,box-shadow .12s;}
@@ -114,10 +231,10 @@ button:hover { background: #e0e7ff; }
 .v082h-stats-adjust-btn-defender{background:#2563eb;}
 .v082h-stats-adjust-btn-defender:hover{background:#2563eb;}
 .v082h-ability-buttons{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;align-items:center;}
-.v082h-ability-chip,.operation-buttons button{font-size:.86rem;padding:3px 8px;border-radius:999px;background:#f8fafc;border:1px solid #cbd5e1;color:#334155;font-weight:500;box-shadow:none;}
+.v082h-ability-chip,.operation-buttons button{font-size:.86rem;padding:3px 8px;border-radius:999px;background:var(--dameke-surface-faint);border:1px solid var(--dameke-border-subtle);color:var(--dameke-text-slate);font-weight:500;box-shadow:none;}
 .v082h-ability-chip:hover,.operation-buttons button:hover{background:#eef2ff;}
 .v082h-inline-check{display:flex;align-items:center;gap:6px;margin-top:6px;}
-.v082h-stats-panel{border:1px solid #e5e7eb;border-radius:12px;padding:8px 10px;margin:8px 0;background:#fff;}
+.v082h-stats-panel{border:1px solid var(--dameke-border);border-radius:12px;padding:8px 10px;margin:8px 0;background:var(--dameke-surface);}
 .v082h-stats-panel>label{margin:0 0 8px;grid-template-columns:1fr;}
 .v082h-nature-field{display:flex;align-items:center;gap:6px;margin:0 0 8px;font-size:12px;color:inherit;}
 .v082h-nature-field select{width:190px;max-width:190px;padding:2px 5px;font-size:12px;}
@@ -136,7 +253,7 @@ button:hover { background: #e0e7ff; }
 .v082h-stat-head span{font-size:.72rem;font-weight:700;color:#64748b;text-align:center;}
 .v082h-stat-label{font-size:.66rem;font-weight:700;color:#475569;white-space:nowrap;margin-right:4px;}
 .v082h-stat-cell{min-width:0;}
-.v082h-stat-readonly{display:flex;align-items:center;justify-content:center;font-size:.7rem;color:#6b7280;background:#f3f4f6;border-radius:3px;min-height:1.6em;}
+.v082h-stat-readonly{display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--dameke-text-muted);background:var(--dameke-surface-alt2);border-radius:3px;min-height:1.6em;}
 .v082h-stat-cell input,.v082h-stat-cell select{width:100%;min-width:0;padding:2px 1px;font-size:.7rem;text-align:center;}
 .v082h-num-picker{display:none;}
 .v082h-cond-wrap-outer{margin:0;}
@@ -153,15 +270,15 @@ button:hover { background: #e0e7ff; }
 .v082h-cond-grid label input[type=number]{width:52px;min-width:0;padding:3px 4px;font-size:.68rem;}
 .v082h-double-fold{margin-top:6px;}
 .v082h-double-fold>summary{font-size:.85rem;font-weight:600;}
-.v082h-result-panel{background:#f9fafb;border:1px solid #e5e7eb;border-radius:14px;padding:12px;margin-bottom:12px;}
+.v082h-result-panel{background:var(--dameke-surface-alt);border:1px solid var(--dameke-border);border-radius:14px;padding:12px;margin-bottom:12px;}
 /* 下部固定枠(v082hResultPanel)専用: 左下から右上への対角線で背景を二分し、
    左側(左上寄りの三角形)を天候、右側(右下寄りの三角形)をフィールドの状態に応じた
    淡い色で塗り分ける。JS側(updateResultPanelFieldTint)が --dameke-weather-tint /
    --dameke-field-tint の2つのCSS変数に色を設定し、実際の三角形分割はここのclip-pathで
    行う(サイズ・余白・レイアウトには一切影響しない)。 */
 #v082hResultPanel{
-  --dameke-weather-tint:#f9fafb;
-  --dameke-field-tint:#f9fafb;
+  --dameke-weather-tint:var(--dameke-surface-alt);
+  --dameke-field-tint:var(--dameke-surface-alt);
   position:relative;
   isolation:isolate;
   background-color:var(--dameke-weather-tint);
@@ -177,7 +294,7 @@ button:hover { background: #e0e7ff; }
   background-color:var(--dameke-field-tint);
   transition:background-color .2s ease;
 }
-.v082h-hp-infoline{font-weight:800;font-size:.92rem;color:#1f2937;margin-bottom:6px;}
+.v082h-hp-infoline{font-weight:800;font-size:.92rem;color:var(--dameke-text-heading);margin-bottom:6px;}
 .v082h-result-sidegrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));justify-items:center;gap:0 10px;margin-top:8px;}
 .v082h-result-col{display:flex;flex-direction:column;}
 .v082h-hpbar-wrap{margin:8px 0 10px;}
@@ -192,16 +309,16 @@ button:hover { background: #e0e7ff; }
 .v082h-hp-yellow{background:#eab308;}
 .v082h-hp-red{background:#ef4444;}
 .v082h-hp-faint{background:transparent;}
-.v082h-hpbar-nums{font-size:.78rem;color:#334155;margin-top:3px;font-weight:600;}
+.v082h-hpbar-nums{font-size:.78rem;color:var(--dameke-text-slate);margin-top:3px;font-weight:600;}
 .v082h-result-title{font-weight:800;font-size:1.02rem;margin-bottom:8px;line-height:1.45;}
 .v082h-result-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 10px;}
-.v082h-result-item{display:grid;grid-template-columns:104px minmax(0,1fr);gap:8px;align-items:start;padding:3px 0;border-bottom:1px dashed #e5e7eb;}
+.v082h-result-item{display:grid;grid-template-columns:104px minmax(0,1fr);gap:8px;align-items:start;padding:3px 0;border-bottom:1px dashed var(--dameke-border);}
 .v082h-result-key{font-size:.78rem;color:#64748b;}
 .v082h-result-value{font-weight:700;word-break:break-word;}
 
 /* ==== pokemon form-change UI (sex field / form chips) ==== */
 .v091-sex-field{margin-top:6px;display:flex;align-items:center;gap:6px;font-size:12px;color:inherit}
-.v091-sex-select{width:98px;max-width:98px;padding:2px 5px;border-radius:8px;border:1px solid rgba(125,125,125,.25);background:rgba(255,255,255,.85);font-size:12px;line-height:1.6;}
+.v091-sex-select{width:98px;max-width:98px;padding:2px 5px;border-radius:8px;border:1px solid rgba(125,125,125,.25);background:var(--dameke-surface);color:var(--dameke-text);font-size:12px;line-height:1.6;}
 #damekePokeEdit_gender{line-height:1.6;}
 .v091-form-panel{position:relative;z-index:5;display:block;margin:6px 0 10px;padding:5px 7px;border:1px solid rgba(125,125,125,.22);border-radius:10px;background:rgba(127,127,127,.045)}
 .v091-form-panel-empty{display:none!important}
@@ -216,8 +333,8 @@ button:hover { background: #e0e7ff; }
 .v091-form-chip.active{background:#285ea8;color:#fff;border-color:#285ea8;font-weight:600}
 
 /* ==== item/move label styling (v101j2) ==== */
-.dameke-main-control-label{font-size:14px;font-weight:700;color:#334155;line-height:1.25;}
-.dameke-main-control-label > select,.dameke-main-control-label .v082h-search-input{font-size:12px;font-weight:400;color:#111827;padding:6px 8px;min-height:32px;width:100%;margin-top:4px;}
+.dameke-main-control-label{font-size:14px;font-weight:700;color:var(--dameke-text-slate);line-height:1.25;}
+.dameke-main-control-label > select,.dameke-main-control-label .v082h-search-input{font-size:12px;font-weight:400;color:var(--dameke-text);padding:6px 8px;min-height:32px;width:100%;margin-top:4px;}
 
 @media(max-width:1250px){
   .layout{grid-template-columns:minmax(0,1fr)}
@@ -227,7 +344,7 @@ button:hover { background: #e0e7ff; }
   #v082hResultPanel .v082h-result-title{font-size:.8rem;margin-bottom:2px;}
   #v082hResultPanel .v082h-result-move-line{font-size:.76rem;margin-bottom:3px;}
   #v082hResultPanel .v082h-hp-infoline{font-size:.82rem;margin-bottom:2px;}
-  #v082hResultPanel .v082h-hp-infoline2{font-size:.78rem;color:#334155;margin-bottom:4px;}
+  #v082hResultPanel .v082h-hp-infoline2{font-size:.78rem;color:var(--dameke-text-slate);margin-bottom:4px;}
   #v082hResultPanel .v082h-result-sidegrid{gap:0 6px;margin-top:4px;}
   #v082hResultPanel .v082h-result-item{padding:1px 0;}
   #v082hResultPanel .v082h-result-key{font-size:.68rem;}
@@ -306,45 +423,54 @@ select.dameke-type-select{transition:background-color .15s,color .15s;}
 .dameke-type-dark{background:linear-gradient(90deg,#8c7c70,#5c4f45);color:#ffffff !important;}
 .dameke-type-steel{background:linear-gradient(90deg,#e6e6f0,#c2c2d8);color:#111827 !important;}
 .dameke-type-fairy{background:linear-gradient(90deg,#fce3ee,#f2accf);color:#111827 !important;}
-select.dameke-type-select option{background-color:#ffffff;color:#111827;}
+select.dameke-type-select option{background-color:#ffffff;color:var(--dameke-text);}
 .dameke-type-stellar{background:linear-gradient(90deg,#fbd9e6,#c4ecec,#fbe28f);color:#111827 !important;}
-.dameke-image-credit{margin-top:16px;font-size:.68rem;line-height:1.5;color:#9ca3af;}
+.dameke-image-credit{margin-top:16px;font-size:.68rem;line-height:1.5;color:var(--dameke-text-faint);}
 .v082h-result-header-row{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:2px;}
 .v082h-result-text-col{flex:0 1 auto;min-width:0;max-width:60%;text-align:center;}
-.v082h-result-move-line{font-weight:700;font-size:.88rem;color:#374151;margin-bottom:6px;}
+.v082h-result-move-line{font-weight:700;font-size:.88rem;color:var(--dameke-text-secondary);margin-bottom:6px;}
 .v082h-pokemon-thumb{flex:0 0 auto;width:68px;height:68px;display:flex;align-items:center;justify-content:center;}
 .v082h-pokemon-thumb img{max-width:100%;max-height:100%;image-rendering:pixelated;}
-.v082h-pokemon-thumb-missing{width:68px;height:68px;border-radius:50%;background:#e5e7eb;}
+.v082h-pokemon-thumb-missing{width:68px;height:68px;border-radius:50%;background:var(--dameke-border);}
 .v082h-pokemon-thumb-group{display:flex;align-items:flex-end;gap:2px;flex:0 0 auto;position:relative;}
 .v082h-item-thumb{width:22px;height:22px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;position:absolute;right:-4px;bottom:-2px;}
-.v082h-item-thumb img{max-width:100%;max-height:100%;filter:drop-shadow(0 0 1.2px #fff) drop-shadow(0 0 1.2px #fff) drop-shadow(0 0 1.2px #fff);}
-.v082h-item-thumb-missing{border-radius:50%;background:#e5e7eb;}
+.v082h-item-thumb img{max-width:100%;max-height:100%;filter:drop-shadow(0 0 1.2px var(--dameke-surface)) drop-shadow(0 0 1.2px var(--dameke-surface)) drop-shadow(0 0 1.2px var(--dameke-surface));}
+.v082h-item-thumb-missing{border-radius:50%;background:var(--dameke-border);}
 .app-header{position:relative;}
 .dameke-menu-btn{position:absolute;top:12px;right:16px;width:44px;height:40px;background:transparent;border:none;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;padding:0;}
 .dameke-menu-btn span{display:block;width:26px;height:3px;background:#fff;border-radius:2px;flex-shrink:0;}
-.dameke-menu-nav{position:absolute;top:52px;right:16px;background:#1f2937;border:1px solid rgba(255,255,255,.15);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.35);z-index:100;display:flex;flex-direction:column;min-width:160px;overflow:hidden;}
+/* ハンバーガーメニューの直下に置くライト/ダーク切り替えスイッチ。ヘッダーは常に暗色背景固定
+   (テーマに連動しない)なので、アイコン・スイッチの配色も固定値でよい。 */
+.dameke-theme-switch-wrap{position:absolute;top:56px;right:16px;display:flex;align-items:center;gap:6px;}
+.dameke-theme-icon{width:15px;height:15px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.75);}
+.dameke-theme-icon svg{width:100%;height:100%;display:block;}
+.dameke-theme-switch{position:relative;width:38px;height:21px;flex:0 0 auto;border-radius:999px;background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.32);cursor:pointer;padding:0;}
+.dameke-theme-switch-knob{position:absolute;top:1px;left:1px;width:17px;height:17px;border-radius:50%;background:#fff;transition:left .15s ease;}
+.dameke-theme-switch[aria-checked="true"]{background:#2563eb;border-color:#2563eb;}
+.dameke-theme-switch[aria-checked="true"] .dameke-theme-switch-knob{left:18px;}
+.dameke-menu-nav{position:absolute;top:88px;right:16px;background:#1f2937;border:1px solid rgba(255,255,255,.15);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.35);z-index:100;display:flex;flex-direction:column;min-width:160px;overflow:hidden;}
 .dameke-menu-nav[hidden]{display:none;}
 .dameke-menu-item{background:transparent;border:none;color:#fff;text-align:left;padding:10px 14px;font-size:.92rem;cursor:pointer;}
 .dameke-menu-item:hover{background:rgba(255,255,255,.1);}
 .dameke-menu-item.dameke-menu-item-active{background:rgba(255,255,255,.16);font-weight:700;}
 .dameke-tool-panel[hidden]{display:none;}
-.dameke-history-hint{font-size:.85rem;color:#6b7280;margin:0 0 16px;line-height:1.6;}
+.dameke-history-hint{font-size:.85rem;color:var(--dameke-text-muted);margin:0 0 16px;line-height:1.6;}
 .dameke-history-list{display:flex;flex-direction:column;gap:12px;}
-.dameke-history-card{border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;background:#fafafa;}
+.dameke-history-card{border:1px solid var(--dameke-border);border-radius:10px;padding:10px 12px;background:var(--dameke-surface-faint2);}
 .dameke-history-card-meta{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;}
-.dameke-history-card-sub{font-size:.8rem;color:#6b7280;}
+.dameke-history-card-sub{font-size:.8rem;color:var(--dameke-text-muted);}
 .dameke-history-card-actions{display:flex;gap:6px;flex:0 0 auto;}
-.dameke-history-card-actions button{border:1px solid #d1d5db;background:#fff;border-radius:6px;padding:6px 10px;font-size:.8rem;cursor:pointer;transition:transform .12s,box-shadow .12s;}
+.dameke-history-card-actions button{border:1px solid var(--dameke-border-strong);background:var(--dameke-surface);border-radius:6px;padding:6px 10px;font-size:.8rem;cursor:pointer;transition:transform .12s,box-shadow .12s;}
 .dameke-history-card-actions button:hover{transform:translateY(-1px);box-shadow:0 3px 8px rgba(15,23,42,.22);}
 .dameke-history-card-actions button.dameke-history-load{background:#111827;color:#fff;border-color:#111827;}
-.dameke-history-empty{color:#9ca3af;font-size:.88rem;}
+.dameke-history-empty{color:var(--dameke-text-faint);font-size:.88rem;}
 .dameke-history-preview{
-  --dameke-weather-tint:#fff;
-  --dameke-field-tint:#fff;
+  --dameke-weather-tint:var(--dameke-surface);
+  --dameke-field-tint:var(--dameke-surface);
   position:relative;
   isolation:isolate;
   background-color:var(--dameke-weather-tint);
-  border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;
+  border:1px solid var(--dameke-border);border-radius:10px;padding:10px 12px;
 }
 /* 計算履歴のプレビューカードも、下部固定枠と同じ左下→右上の対角線分割で、左側(左上寄り)を
    天候、右側(右下寄り)をフィールドの色分けとして再現する(サイズ・レイアウトには影響しない)。 */
@@ -357,90 +483,90 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
   clip-path:polygon(0 100%, 100% 0, 100% 100%);
   background-color:var(--dameke-field-tint);
 }
-.dameke-history-preview-unavailable{color:#9ca3af;font-size:.85rem;text-align:center;padding:16px 8px;}
+.dameke-history-preview-unavailable{color:var(--dameke-text-faint);font-size:.85rem;text-align:center;padding:16px 8px;}
 .dameke-history-header-row{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:2px;}
 .dameke-history-text-col{flex:0 1 auto;min-width:0;max-width:60%;text-align:center;}
-.dameke-history-title{font-weight:800;font-size:.92rem;color:#111827;line-height:1.4;}
-.dameke-history-move-line{font-weight:700;font-size:.8rem;color:#374151;margin-bottom:4px;}
-.dameke-history-infoline{font-weight:800;font-size:.84rem;color:#1f2937;margin-bottom:2px;}
-.dameke-history-infoline2{font-size:.76rem;color:#334155;}
+.dameke-history-title{font-weight:800;font-size:.92rem;color:var(--dameke-text);line-height:1.4;}
+.dameke-history-move-line{font-weight:700;font-size:.8rem;color:var(--dameke-text-secondary);margin-bottom:4px;}
+.dameke-history-infoline{font-weight:800;font-size:.84rem;color:var(--dameke-text-heading);margin-bottom:2px;}
+.dameke-history-infoline2{font-size:.76rem;color:var(--dameke-text-slate);}
 .dameke-history-thumb{flex:0 0 auto;width:48px;height:48px;display:flex;align-items:center;justify-content:center;}
 .dameke-history-thumb img{max-width:100%;max-height:100%;image-rendering:pixelated;}
-.dameke-history-thumb-missing{width:48px;height:48px;border-radius:50%;background:#e5e7eb;}
+.dameke-history-thumb-missing{width:48px;height:48px;border-radius:50%;background:var(--dameke-border);}
 .dameke-history-thumb-group{display:flex;align-items:flex-end;gap:2px;flex:0 0 auto;}
 .dameke-history-item-thumb{width:16px;height:16px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;}
 .dameke-history-item-thumb img{max-width:100%;max-height:100%;}
-.dameke-history-item-thumb-missing{border-radius:50%;background:#e5e7eb;}
+.dameke-history-item-thumb-missing{border-radius:50%;background:var(--dameke-border);}
 .dameke-history-hpbar-wrap{margin-top:8px;}
 .dameke-history-hpbar-track{position:relative;height:12px;border-radius:6px;background:#3f3f46;overflow:hidden;display:flex;}
 .dameke-history-hpbar-seg{height:100%;}
 .dameke-history-hpbar-uncertain{opacity:.45;}
-.dameke-history-hpbar-nums{font-size:.72rem;color:#6b7280;margin-top:3px;text-align:right;}
+.dameke-history-hpbar-nums{font-size:.72rem;color:var(--dameke-text-muted);margin-top:3px;text-align:right;}
 .dameke-history-stat-focus{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));justify-items:center;gap:0 10px;margin-top:8px;}
-.dameke-history-focus-row{display:grid;grid-template-columns:74px minmax(0,1fr);gap:8px;padding:3px 0;font-size:.74rem;color:#4b5563;border-bottom:1px dashed #e5e7eb;}
-.dameke-history-focus-label{color:#6b7280;}
-.dameke-history-detail{margin-top:8px;border-top:1px dashed #e5e7eb;padding-top:6px;}
+.dameke-history-focus-row{display:grid;grid-template-columns:74px minmax(0,1fr);gap:8px;padding:3px 0;font-size:.74rem;color:var(--dameke-text-mid);border-bottom:1px dashed var(--dameke-border);}
+.dameke-history-focus-label{color:var(--dameke-text-muted);}
+.dameke-history-detail{margin-top:8px;border-top:1px dashed var(--dameke-border);padding-top:6px;}
 .dameke-history-detail summary{cursor:pointer;font-size:.8rem;color:#2563eb;font-weight:700;}
 .dameke-history-detail-list{margin-top:6px;display:flex;flex-direction:column;gap:3px;}
-.dameke-history-detail-item{font-size:.76rem;color:#374151;}
-.dameke-history-detail-empty{color:#9ca3af;}
-.dameke-history-detail-section{border-top:1px dashed #e5e7eb;padding-top:6px;margin-top:6px;}
+.dameke-history-detail-item{font-size:.76rem;color:var(--dameke-text-secondary);}
+.dameke-history-detail-empty{color:var(--dameke-text-faint);}
+.dameke-history-detail-section{border-top:1px dashed var(--dameke-border);padding-top:6px;margin-top:6px;}
 .dameke-history-detail-section:first-of-type{border-top:none;padding-top:0;margin-top:0;}
-.dameke-history-detail-section-title{font-size:.74rem;font-weight:700;color:#6b7280;}
+.dameke-history-detail-section-title{font-size:.74rem;font-weight:700;color:var(--dameke-text-muted);}
 .dameke-pokemon-list{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
-.dameke-pokemon-card{border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;display:flex;align-items:flex-start;gap:12px;background:#fafafa;position:relative;}
+.dameke-pokemon-card{border:1px solid var(--dameke-border);border-radius:10px;padding:10px 12px;display:flex;align-items:flex-start;gap:12px;background:var(--dameke-surface-faint2);position:relative;}
 .dameke-pokemon-detail-grid{margin-top:6px;display:flex;flex-direction:column;gap:2px;}
-.dameke-pokemon-detail-row{display:grid;grid-template-columns:72px minmax(0,1fr);gap:8px;font-size:.78rem;color:#4b5563;}
-.dameke-pokemon-detail-label{color:#9ca3af;font-weight:600;}
+.dameke-pokemon-detail-row{display:grid;grid-template-columns:72px minmax(0,1fr);gap:8px;font-size:.78rem;color:var(--dameke-text-mid);}
+.dameke-pokemon-detail-label{color:var(--dameke-text-faint);font-weight:600;}
 .dameke-pokemon-moves-value{display:flex;flex-wrap:wrap;gap:0 6px;}
 .dameke-pokemon-move-name{white-space:nowrap;}
 .dameke-pokemon-card-thumb{flex:0 0 auto;width:52px;height:52px;display:flex;align-items:center;justify-content:center;}
 .dameke-pokemon-card-thumb img{max-width:100%;max-height:100%;image-rendering:pixelated;}
-.dameke-pokemon-card-thumb-missing{width:52px;height:52px;border-radius:50%;background:#e5e7eb;}
+.dameke-pokemon-card-thumb-missing{width:52px;height:52px;border-radius:50%;background:var(--dameke-border);}
 .dameke-pokemon-card-thumb-group{display:flex;align-items:flex-end;gap:3px;flex:0 0 auto;}
 .dameke-pokemon-card-item-thumb{flex:0 0 auto;display:flex;align-items:center;justify-content:center;}
 .dameke-pokemon-card-item-thumb img{max-width:100%;max-height:100%;}
-.dameke-pokemon-card-item-thumb-missing{border-radius:50%;background:#e5e7eb;}
+.dameke-pokemon-card-item-thumb-missing{border-radius:50%;background:var(--dameke-border);}
 .dameke-pokemon-card-main{flex:1;min-width:0;}
 .dameke-pokemon-card-head{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
 .dameke-pokemon-card-head-large{gap:14px;margin-bottom:10px;}
 .dameke-pokemon-mega-toggle-row{display:flex;justify-content:flex-end;margin-bottom:4px;min-height:19px;}
 .dameke-pokemon-mega-toggle-row-compact{margin-bottom:2px;min-height:15px;}
 .dameke-pokemon-mega-toggle{display:inline-block;padding:0;border:none;background:transparent;cursor:pointer;line-height:0;}
-.dameke-pokemon-mega-toggle-switch{display:inline-block;width:34px;height:19px;border-radius:999px;background:#cbd5e1;position:relative;transition:background-color .15s;vertical-align:middle;}
+.dameke-pokemon-mega-toggle-switch{display:inline-block;width:34px;height:19px;border-radius:999px;background:var(--dameke-border-subtle);position:relative;transition:background-color .15s;vertical-align:middle;}
 .dameke-pokemon-mega-toggle-thumb{position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.35);transition:transform .15s;}
 .dameke-pokemon-mega-toggle-active .dameke-pokemon-mega-toggle-switch{background:#7c3aed;}
 .dameke-pokemon-mega-toggle-active .dameke-pokemon-mega-toggle-thumb{transform:translateX(15px);}
-.dameke-pokemon-mega-toggle-locked{font-size:.68rem;color:#9ca3af;font-weight:700;}
+.dameke-pokemon-mega-toggle-locked{font-size:.68rem;color:var(--dameke-text-faint);font-weight:700;}
 .dameke-pokemon-card-head-large .dameke-pokemon-card-thumb{width:80px;height:80px;}
 .dameke-pokemon-card-head-large .dameke-pokemon-card-thumb-missing{width:80px;height:80px;}
 .dameke-pokemon-card-head-large .dameke-pokemon-card-item-thumb{width:40px;height:40px;}
 .dameke-pokemon-card-head-large .dameke-pokemon-card-title{font-size:1.05rem;}
 .dameke-pokemon-card-head-large .dameke-pokemon-card-sub{font-size:.8rem;gap:6px;}
 .dameke-pokemon-card-titlewrap{flex:1 1 auto;min-width:0;}
-.dameke-pokemon-card-title{font-weight:800;font-size:.94rem;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.dameke-pokemon-card-sub{font-size:.78rem;color:#6b7280;margin-top:2px;line-height:1.5;}
-.dameke-pokemon-card-notes{font-size:.76rem;color:#9ca3af;margin-top:2px;font-style:italic;}
+.dameke-pokemon-card-title{font-weight:800;font-size:.94rem;color:var(--dameke-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dameke-pokemon-card-sub{font-size:.78rem;color:var(--dameke-text-muted);margin-top:2px;line-height:1.5;}
+.dameke-pokemon-card-notes{font-size:.76rem;color:var(--dameke-text-faint);margin-top:2px;font-style:italic;}
 .dameke-pokemon-card-actions{display:flex;flex-direction:column;gap:6px;flex:0 0 auto;}
-.dameke-pokemon-card-actions button{border:1px solid #d1d5db;background:#fff;border-radius:6px;padding:6px 10px;font-size:.8rem;cursor:pointer;box-sizing:border-box;height:30px;transition:transform .12s,box-shadow .12s;}
+.dameke-pokemon-card-actions button{border:1px solid var(--dameke-border-strong);background:var(--dameke-surface);border-radius:6px;padding:6px 10px;font-size:.8rem;cursor:pointer;box-sizing:border-box;height:30px;transition:transform .12s,box-shadow .12s;}
 .dameke-pokemon-card-actions button:hover{transform:translateY(-1px);box-shadow:0 3px 8px rgba(15,23,42,.22);}
 .dameke-pokemon-card-actions button.dameke-pokemon-edit{background:#111827;color:#fff;border-color:#111827;}
-.dameke-pokemon-empty{color:#9ca3af;font-size:.88rem;margin-top:8px;}
+.dameke-pokemon-empty{color:var(--dameke-text-faint);font-size:.88rem;margin-top:8px;}
 
 .dameke-pokemon-edit-host[hidden]{display:none;}
-.dameke-pokemon-edit-form{border:1px solid #e5e7eb;border-radius:12px;padding:14px;margin-top:12px;background:#fff;}
+.dameke-pokemon-edit-form{border:1px solid var(--dameke-border);border-radius:12px;padding:14px;margin-top:12px;background:var(--dameke-surface);}
 .dameke-pokemon-edit-heading-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
 .dameke-pokemon-edit-heading-row h3{margin:0;}
 .dameke-pokemon-edit-copy-btn{background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;border:none;border-radius:999px;padding:6px 14px;font-size:.78rem;font-weight:700;cursor:pointer;box-shadow:0 2px 6px rgba(8,145,178,.35);transition:transform .12s,box-shadow .12s;}
 .dameke-pokemon-edit-copy-btn:hover{background:linear-gradient(135deg,#0891b2,#0e7490);transform:translateY(-1px);box-shadow:0 4px 10px rgba(8,145,178,.45);}
 .dameke-pokemon-edit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px;}
-.dameke-pokemon-edit-grid label{display:flex;flex-direction:column;gap:3px;font-size:.82rem;color:#374151;}
+.dameke-pokemon-edit-grid label{display:flex;flex-direction:column;gap:3px;font-size:.82rem;color:var(--dameke-text-secondary);}
 .dameke-pokemon-edit-grid label span{font-weight:600;}
-.dameke-pokemon-edit-grid select,.dameke-pokemon-edit-grid input,.dameke-pokemon-edit-grid textarea{font:inherit;border:1px solid #d1d5db;border-radius:8px;padding:6px 8px;}
+.dameke-pokemon-edit-grid select,.dameke-pokemon-edit-grid input,.dameke-pokemon-edit-grid textarea{font:inherit;border:1px solid var(--dameke-border-strong);border-radius:8px;padding:6px 8px;}
 .dameke-pokemon-edit-fullwidth{grid-column:1/-1;}
 .dameke-pokemon-edit-mega-ability-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px;}
 .dameke-pokemon-edit-nature-row select{max-width:calc(50% - 8px);}
-.dameke-pokemon-edit-mega-ability-pair select:disabled{background:#f3f4f6;color:#6b7280;}
+.dameke-pokemon-edit-mega-ability-pair select:disabled{background:var(--dameke-surface-alt2);color:var(--dameke-text-muted);}
 .dameke-pokemon-edit-stat-table{display:grid;grid-template-columns:2.4em minmax(0,1fr);gap:4px 8px;font-size:.78rem;align-items:center;margin-top:4px;}
 
 /* Combined 努力値/実数値 table: corner cell + 6 stat-name headers, then a 努力値 row and a 実数値 row */
@@ -449,29 +575,29 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-pokemon-actual-stat-cell{text-align:center;font-weight:700;color:#166534;}
 /* 実数値入力欄は努力値入力欄と同じ .dameke-pokemon-combined-stat-table input ルールに任せ、
    見た目を統一する（個別の枠線・背景色は付けない）。 */
-.dameke-pokemon-base-stat-cell{text-align:center;color:#6b7280;}
+.dameke-pokemon-base-stat-cell{text-align:center;color:var(--dameke-text-muted);}
 .dameke-pokemon-combined-stat-table-readonly{font-size:.74rem;}
 .dameke-pokemon-combined-stat-table-readonly span{text-align:center;}
 .dameke-pokemon-stat-wrapper{width:fit-content;margin:0 auto;}
 .dameke-pokemon-ev-remaining{font-size:.8rem;font-weight:700;color:#166534;margin-top:6px;text-align:left;}
 .dameke-pokemon-ev-remaining-over{color:#dc2626;}
 .dameke-pokemon-ev-preset{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px;}
-.dameke-pokemon-ev-preset select{font:inherit;border:1px solid #d1d5db;border-radius:8px;padding:5px 8px;}
-.dameke-pokemon-ev-reset{border:1px solid #d1d5db;background:#fff;border-radius:6px;padding:5px 10px;font-size:.78rem;cursor:pointer;}
+.dameke-pokemon-ev-preset select{font:inherit;border:1px solid var(--dameke-border-strong);border-radius:8px;padding:5px 8px;}
+.dameke-pokemon-ev-reset{border:1px solid var(--dameke-border-strong);background:var(--dameke-surface);border-radius:6px;padding:5px 10px;font-size:.78rem;cursor:pointer;}
 
-.dameke-pokemon-edit-levelfold{margin-top:12px;border:1px solid #e5e7eb;border-radius:10px;padding:6px 10px;background:#f9fafb;}
-.dameke-pokemon-edit-levelfold summary{cursor:pointer;font-size:.82rem;color:#6b7280;font-weight:600;}
+.dameke-pokemon-edit-levelfold{margin-top:12px;border:1px solid var(--dameke-border);border-radius:10px;padding:6px 10px;background:var(--dameke-surface-alt);}
+.dameke-pokemon-edit-levelfold summary{cursor:pointer;font-size:.82rem;color:var(--dameke-text-muted);font-weight:600;}
 .dameke-pokemon-edit-levelfold .dameke-pokemon-edit-grid{margin-top:8px;}
 .dameke-pokemon-level-input{max-width:70px;}
 .dameke-pokemon-edit-iv-table{margin-bottom:4px;}
 .dameke-pokemon-move-grid{margin-top:14px;}
-.dameke-pokemon-showall-label{font-size:.76rem;color:#6b7280;display:flex;gap:4px;align-items:center;margin-top:6px;}
+.dameke-pokemon-showall-label{font-size:.76rem;color:var(--dameke-text-muted);display:flex;gap:4px;align-items:center;margin-top:6px;}
 .dameke-pokemon-notes-wrap{margin-top:18px;}
 .dameke-pokemon-stat-head{font-weight:700;text-align:center;}
 .dameke-pokemon-edit-actions{display:flex;gap:10px;margin-top:16px;}
 .dameke-pokemon-edit-actions button{border-radius:8px;padding:10px 18px;font-size:.9rem;font-weight:700;cursor:pointer;border:none;}
 .dameke-pokemon-edit-save{background:#059669;color:#fff;}
-.dameke-pokemon-edit-cancel{background:#e5e7eb;color:#111827;}
+.dameke-pokemon-edit-cancel{background:var(--dameke-border);color:var(--dameke-text);}
 
 /* 320px-wide side box headers need a more compact button group */
 .dameke-btn-group-poke .dameke-btn-group-btn{padding:5px 9px;font-size:.7rem;min-width:48px;}
@@ -501,15 +627,15 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-toolbar-btn-copy:active{transform:translateY(0);box-shadow:0 1px 3px rgba(8,145,178,.35);}
 
 .dameke-party-list{display:flex;flex-direction:column;gap:16px;margin-top:8px;}
-.dameke-party-card{border:1px solid #e5e7eb;border-radius:10px;padding:12px;background:#fafafa;}
+.dameke-party-card{border:1px solid var(--dameke-border);border-radius:10px;padding:12px;background:var(--dameke-surface-faint2);}
 .dameke-party-card-pickable{cursor:pointer;border:1px dashed #059669;transition:border-color .12s,box-shadow .12s,background .12s;}
 .dameke-party-card-pickable:hover{background:#f0fdf4;box-shadow:0 0 0 2px rgba(5,150,105,.15);}
-.dameke-party-card-title{font-weight:800;font-size:1rem;color:#111827;margin-bottom:6px;}
-.dameke-party-name-field{display:flex;flex-direction:column;gap:3px;font-size:.82rem;color:#374151;margin:8px 0;max-width:320px;}
-.dameke-party-name-field input{font:inherit;border:1px solid #d1d5db;border-radius:8px;padding:6px 8px;}
+.dameke-party-card-title{font-weight:800;font-size:1rem;color:var(--dameke-text);margin-bottom:6px;}
+.dameke-party-name-field{display:flex;flex-direction:column;gap:3px;font-size:.82rem;color:var(--dameke-text-secondary);margin:8px 0;max-width:320px;}
+.dameke-party-name-field input{font:inherit;border:1px solid var(--dameke-border-strong);border-radius:8px;padding:6px 8px;}
 .dameke-party-member-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px;margin-top:8px;}
-.dameke-party-member-card{border:1px solid #e5e7eb;border-radius:8px;padding:6px;background:#fff;font-size:.72rem;position:relative;min-width:0;}
-.dameke-party-member-empty{display:flex;align-items:center;justify-content:center;color:#d1d5db;min-height:120px;font-size:.78rem;}
+.dameke-party-member-card{border:1px solid var(--dameke-border);border-radius:8px;padding:6px;background:var(--dameke-surface);font-size:.72rem;position:relative;min-width:0;}
+.dameke-party-member-empty{display:flex;align-items:center;justify-content:center;color:var(--dameke-border-strong);min-height:120px;font-size:.78rem;}
 .dameke-party-member-head{display:flex;align-items:center;gap:5px;margin-bottom:3px;}
 .dameke-pokemon-mega-toggle-compact .dameke-pokemon-mega-toggle-switch{width:26px;height:15px;}
 .dameke-pokemon-mega-toggle-compact .dameke-pokemon-mega-toggle-thumb{width:11px;height:11px;top:2px;left:2px;}
@@ -520,7 +646,7 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
    したまま、タイプバッジ等に使える幅を確保するため)。 */
 .dameke-party-member-head .dameke-pokemon-card-thumb-group{position:relative;}
 .dameke-party-member-head .dameke-pokemon-card-item-thumb{position:absolute;right:-3px;bottom:-2px;width:24px;height:24px;}
-.dameke-party-member-head .dameke-pokemon-card-item-thumb img{filter:drop-shadow(0 0 1.2px #fff) drop-shadow(0 0 1.2px #fff) drop-shadow(0 0 1.2px #fff);}
+.dameke-party-member-head .dameke-pokemon-card-item-thumb img{filter:drop-shadow(0 0 1.2px var(--dameke-surface)) drop-shadow(0 0 1.2px var(--dameke-surface)) drop-shadow(0 0 1.2px var(--dameke-surface));}
 .dameke-party-member-head .dameke-pokemon-card-title{font-size:.74rem;line-height:1.2;}
 .dameke-party-member-head .dameke-pokemon-card-sub{font-size:.62rem;line-height:1.2;}
 .dameke-stat-boost{color:#dc2626 !important;}
@@ -530,10 +656,10 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
    character stands in for it) instead of three separate labeled rows. This, together with the
    2x2 move grid below, is what makes a compact 2-column x 3-row party layout possible. */
 .dameke-party-chip-row{display:flex;flex-direction:column;gap:2px;margin:3px 0;}
-.dameke-party-chip{display:block;border:1px solid #e5e7eb;border-radius:5px;padding:1px 4px;font-size:.6rem;color:#374151;background:#f9fafb;overflow-wrap:break-word;}
-.dameke-party-tera-row{display:flex;align-items:center;gap:4px;padding:1px 0;font-size:.6rem;color:#374151;}
-.dameke-party-tera-row b{color:#9ca3af;font-weight:700;}
-.dameke-party-chip b{color:#9ca3af;font-weight:700;}
+.dameke-party-chip{display:block;border:1px solid var(--dameke-border);border-radius:5px;padding:1px 4px;font-size:.6rem;color:var(--dameke-text-secondary);background:var(--dameke-surface-alt);overflow-wrap:break-word;}
+.dameke-party-tera-row{display:flex;align-items:center;gap:4px;padding:1px 0;font-size:.6rem;color:var(--dameke-text-secondary);}
+.dameke-party-tera-row b{color:var(--dameke-text-faint);font-weight:700;}
+.dameke-party-chip b{color:var(--dameke-text-faint);font-weight:700;}
 .dameke-party-type-badge{display:inline-block;border-radius:4px;padding:0 5px;font-size:.58rem;font-weight:700;margin-right:3px;}
 .dameke-party-member-card .dameke-party-type-badge{padding:0 4px;margin-right:2px;}
 
@@ -541,25 +667,25 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
    lines on its own for an unusually long move name, without pushing the whole card to a taller
    4-row layout the way stacking every move on its own line would. */
 .dameke-party-move-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 4px;margin:3px 0;}
-.dameke-party-move-cell{font-size:.62rem;line-height:1.25;border:1px solid #f1f5f9;border-radius:4px;padding:1px 3px;overflow-wrap:break-word;}
+.dameke-party-move-cell{font-size:.62rem;line-height:1.25;border:1px solid var(--dameke-surface-subtle);border-radius:4px;padding:1px 3px;overflow-wrap:break-word;}
 /* ポケモン管理画面(一覧を縦一列で表示する、より余裕のあるコンテキスト)では、特性・持ち物・
    テラスタイプ・技のフォントを、統合表の「種族値」等ラベルと同じ.76remまで拡大する。パーティ
    管理側(.dameke-party-member-card、複数カードを詰めて並べる必要がある)は元のサイズのまま。 */
 .dameke-pokemon-card .dameke-party-chip{font-size:.76rem;padding:3px 6px;}
 .dameke-pokemon-card .dameke-party-tera-row{font-size:.76rem;}
 .dameke-pokemon-card .dameke-party-move-cell{font-size:.76rem;padding:3px 6px;}
-.dameke-pokemon-card .dameke-pokemon-combined-stat-table{border:1px solid #e5e7eb;border-radius:6px;padding:6px;}
+.dameke-pokemon-card .dameke-pokemon-combined-stat-table{border:1px solid var(--dameke-border);border-radius:6px;padding:6px;}
 .dameke-pokemon-card .dameke-party-type-badge{font-size:.72rem;padding:1px 7px;}
 .dameke-party-member-card .dameke-pokemon-combined-stat-table{grid-template-columns:3.4em repeat(6,minmax(0,3.2em)) !important;font-size:.6rem !important;gap:2px 2px !important;margin-top:4px;}
 
 .dameke-party-selector-host[hidden]{display:none;}
-.dameke-party-selector-form{border:1px solid #e5e7eb;border-radius:12px;padding:14px;margin-top:12px;background:#fff;}
+.dameke-party-selector-form{border:1px solid var(--dameke-border);border-radius:12px;padding:14px;margin-top:12px;background:var(--dameke-surface);}
 .dameke-party-selector-count{font-size:.82rem;font-weight:700;color:#166534;margin:6px 0 10px;}
-.dameke-party-selector-list{display:flex;flex-direction:column;gap:10px;max-height:70vh;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px;padding:10px;}
+.dameke-party-selector-list{display:flex;flex-direction:column;gap:10px;max-height:70vh;overflow-y:auto;border:1px solid var(--dameke-border);border-radius:8px;padding:10px;}
 .dameke-pokemon-card-selectable{cursor:pointer;position:relative;transition:border-color .12s,box-shadow .12s;}
-.dameke-pokemon-card-selectable:hover{border-color:#9ca3af;}
+.dameke-pokemon-card-selectable:hover{border-color:var(--dameke-text-faint);}
 .dameke-pokemon-card-selected{border:2px solid #059669;box-shadow:0 0 0 2px rgba(5,150,105,.15);background:#f0fdf4;}
-.dameke-pokemon-card-select-badge{position:absolute;top:8px;right:8px;font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:999px;background:#e5e7eb;color:#4b5563;}
+.dameke-pokemon-card-select-badge{position:absolute;top:8px;right:8px;font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:999px;background:var(--dameke-border);color:var(--dameke-text-mid);}
 .dameke-pokemon-card-selected .dameke-pokemon-card-select-badge{background:#059669;color:#fff;}
 
 /* "新規作成" now leads into a copy-or-blank choice: a banner above the list plus the existing
@@ -571,42 +697,42 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-pokemon-card-copyable{cursor:pointer;border:1px dashed #059669;transition:border-color .12s,box-shadow .12s,background .12s;}
 .dameke-pokemon-card-copyable:hover{background:#f0fdf4;box-shadow:0 0 0 2px rgba(5,150,105,.15);}
 .dameke-party-selector-row{display:flex;align-items:center;gap:8px;font-size:.84rem;padding:4px 2px;cursor:pointer;}
-.dameke-party-selector-row:hover{background:#f9fafb;}
+.dameke-party-selector-row:hover{background:var(--dameke-surface-alt);}
 
 /* ==================== 攻撃・防御調整ツール ==================== */
 .dameke-adjust-jump-btn{font-size:.62rem;font-weight:700;padding:2px 8px;border-radius:999px;border:none;background:#e0e7ff;color:#3730a3;cursor:pointer;vertical-align:middle;margin-left:6px;}
 .dameke-adjust-jump-btn:hover{background:#c7d2fe;}
 .dameke-adjust-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;}
 .dameke-adjust-mode-tabs{display:flex;gap:6px;}
-.dameke-adjust-mode-btn{border:1px solid #d1d5db;background:#f9fafb;color:#4b5563;border-radius:8px;padding:7px 16px;font-size:.86rem;font-weight:700;cursor:pointer;}
+.dameke-adjust-mode-btn{border:1px solid var(--dameke-border-strong);background:var(--dameke-surface-alt);color:var(--dameke-text-mid);border-radius:8px;padding:7px 16px;font-size:.86rem;font-weight:700;cursor:pointer;}
 .dameke-adjust-mode-active{background:#1f2937;color:#fff;border-color:#1f2937;}
-.dameke-adjust-summary{border:1px solid #e5e7eb;background:#f9fafb;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:.86rem;}
+.dameke-adjust-summary{border:1px solid var(--dameke-border);background:var(--dameke-surface-alt);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:.86rem;}
 .dameke-adjust-summary-line{margin-bottom:2px;}
-.dameke-adjust-summary-note{font-size:.74rem;color:#6b7280;}
-.dameke-adjust-nature-title{font-size:.8rem;font-weight:700;color:#374151;margin-bottom:6px;}
+.dameke-adjust-summary-note{font-size:.74rem;color:var(--dameke-text-muted);}
+.dameke-adjust-nature-title{font-size:.8rem;font-weight:700;color:var(--dameke-text-secondary);margin-bottom:6px;}
 .dameke-adjust-nature-select{margin-bottom:14px;}
-.dameke-adjust-nature-details{border:1px solid #e5e7eb;border-radius:10px;padding:8px 12px;background:#f9fafb;}
-.dameke-adjust-nature-summary{font-size:.82rem;font-weight:700;color:#374151;cursor:pointer;}
+.dameke-adjust-nature-details{border:1px solid var(--dameke-border);border-radius:10px;padding:8px 12px;background:var(--dameke-surface-alt);}
+.dameke-adjust-nature-summary{font-size:.82rem;font-weight:700;color:var(--dameke-text-secondary);cursor:pointer;}
 .dameke-adjust-nature-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:4px 8px;margin-top:10px;}
-.dameke-adjust-nature-check{display:flex;align-items:center;gap:4px;font-size:.78rem;color:#374151;cursor:pointer;}
+.dameke-adjust-nature-check{display:flex;align-items:center;gap:4px;font-size:.78rem;color:var(--dameke-text-secondary);cursor:pointer;}
 .dameke-adjust-graph-host{margin-bottom:14px;}
 .dameke-adjust-graph-group{margin-bottom:18px;}
 .dameke-adjust-graph-group:last-child{margin-bottom:0;}
-.dameke-adjust-svg{width:100%;height:auto;background:#fff;border:1px solid #e5e7eb;border-radius:10px;}
-.dameke-adjust-grid{stroke:#f1f5f9;stroke-width:1;}
-.dameke-adjust-axis-label{font-size:10px;fill:#6b7280;}
-.dameke-adjust-axis-title{font-size:11px;fill:#4b5563;}
+.dameke-adjust-svg{width:100%;height:auto;background:var(--dameke-surface);border:1px solid var(--dameke-border);border-radius:10px;}
+.dameke-adjust-grid{stroke:var(--dameke-surface-subtle);stroke-width:1;}
+.dameke-adjust-axis-label{font-size:10px;fill:var(--dameke-text-muted);}
+.dameke-adjust-axis-title{font-size:11px;fill:var(--dameke-text-mid);}
 .dameke-adjust-hp-line{stroke:#f59e0b;stroke-width:1;stroke-dasharray:3 3;}
 .dameke-adjust-hp-band{fill:#f59e0b;fill-opacity:0.12;stroke:#f59e0b;stroke-width:1;stroke-dasharray:3 3;}
 .dameke-adjust-band-note{margin-top:8px;font-size:.7rem;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:6px 10px;}
 .dameke-adjust-hp-label{font-size:9px;fill:#b45309;}
-.dameke-adjust-legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;font-size:.74rem;color:#374151;}
+.dameke-adjust-legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;font-size:.74rem;color:var(--dameke-text-secondary);}
 .dameke-adjust-legend-item{display:flex;align-items:center;gap:5px;}
 .dameke-adjust-legend-swatch{width:12px;height:12px;border-radius:3px;display:inline-block;}
 .dameke-adjust-threshold-table{width:100%;border-collapse:collapse;font-size:.78rem;}
-.dameke-adjust-threshold-table th,.dameke-adjust-threshold-table td{border:1px solid #e5e7eb;padding:5px 8px;text-align:center;}
-.dameke-adjust-threshold-table th{background:#f9fafb;font-weight:700;color:#374151;}
-.dameke-adjust-coming-soon{border:1px dashed #d1d5db;border-radius:10px;padding:24px;text-align:center;color:#9ca3af;font-size:.86rem;}
+.dameke-adjust-threshold-table th,.dameke-adjust-threshold-table td{border:1px solid var(--dameke-border);padding:5px 8px;text-align:center;}
+.dameke-adjust-threshold-table th{background:var(--dameke-surface-alt);font-weight:700;color:var(--dameke-text-secondary);}
+.dameke-adjust-coming-soon{border:1px dashed var(--dameke-border-strong);border-radius:10px;padding:24px;text-align:center;color:var(--dameke-text-faint);font-size:.86rem;}
 #damekeAdjustGoCalcBtn{background:linear-gradient(135deg,#334155,#1e293b);box-shadow:0 2px 6px rgba(30,41,59,.35);transition:transform .12s,box-shadow .12s;}
 #damekeAdjustGoCalcBtn:hover{background:linear-gradient(135deg,#334155,#1e293b);transform:translateY(-1px);box-shadow:0 4px 10px rgba(30,41,59,.45);}
 
@@ -616,24 +742,24 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-adjust-evspec-remaining{margin-top:6px;font-size:.8rem;font-weight:700;color:#166534;text-align:left;}
 .dameke-adjust-evspec-remaining-over{color:#dc2626;}
 .dameke-adjust-evspec-table{display:grid;justify-content:center;gap:5px 8px;align-items:center;margin-top:6px;}
-.dameke-adjust-evspec-head{font-size:.72rem;font-weight:700;color:#6b7280;text-align:center;}
-.dameke-adjust-evspec-rowlabel{font-size:.74rem;font-weight:700;color:#374151;}
-.dameke-adjust-evspec-cell{font-size:.78rem;color:#374151;text-align:center;}
-.dameke-adjust-evspec-input{width:100%;max-width:36px;font-size:.76rem;padding:2px 3px;border:1px solid #d1d5db;border-radius:5px;text-align:center;}
+.dameke-adjust-evspec-head{font-size:.72rem;font-weight:700;color:var(--dameke-text-muted);text-align:center;}
+.dameke-adjust-evspec-rowlabel{font-size:.74rem;font-weight:700;color:var(--dameke-text-secondary);}
+.dameke-adjust-evspec-cell{font-size:.78rem;color:var(--dameke-text-secondary);text-align:center;}
+.dameke-adjust-evspec-input{width:100%;max-width:36px;font-size:.76rem;padding:2px 3px;border:1px solid var(--dameke-border-strong);border-radius:5px;text-align:center;}
 
 /* サマリーの詳細トグル */
 .dameke-adjust-detail-toggle{margin-top:8px;background:none;border:none;color:#2563eb;font-size:.76rem;font-weight:700;cursor:pointer;padding:0;}
-.dameke-adjust-detail-body{margin-top:6px;border-top:1px dashed #e5e7eb;padding-top:6px;}
-.dameke-adjust-detail-subtitle{font-size:.78rem;font-weight:700;color:#374151;margin:8px 0 4px;}
+.dameke-adjust-detail-body{margin-top:6px;border-top:1px dashed var(--dameke-border);padding-top:6px;}
+.dameke-adjust-detail-subtitle{font-size:.78rem;font-weight:700;color:var(--dameke-text-secondary);margin:8px 0 4px;}
 .dameke-adjust-defender-stats{margin-top:4px;}
-.dameke-adjust-detail-line{font-size:.76rem;color:#4b5563;line-height:1.6;}
+.dameke-adjust-detail-line{font-size:.76rem;color:var(--dameke-text-mid);line-height:1.6;}
 
 /* しきい値見出し・保存ボタン */
 .dameke-adjust-threshold-header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;}
 .dameke-adjust-threshold-header h3{margin:0;font-size:.9rem;}
 .dameke-adjust-save-btn{background:linear-gradient(135deg,#059669,#047857);color:#fff;border:none;border-radius:999px;padding:7px 18px;font-size:.82rem;font-weight:700;cursor:pointer;box-shadow:0 2px 6px rgba(5,150,105,.35);}
 .dameke-adjust-save-btn:hover:not(:disabled){filter:brightness(1.08);}
-.dameke-adjust-save-btn:disabled{background:#d1d5db;color:#9ca3af;box-shadow:none;cursor:not-allowed;}
+.dameke-adjust-save-btn:disabled{background:var(--dameke-border-strong);color:var(--dameke-text-faint);box-shadow:none;cursor:not-allowed;}
 .dameke-adjust-threshold-table td:first-child{width:28px;}
 
 /* ==================== 素早さ調整ツール ==================== */
@@ -642,31 +768,31 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-speed-ability-col{display:flex;flex-direction:column;min-width:0;align-self:start;}
 .dameke-speed-input .grid.three > label{align-self:start;}
 .dameke-speed-cond-row{display:flex;gap:14px;margin-top:8px;flex-wrap:wrap;align-items:center;}
-.dameke-speed-rank-label{display:flex;align-items:center;gap:6px;font-size:.82rem;color:#374151;}
+.dameke-speed-rank-label{display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--dameke-text-secondary);}
 .dameke-speed-rank-label select{padding:3px 6px;}
-.dameke-speed-summary{border:1px solid #e5e7eb;background:#f9fafb;border-radius:10px;padding:10px 14px;margin-bottom:14px;}
-.dameke-speed-base-line{font-size:.74rem;color:#4b5563;margin-top:2px;}
+.dameke-speed-summary{border:1px solid var(--dameke-border);background:var(--dameke-surface-alt);border-radius:10px;padding:10px 14px;margin-bottom:14px;}
+.dameke-speed-base-line{font-size:.74rem;color:var(--dameke-text-mid);margin-top:2px;}
 .dameke-speed-summary .dameke-history-text-col{max-width:none;}
 .dameke-speed-roster-header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;}
 .dameke-speed-roster-header h3{margin:0;font-size:.9rem;}
-.dameke-speed-roster-host{max-height:65vh;overflow-y:auto;border:1px solid #e5e7eb;border-radius:10px;}
-.dameke-speed-roster-row{display:grid;grid-template-columns:3.6em 1fr 6.4em 6.4em;gap:6px;align-items:start;padding:6px 8px;border-bottom:2px solid #cbd5e1;font-size:.76rem;}
+.dameke-speed-roster-host{max-height:65vh;overflow-y:auto;border:1px solid var(--dameke-border);border-radius:10px;}
+.dameke-speed-roster-row{display:grid;grid-template-columns:3.6em 1fr 6.4em 6.4em;gap:6px;align-items:start;padding:6px 8px;border-bottom:2px solid var(--dameke-border-subtle);font-size:.76rem;}
 .dameke-speed-roster-row:last-child{border-bottom:none;}
-.dameke-speed-roster-headerrow{position:sticky;top:0;background:#f9fafb;font-weight:700;color:#374151;font-size:.68rem;text-align:center;z-index:1;align-items:center;}
-.dameke-speed-roster-row-outsped{background:#ecfdf5;}
+.dameke-speed-roster-headerrow{position:sticky;top:0;background:var(--dameke-surface-alt);font-weight:700;color:var(--dameke-text-secondary);font-size:.68rem;text-align:center;z-index:1;align-items:center;}
+.dameke-speed-roster-row-outsped{background:var(--dameke-tint-emerald-bg);}
 .dameke-speed-roster-col{min-width:0;}
 .dameke-speed-roster-col-names{display:flex;flex-direction:column;}
 .dameke-speed-roster-subgroup{display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:3px 0;min-width:0;}
-.dameke-speed-roster-subgroup:not(:first-child){border-top:1px dashed #d1d5db;margin-top:2px;}
-.dameke-speed-roster-col-value{text-align:center;font-weight:800;color:#111827;align-self:center;}
-.dameke-speed-roster-col-ev{text-align:center;font-weight:700;color:#111827;align-self:center;}
-.dameke-speed-roster-row-outsped .dameke-speed-roster-col-ev{color:#059669;}
+.dameke-speed-roster-subgroup:not(:first-child){border-top:1px dashed var(--dameke-border-strong);margin-top:2px;}
+.dameke-speed-roster-col-value{text-align:center;font-weight:800;color:var(--dameke-text);align-self:center;}
+.dameke-speed-roster-col-ev{text-align:center;font-weight:700;color:var(--dameke-text);align-self:center;}
+.dameke-speed-roster-row-outsped .dameke-speed-roster-col-ev{color:var(--dameke-tint-emerald-text);}
 .dameke-speed-roster-name-chip{display:inline-flex;align-items:center;gap:4px;min-width:0;max-width:100%;}
 .dameke-speed-roster-thumb{flex:0 0 auto;width:24px;height:24px;display:flex;align-items:center;justify-content:center;}
 .dameke-speed-roster-thumb img{max-width:100%;max-height:100%;}
-.dameke-speed-roster-thumb-missing{border-radius:50%;background:#e5e7eb;}
-.dameke-speed-roster-name-text{font-weight:700;color:#111827;font-size:.74rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;max-width:9em;}
-.dameke-speed-roster-labels{flex-basis:100%;font-size:.7rem;font-weight:700;color:#4b5563;}
+.dameke-speed-roster-thumb-missing{border-radius:50%;background:var(--dameke-border);}
+.dameke-speed-roster-name-text{font-weight:700;color:var(--dameke-text);font-size:.74rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;max-width:9em;}
+.dameke-speed-roster-labels{flex-basis:100%;font-size:.7rem;font-weight:700;color:var(--dameke-text-mid);}
 @media(max-width:640px){
   .dameke-speed-roster-row{grid-template-columns:3em 1fr 6.6em 6.6em;font-size:.66rem;padding:5px 5px;}
 }
@@ -678,14 +804,14 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-evopt-pokemon-select-col .dameke-toolbar-btn{align-self:flex-start;}
 .dameke-evopt-image-host{flex:0 0 auto;width:96px;height:96px;display:flex;align-items:center;justify-content:center;}
 .dameke-evopt-image-host img{max-width:100%;max-height:100%;}
-.dameke-evopt-picker-host{margin-bottom:14px;border:1px solid #e5e7eb;border-radius:10px;padding:10px;background:#f9fafb;}
+.dameke-evopt-picker-host{margin-bottom:14px;border:1px solid var(--dameke-border);border-radius:10px;padding:10px;background:var(--dameke-surface-alt);}
 .dameke-evopt-nature-row{margin-top:14px;margin-bottom:10px;max-width:220px;}
 .dameke-evopt-table-host{margin-bottom:16px;}
 .dameke-evopt-table-host .dameke-adjust-evspec-input{max-width:46px;}
 .dameke-evopt-levelfold{max-width:360px;}
-.dameke-evopt-input-box{margin-bottom:14px;border:1px solid #e5e7eb;background:#f9fafb;border-radius:10px;padding:12px 14px;}
-.dameke-evopt-input-box h3{margin:0 0 10px;font-size:.9rem;color:#374151;}
-.dameke-evopt-result-box{margin-bottom:8px;border:1px solid #d1fae5;background:#f0fdf4;border-radius:10px;padding:12px 14px;}
+.dameke-evopt-input-box{margin-bottom:14px;border:1px solid var(--dameke-border);background:var(--dameke-surface-alt);border-radius:10px;padding:12px 14px;}
+.dameke-evopt-input-box h3{margin:0 0 10px;font-size:.9rem;color:var(--dameke-text-secondary);}
+.dameke-evopt-result-box{margin-bottom:8px;border:1px solid var(--dameke-tint-green-border);background:var(--dameke-tint-green-bg);border-radius:10px;padding:12px 14px;}
 .dameke-evopt-result-header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;}
 .dameke-evopt-result-header h3{margin:0;font-size:.9rem;}
 .dameke-evopt-result-host{}
@@ -695,10 +821,10 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-evopt-stat-down{color:#2563eb !important;}
 
 /* ==================== ポケモン検索ツール ==================== */
-.dameke-search-filter-host label{display:block;margin-bottom:10px;font-size:.82rem;color:#374151;}
+.dameke-search-filter-host label{display:block;margin-bottom:10px;font-size:.82rem;color:var(--dameke-text-secondary);}
 .dameke-search-filter-host label input[type="text"]{width:100%;margin-top:4px;}
-.dameke-search-compact-select{font-size:.82rem;padding:6px 8px;border:1px solid #d1d5db;border-radius:6px;background:#fff;max-width:220px;}
-.dameke-search-move-name-select{font-size:.78rem;padding:5px 7px;border:1px solid #d1d5db;border-radius:5px;background:#fff;}
+.dameke-search-compact-select{font-size:.82rem;padding:6px 8px;border:1px solid var(--dameke-border-strong);border-radius:6px;background:var(--dameke-surface);max-width:220px;}
+.dameke-search-move-name-select{font-size:.78rem;padding:5px 7px;border:1px solid var(--dameke-border-strong);border-radius:5px;background:var(--dameke-surface);}
 /* attachSearchCombo() replaces the visible control with its own .v082h-search-input (hiding the
    underlying select), which otherwise renders at the browser's default input size -- scoped here
    so 特性/覚える技 match every other compact field in this panel. */
@@ -709,33 +835,33 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 #damekeSearchFilterHost .dameke-search-move-filter-row1 .v082h-search-combo{width:100% !important;max-width:100% !important;flex:1 1 100% !important;box-sizing:border-box;}
 #damekeSearchFilterHost .v082h-search-input{font-size:.82rem;padding:6px 8px;min-height:0;}
 .dameke-search-inline-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center;}
-.dameke-search-text-input{width:100%;padding:6px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.82rem;margin-bottom:10px;box-sizing:border-box;}
+.dameke-search-text-input{width:100%;padding:6px 8px;border:1px solid var(--dameke-border-strong);border-radius:6px;font-size:.82rem;margin-bottom:10px;box-sizing:border-box;}
 .dameke-search-move-slot-host{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
 .dameke-search-move-slot-host .dameke-search-inline-row{margin-bottom:0;}
-.dameke-search-sort-select{font-size:.78rem;padding:4px 6px;border:1px solid #d1d5db;border-radius:5px;max-width:140px;}
+.dameke-search-sort-select{font-size:.78rem;padding:4px 6px;border:1px solid var(--dameke-border-strong);border-radius:5px;max-width:140px;}
 .dameke-search-sort-label.dameke-search-sort-label{flex:0 0 5em;}
 .dameke-search-move-filter-fold{margin-bottom:12px;}
-.dameke-search-add-btn{border:1px dashed #9ca3af;background:#f9fafb;color:#4b5563;border-radius:6px;padding:5px 12px;font-size:.76rem;font-weight:700;cursor:pointer;margin-bottom:10px;}
+.dameke-search-add-btn{border:1px dashed var(--dameke-text-faint);background:var(--dameke-surface-alt);color:var(--dameke-text-mid);border-radius:6px;padding:5px 12px;font-size:.76rem;font-weight:700;cursor:pointer;margin-bottom:10px;}
 .dameke-search-section-gap{margin-top:20px;}
 .dameke-search-move-title{margin-bottom:2px;}
 .dameke-search-range-row{display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:.8rem;}
-.dameke-search-range-label{flex:0 0 3.4em;color:#374151;font-weight:700;font-size:.76rem;}
-.dameke-search-range-input{width:100%;max-width:80px;padding:4px 6px;border:1px solid #d1d5db;border-radius:5px;}
+.dameke-search-range-label{flex:0 0 3.4em;color:var(--dameke-text-secondary);font-weight:700;font-size:.76rem;}
+.dameke-search-range-input{width:100%;max-width:80px;padding:4px 6px;border:1px solid var(--dameke-border-strong);border-radius:5px;}
 
-.dameke-search-result-header{font-size:.8rem;color:#6b7280;margin-bottom:4px;font-weight:700;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
-.dameke-search-usage-date-host{font-size:.68rem;color:#9ca3af;font-weight:400;white-space:nowrap;}
+.dameke-search-result-header{font-size:.8rem;color:var(--dameke-text-muted);margin-bottom:4px;font-weight:700;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+.dameke-search-usage-date-host{font-size:.68rem;color:var(--dameke-text-faint);font-weight:400;white-space:nowrap;}
 .dameke-search-sort-row{display:flex;justify-content:flex-end;margin-bottom:8px;}
 .dameke-search-sort-host{display:flex;gap:6px;align-items:center;}
-.dameke-search-clear-btn{display:block;border:1px solid #d1d5db;background:#f3f4f6;color:#6b7280;border-radius:6px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;}
-.dameke-search-move-filter-slot{border:1px solid #eef1f6;border-radius:6px;padding:6px;background:#fafbfc;}
+.dameke-search-clear-btn{display:block;border:1px solid var(--dameke-border-strong);background:var(--dameke-surface-alt2);color:var(--dameke-text-muted);border-radius:6px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;}
+.dameke-search-move-filter-slot{border:1px solid var(--dameke-border-slate);border-radius:6px;padding:6px;background:var(--dameke-surface-alt);}
 .dameke-search-result-host{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px;max-height:75vh;overflow-y:auto;padding:4px;}
-.dameke-search-result-item{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;border:1px solid #e5e7eb;border-radius:8px;cursor:pointer;transition:box-shadow .12s,border-color .12s;}
-.dameke-search-result-item-nodata{background:#f3f4f6;}
+.dameke-search-result-item{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;border:1px solid var(--dameke-border);border-radius:8px;cursor:pointer;transition:box-shadow .12s,border-color .12s;}
+.dameke-search-result-item-nodata{background:var(--dameke-surface-alt2);opacity:.55;}
 .dameke-search-result-item:hover{border-color:#2563eb;box-shadow:0 2px 6px rgba(37,99,235,.2);}
 .dameke-search-thumb{width:56px;height:56px;display:flex;align-items:center;justify-content:center;}
 .dameke-search-thumb img{max-width:100%;max-height:100%;}
-.dameke-search-thumb-missing{border-radius:50%;background:#e5e7eb;}
-.dameke-search-result-name{font-size:.68rem;text-align:center;color:#111827;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;}
+.dameke-search-thumb-missing{border-radius:50%;background:var(--dameke-border);}
+.dameke-search-result-name{font-size:.68rem;text-align:center;color:var(--dameke-text);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;}
 
 .dameke-search-detail-head{display:flex;gap:14px;align-items:center;margin:10px 0 16px;flex-wrap:wrap;}
 .dameke-search-detail-image{width:120px;height:120px;object-fit:contain;}
@@ -746,27 +872,27 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-search-detail-radar-host svg{width:100%;height:100%;display:block;}
 .dameke-search-detail-types{display:flex;gap:6px;margin:4px 0;}
 .dameke-partytype-slot-image-col .dameke-search-detail-types{flex-direction:column;align-items:center;}
-.dameke-search-combined-stat-table{border:1px solid #e5e7eb;border-radius:8px;padding:8px;overflow-x:auto;max-width:100%;}
+.dameke-search-combined-stat-table{border:1px solid var(--dameke-border);border-radius:8px;padding:8px;overflow-x:auto;max-width:100%;}
 .dameke-search-ability-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
-.dameke-search-ability-chip{border:1px solid #d1d5db;background:#f9fafb;color:#374151;border-radius:999px;padding:5px 12px;font-size:.78rem;font-weight:700;cursor:pointer;}
+.dameke-search-ability-chip{border:1px solid var(--dameke-border-strong);background:var(--dameke-surface-alt);color:var(--dameke-text-secondary);border-radius:999px;padding:5px 12px;font-size:.78rem;font-weight:700;cursor:pointer;}
 /* 使用率(性格/努力値/特性)の一覧行 */
 .dameke-search-usage-rate-list{display:flex;flex-direction:column;gap:2px;margin-bottom:8px;}
-.dameke-search-usage-rate-row{display:flex;justify-content:space-between;gap:8px;font-size:.78rem;color:#374151;padding:2px 4px;border-bottom:1px dashed #f1f5f9;}
-.dameke-search-usage-rate-value{color:#6b7280;font-weight:700;white-space:nowrap;}
+.dameke-search-usage-rate-row{display:flex;justify-content:space-between;gap:8px;font-size:.78rem;color:var(--dameke-text-secondary);padding:2px 4px;border-bottom:1px dashed var(--dameke-surface-subtle);}
+.dameke-search-usage-rate-value{color:var(--dameke-text-muted);font-weight:700;white-space:nowrap;}
 /* 技の採用率TOP10強調 */
-.dameke-search-move-name-top10{background:#fef9c3;border-radius:4px;padding:1px 4px;display:inline-block;}
-.dameke-search-move-rate{display:block;font-size:.66rem;color:#9ca3af;font-weight:400;}
+.dameke-search-move-name-top10{background:var(--dameke-tint-yellow-bg);color:var(--dameke-tint-yellow-text);border-radius:4px;padding:1px 4px;display:inline-block;}
+.dameke-search-move-rate{display:block;font-size:.66rem;color:var(--dameke-text-faint);font-weight:400;}
 /* 持ち物採用率 */
 .dameke-search-usage-item-list{display:flex;flex-direction:column;gap:2px;margin-bottom:8px;}
-.dameke-search-usage-item-row{display:flex;align-items:center;gap:6px;font-size:.78rem;color:#374151;padding:2px 4px;border-bottom:1px dashed #f1f5f9;}
+.dameke-search-usage-item-row{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--dameke-text-secondary);padding:2px 4px;border-bottom:1px dashed var(--dameke-surface-subtle);}
 .dameke-search-usage-item-row span:nth-child(2){flex:1 1 auto;}
 .dameke-search-usage-item-thumb{width:20px;height:20px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;}
-.dameke-search-usage-item-thumb-fallback{background:#e5e7eb;border-radius:4px;}
+.dameke-search-usage-item-thumb-fallback{background:var(--dameke-border);border-radius:4px;}
 .dameke-search-usage-item-thumb img{max-width:100%;max-height:100%;}
 /* 同じチームのポケモン */
 .dameke-search-teammate-host{margin-bottom:8px;}
-.dameke-search-usage-source-note{font-size:.62rem;color:#9ca3af;white-space:nowrap;}
-.dameke-search-usage-source-host{font-size:.62rem;color:#9ca3af;margin-top:4px;padding:0 2px;}
+.dameke-search-usage-source-note{font-size:.62rem;color:var(--dameke-text-faint);white-space:nowrap;}
+.dameke-search-usage-source-host{font-size:.62rem;color:var(--dameke-text-faint);margin-top:4px;padding:0 2px;}
 .dameke-search-ability-chip-active{background:#1f2937;color:#fff;border-color:#1f2937;}
 
 .dameke-search-matchup-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:5px;margin-bottom:14px;}
@@ -781,18 +907,18 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
    darker blue = bigger resistance. */
 .dameke-search-matchup-weak4{background:#fca5a5;color:#7f1d1d;}
 .dameke-search-matchup-weak2{background:#fee2e2;color:#dc2626;}
-.dameke-search-matchup-neutral{background:#f9fafb;color:#6b7280;}
+.dameke-search-matchup-neutral{background:var(--dameke-surface-alt);color:var(--dameke-text-muted);}
 .dameke-search-matchup-resist2{background:#dbeafe;color:#2563eb;}
 .dameke-search-matchup-resist4{background:#93c5fd;color:#1e3a8a;}
-.dameke-search-matchup-immune{background:#e5e7eb;color:#374151;}
+.dameke-search-matchup-immune{background:var(--dameke-border);color:var(--dameke-text-secondary);}
 
 .dameke-search-move-filter-grid{display:flex;flex-direction:column;gap:5px;margin-top:8px;}
 .dameke-search-move-filter-row1{display:flex;width:100%;box-sizing:border-box;}
-.dameke-search-move-filter-row1 input{padding:5px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:.78rem;flex:1 1 100%;max-width:100%;min-width:0;}
+.dameke-search-move-filter-row1 input{padding:5px 7px;border:1px solid var(--dameke-border-strong);border-radius:5px;font-size:.78rem;flex:1 1 100%;max-width:100%;min-width:0;}
 .dameke-search-move-filter-row1 > .dameke-search-move-name-select{flex:1 1 100%;max-width:100%;min-width:0;box-sizing:border-box;}
 /* row2は薄い枠で囲んだ箱とし、中に2段のサブ行を並べる
    (1段目: タイプ/分類/威力下限/命中下限、2段目: PP/接触技/範囲)。 */
-.dameke-search-move-filter-row2-box{display:flex;flex-direction:column;gap:5px;border:1px solid #e5e7eb;border-radius:6px;padding:6px;}
+.dameke-search-move-filter-row2-box{display:flex;flex-direction:column;gap:5px;border:1px solid var(--dameke-border);border-radius:6px;padding:6px;}
 .dameke-search-move-filter-row2-sub{display:flex;gap:5px;flex-wrap:nowrap;}
 .dameke-search-move-filter-row2-sub > *{flex:1 1 0;min-width:0;}
 /* 1段目(タイプ/分類/威力/命中): タイプ・分類は従来通りの幅(flex:1)を維持し、
@@ -803,14 +929,14 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-search-move-filter-row2-sub:first-child > :nth-child(4){flex:.75 1 0;}
 .dameke-search-move-filter-row2-sub:last-child > :nth-child(1),
 .dameke-search-move-filter-row2-sub:last-child > :nth-child(2){flex:.75 1 0;}
-.dameke-search-move-filter-row2-sub input{padding:5px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:.78rem;width:100%;}
-.dameke-search-move-filter-grid select:disabled,.dameke-search-move-filter-grid input:disabled{background:#f3f4f6;color:#9ca3af;}
-.dameke-search-move-list{max-height:320px;overflow-y:auto;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;margin-bottom:14px;}
-.dameke-search-move-row{display:grid;grid-template-columns:1.15fr .85fr .55fr .5fr .5fr .4fr .4fr .75fr;gap:6px;padding:5px 8px;border-bottom:1px solid #f1f5f9;font-size:.74rem;align-items:center;}
+.dameke-search-move-filter-row2-sub input{padding:5px 7px;border:1px solid var(--dameke-border-strong);border-radius:5px;font-size:.78rem;width:100%;}
+.dameke-search-move-filter-grid select:disabled,.dameke-search-move-filter-grid input:disabled{background:var(--dameke-surface-alt2);color:var(--dameke-text-faint);}
+.dameke-search-move-list{max-height:320px;overflow-y:auto;border:1px solid var(--dameke-border);border-top:none;border-radius:0 0 8px 8px;margin-bottom:14px;}
+.dameke-search-move-row{display:grid;grid-template-columns:1.15fr .85fr .55fr .5fr .5fr .4fr .4fr .75fr;gap:6px;padding:5px 8px;border-bottom:1px solid var(--dameke-surface-subtle);font-size:.74rem;align-items:center;}
 .dameke-search-move-row > *{min-width:0;overflow:hidden;}
-.dameke-search-move-name{font-weight:700;color:#111827;text-overflow:ellipsis;white-space:nowrap;}
+.dameke-search-move-name{font-weight:700;color:var(--dameke-text);text-overflow:ellipsis;white-space:nowrap;}
 .dameke-search-move-row:last-child{border-bottom:none;}
-.dameke-search-move-header{background:#f9fafb;font-weight:700;color:#374151;border:1px solid #e5e7eb;border-radius:8px 8px 0 0;font-size:.7rem;}
+.dameke-search-move-header{background:var(--dameke-surface-alt);font-weight:700;color:var(--dameke-text-secondary);border:1px solid var(--dameke-border);border-radius:8px 8px 0 0;font-size:.7rem;}
 @media(max-width:640px){
   .dameke-search-result-host{grid-template-columns:repeat(auto-fill,minmax(72px,1fr));}
   .dameke-search-thumb{width:44px;height:44px;}
@@ -833,23 +959,23 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 
 /* ==================== 補完ポケモン出力ツール ==================== */
 .dameke-complement-result-host{display:flex;flex-direction:column;gap:4px;max-height:80vh;overflow-y:auto;}
-.dameke-complement-result-row{display:grid;grid-template-columns:2.4em 44px 1fr 4.4em;gap:8px;align-items:center;padding:6px 8px;border:1px solid #e5e7eb;border-radius:8px;}
-.dameke-complement-rank{text-align:center;font-weight:800;color:#374151;}
+.dameke-complement-result-row{display:grid;grid-template-columns:2.4em 44px 1fr 4.4em;gap:8px;align-items:center;padding:6px 8px;border:1px solid var(--dameke-border);border-radius:8px;}
+.dameke-complement-rank{text-align:center;font-weight:800;color:var(--dameke-text-secondary);}
 .dameke-complement-thumb{width:44px;height:44px;display:flex;align-items:center;justify-content:center;}
 .dameke-complement-thumb img{max-width:100%;max-height:100%;}
 .dameke-complement-info{min-width:0;display:flex;flex-direction:column;gap:2px;}
-.dameke-complement-name{font-weight:700;color:#111827;font-size:.86rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.dameke-complement-name{font-weight:700;color:var(--dameke-text);font-size:.86rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .dameke-complement-types{display:flex;gap:4px;flex-wrap:wrap;}
-.dameke-complement-ability-note{font-size:.68rem;color:#6b7280;}
+.dameke-complement-ability-note{font-size:.68rem;color:var(--dameke-text-muted);}
 .dameke-complement-score{text-align:right;font-weight:800;color:#059669;font-size:.9rem;}
 .dameke-complement-image-col{display:flex;flex-direction:column;align-items:center;gap:6px;}
 #damekeComplementResultSection .dameke-adjust-band-note{margin-bottom:14px;}
 
 /* ==================== パーティタイプ評価ツール ==================== */
 .dameke-partytype-slots-host{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.dameke-partytype-slot{display:flex;gap:12px;align-items:flex-start;padding:8px;border:1px solid #e5e7eb;border-radius:10px;}
+.dameke-partytype-slot{display:flex;gap:12px;align-items:flex-start;padding:8px;border:1px solid var(--dameke-border);border-radius:10px;}
 .dameke-partytype-slot-fields{flex:1 1 auto;display:flex;flex-direction:column;gap:6px;min-width:0;}
-.dameke-partytype-slot-fields label{display:block;font-size:.78rem;color:#374151;}
+.dameke-partytype-slot-fields label{display:block;font-size:.78rem;color:var(--dameke-text-secondary);}
 .dameke-partytype-slot-fields select{width:100%;margin-top:2px;}
 .dameke-partytype-slot-image-col{flex:0 0 64px;width:64px;display:flex;flex-direction:column;align-items:center;gap:4px;}
 .dameke-partytype-slot-image-col .dameke-party-type-badge{white-space:nowrap;}
@@ -859,39 +985,39 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-partytype-result-host{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:5px;}
 .dameke-partytype-left-col{display:flex;flex-direction:column;gap:16px;min-width:0;}
 .dameke-partytype-swap-host{display:flex;flex-direction:column;gap:12px;}
-.dameke-partytype-swap-card{border:1px solid #e5e7eb;border-radius:10px;padding:10px;}
+.dameke-partytype-swap-card{border:1px solid var(--dameke-border);border-radius:10px;padding:10px;}
 .dameke-partytype-swap-rank-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
-.dameke-partytype-swap-rank{font-weight:800;color:#374151;font-size:.94rem;}
+.dameke-partytype-swap-rank{font-weight:800;color:var(--dameke-text-secondary);font-size:.94rem;}
 .dameke-partytype-swap-rank-row .dameke-search-detail-types{margin:0;}
-.dameke-partytype-swap-rank-ability{font-size:.76rem;color:#6b7280;}
+.dameke-partytype-swap-rank-ability{font-size:.76rem;color:var(--dameke-text-muted);}
 .dameke-partytype-swap-inout-row{display:flex;gap:10px;flex-wrap:wrap;}
 .dameke-partytype-swap-inout-box{flex:1 1 160px;min-width:0;border-radius:8px;padding:8px;}
-.dameke-partytype-swap-in{background:#f0fdf4;border:1px solid #bbf7d0;}
-.dameke-partytype-swap-out{background:#fef2f2;border:1px solid #fecaca;}
-.dameke-partytype-swap-inout-title{font-size:.72rem;font-weight:800;color:#374151;margin-bottom:6px;}
+.dameke-partytype-swap-in{background:var(--dameke-tint-green-bg);border:1px solid var(--dameke-tint-green-border);}
+.dameke-partytype-swap-out{background:var(--dameke-tint-red-bg);border:1px solid var(--dameke-tint-red-border);}
+.dameke-partytype-swap-inout-title{font-size:.72rem;font-weight:800;color:var(--dameke-text-secondary);margin-bottom:6px;}
 .dameke-partytype-swap-inout-list{display:flex;flex-wrap:wrap;gap:8px;}
 .dameke-partytype-swap-portrait{display:flex;flex-direction:column;align-items:center;width:84px;}
 .dameke-partytype-swap-portrait-img{width:48px;height:48px;display:flex;align-items:center;justify-content:center;}
 .dameke-partytype-swap-portrait-img img{max-width:100%;max-height:100%;}
-.dameke-partytype-swap-portrait-name{font-size:.74rem;font-weight:700;text-align:center;color:#111827;line-height:1.2;margin-top:3px;}
+.dameke-partytype-swap-portrait-name{font-size:.74rem;font-weight:700;text-align:center;color:var(--dameke-text);line-height:1.2;margin-top:3px;}
 .dameke-partytype-swap-details{margin-top:8px;}
 .dameke-partytype-swap-details summary{cursor:pointer;font-size:.78rem;font-weight:700;color:#2563eb;}
 .dameke-partytype-swap-body{padding-top:10px;display:flex;flex-direction:column;gap:12px;}
 .dameke-partytype-swap-replacement-row{display:flex;align-items:center;gap:10px;}
-.dameke-partytype-swap-replacement-row label{font-size:.78rem;color:#374151;flex:0 0 auto;}
+.dameke-partytype-swap-replacement-row label{font-size:.78rem;color:var(--dameke-text-secondary);flex:0 0 auto;}
 .dameke-partytype-swap-replacement-row select{width:auto;max-width:160px;font-size:.78rem;padding:4px 6px;}
 .dameke-partytype-swap-party-list{display:flex;flex-wrap:wrap;gap:6px;}
-.dameke-partytype-swap-member-chip{display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:999px;background:#f3f4f6;font-size:.72rem;}
+.dameke-partytype-swap-member-chip{display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:999px;background:var(--dameke-surface-alt2);font-size:.72rem;}
 .dameke-partytype-swap-member-chip.dameke-partytype-swap-member-new{background:#dcfce7;color:#166534;font-weight:700;}
 /* Per-type ±% delta badges: positive = the type got safer, negative = it got riskier. */
 .dameke-partytype-delta-improve{background:#dcfce7;color:#166534;}
 .dameke-partytype-delta-worsen{background:#fee2e2;color:#b91c1c;}
-.dameke-partytype-delta-neutral{background:#f3f4f6;color:#4b5563;}
+.dameke-partytype-delta-neutral{background:var(--dameke-surface-alt2);color:var(--dameke-text-mid);}
 
-.dameke-partytype-tier-unrated{background:#f3f4f6;color:#6b7280;}
+.dameke-partytype-tier-unrated{background:var(--dameke-surface-alt2);color:var(--dameke-text-muted);}
 .dameke-partytype-tier-veryhigh{background:#fecaca;color:#7f1d1d;}
 .dameke-partytype-tier-high{background:#fee2e2;color:#b91c1c;}
-.dameke-partytype-tier-mid{background:#f3f4f6;color:#4b5563;}
+.dameke-partytype-tier-mid{background:var(--dameke-surface-alt2);color:var(--dameke-text-mid);}
 .dameke-partytype-tier-low{background:#dbeafe;color:#1d4ed8;}
 .dameke-partytype-tier-verylow{background:#bfdbfe;color:#1e3a8a;}
 @media(max-width:640px){
@@ -902,13 +1028,13 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 
 /* ==================== 技範囲調整ツール ==================== */
 .dameke-coverage-move-slots{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
-.dameke-coverage-move-slot{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;min-width:0;}
-.dameke-coverage-move-slot-label{width:100%;font-size:.82rem;color:#374151;}
+.dameke-coverage-move-slot{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:10px;border:1px solid var(--dameke-border);border-radius:8px;background:var(--dameke-surface);min-width:0;}
+.dameke-coverage-move-slot-label{width:100%;font-size:.82rem;color:var(--dameke-text-secondary);}
 .dameke-coverage-move-slot-label select{width:100%;margin-top:2px;}
-.dameke-coverage-condition-fold{margin-top:10px;border:1px solid #e5e7eb;border-radius:8px;padding:6px 10px;background:#f9fafb;}
-.dameke-coverage-condition-fold summary{cursor:pointer;font-size:.76rem;color:#6b7280;font-weight:600;}
+.dameke-coverage-condition-fold{margin-top:10px;border:1px solid var(--dameke-border);border-radius:8px;padding:6px 10px;background:var(--dameke-surface-alt);}
+.dameke-coverage-condition-fold summary{cursor:pointer;font-size:.76rem;color:var(--dameke-text-muted);font-weight:600;}
 .dameke-coverage-condition-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;}
-.dameke-coverage-condition-grid label{font-size:.78rem;color:#374151;}
+.dameke-coverage-condition-grid label{font-size:.78rem;color:var(--dameke-text-secondary);}
 .dameke-coverage-condition-grid select{width:100%;margin-top:2px;}
 @media(max-width:480px){
   .dameke-coverage-condition-grid{grid-template-columns:1fr;}
@@ -918,21 +1044,21 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-coverage-moves-host .dameke-typecell{padding:12px 6px;min-width:0;}
 .dameke-coverage-moves-host .dameke-typecell-name{font-size:.92rem;}
 .dameke-coverage-stats-host{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
-.dameke-coverage-stat-row{display:flex;flex-direction:column;gap:0;padding:8px 12px;border-radius:8px;background:#f9fafb;border:1px solid #e5e7eb;}
+.dameke-coverage-stat-row{display:flex;flex-direction:column;gap:0;padding:8px 12px;border-radius:8px;background:var(--dameke-surface-alt);border:1px solid var(--dameke-border);}
 .dameke-coverage-stat-head{display:flex;align-items:center;justify-content:space-between;gap:10px;}
-.dameke-coverage-stat-label{font-size:.82rem;font-weight:700;color:#374151;}
-.dameke-coverage-stat-value{font-size:.86rem;font-weight:800;color:#111827;}
-.dameke-coverage-stat-weak{border-color:#fecaca;background:#fef2f2;}
-.dameke-coverage-stat-neutral{border-color:#bbf7d0;background:#f0fdf4;}
-.dameke-coverage-stat-half{border-color:#bfdbfe;background:#eff6ff;}
-.dameke-coverage-stat-immune{border-color:#e5e7eb;background:#f3f4f6;}
-.dameke-coverage-breakdown-fold{margin-top:6px;padding-top:6px;border-top:1px dashed #d1d5db;}
-.dameke-coverage-breakdown-fold summary{cursor:pointer;font-size:.76rem;font-weight:700;color:#374151;}
+.dameke-coverage-stat-label{font-size:.82rem;font-weight:700;color:var(--dameke-text-secondary);}
+.dameke-coverage-stat-value{font-size:.86rem;font-weight:800;color:var(--dameke-text);}
+.dameke-coverage-stat-weak{border-color:var(--dameke-tint-red-border);background:var(--dameke-tint-red-bg);}
+.dameke-coverage-stat-neutral{border-color:var(--dameke-tint-green-border);background:var(--dameke-tint-green-bg);}
+.dameke-coverage-stat-half{border-color:var(--dameke-tint-blue-border);background:var(--dameke-tint-blue-bg);}
+.dameke-coverage-stat-immune{border-color:var(--dameke-border);background:var(--dameke-surface-alt2);}
+.dameke-coverage-breakdown-fold{margin-top:6px;padding-top:6px;border-top:1px dashed var(--dameke-border-strong);}
+.dameke-coverage-breakdown-fold summary{cursor:pointer;font-size:.76rem;font-weight:700;color:var(--dameke-text-secondary);}
 .dameke-coverage-breakdown-list{display:flex;flex-wrap:wrap;gap:16px;margin-top:8px;}
 .dameke-coverage-breakdown-chip{display:flex;flex-direction:column;align-items:center;width:92px;}
 .dameke-coverage-breakdown-img{width:48px;height:48px;display:flex;align-items:center;justify-content:center;}
 .dameke-coverage-breakdown-img img{max-width:100%;max-height:100%;}
-.dameke-coverage-breakdown-name{font-size:.66rem;text-align:center;color:#374151;line-height:1.2;margin-top:2px;}
+.dameke-coverage-breakdown-name{font-size:.66rem;text-align:center;color:var(--dameke-text-secondary);line-height:1.2;margin-top:2px;}
 .dameke-coverage-breakdown-chip .dameke-search-detail-types{flex-direction:column;align-items:center;margin-top:3px;}
 .dameke-coverage-breakdown-chip .dameke-party-type-badge{white-space:nowrap;}
 @media(max-width:640px){
@@ -941,7 +1067,7 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 
 /* ==================== ミニゲーム ==================== */
 .dameke-minigame-tab-host{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
-.dameke-minigame-switch-btn{border:1px solid #d1d5db;background:#f9fafb;color:#4b5563;border-radius:8px;padding:7px 14px;font-size:.85rem;font-weight:700;cursor:pointer;}
+.dameke-minigame-switch-btn{border:1px solid var(--dameke-border-strong);background:var(--dameke-surface-alt);color:var(--dameke-text-mid);border-radius:8px;padding:7px 14px;font-size:.85rem;font-weight:700;cursor:pointer;}
 .dameke-minigame-switch-btn-active{background:#2563eb;border-color:#2563eb;color:#fff;}
 .dameke-minigame-game-host{display:flex;flex-direction:column;gap:4px;}
 
@@ -949,15 +1075,15 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-wordle-wrap{display:flex;flex-direction:column;gap:2px;}
 .dameke-wordle-title{margin:0 0 4px;font-size:1.05rem;}
 .dameke-wordle-rules-fold{margin-top:0;margin-bottom:12px;}
-.dameke-wordle-rules-fold summary{cursor:pointer;font-weight:700;font-size:.85rem;color:#374151;}
-.dameke-wordle-rules-body{margin-top:8px;font-size:.78rem;color:#4b5563;line-height:1.6;}
+.dameke-wordle-rules-fold summary{cursor:pointer;font-weight:700;font-size:.85rem;color:var(--dameke-text-secondary);}
+.dameke-wordle-rules-body{margin-top:8px;font-size:.78rem;color:var(--dameke-text-mid);line-height:1.6;}
 .dameke-wordle-rules-body p{margin:0 0 8px;}
 .dameke-wordle-rules-body p:last-child{margin-bottom:0;}
 .dameke-wordle-actions{margin-bottom:4px;}
-.dameke-wordle-giveup-btn{border-color:#f3a6a6;color:#b91c1c;background:#fef2f2;}
+.dameke-wordle-giveup-btn{border-color:var(--dameke-tint-red-border);color:var(--dameke-tint-red-text);background:var(--dameke-tint-red-bg);}
 .dameke-wordle-message{min-height:0;}
 .dameke-wordle-correct-label{height:38px;box-sizing:border-box;display:inline-flex;align-items:center;padding:0 14px;margin:0;background:#6aaa64;border-color:#6aaa64;color:#fff;font-weight:800;border-radius:8px;cursor:default;}
-.dameke-wordle-lose-banner{background:#f9fafb;border:1px solid #d1d5db;color:#374151;border-radius:8px;padding:10px 14px;font-weight:700;margin:6px 0;}
+.dameke-wordle-lose-banner{background:var(--dameke-surface-alt);border:1px solid var(--dameke-border-strong);color:var(--dameke-text-secondary);border-radius:8px;padding:10px 14px;font-weight:700;margin:6px 0;}
 .dameke-wordle-retry-btn{background:#2563eb;border-color:#2563eb;color:#fff;margin-bottom:10px;}
 
 /* 入力欄(左)と使った文字表(右)を横並びにする */
@@ -968,21 +1094,21 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-wordle-row{display:flex;align-items:center;gap:10px;}
 .dameke-wordle-row-thumb{width:88px;height:88px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;}
 .dameke-wordle-row-thumb img{max-width:100%;max-height:100%;}
-.dameke-wordle-row-thumb-missing{background:#e5e7eb;border-radius:6px;}
+.dameke-wordle-row-thumb-missing{background:var(--dameke-border);border-radius:6px;}
 .dameke-wordle-letters{display:flex;gap:5px;}
 .dameke-wordle-letter-box{width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;border-radius:6px;color:#fff;background:#9ca3af;}
 
 /* 自由入力欄+決定ボタン: 高さを揃える(同じheight/box-sizingを指定) */
 .dameke-wordle-row-input{flex-wrap:wrap;}
 .dameke-wordle-text-input,.dameke-wordle-submit-btn{height:38px;box-sizing:border-box;font-size:.85rem;}
-.dameke-wordle-text-input{flex:1 1 220px;max-width:260px;padding:0 10px;border:1px solid #d1d5db;border-radius:8px;}
+.dameke-wordle-text-input{flex:1 1 220px;max-width:260px;padding:0 10px;border:1px solid var(--dameke-border-strong);border-radius:8px;}
 .dameke-wordle-submit-btn{margin-bottom:0;padding:0 16px;}
 .dameke-wordle-row-input-inactive .dameke-wordle-text-input,.dameke-wordle-row-input-inactive .dameke-wordle-submit-btn{opacity:.5;}
 .dameke-wordle-input-error{color:#b91c1c;font-size:.76rem;font-weight:700;flex:1 1 100%;}
 
 .dameke-wordle-hint-table{display:flex;flex-direction:column;gap:3px;margin-bottom:6px;}
 .dameke-wordle-hint-row{display:grid;grid-template-columns:repeat(5,32px);gap:3px;}
-.dameke-wordle-hint-cell{display:flex;align-items:center;justify-content:center;height:28px;border-radius:5px;background:#f3f4f6;color:#374151;font-size:.78rem;font-weight:700;}
+.dameke-wordle-hint-cell{display:flex;align-items:center;justify-content:center;height:28px;border-radius:5px;background:var(--dameke-surface-alt2);color:var(--dameke-text-secondary);font-size:.78rem;font-weight:700;}
 .dameke-wordle-hint-cell-empty{background:transparent;}
 .dameke-wordle-cell-green{background:#6aaa64;color:#fff;}
 .dameke-wordle-cell-yellow{background:#c9b458;color:#fff;}
@@ -991,30 +1117,30 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-stathl-wrap{display:flex;flex-direction:column;gap:2px;}
 .dameke-stathl-mode-row{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;}
 .dameke-stathl-mode-label{margin:0;}
-.dameke-stathl-mode-option{display:inline-flex;align-items:center;gap:4px;font-size:.82rem;color:#374151;cursor:pointer;}
-.dameke-stathl-score{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:10px;font-size:.82rem;font-weight:700;color:#374151;}
+.dameke-stathl-mode-option{display:inline-flex;align-items:center;gap:4px;font-size:.82rem;color:var(--dameke-text-secondary);cursor:pointer;}
+.dameke-stathl-score{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:10px;font-size:.82rem;font-weight:700;color:var(--dameke-text-secondary);}
 .dameke-stathl-panels{display:flex;align-items:flex-start;justify-content:center;gap:18px;flex-wrap:wrap;margin-bottom:12px;}
 /* 基準/予想対象の各列(パネル本体+ヒントボタン)。ヒントボタンはパネルの外・直下に
    置くので、パネル自体の大きさはヒントボタンの有無に左右されない。 */
 .dameke-stathl-side{display:flex;flex-direction:column;align-items:center;gap:6px;}
 /* 両パネルをまったく同じ大きさにするため、幅・高さを固定しoverflowはhiddenで
    吸収する(名前の最大幅は、括弧が入れ子になった最長の名前が1行で収まる想定)。 */
-.dameke-stathl-panel{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:4px;width:290px;height:200px;box-sizing:border-box;padding:10px;border:1px solid #d1d5db;border-radius:10px;background:#f9fafb;text-align:center;overflow:hidden;}
+.dameke-stathl-panel{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:4px;width:290px;height:200px;box-sizing:border-box;padding:10px;border:1px solid var(--dameke-border-strong);border-radius:10px;background:var(--dameke-surface-alt);text-align:center;overflow:hidden;}
 .dameke-stathl-panel-correct{border-color:#6aaa64;background:#eef7ec;}
 .dameke-stathl-panel-incorrect{border-color:#dc2626;background:#fdecec;}
-.dameke-stathl-role{font-size:.72rem;font-weight:700;color:#6b7280;}
+.dameke-stathl-role{font-size:.72rem;font-weight:700;color:var(--dameke-text-muted);}
 .dameke-stathl-thumb{width:80px;height:80px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;}
 .dameke-stathl-thumb img{max-width:100%;max-height:100%;}
-.dameke-stathl-thumb-missing{background:#e5e7eb;border-radius:6px;}
+.dameke-stathl-thumb-missing{background:var(--dameke-border);border-radius:6px;}
 /* 名前が1行/2行のどちらでも、常に2行分の高さを確保しその中で縦中央に揃える
    (heightをこの要素自身のfont-sizeに対するem指定にしているので、フォント
    サイズを変えても「2行分」の高さが自動的に追随する)。 */
-.dameke-stathl-name{width:100%;font-size:.72rem;font-weight:700;color:#1f2937;line-height:1.3;height:2.6em;display:flex;flex-direction:column;justify-content:center;align-items:center;flex:0 0 auto;}
+.dameke-stathl-name{width:100%;font-size:.72rem;font-weight:700;color:var(--dameke-text-heading);line-height:1.3;height:2.6em;display:flex;flex-direction:column;justify-content:center;align-items:center;flex:0 0 auto;}
 .dameke-stathl-name-line{width:100%;word-break:break-word;white-space:normal;}
-.dameke-stathl-statvalue{font-size:.8rem;font-weight:700;color:#111827;}
-.dameke-stathl-statvalue-hidden{color:#9ca3af;}
+.dameke-stathl-statvalue{font-size:.8rem;font-weight:700;color:var(--dameke-text);}
+.dameke-stathl-statvalue-hidden{color:var(--dameke-text-faint);}
 .dameke-stathl-hint-btn{margin:0;}
-.dameke-stathl-vs{font-weight:800;color:#6b7280;font-size:.9rem;align-self:center;}
+.dameke-stathl-vs{font-weight:800;color:var(--dameke-text-muted);font-size:.9rem;align-self:center;}
 .dameke-stathl-guess-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
 .dameke-stathl-guess-btn{margin-bottom:0;display:inline-flex;align-items:center;gap:6px;}
 .dameke-stathl-guess-btn-high{border-color:#ef4444;color:#b91c1c;background:#fef2f2;}
@@ -1024,7 +1150,7 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-stathl-guess-btn-incorrect{background:#dc2626!important;border-color:#dc2626!important;color:#fff!important;}
 .dameke-stathl-guess-mark{font-weight:900;}
 .dameke-stathl-message{text-align:center;}
-.dameke-stathl-gameover-message{font-weight:700;color:#374151;margin:6px 0;}
+.dameke-stathl-gameover-message{font-weight:700;color:var(--dameke-text-secondary);margin:6px 0;}
 @media(max-width:480px){
   /* スマホ幅では、パネル幅を「最長のポケモン名が1行で収まる幅」で固定するのをやめ、
      左右の枠(側)をflexで画面幅いっぱいに均等配分することで、常に横並びを維持する。
@@ -1060,22 +1186,22 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-statchart-wrap{display:flex;flex-direction:column;gap:2px;}
 .dameke-statchart-chart-host{display:flex;justify-content:center;margin-bottom:8px;}
 .dameke-statchart-svg{width:100%;max-width:400px;height:auto;}
-.dameke-statchart-grid{fill:none;stroke:#e5e7eb;stroke-width:1;}
+.dameke-statchart-grid{fill:none;stroke:var(--dameke-border);stroke-width:1;}
 .dameke-statchart-grid-outer{stroke:#c7ccd4;}
-.dameke-statchart-axis{stroke:#d1d5db;stroke-width:1;}
+.dameke-statchart-axis{stroke:var(--dameke-border-strong);stroke-width:1;}
 .dameke-statchart-tick-label{font-size:8px;fill:#b0b6c0;}
 .dameke-statchart-data{fill:rgba(37,99,235,.28);stroke:#2563eb;stroke-width:2;}
 .dameke-statchart-data-dot{fill:#2563eb;}
-.dameke-statchart-label-name{font-size:18px;font-weight:700;fill:#374151;}
-.dameke-statchart-label-value{font-size:19px;font-weight:800;fill:#111827;}
-.dameke-statchart-total{font-size:18px;font-weight:800;fill:#4b5563;}
+.dameke-statchart-label-name{font-size:18px;font-weight:700;fill:var(--dameke-text-secondary);}
+.dameke-statchart-label-value{font-size:19px;font-weight:800;fill:var(--dameke-text);}
+.dameke-statchart-total{font-size:18px;font-weight:800;fill:var(--dameke-text-mid);}
 .dameke-statchart-hints-frame{border:1px solid #d8dce3;border-radius:8px;padding:14px 10px 10px;margin:6px 0 10px;position:relative;}
-.dameke-statchart-hints-legend{position:absolute;top:-9px;left:10px;background:#fff;padding:0 6px;font-size:.75rem;font-weight:700;color:#6b7280;}
+.dameke-statchart-hints-legend{position:absolute;top:-9px;left:10px;background:var(--dameke-surface);padding:0 6px;font-size:.75rem;font-weight:700;color:var(--dameke-text-muted);}
 .dameke-statchart-hints{display:flex;flex-direction:column;gap:8px;}
 .dameke-statchart-hint-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
 .dameke-statchart-hint-btn{margin-bottom:0;flex:0 0 auto;width:64px;box-sizing:border-box;text-align:center;}
-.dameke-statchart-hint-btn-exhausted,.dameke-statchart-hint-btn-exhausted:disabled{background:#f3f4f6;border-color:#e5e7eb;color:#9ca3af;}
-.dameke-statchart-hint-values{display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:.82rem;color:#374151;font-weight:700;}
+.dameke-statchart-hint-btn-exhausted,.dameke-statchart-hint-btn-exhausted:disabled{background:var(--dameke-surface-alt2);border-color:var(--dameke-border);color:var(--dameke-text-faint);}
+.dameke-statchart-hint-values{display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:.82rem;color:var(--dameke-text-secondary);font-weight:700;}
 .dameke-statchart-type-badge{font-size:.72rem;padding:1px 8px;}
 .dameke-statchart-answer-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
 .dameke-statchart-answer-row .v082h-search-combo{flex:1 1 240px;max-width:320px;}
@@ -1083,10 +1209,10 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 .dameke-statchart-answer-btn{height:38px;box-sizing:border-box;margin-bottom:0;flex:0 0 auto;}
 .dameke-statchart-result-correct{font-weight:800;color:#15803d;margin-bottom:4px;}
 .dameke-statchart-result-incorrect{font-weight:800;color:#b91c1c;margin-bottom:4px;}
-.dameke-statchart-guess-line{font-size:.8rem;color:#4b5563;margin-bottom:6px;}
+.dameke-statchart-guess-line{font-size:.8rem;color:var(--dameke-text-mid);margin-bottom:6px;}
 .dameke-statchart-answer-reveal{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
 .dameke-statchart-answer-thumb{width:64px;height:64px;}
-.dameke-statchart-answer-name{font-weight:700;color:#1f2937;}
+.dameke-statchart-answer-name{font-weight:700;color:var(--dameke-text-heading);}
 @media(max-width:480px){
   .dameke-statchart-label-name{font-size:15px;}
   .dameke-statchart-label-value{font-size:16px;}
@@ -1097,21 +1223,21 @@ select.dameke-type-select option{background-color:#ffffff;color:#111827;}
 
 /* ---- ランダムポケモン出力 ---- */
 .dameke-randomgen-wrap{display:flex;flex-direction:column;gap:2px;}
-.dameke-randomgen-count-label{display:flex;align-items:center;gap:6px;font-size:.82rem;color:#374151;font-weight:700;}
-.dameke-randomgen-count-select{height:32px;box-sizing:border-box;border-radius:6px;border:1px solid #d1d5db;font-size:.82rem;padding:0 6px;}
+.dameke-randomgen-count-label{display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--dameke-text-secondary);font-weight:700;}
+.dameke-randomgen-count-select{height:32px;box-sizing:border-box;border-radius:6px;border:1px solid var(--dameke-border-strong);font-size:.82rem;padding:0 6px;}
 .dameke-randomgen-actions-row{display:flex;justify-content:flex-end;margin:4px 0 10px;}
 .dameke-randomgen-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
-.dameke-randomgen-card{border:1px solid #e5e7eb;border-radius:10px;padding:10px;display:flex;flex-direction:column;justify-content:space-between;background:#fff;}
+.dameke-randomgen-card{border:1px solid var(--dameke-border);border-radius:10px;padding:10px;display:flex;flex-direction:column;justify-content:space-between;background:var(--dameke-surface);}
 .dameke-randomgen-card-body{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;min-height:150px;justify-content:center;}
 .dameke-randomgen-thumb{width:88px;height:88px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;}
 .dameke-randomgen-thumb img{max-width:100%;max-height:100%;}
-.dameke-randomgen-thumb-missing{background:#e5e7eb;border-radius:6px;}
-.dameke-randomgen-name{font-weight:700;color:#1f2937;font-size:.88rem;}
+.dameke-randomgen-thumb-missing{background:var(--dameke-border);border-radius:6px;}
+.dameke-randomgen-name{font-weight:700;color:var(--dameke-text-heading);font-size:.88rem;}
 .dameke-randomgen-types{display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap;}
-.dameke-randomgen-card-empty{color:#9ca3af;font-weight:700;font-size:.85rem;}
+.dameke-randomgen-card-empty{color:var(--dameke-text-faint);font-weight:700;font-size:.85rem;}
 .dameke-randomgen-redraw-row{display:flex;justify-content:flex-end;margin-top:8px;}
 .dameke-randomgen-redraw-btn{margin-bottom:0;}
-.dameke-randomgen-empty{color:#6b7280;font-size:.85rem;padding:10px 0;}
+.dameke-randomgen-empty{color:var(--dameke-text-muted);font-size:.85rem;padding:10px 0;}
 @media(max-width:480px){
   .dameke-randomgen-grid{gap:8px;}
   .dameke-randomgen-card{padding:8px;}

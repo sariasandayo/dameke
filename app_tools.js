@@ -20,12 +20,71 @@
       nav.hidden = true;
     });
     nav.querySelectorAll('.dameke-menu-item').forEach(function(item){
+      if(!item.dataset.panel) return; // テーマ切り替えボタンなど、パネル切り替え以外の項目は対象外
       item.addEventListener('click', function(){
         showPanel(item.dataset.panel);
         nav.hidden = true;
       });
     });
     setActiveMenuItem('calculator');
+    initThemeToggle();
+  }
+
+  // ---- Dark mode ----
+  // 既定はOSの配色設定(prefers-color-scheme)に自動追従する(style.css側の@media定義)。
+  // ヘッダーのハンバーガーメニュー直下のスイッチで手動上書きした場合のみ、localStorageに
+  // 保存された値(light/dark)を<html data-theme>に固定反映する。手動上書きがなければ
+  // data-theme属性自体を付けないままにし、OS設定への追従を維持する。
+  var THEME_KEY = 'dameke_theme_v1';
+  function systemPrefersDark(){
+    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+  function currentEffectiveTheme(){
+    var forced = document.documentElement.getAttribute('data-theme');
+    if(forced === 'light' || forced === 'dark') return forced;
+    return systemPrefersDark() ? 'dark' : 'light';
+  }
+  window.__damekeCurrentTheme = currentEffectiveTheme; // 他ファイル(app.js等)からもテーマ判定できるように
+  function applyStoredTheme(){
+    var stored = null;
+    try{ stored = window.localStorage.getItem(THEME_KEY); }catch(e){}
+    if(stored === 'light' || stored === 'dark') document.documentElement.setAttribute('data-theme', stored);
+    else document.documentElement.removeAttribute('data-theme');
+    updateThemeToggleLabel();
+  }
+  function updateThemeToggleLabel(){
+    var btn = q('damekeThemeToggleBtn');
+    if(!btn) return;
+    var isDark = currentEffectiveTheme() === 'dark';
+    btn.setAttribute('aria-checked', isDark ? 'true' : 'false');
+    btn.setAttribute('aria-label', isDark ? 'ライトモードに切り替え' : 'ダークモードに切り替え');
+  }
+  function initThemeToggle(){
+    applyStoredTheme();
+    var btn = q('damekeThemeToggleBtn');
+    if(!btn){
+      return;
+    }
+    btn.addEventListener('click', function(){
+      var next = currentEffectiveTheme() === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      try{ window.localStorage.setItem(THEME_KEY, next); }catch(e){}
+      updateThemeToggleLabel();
+      try{ document.dispatchEvent(new CustomEvent('dameke:themechange')); }catch(e){}
+    });
+    // 手動上書きしていない間は、OS側の配色設定がその場で切り替わった場合にも
+    // スイッチの見た目や天候色等の再計算が追従するようにする。
+    var mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+    if(mq){
+      var onSystemThemeChange = function(){
+        var forced = document.documentElement.getAttribute('data-theme');
+        if(forced === 'light' || forced === 'dark') return; // 手動上書き中はOS変化を無視
+        updateThemeToggleLabel();
+        try{ document.dispatchEvent(new CustomEvent('dameke:themechange')); }catch(e){}
+      };
+      if(mq.addEventListener) mq.addEventListener('change', onSystemThemeChange);
+      else if(mq.addListener) mq.addListener(onSystemThemeChange); // 古いSafari向け
+    }
   }
 
   function setActiveMenuItem(panelName){
@@ -258,8 +317,10 @@
   // 計算履歴カードのプレビューにも、下部固定枠(v082hResultPanel)と同じ考え方で天候・フィールドの
   // 状態を色分け反映する(色の意味は詳細の天候・フィールド表示で確認できるので、あくまで一目で
   // 状況の変化がわかるための補助表現。サイズ・レイアウトには影響させない)。
-  var HISTORY_PREVIEW_BASE_COLOR = '#fff';
-  var HISTORY_WEATHER_TINT_COLOR = {
+  // ライト/ダークそれぞれで見分けやすく、かつ文字(ダークモード対応色)が読める明るさに
+  // なるよう、テーマごとに別の色を用意する(ダーク側は暗めのトーンに。ダメージ計算画面側の
+  // 配色と揃えている)。
+  var HISTORY_WEATHER_TINT_COLOR_LIGHT = {
     'にほんばれ': '#fdf6e3', 'おおひでり': '#fdf6e3',
     'あめ': '#e8f1fe', 'おおあめ': '#e8f1fe',
     'すなあらし': '#f7ecdb',
@@ -267,21 +328,52 @@
     'らんきりゅう': '#eceef2',
     'ノーてんき・エアロック': '#eef0f2'
   };
-  var HISTORY_FIELD_TINT_COLOR = {
+  var HISTORY_WEATHER_TINT_COLOR_DARK = {
+    'にほんばれ': '#4a3b12', 'おおひでり': '#4a3b12',
+    'あめ': '#1c3a5e', 'おおあめ': '#1c3a5e',
+    'すなあらし': '#3d2f1a',
+    'ゆき': '#113a3d',
+    'らんきりゅう': '#2a2e38',
+    'ノーてんき・エアロック': '#262a30'
+  };
+  var HISTORY_FIELD_TINT_COLOR_LIGHT = {
     'エレキフィールド': '#fff6cc',
     'グラスフィールド': '#e3f7e3',
     'ミストフィールド': '#fbe6f0',
     'サイコフィールド': '#f1e6fb'
   };
+  var HISTORY_FIELD_TINT_COLOR_DARK = {
+    'エレキフィールド': '#4a3f0a',
+    'グラスフィールド': '#1f3d24',
+    'ミストフィールド': '#4a1f34',
+    'サイコフィールド': '#34204a'
+  };
   function applyHistoryPreviewFieldTint(box, state){
     if(!box) return;
     var weatherVal = state && state.weatherSelect;
     var fieldVal = state && state.fieldSelect;
-    var wColor = (weatherVal && HISTORY_WEATHER_TINT_COLOR[weatherVal]) || HISTORY_PREVIEW_BASE_COLOR;
-    var fColor = (fieldVal && HISTORY_FIELD_TINT_COLOR[fieldVal]) || HISTORY_PREVIEW_BASE_COLOR;
-    box.style.setProperty('--dameke-weather-tint', wColor);
-    box.style.setProperty('--dameke-field-tint', fColor);
+    // テーマ切り替え後に再計算できるよう、元の天候・フィールド値をboxに覚えさせておく。
+    box.dataset.damekeWeatherVal = weatherVal || '';
+    box.dataset.damekeFieldVal = fieldVal || '';
+    var dark = currentEffectiveTheme() === 'dark';
+    var weatherMap = dark ? HISTORY_WEATHER_TINT_COLOR_DARK : HISTORY_WEATHER_TINT_COLOR_LIGHT;
+    var fieldMap = dark ? HISTORY_FIELD_TINT_COLOR_DARK : HISTORY_FIELD_TINT_COLOR_LIGHT;
+    var wColor = weatherVal ? weatherMap[weatherVal] : null;
+    var fColor = fieldVal ? fieldMap[fieldVal] : null;
+    if(wColor) box.style.setProperty('--dameke-weather-tint', wColor);
+    else box.style.removeProperty('--dameke-weather-tint');
+    if(fColor) box.style.setProperty('--dameke-field-tint', fColor);
+    else box.style.removeProperty('--dameke-field-tint');
   }
+  document.addEventListener('dameke:themechange', function(){
+    document.querySelectorAll('.dameke-history-preview').forEach(function(box){
+      if(box.dataset.damekeWeatherVal === undefined && box.dataset.damekeFieldVal === undefined) return;
+      applyHistoryPreviewFieldTint(box, {
+        weatherSelect: box.dataset.damekeWeatherVal || '',
+        fieldSelect: box.dataset.damekeFieldVal || ''
+      });
+    });
+  });
 
   // ---- Miniature HP-bar reproduction (images, names/move, dmg/rate, certainty/faint rate, HP
   // bar) for a history card, using the same PokeAPI sprite id map the calculator uses.

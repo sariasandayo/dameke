@@ -623,7 +623,9 @@
       return false;
     });
   }
+  var lastDetailPokemon = null;
   function showDetail(p){
+    lastDetailPokemon = p;
     detailAbilityChoice = (p.abilities && p.abilities[0]) || null;
     moveListFilter = { name:'', type:'', category:'', minPower:null, minAccuracy:null, pp:null, target:'', contact:'' };
     moveListSort = 'type';
@@ -633,6 +635,13 @@
     renderDetail(p);
     requestAnimationFrame(function(){ host.scrollIntoView({behavior:'smooth', block:'start'}); });
   }
+  // テーマ切り替え時、レーダーチャートの線色(SVG内に直書き)を再計算するため、詳細表示中なら
+  // 再描画する(一覧・フィルタ状態はrenderDetail内で保持されるdetailAbilityChoice等を使うため
+  // 崩れない)。
+  document.addEventListener('dameke:themechange', function(){
+    var host = q('damekeSearchDetailHost');
+    if(host && !host.hidden && lastDetailPokemon) renderDetail(lastDetailPokemon);
+  });
   function closeDetail(){
     q('damekeSearchDetailHost').hidden = true;
     q('damekeSearchResultHost').hidden = false;
@@ -646,6 +655,10 @@
     // はみ出す(SVGのviewBox外にあたる部分は自然に見切れる)ことで、実用上のバランスをとる。
     var maxStat = 200;
     var size = 120, cx = size/2, cy = size/2, r = size/2 - 16;
+    // 目盛り線とHABCDSラベルは同じ色に揃える(ダークモードでも見える濃さのグレー。
+    // ライト/ダークどちらでもテーマトークンの--dameke-border-strongと同じ値)。
+    var dark = window.__damekeCurrentTheme ? window.__damekeCurrentTheme() === 'dark' : false;
+    var gridColor = dark ? '#475569' : '#d1d5db';
     function axisAngle(i){ return (-90 + i*60) * Math.PI/180; }
     function ringPoints(frac){
       return order.map(function(_,i){
@@ -654,16 +667,16 @@
       }).join(' ');
     }
     var rings = [0.25,0.5,0.75,1].map(function(frac){
-      return '<polygon points="'+ringPoints(frac)+'" fill="none" stroke="#e2e8f0" stroke-width="1"/>';
+      return '<polygon points="'+ringPoints(frac)+'" fill="none" stroke="'+gridColor+'" stroke-width="1"/>';
     }).join('');
     var axisLines = order.map(function(_,i){
       var a = axisAngle(i);
-      return '<line x1="'+cx+'" y1="'+cy+'" x2="'+(cx+r*Math.cos(a)).toFixed(1)+'" y2="'+(cy+r*Math.sin(a)).toFixed(1)+'" stroke="#e2e8f0" stroke-width="1"/>';
+      return '<line x1="'+cx+'" y1="'+cy+'" x2="'+(cx+r*Math.cos(a)).toFixed(1)+'" y2="'+(cy+r*Math.sin(a)).toFixed(1)+'" stroke="'+gridColor+'" stroke-width="1"/>';
     }).join('');
     // 各目盛りの実際の値(50/100/150/200)を、H軸(真上方向)沿いに控えめな小さい数字で添える。
     var ringLabels = [0.25,0.5,0.75,1].map(function(frac){
       var y = cy - r*frac;
-      return '<text x="'+(cx+3)+'" y="'+(y-1.5)+'" font-size="6" text-anchor="start" fill="#cbd5e1">'+Math.round(maxStat*frac)+'</text>';
+      return '<text x="'+(cx+3)+'" y="'+(y-1.5)+'" font-size="6" text-anchor="start" fill="'+gridColor+'">'+Math.round(maxStat*frac)+'</text>';
     }).join('');
     var dataPoints = order.map(function(k,i){
       var a = axisAngle(i);
@@ -675,7 +688,7 @@
       var a = axisAngle(i);
       var lr = r + 11;
       var x = (cx+lr*Math.cos(a)).toFixed(1), y = (cy+lr*Math.sin(a)).toFixed(1);
-      return '<text x="'+x+'" y="'+y+'" font-size="11" text-anchor="middle" dominant-baseline="middle" fill="#475569" font-weight="700">'+k+'</text>';
+      return '<text x="'+x+'" y="'+y+'" font-size="11" text-anchor="middle" dominant-baseline="middle" fill="'+gridColor+'" font-weight="700">'+k+'</text>';
     }).join('');
     return '<svg viewBox="0 0 '+size+' '+size+'" class="dameke-search-detail-radar" role="img" aria-label="種族値レーダーチャート">'
       + rings + axisLines + ringLabels

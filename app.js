@@ -1590,8 +1590,11 @@
   // 淡い色で塗り分けることで、状況が変わったことだけを一目でわかるようにする
   // (パネルのサイズ・余白・レイアウトには一切影響させない。色はCSS変数として
   // panel.style に設定し、実際の三角形分割・描画はstyle.css側のclip-pathで行う)。
-  var RESULT_PANEL_BASE_COLOR = '#f9fafb';
-  var WEATHER_TINT_COLOR = {
+  // 「なし」の時はCSS変数を明示的に上書きせず削除する -- style.css側の既定値
+  // (var(--dameke-surface-alt)、ライト/ダークテーマに連動)にそのまま委ねるため。
+  // ライト/ダークそれぞれで見分けやすく、かつ文字(ダークモード対応色)が読める明るさに
+  // なるよう、テーマごとに別の色を用意する(ダーク側は暗めのトーンに)。
+  var WEATHER_TINT_COLOR_LIGHT = {
     'にほんばれ': '#fdf6e3', 'おおひでり': '#fdf6e3',
     'あめ': '#e8f1fe', 'おおあめ': '#e8f1fe',
     'すなあらし': '#f7ecdb',
@@ -1599,21 +1602,47 @@
     'らんきりゅう': '#eceef2',
     'ノーてんき・エアロック': '#eef0f2'
   };
-  var FIELD_TINT_COLOR = {
+  var WEATHER_TINT_COLOR_DARK = {
+    'にほんばれ': '#4a3b12', 'おおひでり': '#4a3b12',
+    'あめ': '#1c3a5e', 'おおあめ': '#1c3a5e',
+    'すなあらし': '#3d2f1a',
+    'ゆき': '#113a3d',
+    'らんきりゅう': '#2a2e38',
+    'ノーてんき・エアロック': '#262a30'
+  };
+  var FIELD_TINT_COLOR_LIGHT = {
     'エレキフィールド': '#fff6cc',
     'グラスフィールド': '#e3f7e3',
     'ミストフィールド': '#fbe6f0',
     'サイコフィールド': '#f1e6fb'
   };
+  var FIELD_TINT_COLOR_DARK = {
+    'エレキフィールド': '#4a3f0a',
+    'グラスフィールド': '#1f3d24',
+    'ミストフィールド': '#4a1f34',
+    'サイコフィールド': '#34204a'
+  };
+  function damekeIsDarkTheme(){
+    return window.__damekeCurrentTheme ? window.__damekeCurrentTheme() === 'dark' : false;
+  }
   function updateResultPanelFieldTint(panel){
     if(!panel) return;
     var weatherSel = document.getElementById('weatherSelect');
     var fieldSel = document.getElementById('fieldSelect');
-    var wColor = (weatherSel && WEATHER_TINT_COLOR[weatherSel.value]) || RESULT_PANEL_BASE_COLOR;
-    var fColor = (fieldSel && FIELD_TINT_COLOR[fieldSel.value]) || RESULT_PANEL_BASE_COLOR;
-    panel.style.setProperty('--dameke-weather-tint', wColor);
-    panel.style.setProperty('--dameke-field-tint', fColor);
+    var dark = damekeIsDarkTheme();
+    var weatherMap = dark ? WEATHER_TINT_COLOR_DARK : WEATHER_TINT_COLOR_LIGHT;
+    var fieldMap = dark ? FIELD_TINT_COLOR_DARK : FIELD_TINT_COLOR_LIGHT;
+    var wColor = weatherSel ? weatherMap[weatherSel.value] : null;
+    var fColor = fieldSel ? fieldMap[fieldSel.value] : null;
+    if(wColor) panel.style.setProperty('--dameke-weather-tint', wColor);
+    else panel.style.removeProperty('--dameke-weather-tint');
+    if(fColor) panel.style.setProperty('--dameke-field-tint', fColor);
+    else panel.style.removeProperty('--dameke-field-tint');
   }
+  document.addEventListener('dameke:themechange', function(){
+    var panel = document.getElementById('v082hResultPanel');
+    if(panel) updateResultPanelFieldTint(panel);
+  });
   function renderResult(){
     var src=q('summary'); if(!src) return;
     var lines=summaryLines();
