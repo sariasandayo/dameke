@@ -15,7 +15,7 @@
 // 手動で揃えている。アプリを更新するときは、キャッシュバスターと合わせてここの
 // CACHE_VERSION も必ず書き換えること(揃え忘れると新しいSWが古いキャッシュ名のまま
 // 動いてしまい、更新が反映されない)。
-const CACHE_VERSION = '20260918a';
+const CACHE_VERSION = '20260918b';
 const SHELL_CACHE = 'dameke-shell-' + CACHE_VERSION;
 const IMAGE_CACHE = 'dameke-images-v1'; // 画像キャッシュはバージョン更新のたびに消さない
 
