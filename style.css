@@ -587,6 +587,7 @@ select.dameke-type-select option{background-color:#ffffff;color:var(--dameke-tex
 .dameke-pokemon-ev-reset{border:1px solid var(--dameke-border-strong);background:var(--dameke-surface);border-radius:6px;padding:5px 10px;font-size:.78rem;cursor:pointer;}
 
 .dameke-pokemon-edit-levelfold{margin-top:12px;border:1px solid var(--dameke-border);border-radius:10px;padding:6px 10px;background:var(--dameke-surface-alt);}
+.dameke-search-regulation-fold{margin-top:6px;}
 .dameke-pokemon-edit-levelfold summary{cursor:pointer;font-size:.82rem;color:var(--dameke-text-muted);font-weight:600;}
 .dameke-pokemon-edit-levelfold .dameke-pokemon-edit-grid{margin-top:8px;}
 .dameke-pokemon-level-input{max-width:70px;}

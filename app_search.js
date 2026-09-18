@@ -480,7 +480,7 @@
 
     // レギュレーション絞り込み(複数選択可。何もチェックしなければ絞り込みなし)。
     var regFold = document.createElement('details');
-    regFold.className = 'dameke-pokemon-edit-levelfold';
+    regFold.className = 'dameke-pokemon-edit-levelfold dameke-search-regulation-fold';
     var regSummary = document.createElement('summary');
     regSummary.textContent = 'レギュレーション';
     regFold.appendChild(regSummary);
