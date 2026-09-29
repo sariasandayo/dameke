@@ -12,11 +12,10 @@
   var TYPE_ORDER = ALL_TYPES;
   var TYPE_COLOR_MAP = { 'なし':'none', 'ノーマル':'normal', 'ほのお':'fire', 'みず':'water', 'でんき':'electric', 'くさ':'grass', 'こおり':'ice', 'かくとう':'fighting', 'どく':'poison', 'じめん':'ground', 'ひこう':'flying', 'エスパー':'psychic', 'むし':'bug', 'いわ':'rock', 'ゴースト':'ghost', 'ドラゴン':'dragon', 'あく':'dark', 'はがね':'steel', 'フェアリー':'fairy', 'ステラ':'stellar' };
   function typeColorClass(t){ return 'dameke-type-' + (TYPE_COLOR_MAP[t] || 'none'); }
-  // 専用Z技(てんこがすめつぼうのひかり等)は、ダメージ計算式の内部処理で技名参照が必要なため
-  // DATA.moves自体には実体が登録されているが、ユーザーが直接選べる一覧には出すべきではない
-  // (ダメージ計算機の技選択など、他の画面と同じ扱いにする)。「選択可能な技一覧」をここで
-  // 一元的に定義し、以後この検索機能内ではDATA.movesの代わりにこちらを使う。
-  var SELECTABLE_MOVES = DATA.moves.filter(function(m){ return !(DATA.isExcludedSignatureZMove && DATA.isExcludedSignatureZMove(m)); });
+  // 専用Z技・キョダイマックス技(てんこがすめつぼうのひかり等)の内部参照レコードは
+  // DATA.enhancedMoveInternalRefsに分離済みで、DATA.moves自体には含まれないため、
+  // 「選択可能な技一覧」としてDATA.movesをそのまま使えばよい(以前はここで個別除外していた)。
+  var SELECTABLE_MOVES = DATA.moves;
 
   // ==================== 使用率データ (v2.1.0) ====================
   // Pokemon Champions Battle Data (https://championsbattledata.com/) から日次取得した
@@ -66,9 +65,6 @@
         var invalidReason = validateUsageData(json);
         if(invalidReason){ console.warn('[使用率] スキーマ検証に失敗したため無効化します。理由: ' + invalidReason); return; }
         usageData = json;
-        var singlesCount = json.formats.singles ? Object.keys(json.formats.singles.pokemon||{}).length : 0;
-        var doublesCount = json.formats.doubles ? Object.keys(json.formats.doubles.pokemon||{}).length : 0;
-        console.log('[使用率] 読み込み成功。シングル:'+singlesCount+'件 / ダブル:'+doublesCount+'件');
       })
       .catch(function(e){
         // 使用率データがまだ存在しない/取得できない場合は、通常のポケモン検索として
@@ -170,9 +166,15 @@
   var sortBy = 'dex'; // 'dex' | 'kana' | 'stat' | 'weight'
   var sortStatKey = 'total'; // used when sortBy==='stat': H/A/B/C/D/S/total
   function kanaNormalize(s){ return String(s||'').replace(/[\u30a1-\u30f6]/g, function(c){ return String.fromCharCode(c.charCodeAt(0)-0x60); }).toLowerCase(); }
-  // 「等倍以下」「半減以下」「1/4以下」の3段階。それぞれ、無効(0倍)も含めて「その水準以下」を
-  // 満たすかどうかで判定する(等倍以下なら半減・1/4・無効もすべて該当)。
+  // 「4倍」「2倍以上」「等倍以上」「等倍以下」「半減以下」「1/4以下」の6段階。「以下」の3つは
+  // 無効(0倍)も含めて「その水準以下」を満たすかどうかで判定する(等倍以下なら半減・1/4・無効も
+  // すべて該当)。「以上」の2つは、その倍率以上(2倍以上なら4倍も該当、等倍以上なら2倍・4倍も
+  // 該当し、半減・無効は該当しない)で判定する。
+  var MATCHUP_CATEGORIES = ['4倍','2倍以上','等倍以上','等倍以下','半減以下','1/4以下'];
   function matchupSatisfies(rate, category){
+    if(category === '4倍') return rate >= 4;
+    if(category === '2倍以上') return rate >= 2;
+    if(category === '等倍以上') return rate >= 1;
     if(category === '等倍以下') return rate <= 1;
     if(category === '半減以下') return rate <= 0.5;
     if(category === '1/4以下') return rate <= 0.25;
@@ -346,7 +348,7 @@
         var typeSel = makeCompactSelect(ALL_TYPES.map(function(t){return {id:t,name:t};}), '指定なし');
         typeSel.value = cond.type;
         typeSel.addEventListener('change', function(){ filters.matchupConditions[idx].type = typeSel.value; renderResults(); });
-        var catSel = makeCompactSelect(['等倍以下','半減以下','1/4以下'].map(function(c){return {id:c,name:c};}), '指定なし');
+        var catSel = makeCompactSelect(MATCHUP_CATEGORIES.map(function(c){return {id:c,name:c};}), '指定なし');
         catSel.value = cond.category;
         catSel.addEventListener('change', function(){ filters.matchupConditions[idx].category = catSel.value; renderResults(); });
         row.appendChild(typeSel); row.appendChild(catSel);

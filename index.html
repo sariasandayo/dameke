@@ -19,7 +19,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="./icon/apple-touch-icon.png">
   <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjogIuOBoOOCgeOBkeODvCBXZWIiLCAic2hvcnRfbmFtZSI6ICLjgaDjgoHjgZHjg7wiLCAiZGVzY3JpcHRpb24iOiAi6Z2e5YWs5byP44O76Z2e5Za25Yip44Gu44Od44Kx44Oi44Oz44OA44Oh44O844K46KiI566X5qmf44Gn44GZ77yI44OB44Oj44Oz44OU44Kq44Oz44K65a++5b+c77yJ44CC5bqD5ZGK44O755m76Yyy5LiA5YiH44Gq44GX77yBIiwgInN0YXJ0X3VybCI6ICIuLyIsICJzY29wZSI6ICIuLyIsICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLCAiYmFja2dyb3VuZF9jb2xvciI6ICIjZjVmN2ZiIiwgInRoZW1lX2NvbG9yIjogIiMxNzIwMzMiLCAiaWNvbnMiOiBbeyJzcmMiOiAiLi9pY29uL2ljb24tMTkyLnBuZyIsICJzaXplcyI6ICIxOTJ4MTkyIiwgInR5cGUiOiAiaW1hZ2UvcG5nIiwgInB1cnBvc2UiOiAiYW55In0sIHsic3JjIjogIi4vaWNvbi9pY29uLTUxMi5wbmciLCAic2l6ZXMiOiAiNTEyeDUxMiIsICJ0eXBlIjogImltYWdlL3BuZyIsICJwdXJwb3NlIjogImFueSJ9LCB7InNyYyI6ICIuL2ljb24vaWNvbi1tYXNrYWJsZS01MTIucG5nIiwgInNpemVzIjogIjUxMng1MTIiLCAidHlwZSI6ICJpbWFnZS9wbmciLCAicHVycG9zZSI6ICJtYXNrYWJsZSJ9XX0=">
   <meta name="theme-color" content="#172033">
-  <link rel="stylesheet" href="style.css?v=20260918b" />
+  <link rel="stylesheet" href="style.css?v=20260929j" />
 </head>
 <body>
   <header class="app-header">
@@ -37,7 +37,7 @@
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
       </span>
     </div>
-    <h1>だめけー Web v2.3.0</h1>
+    <h1>だめけー Web v2.4.0</h1>
     <p>for Pokémon Champions</p>
     <nav id="damekeMenuNav" class="dameke-menu-nav" hidden>
       <button type="button" class="dameke-menu-item" data-panel="calculator">ダメージ計算</button>
@@ -63,7 +63,7 @@
         <div class="grid three top-inputs">
           <label>攻撃側ポケモン<select id="attackerSelect"></select></label>
           <label>防御側ポケモン<select id="defenderSelect"></select></label>
-          <label>技<select id="moveSelect"></select></label>
+          <label>技①<select id="moveSelect"></select></label>
         </div>
         <label class="check dameke-move-filter-toggle"><input id="moveShowAll" type="checkbox" />全技</label>
       </section>
@@ -169,11 +169,12 @@
       <section class="sub-card">
         <h3>攻撃側条件</h3>
         <div class="grid four">
-          <label>急所ランク<input id="critical" type="number" min="0" max="3" value="0" /></label>
+          <input id="critical" type="number" min="0" max="3" value="0" class="v082h-hide" />
           <label class="check"><input id="electrify" type="checkbox" />そうでん</label>
           <label class="check"><input id="pledgeCombination" type="checkbox" />コンビネーション</label>
           <label class="check"><input id="attackerEmbargo" type="checkbox" />さしおさえ</label>
-          <label>状態異常<select id="attackerStatus"><option value="なし">なし</option><option value="やけど">やけど</option><option value="まひ">まひ</option><option value="どく">どく</option><option value="ねむり">ねむり</option><option value="こおり">こおり</option></select></label>
+          <label>状態異常<select id="attackerStatus"><option value="なし">なし</option><option value="やけど">やけど</option><option value="まひ">まひ</option><option value="どく">どく</option><option value="もうどく">もうどく</option><option value="ねむり">ねむり</option><option value="こおり">こおり</option></select></label>
+          <label>もうどく経過<input id="attackerToxicCount" type="number" min="1" max="15" value="1" /></label>
           <label class="check"><input id="attackerStealthRock" type="checkbox" />ステルスロック</label>
           <label>まきびし<select id="attackerSpikes"><option value="0">なし</option><option value="1">1回</option><option value="2">2回</option><option value="3">3回</option></select></label>
           <label class="check"><input id="attackerSteelSurge" type="checkbox" />キョダイコウジン</label>
@@ -196,16 +197,18 @@
           <label class="check"><input id="charge" type="checkbox" />じゅうでん</label>
           <label class="check"><input id="analyzeMovedLast" type="checkbox" />アナライズ後攻</label>
           <label class="check"><input id="attackerTailwind" type="checkbox" />おいかぜ</label>
-          <label class="check"><input id="attackerGMaxRapidStrike" type="checkbox" />キョダイシンゲキ</label>
+          <label>キョダイシンゲキ回数<input id="attackerGMaxRapidStrike" type="number" min="0" max="3" value="0" /></label>
           <label class="check"><input id="attackerFocusEnergy" type="checkbox" />とぎすます</label>
           <label class="check"><input id="attackerLockOn" type="checkbox" />ロックオン</label>
           <label class="check"><input id="attackerMicleBerry" type="checkbox" />ミクルのみ</label>
           <label class="check"><input id="attackerSwamp" type="checkbox" />しつげん</label>
+          <label class="check"><input id="attackerRainbow" type="checkbox" />にじ</label>
           <label class="check"><input id="attackerVictoryStar" type="checkbox" />しょうりのほし</label>
           <label class="check"><input id="attackerSlowStart" type="checkbox" />スロースタート発動</label>
           <label class="check"><input id="attackerUnburden" type="checkbox" />かるわざ発動</label>
           <label>古代/クォーク上昇<select id="attackerParadoxBoostStat"><option value="none">なし</option><option value="A">攻撃</option><option value="B">防御</option><option value="C">特攻</option><option value="D">特防</option><option value="S">素早さ</option></select></label>
-          <label class="check"><input id="attackerRootedSmacked" type="checkbox" />ねをはる・うちおとす</label>
+          <label class="check"><input id="attackerIngrain" type="checkbox" />ねをはる</label>
+          <label class="check"><input id="attackerRootedSmacked" type="checkbox" />うちおとす</label>
           <label class="check"><input id="attackerMagnetRise" type="checkbox" />でんじふゆう</label>
           <label class="check"><input id="attackerTelekinesis" type="checkbox" />テレキネシス</label>
           <label class="check"><input id="attackerRoost" type="checkbox" />はねやすめ</label>
@@ -226,7 +229,8 @@
           <label class="check"><input id="defenderMinimized" type="checkbox" />ちいさくなる</label>
           <label>防御側状態まもる<select id="defenderProtectState"><option value="none">なし</option><option value="protect">まもる</option><option value="maxGuard">ダイウォール</option></select></label>
           <label class="check"><input id="defenderEmbargo" type="checkbox" />さしおさえ</label>
-          <label>状態異常<select id="defenderStatus"><option value="なし">なし</option><option value="やけど">やけど</option><option value="まひ">まひ</option><option value="どく">どく</option><option value="ねむり">ねむり</option><option value="こおり">こおり</option></select></label>
+          <label>状態異常<select id="defenderStatus"><option value="なし">なし</option><option value="やけど">やけど</option><option value="まひ">まひ</option><option value="どく">どく</option><option value="もうどく">もうどく</option><option value="ねむり">ねむり</option><option value="こおり">こおり</option></select></label>
+          <label>もうどく経過<input id="defenderToxicCount" type="number" min="1" max="15" value="1" /></label>
           <label class="check"><input id="defenderConfusion" type="checkbox" />こんらん</label>
           <label class="check"><input id="defenderSubstitute" type="checkbox" />みがわり</label>
           <label>防御側状態<select id="defenderSemiInvulnerable"><option value="なし">なし</option><option value="そらをとぶ">そらをとぶ</option><option value="あなをほる">あなをほる</option><option value="ダイビング">ダイビング</option><option value="シャドーダイブ">シャドーダイブ</option></select></label>
@@ -237,10 +241,12 @@
           <label class="check"><input id="defenderGlaiveRush" type="checkbox" />むぼうび</label>
           <label class="check"><input id="defenderTailwind" type="checkbox" />おいかぜ</label>
           <label class="check"><input id="defenderSwamp" type="checkbox" />しつげん</label>
+          <label class="check"><input id="defenderSeaOfFire" type="checkbox" />ひのうみ</label>
           <label class="check"><input id="defenderSlowStart" type="checkbox" />スロースタート発動</label>
           <label class="check"><input id="defenderUnburden" type="checkbox" />かるわざ発動</label>
           <label>古代/クォーク上昇<select id="defenderParadoxBoostStat"><option value="none">なし</option><option value="A">攻撃</option><option value="B">防御</option><option value="C">特攻</option><option value="D">特防</option><option value="S">素早さ</option></select></label>
-          <label class="check"><input id="defenderRootedSmacked" type="checkbox" />ねをはる・うちおとす</label>
+          <label class="check"><input id="defenderIngrain" type="checkbox" />ねをはる</label>
+          <label class="check"><input id="defenderRootedSmacked" type="checkbox" />うちおとす</label>
           <label class="check"><input id="defenderMagnetRise" type="checkbox" />でんじふゆう</label>
           <label class="check"><input id="defenderTelekinesis" type="checkbox" />テレキネシス</label>
           <label class="check"><input id="defenderRoost" type="checkbox" />はねやすめ</label>
@@ -249,7 +255,7 @@
           <label>ボディパージ回数<input id="defenderBodyPurge" type="number" min="0" max="6" value="0" /></label>
         </div>
       </section>
-      
+
       <section class="sub-card" id="moveSpecificSection">
         <h3>技固有条件</h3>
         <div class="grid four">
@@ -280,6 +286,52 @@
           <label>控え5<select id="beatUpAlly5"><option value="none">なし</option></select></label>
         </div>
       </section>
+      <label class="check"><input id="attackerCriticalForce" type="checkbox" />急所</label>
+      <details class="dameke-move2-fold">
+        <summary>技②</summary>
+        <div class="v082h-move1-row dameke-move2-select-row">
+          <label><select id="move2Select"></select></label>
+          <label class="check dameke-move-filter-toggle"><input id="move2ShowAll" type="checkbox" />全技</label>
+        </div>
+        <section class="sub-card v082h-hide" id="move2SpecificSection">
+          <h3>技固有条件</h3>
+          <div class="grid four">
+            <label>ころがる等 回数<input id="move2RolloutHit" type="number" min="1" max="5" value="1" /></label>
+            <label class="check"><input id="move2DefenseCurl" type="checkbox" />まるくなる済み</label>
+            <label>エコーボイス回数<input id="move2EchoedVoiceCount" type="number" min="1" max="5" value="1" /></label>
+            <label>行動順<select id="move2MoveOrder"><option value="first">先攻</option><option value="second">後攻</option></select></label>
+            <label class="check"><input id="move2TargetSwitching" type="checkbox" />相手が交代</label>
+            <label>味方ひんし数<input id="move2FaintedAllies" type="number" min="0" max="100" value="0" /></label>
+            <label>そうだいしょう味方ひんし数<input id="move2SupremeOverlordFaintedAllies" type="number" min="0" max="5" value="0" /></label>
+            <label>なつき度<input id="move2Friendship" type="number" min="0" max="255" value="255" /></label>
+            <label>残りPP<input id="move2RemainingPP" type="number" min="0" max="8" value="4" /></label>
+            <label class="check"><input id="move2LastMoveFailed" type="checkbox" />前ターン技失敗</label>
+            <label class="check"><input id="move2UserDamagedThisTurn" type="checkbox" />自分がこのターン被ダメ</label>
+            <label class="check"><input id="move2TargetDamagedThisTurn" type="checkbox" />相手がこのターン被ダメ</label>
+            <label>たくわえる回数<select id="move2StockpileCount"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
+            <label>プレゼント威力<select id="move2PresentPower"><option value="40">40</option><option value="80">80</option><option value="120">120</option></select></label>
+            <label>被ダメ回数<input id="move2RageFistHitCount" type="number" min="0" max="6" value="0" /></label>
+            <label>マグニチュード威力<select id="move2MagnitudePower"><option value="10">10</option><option value="30">30</option><option value="50">50</option><option value="70">70</option><option value="90">90</option><option value="110">110</option><option value="150">150</option></select></label>
+            <label class="check"><input id="move2RoundAllyUsed" type="checkbox" />同ターンりんしょうあり</label>
+            <label>れんぞくぎり回数<input id="move2FuryCutterCount" type="number" min="1" max="3" value="1" /></label>
+            <label class="check"><input id="move2StatDroppedThisTurn" type="checkbox" />自身のランク下降</label>
+            <label class="check"><input id="move2AllyFaintedLastTurn" type="checkbox" />前ターン味方ひんし</label>
+            <label>控え1<select id="move2BeatUpAlly1"><option value="none">なし</option></select></label>
+            <label>控え2<select id="move2BeatUpAlly2"><option value="none">なし</option></select></label>
+            <label>控え3<select id="move2BeatUpAlly3"><option value="none">なし</option></select></label>
+            <label>控え4<select id="move2BeatUpAlly4"><option value="none">なし</option></select></label>
+            <label>控え5<select id="move2BeatUpAlly5"><option value="none">なし</option></select></label>
+          </div>
+        </section>
+        <label class="check"><input id="move2CriticalForce" type="checkbox" />急所</label>
+        <div class="v082h-mini-grid dameke-move-special-grid">
+          <label>Z・ダイマ<select id="move2AttackerSpecialState"></select></label>
+          <label>テラスタル<select id="move2AttackerTeraType"></select></label>
+        </div>
+        <div class="actions dameke-move-order-actions">
+          <button id="moveOrderSwapButton" type="button" class="dameke-toolbar-btn-move-order">技順序入替</button>
+        </div>
+      </details>
       <div class="actions">
         <button id="calculateButton" type="button">計算</button>
         <button id="copyTraceButton" type="button">計算過程をコピー</button>
@@ -288,10 +340,13 @@
     <section class="card result-card">
       <h2>結果</h2>
       <div id="summary" class="summary">未計算です。</div>
-      <h3>乱数</h3>
-      <pre id="rolls" class="output"></pre>
       <h3>計算過程</h3>
       <pre id="trace" class="output trace"></pre>
+      <div id="v082hMove2Section" class="v082h-hide">
+        <div id="move2Summary" class="summary"></div>
+        <h3>計算過程②</h3>
+        <pre id="move2Trace" class="output trace"></pre>
+      </div>
       <p class="dameke-image-credit">ポケモンの画像はPokéAPI（https://pokeapi.co）経由で参照しています。ポケモンおよび関連の著作権は任天堂・クリーチャーズ・ゲームフリークに帰属します。本ツールは非公式・非営利のファン制作物であり、画像ファイルの独自保存・改変は行っていません。</p>
     </section>
   </main>
@@ -612,23 +667,23 @@
       </section>
     </main>
   </div>
-<script src="data.js?v=20260918b"></script>
-<script src="data_learnsets.js?v=20260918b"></script>
-<script src="data_regulations.js?v=20260918b"></script>
-<script src="data_pokemon_images.js?v=20260918b"></script>
-<script src="data_item_images.js?v=20260918b"></script>
-<script src="calc.js?v=20260918b"></script>
-  
-<script src="app.js?v=20260918b"></script>
-<script src="app_tools.js?v=20260918b"></script>
-<script src="app_adjust.js?v=20260918b"></script>
-<script src="app_speed.js?v=20260918b"></script>
-<script src="app_evopt.js?v=20260918b"></script>
-<script src="app_coverage.js?v=20260918b"></script>
-<script src="app_search.js?v=20260918b"></script>
-<script src="app_complement.js?v=20260918b"></script>
-<script src="app_partytype.js?v=20260918b"></script>
-<script src="app_minigame.js?v=20260918b"></script>
+<script src="data.js?v=20260929j"></script>
+<script src="data_learnsets.js?v=20260929j"></script>
+<script src="data_regulations.js?v=20260929j"></script>
+<script src="data_pokemon_images.js?v=20260929j"></script>
+<script src="data_item_images.js?v=20260929j"></script>
+<script src="calc.js?v=20260929j"></script>
+
+<script src="app.js?v=20260929j"></script>
+<script src="app_tools.js?v=20260929j"></script>
+<script src="app_adjust.js?v=20260929j"></script>
+<script src="app_speed.js?v=20260929j"></script>
+<script src="app_evopt.js?v=20260929j"></script>
+<script src="app_coverage.js?v=20260929j"></script>
+<script src="app_search.js?v=20260929j"></script>
+<script src="app_complement.js?v=20260929j"></script>
+<script src="app_partytype.js?v=20260929j"></script>
+<script src="app_minigame.js?v=20260929j"></script>
 <script>
   // オフライン対応(Service Worker登録)。対応していないブラウザでは単に何も起きず、
   // 通常通りオンラインで動作する。

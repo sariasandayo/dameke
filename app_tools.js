@@ -155,6 +155,26 @@
     var panel = q('panel-calculator');
     var ids = [];
     if(!panel) return ids;
+    // 技②の入力欄は折り畳み(<details class="dameke-move2-fold">)の中にあるため、閉じた状態で
+    // 保存すると、実際には技②として指定されている欄まで「非表示」と判定されてしまう。技②が
+    // 指定されている(「なし」以外)ときは、判定の間だけ折り畳みを開いて評価し、すぐに元へ戻す
+    // (同期処理内で完結するため画面上のちらつきは起きない)。
+    var move2Folds = [];
+    var move2Active = window.__damekeIsMove2None ? !window.__damekeIsMove2None() : false;
+    if(move2Active){
+      panel.querySelectorAll('details.dameke-move2-fold').forEach(function(d){
+        move2Folds.push({ el: d, open: d.open });
+        d.open = true;
+      });
+    }
+    try{
+      collectVisibleIds(panel, ids);
+    } finally {
+      move2Folds.forEach(function(f){ f.el.open = f.open; });
+    }
+    return ids;
+  }
+  function collectVisibleIds(panel, ids){
     panel.querySelectorAll('input, select, textarea').forEach(function(el){
       if(!el.id) return;
       // A select wrapped by the calculator's own search-combo UI (ability/item/move/pokemon
@@ -166,7 +186,6 @@
       var checkEl = (el.tagName === 'SELECT' && el.getAttribute('data-v082h-search')) ? el.closest('.v082h-search-combo') : el;
       if(checkEl && checkEl.offsetParent !== null) ids.push(el.id);
     });
-    return ids;
   }
 
   // Writes values into the calculator's DOM only -- no sync/recalculate. Used both for the full
@@ -184,12 +203,29 @@
     });
   }
 
-  function restoreCalculatorState(state){
+  // 技①/技②の選択欄・Z・ダイマ欄・テラスタル欄は、攻撃側ポケモンや「全技」チェック、選んだ技に
+  // 応じて選択肢そのものが絞り込まれるため、1回書き込んだだけでは(書き込み時点の選択肢に
+  // 保存値の<option>が無く)代入が無視されることがある。そこで、1回目の書き込みでポケモン・
+  // 全技チェック等を反映 → 選択肢を保存値の条件で作り直し → 2回目の書き込みで技・Z等を確定、
+  // の順にする(2回目は同じ値の再代入なので、1回目で反映済みの欄には影響しない)。
+  function writeStateWithOptionRebuild(state){
     writeStateToDom(state);
+    if(window.__damekeApplyMoveFilter) window.__damekeApplyMoveFilter();
+    if(window.__damekeApplyMoveFilter2) window.__damekeApplyMoveFilter2();
+    writeStateToDom(state);
+    if(window.__damekeUpdateSpecialStateOptions) window.__damekeUpdateSpecialStateOptions();
+    if(window.__damekeWidenAttackerTeraOptions) window.__damekeWidenAttackerTeraOptions();
+    writeStateToDom(state);
+  }
+
+  function restoreCalculatorState(state){
+    writeStateWithOptionRebuild(state);
     // Same principle as swapSides(): write values directly, then run the same sync/recalculate
     // sequence once at the end, rather than dispatching 'change' per field (which would trigger
     // the species-default handlers and overwrite what was just restored).
     if(window.__damekeApplyMoveFilter) window.__damekeApplyMoveFilter();
+    if(window.__damekeApplyMoveFilter2) window.__damekeApplyMoveFilter2();
+    if(window.__damekeUpdateAttackerTeraExclusivity) window.__damekeUpdateAttackerTeraExclusivity();
     if(window.__damekeUpdateTypeColors) window.__damekeUpdateTypeColors();
     if(window.__damekeRefreshAll) window.__damekeRefreshAll();
     // フォルムチェンジボタン(v091)は attacker/defenderSelect の'change'頼みで再描画されるが、
@@ -202,6 +238,15 @@
       var el = q(id);
       if(el) try{ el.dispatchEvent(new Event('change', {bubbles:true})); }catch(e){}
     });
+    // 直接書き込んだ検索コンボ付きの選択欄(ポケモン・特性・持ち物・技①/技②)の表示文字と、
+    // 技①/技②のタイプ色を、復元後の値に合わせて更新する。
+    ['attackerSelect','defenderSelect','attackerAbilitySelect','defenderAbilitySelect','attackerItemSelect','defenderItemSelect','moveSelect','move2Select'].forEach(function(id){
+      var el = q(id);
+      if(el && el._v082hRefreshOptions) el._v082hRefreshOptions();
+    });
+    if(window.__damekeUpdateMoveTypeColor) window.__damekeUpdateMoveTypeColor();
+    if(window.__damekeUpdateMove2TypeColor) window.__damekeUpdateMove2TypeColor();
+    if(window.__damekeUpdateMoveOrderSwapButton) window.__damekeUpdateMoveOrderSwapButton();
     if(window.__damekeCalculate) window.__damekeCalculate();
   }
 
@@ -213,6 +258,8 @@
     var atkName = atk ? atk.name : (state.attackerSelect || '?');
     var defName = def ? def.name : (state.defenderSelect || '?');
     var mvName = mv ? mv.name : (state.moveSelect || '?');
+    var mv2 = state.move2Select ? findMove(state.move2Select) : null;
+    if(mv2) mvName += ' + ' + mv2.name;
     return atkName + ' の ' + mvName + ' → ' + defName;
   }
 
@@ -260,6 +307,49 @@
     }
   }
 
+  // 保存時点で計算機の画面に表示されている結果(calculate()がその場で公開した構造化フィールド)を
+  // そのまま記録する。技①は追加効果(100%発生分)込みの画面表示と同じ値になり、技②が指定されて
+  // いれば、下部固定枠の「技②」タブと同じ技①+②の連結結果(ダメージ・合計・瀕死率)も記録する。
+  // 画面側の結果が取れない場合のみ、従来の技①単体の再計算(computeResultSnapshot)に戻す。
+  function captureLiveResultSnapshot(state){
+    try{
+      if(window.__damekeCalculate) window.__damekeCalculate();
+      var result = window.__damekeLastResult;
+      if(!result) return computeResultSnapshot(state);
+      var cat = result.effectiveCategory;
+      var atkRef = resolveStatRef(result.trace, '補正後攻撃側実数値', 'attacker', cat==='特殊'?'C':'A');
+      var defRef = resolveStatRef(result.trace, '補正後防御側実数値', 'defender', cat==='特殊'?'D':'B');
+      var snap = {
+        attackerName: result.attackerName, defenderName: result.defenderName, moveName: result.moveName,
+        effectiveCategory: cat, minDamage: result.minDamage, maxDamage: result.maxDamage,
+        realMinDamage: result.realMinDamage, realMaxDamage: result.realMaxDamage,
+        minRate: result.minRate, maxRate: result.maxRate, koInfo: result.koInfo,
+        koText: window.__damekeFormatKoInfo ? window.__damekeFormatKoInfo(result) : null,
+        substituteBlocksAll: result.substituteBlocksAll, defenderCurrentHp: result.defenderCurrentHp,
+        defenderMaxHp: result.defenderMaxHp, faintPct: window.__damekeLastFaintPct, atkRef: atkRef, defRef: defRef,
+        trace: result.trace
+      };
+      var move2Active = window.__damekeIsMove2None ? !window.__damekeIsMove2None() : false;
+      var c = move2Active ? window.__damekeCombinedResult : null;
+      if(c){
+        snap.combined = {
+          move1Name: c.move1Name, move2Name: c.move2Name,
+          move1MinDamage: c.move1MinDamage, move1MaxDamage: c.move1MaxDamage, move1MinRate: c.move1MinRate, move1MaxRate: c.move1MaxRate,
+          move2MinDamage: c.move2MinDamage, move2MaxDamage: c.move2MaxDamage, move2MinRate: c.move2MinRate, move2MaxRate: c.move2MaxRate,
+          totalMinDamage: c.totalMinDamage, totalMaxDamage: c.totalMaxDamage, totalMinRate: c.totalMinRate, totalMaxRate: c.totalMaxRate,
+          totalRealMinDamage: c.totalRealMinDamage, totalRealMaxDamage: c.totalRealMaxDamage,
+          faintPercent: c.faintPercent, koText: c.koText,
+          move1AlwaysZeroDamage: c.move1RealMinDamage === 0 && c.move1RealMaxDamage === 0,
+          defenderCurrentHp: c.defenderCurrentHp, defenderMaxHp: c.defenderMaxHp
+        };
+      }
+      return snap;
+    } catch(e){
+      if(window.console) console.error('[history] live snapshot failed:', e);
+      return computeResultSnapshot(state);
+    }
+  }
+
   function saveCurrentAsHistory(){
     var state = captureCalculatorState();
     var visibleIds = captureVisibleIds();
@@ -269,7 +359,7 @@
       summary: summaryFromState(state),
       state: state,
       visibleIds: visibleIds,
-      resultSnapshot: computeResultSnapshot(state)
+      resultSnapshot: captureLiveResultSnapshot(state)
     };
     var list = loadHistory();
     list.unshift(entry);
@@ -459,6 +549,8 @@
       return box;
     }
     var result = snapshot, faintPct = snapshot.faintPct;
+    var fmtFaint = window.__damekeFmtFaintPct || function(p){ return p == null ? '計算不可' : p.toFixed(2) + '%'; };
+    var combined = snapshot.combined || null;
     var row = document.createElement('div');
     row.className = 'dameke-history-header-row';
     row.appendChild(buildMiniThumb(result.attackerName, state && itemNameFromId(state.attackerItemSelect)));
@@ -469,24 +561,46 @@
     namesLine.textContent = result.attackerName + ' → ' + result.defenderName;
     var moveLine = document.createElement('div');
     moveLine.className = 'dameke-history-move-line';
-    moveLine.textContent = result.moveName;
-    var dmgLine = document.createElement('div');
-    dmgLine.className = 'dameke-history-infoline';
-    dmgLine.textContent = result.minDamage + ' ～ ' + result.maxDamage + '（' + result.minRate.toFixed(1) + '% ～ ' + result.maxRate.toFixed(1) + '%）';
-    var koLine = document.createElement('div');
-    koLine.className = 'dameke-history-infoline2';
-    var faintText = faintPct == null ? '計算不可' : faintPct.toFixed(2) + '%';
-    koLine.textContent = formatKoText(result.koInfo, result.maxDamage, result.substituteBlocksAll) + '　瀕死率:' + faintText;
     textCol.appendChild(namesLine);
     textCol.appendChild(moveLine);
-    textCol.appendChild(dmgLine);
-    textCol.appendChild(koLine);
+    function addInfoLine(cls, text){
+      var line = document.createElement('div');
+      line.className = cls;
+      line.textContent = text;
+      textCol.appendChild(line);
+    }
+    function rangeText(minD, maxD, minR, maxR, sep){
+      return minD + sep + maxD + '（' + minR.toFixed(1) + '%' + sep + maxR.toFixed(1) + '%）';
+    }
+    if(combined){
+      // 技②あり: 計算機の下部固定枠「技②」タブと同じ、技①+②の連結結果を表示する。
+      moveLine.textContent = combined.move1Name + ' + ' + combined.move2Name;
+      addInfoLine('dameke-history-infoline', '①' + rangeText(combined.move1MinDamage, combined.move1MaxDamage, combined.move1MinRate, combined.move1MaxRate, '～'));
+      addInfoLine('dameke-history-infoline', '②' + rangeText(combined.move2MinDamage, combined.move2MaxDamage, combined.move2MinRate, combined.move2MaxRate, '～'));
+      addInfoLine('dameke-history-infoline2', '合計' + rangeText(combined.totalMinDamage, combined.totalMaxDamage, combined.totalMinRate, combined.totalMaxRate, '～'));
+      addInfoLine('dameke-history-infoline2', (combined.move1AlwaysZeroDamage ? (combined.koText + '　') : '') + '瀕死率:' + fmtFaint(combined.faintPercent));
+    } else {
+      moveLine.textContent = result.moveName;
+      addInfoLine('dameke-history-infoline', rangeText(result.minDamage, result.maxDamage, result.minRate, result.maxRate, ' ～ '));
+      var koText = result.koText || formatKoText(result.koInfo, result.maxDamage, result.substituteBlocksAll);
+      addInfoLine('dameke-history-infoline2', koText + '　瀕死率:' + fmtFaint(faintPct));
+    }
     row.appendChild(textCol);
     row.appendChild(buildMiniThumb(result.defenderName, state && itemNameFromId(state.defenderItemSelect)));
     box.appendChild(row);
 
-    var curHp = result.defenderCurrentHp, maxHp = result.defenderMaxHp;
-    var minRemain = Math.max(0, curHp - result.maxDamage), maxRemain = Math.max(0, curHp - result.minDamage);
+    // HPバーは、みがわりに防がれて本体に届かなかった分を除いた実ダメージ(保存されていれば)で描く
+    // (計算機の下部固定枠と同じ)。技②ありの場合は技①+②の合計実ダメージを使う。
+    var curHp, maxHp, barMin, barMax;
+    if(combined){
+      curHp = combined.defenderCurrentHp; maxHp = combined.defenderMaxHp;
+      barMin = combined.totalRealMinDamage; barMax = combined.totalRealMaxDamage;
+    } else {
+      curHp = result.defenderCurrentHp; maxHp = result.defenderMaxHp;
+      barMin = result.realMinDamage != null ? result.realMinDamage : result.minDamage;
+      barMax = result.realMaxDamage != null ? result.realMaxDamage : result.maxDamage;
+    }
+    var minRemain = Math.max(0, curHp - barMax), maxRemain = Math.max(0, curHp - barMin);
     var barWrap = document.createElement('div');
     barWrap.className = 'dameke-history-hpbar-wrap';
     barWrap.appendChild(buildMiniHpBar(maxHp, minRemain, maxRemain));
@@ -602,7 +716,7 @@
   // real field genderValue() reads and the unused static one -- and the EV quick-preset
   // selectors) are excluded so "詳細" only adds genuinely new information.
   var STAT_DETAIL_ID_SUFFIXES = ['_nature', '_iv', '_ev', '_rank', '_actual'];
-  var ALREADY_SHOWN_IDS = ['attackerSelect','defenderSelect','moveSelect','attackerLevel','defenderLevel','attackerCurrentHp','defenderCurrentHp','attackerSexSelect','defenderSexSelect','attackerGender','defenderGender','v082hEvPreset_attacker','v082hEvPreset_defender','attackerAbilitySelect','defenderAbilitySelect','attackerItemSelect','defenderItemSelect'];
+  var ALREADY_SHOWN_IDS = ['attackerSelect','defenderSelect','moveSelect','move2Select','attackerLevel','defenderLevel','attackerCurrentHp','defenderCurrentHp','attackerSexSelect','defenderSexSelect','attackerGender','defenderGender','v082hEvPreset_attacker','v082hEvPreset_defender','attackerAbilitySelect','defenderAbilitySelect','attackerItemSelect','defenderItemSelect'];
   function isAlreadyShownElsewhere(id){
     if(ALREADY_SHOWN_IDS.indexOf(id) >= 0) return true;
     return STAT_DETAIL_ID_SUFFIXES.some(function(suf){ return id.indexOf(suf) >= 0; });
@@ -631,7 +745,11 @@
     // 攻撃側固有の条件・入力、防御側固有の条件・入力、場の条件、の3つに分けて集計する。
     // フィールドIDが attacker/defender で始まるかどうかで振り分け、それ以外(天候・フィールド・
     // 各種ルインなど、どちらか一方の持ち物ではない全体条件)はすべて「場」として扱う。
-    var attackerItems = [], defenderItems = [], fieldItems = [];
+    var attackerItems = [], defenderItems = [], fieldItems = [], move2Items = [];
+    // 技②(「なし」以外)が保存されている場合のみ、技②の入力(技②固有条件・急所・Z・ダイマ・
+    // テラスタル等、IDがmove2で始まるもの)を独立した「技②」の区分にまとめる。
+    var move2NoneId = window.__damekeMove2NoneId || '__move2_none__';
+    var hasMove2 = !!(state.move2Select && state.move2Select !== move2NoneId);
     // visibleIds is only present on entries saved after this feature was added; older entries
     // fall back to "no visibility filtering" rather than hiding everything.
     var visibleSet = Array.isArray(visibleIds) ? {} : null;
@@ -659,7 +777,8 @@
           displayVal = val;
         }
         var text = labelTextFor(el) + '： ' + displayVal;
-        if(id.indexOf('attacker') === 0) attackerItems.push(text);
+        if(id.indexOf('move2') === 0){ if(hasMove2) move2Items.push(text); }
+        else if(id.indexOf('attacker') === 0) attackerItems.push(text);
         else if(id.indexOf('defender') === 0) defenderItems.push(text);
         else fieldItems.push(text);
       });
@@ -692,6 +811,7 @@
     wrap.appendChild(buildSubSection('攻撃側', attackerItems));
     wrap.appendChild(buildSubSection('防御側', defenderItems));
     wrap.appendChild(buildSubSection('場', fieldItems));
+    if(hasMove2) wrap.appendChild(buildSubSection('技②', move2Items));
     return wrap;
   }
 
@@ -854,13 +974,20 @@
       ivs[k] = val(side+'_'+k+'_iv') || '31';
       evs[k] = val(side+'_'+k+'_ev') || '0';
     });
+    // 攻撃側は技①・技②それぞれ専用のテラスタルフィールドを持つ。ポケモン管理への保存では
+    // どちらか一方に指定があればそれを使う(現行の単一フィールドの保存と同じ扱いにする)。
+    var teraType = val(side+'TeraType');
+    if(side === 'attacker' && (!teraType || teraType === 'なし')){
+      var move2Tera = val('move2AttackerTeraType');
+      if(move2Tera && move2Tera !== 'なし') teraType = move2Tera;
+    }
     return {
       pokemonId: pokemonId,
       nickname: '',
       gender: val(side+'SexSelect'),
       abilityId: val(side+'AbilitySelect'),
       itemId: val(side+'ItemSelect'),
-      teraType: val(side+'TeraType'),
+      teraType: teraType,
       nature: val(side+'_nature') || 'まじめ',
       level: val(side+'Level') || '50',
       ivs: ivs, evs: evs,
@@ -923,7 +1050,15 @@
     setVal(side+'SexSelect', entry.gender);
     setVal(side+'AbilitySelect', entry.abilityId);
     setVal(side+'ItemSelect', entry.itemId);
+    // 技①・技②のテラスタル欄は選択肢が絞り込まれている場合があるため、直接.valueへ書き込む前に
+    // 一旦全タイプへ選択肢を戻しておく(絞り込まれたままだと復元先の<option>が存在せず代入が
+    // 無視されてしまうおそれがあるため)。後段のupdateAttackerTeraExclusivity()呼び出しで
+    // 正しい絞り込みへ戻る。
+    if(side === 'attacker' && window.__damekeWidenAttackerTeraOptions) window.__damekeWidenAttackerTeraOptions();
     setVal(side+'TeraType', entry.teraType);
+    // 攻撃側は技①・技②それぞれ専用のテラスタルフィールドを持つため、復元時も両方に同じ値を
+    // 反映して揃える(保存時に「テラスタルのみ」1つの値へ集約している対の処理)。
+    if(side === 'attacker') setVal('move2AttackerTeraType', entry.teraType);
     setVal(side+'_nature', entry.nature);
     setVal(side+'Level', entry.level);
     STAT_KEYS_ALL.forEach(function(k){
@@ -938,6 +1073,11 @@
     // into the attacker, using the first saved move if one was set.
     if(side === 'attacker' && entry.moves && entry.moves[0]) setVal('moveSelect', entry.moves[0]);
     if(window.__damekeApplyMoveFilter) window.__damekeApplyMoveFilter();
+    if(window.__damekeApplyMoveFilter2) window.__damekeApplyMoveFilter2();
+    // 呼び出したポケモン・技に合わせて、Z・ダイマの選択肢(専用Zの可否)を作り直す(条件から
+    // 外れた専用Zは「なし」に戻る)。
+    if(window.__damekeUpdateSpecialStateOptions) window.__damekeUpdateSpecialStateOptions();
+    if(side === 'attacker' && window.__damekeUpdateAttackerTeraExclusivity) window.__damekeUpdateAttackerTeraExclusivity();
     if(window.__damekeUpdateTypeColors) window.__damekeUpdateTypeColors();
     if(window.__damekeRefreshAll) window.__damekeRefreshAll();
     if(window.__damekeCalculate) window.__damekeCalculate();
@@ -1302,7 +1442,7 @@
   }
   function getFilteredMovesForPokemon(pokemonId, showAll){
     var d = D();
-    var allMoves = d.moves.filter(function(m){ return !(d.isExcludedSignatureZMove && d.isExcludedSignatureZMove(m)); });
+    var allMoves = d.moves; // 専用Z/キョダイマックスの内部参照レコードはd.enhancedMoveInternalRefsに分離済みのためフィルタ不要
     if(showAll) return allMoves;
     var pokemon = findPokemonById(pokemonId);
     var LS = window.DAMEKE_LEARNSETS;

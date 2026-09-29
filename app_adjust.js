@@ -574,6 +574,8 @@
     function addIfSet(label, value){ if(value && value!=='none' && value!=='なし') lines.push(label+'：'+value); }
     addIfSet('攻撃側特性', o.attackerAbilityId);
     addIfSet('攻撃側持ち物', o.attackerItemId);
+    // このツールの計算はすべて技①の条件(snapshot.options = 技①側のbuildOptions())で行うため、
+    // テラスタルも技②側ではなく技①側の値をそのまま表示する(計算内容と表示を一致させる)。
     addIfSet('攻撃側テラスタル', o.attackerTeraType);
     addIfSet('防御側特性', o.defenderAbilityId);
     addIfSet('防御側持ち物', o.defenderItemId);
@@ -597,6 +599,7 @@
     var ivs = (side === 'attacker' ? snapshot.options.attackerStats : snapshot.options.defenderStats).ivs;
     var abilityId = side === 'attacker' ? snapshot.options.attackerAbilityId : snapshot.options.defenderAbilityId;
     var itemId = side === 'attacker' ? snapshot.options.attackerItemId : snapshot.options.defenderItemId;
+    // 表示・計算と同じく、技①側のテラスタルを保存する。
     var teraType = side === 'attacker' ? snapshot.options.attackerTeraType : snapshot.options.defenderTeraType;
     var evs = buildEvs(selectedThresholdPick.statKey, selectedThresholdPick.ev, manualEvSpec[side]);
     if(side === 'defender' && selectedThresholdPick.hEv != null) evs.H = selectedThresholdPick.hEv;

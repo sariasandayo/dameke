@@ -154,6 +154,26 @@
     return colors;
   }
 
+  // 候補数表示のON/OFF(既定はOFF)。リトライしても引き継ぐ。
+  var wordleShowCount = false;
+
+  // これまでの解答(guessesの先頭からuptoCount件)の判定結果(緑・黄・灰すべて)と矛盾しない
+  // 候補の数を数える。候補cが矛盾しない ⇔ 各解答gについて、cを正解と仮定したときの
+  // computeColors(g.word, c)が、実際に表示されたg.colorsと完全に一致する。
+  // (正解そのものは必ず条件を満たすので、候補数は常に1以上になる。)
+  function countConsistentCandidates(guesses, uptoCount){
+    var used = guesses.slice(0, uptoCount);
+    var n = 0;
+    getCandidates().forEach(function(c){
+      for(var i = 0; i < used.length; i++){
+        var cols = computeColors(used[i].word, c);
+        for(var j = 0; j < cols.length; j++){ if(cols[j] !== used[i].colors[j]) return; }
+      }
+      n++;
+    });
+    return n;
+  }
+
   var wordleState = null;
   function newWordleGame(){
     var cands = getCandidates();
@@ -193,7 +213,9 @@
       '<p>ひらがな・カタカナ、半角・全角のどれで入力しても構いません。' + MAX_TRIES + '回以内に当ててください。</p>' +
       '<p>決定すると、1文字ごとに背景色が変わります。<br>' +
       '緑：位置・文字とも正解と一致　黄：文字は正解に含まれるが位置が違う　灰：正解に含まれない</p>' +
-      '<p>正解・入力どちらかに同じ文字が複数ある場合は、緑判定を優先したうえで、位置が先頭に近い方から黄色が付きます。</p>';
+      '<p>正解・入力どちらかに同じ文字が複数ある場合は、緑判定を優先したうえで、位置が先頭に近い方から黄色が付きます。</p>' +
+      '<p>「初手をランダムで選ぶ」を押すと、正解以外の候補からランダムに選んだポケモンで1手目を決定します。</p>' +
+      '<p>「候補数表示」にチェックを入れると、各解答欄の右に、その欄に解答する時点での確定情報(緑・黄・灰すべて)と矛盾しない、正解となりうるポケモンの数を表示します。</p>';
     rulesFold.appendChild(rulesBody);
     wrap.appendChild(rulesFold);
 
@@ -204,6 +226,18 @@
     giveUpBtn.className = 'dameke-search-add-btn dameke-wordle-giveup-btn';
     giveUpBtn.textContent = 'ギブアップ';
     actionsRow.appendChild(giveUpBtn);
+    var countToggleLabel = document.createElement('label');
+    countToggleLabel.className = 'dameke-stathl-mode-option dameke-wordle-count-toggle';
+    var countToggle = document.createElement('input');
+    countToggle.type = 'checkbox';
+    countToggle.checked = wordleShowCount;
+    countToggle.addEventListener('change', function(){
+      wordleShowCount = countToggle.checked;
+      renderRows();
+    });
+    countToggleLabel.appendChild(countToggle);
+    countToggleLabel.appendChild(document.createTextNode('候補数表示'));
+    actionsRow.appendChild(countToggleLabel);
     wrap.appendChild(actionsRow);
 
     var messageHost = document.createElement('div');
@@ -281,7 +315,17 @@
       }
     }
 
-    function buildResultRow(word, colors){
+    // index番目(0始まり)の解答欄に、その欄に解答する時点(=それより前の解答の結果をすべて
+    // 反映した時点)での候補数を表示する要素を作る。候補数表示がOFFならnull。
+    function buildCountLabel(index){
+      if(!wordleShowCount) return null;
+      var el = document.createElement('span');
+      el.className = 'dameke-wordle-count';
+      el.textContent = '候補' + countConsistentCandidates(wordleState.guesses, index);
+      return el;
+    }
+
+    function buildResultRow(word, colors, index){
       var row = document.createElement('div');
       row.className = 'dameke-wordle-row dameke-wordle-row-result';
       var imgWrap = document.createElement('span');
@@ -301,6 +345,8 @@
         lettersWrap.appendChild(box);
       });
       row.appendChild(lettersWrap);
+      var resultCount = buildCountLabel(index);
+      if(resultCount) row.appendChild(resultCount);
       // 正解した行(全マス緑)には、正解の解答の横に小さく「正解！」を添える
       // (決定ボタンと同程度の大きさ。以前あった大きなメッセージ枠の代わり)。
       if(colors.every(function(c){ return c === 'green'; })){
@@ -314,7 +360,7 @@
 
     var guessError = null; // 直近の入力エラーメッセージ(あれば)
 
-    function buildInputRow(active){
+    function buildInputRow(active, index){
       var row = document.createElement('div');
       row.className = 'dameke-wordle-row dameke-wordle-row-input' + (active ? '' : ' dameke-wordle-row-input-inactive');
       var input = document.createElement('input');
@@ -334,6 +380,10 @@
         input.addEventListener('keydown', function(e){ if(e.key === 'Enter') doSubmit(); });
       }
       row.appendChild(btn);
+      if(active){
+        var inputCount = buildCountLabel(index);
+        if(inputCount) row.appendChild(inputCount);
+      }
       if(active && guessError){
         var err = document.createElement('span');
         err.className = 'dameke-wordle-input-error';
@@ -360,8 +410,12 @@
         renderRows();
         return;
       }
+      applyGuess(match);
+    }
+
+    function applyGuess(word){
+      if(wordleState.finished) return;
       guessError = null;
-      var word = match;
       var colors = computeColors(word, wordleState.answer);
       wordleState.guesses.push({ word: word, colors: colors });
       updateCharStatus(word, colors);
@@ -373,13 +427,35 @@
       if(wordleState.finished) giveUpBtn.hidden = true;
     }
 
+    // 初手をランダムに選ぶ。候補のうち正解そのものを除いたものから1つ選び、そのまま1手目として
+    // 決定する(初手でいきなり正解してしまうことはない)。
+    function pickRandomFirstGuess(){
+      if(wordleState.finished || wordleState.guesses.length) return;
+      var pool = getCandidates().filter(function(c){ return c !== wordleState.answer; });
+      if(!pool.length) return;
+      applyGuess(pool[Math.floor(Math.random() * pool.length)]);
+    }
+
     function renderRows(){
       rowsHost.innerHTML = '';
+      // 1手目の前(まだ1つも解答しておらず、ゲームも終わっていない間)だけ、1枠目の上に
+      // 初手ランダム選出ボタンを出す。
+      if(!wordleState.finished && !wordleState.guesses.length){
+        var randomRow = document.createElement('div');
+        randomRow.className = 'dameke-wordle-random-row';
+        var randomBtn = document.createElement('button');
+        randomBtn.type = 'button';
+        randomBtn.className = 'dameke-search-add-btn dameke-wordle-random-btn';
+        randomBtn.textContent = '初手をランダムで選ぶ';
+        randomBtn.addEventListener('click', pickRandomFirstGuess);
+        randomRow.appendChild(randomBtn);
+        rowsHost.appendChild(randomRow);
+      }
       for(var i = 0; i < MAX_TRIES; i++){
         var g = wordleState.guesses[i];
-        if(g){ rowsHost.appendChild(buildResultRow(g.word, g.colors)); continue; }
+        if(g){ rowsHost.appendChild(buildResultRow(g.word, g.colors, i)); continue; }
         var isActive = !wordleState.finished && i === wordleState.guesses.length;
-        rowsHost.appendChild(buildInputRow(isActive));
+        rowsHost.appendChild(buildInputRow(isActive, i));
       }
     }
 
