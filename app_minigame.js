@@ -858,21 +858,11 @@
     return el;
   }
 
-  // タイプの色付きバッジ表示用(ポケモン管理などと同じ配色。この対応表自体は
-  // 各ファイルにそれぞれ持たせる既存の構成に合わせて、ここにも独自に持つ)。
-  var STATCHART_TYPE_COLOR_MAP = { 'なし':'none', 'ノーマル':'normal', 'ほのお':'fire', 'みず':'water', 'でんき':'electric', 'くさ':'grass', 'こおり':'ice', 'かくとう':'fighting', 'どく':'poison', 'じめん':'ground', 'ひこう':'flying', 'エスパー':'psychic', 'むし':'bug', 'いわ':'rock', 'ゴースト':'ghost', 'ドラゴン':'dragon', 'あく':'dark', 'はがね':'steel', 'フェアリー':'fairy', 'ステラ':'stellar' };
-  function statChartTypeColorClass(t){ return 'dameke-type-' + (STATCHART_TYPE_COLOR_MAP[t] || 'none'); }
+  // タイプの色付きバッジ表示用(ポケモン管理などと同じ配色。common.js の共通処理を使う)。
+  function statChartTypeColorClass(t){ return window.DAMEKE_COMMON.typeColorClass(t); }
 
   // ---- チャンピオンズ参戦済み判定(ポケモン検索の「チャンピオンズ参戦済のみ」と同じロジック) ----
-  function statChartLearnsetKeyFor(name){
-    var m = String(name || '').match(/^(.+?)\(([^)]+)\)$/);
-    return m ? (m[1] + '_' + m[2]) : name;
-  }
-  function statChartHasChampionsEntry(p){
-    var LS = window.DAMEKE_LEARNSETS;
-    if(!LS) return false;
-    return LS.hasLearnset(statChartLearnsetKeyFor(p.name));
-  }
+  function statChartHasChampionsEntry(p){ return window.DAMEKE_COMMON.hasChampionsEntry(p); }
 
   function getStatChartPool(finalOnly, championsOnly){
     return (DATA.pokemons || []).filter(function(p){

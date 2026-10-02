@@ -6,21 +6,13 @@
 (function(){
   'use strict';
   function q(id){ return document.getElementById(id); }
-  function fillSelect(select, items){ select.textContent=''; items.forEach(function(item){ var op=document.createElement('option'); op.value=item.id; op.textContent=item.name; select.appendChild(op); }); }
+  function fillSelect(select, items){ return window.DAMEKE_COMMON.fillSelect(select, items); }
 
   var DATA = window.DAMEKE_DATA;
   var CALC = window.DAMEKE_CALC;
   var STAT_KEYS = ['H','A','B','C','D','S'];
-  var STAT_LABELS = { H:'HP', A:'攻撃', B:'防御', C:'特攻', D:'特防', S:'素早さ' };
 
-  var NATURE_STAT_MAP = {
-    'さみしがり':['A','B'], 'いじっぱり':['A','C'], 'やんちゃ':['A','D'], 'ゆうかん':['A','S'],
-    'ずぶとい':['B','A'], 'わんぱく':['B','C'], 'のうてんき':['B','D'], 'のんき':['B','S'],
-    'ひかえめ':['C','A'], 'おっとり':['C','B'], 'うっかりや':['C','D'], 'れいせい':['C','S'],
-    'おだやか':['D','A'], 'おとなしい':['D','B'], 'しんちょう':['D','C'], 'なまいき':['D','S'],
-    'おくびょう':['S','A'], 'せっかち':['S','B'], 'ようき':['S','C'], 'むじゃき':['S','D'],
-    'がんばりや':[null,null], 'すなお':[null,null], 'てれや':[null,null], 'きまぐれ':[null,null], 'まじめ':[null,null]
-  };
+  var NATURE_STAT_MAP = window.DAMEKE_COMMON.NATURE_STAT_MAP;
   var ALL_NATURE_NAMES = Object.keys(NATURE_STAT_MAP);
 
   // ---- State ----
@@ -31,7 +23,6 @@
   var currentLevel = '50';
   var lastOptimizeResult = null; // { nature, evs, remaining } | { infeasible:true } | null
 
-  function getPokemon(){ return selectedPokemon; }
 
   // ---- Core stat computation (wraps getActualStats with the tool's own current state) ----
   function actualFor(evs, natureName){
@@ -80,7 +71,7 @@
     }
     var table = document.createElement('div');
     table.className = 'dameke-adjust-evspec-table';
-    table.style.gridTemplateColumns = '3.4em repeat(6,minmax(2.8em,4em))';
+    table.style.gridTemplateColumns = '3.4em repeat(6,minmax(1.375rem,4em))';
     var corner = document.createElement('div'); table.appendChild(corner);
     buildStatHeadRow(table, currentNature);
 
@@ -235,7 +226,7 @@
     var actual = actualFor(r.evs, r.nature);
     var table = document.createElement('div');
     table.className = 'dameke-adjust-evspec-table';
-    table.style.gridTemplateColumns = '3.4em repeat(6,minmax(2.8em,4em))';
+    table.style.gridTemplateColumns = '3.4em repeat(6,minmax(1.375rem,4em))';
     var corner = document.createElement('div'); table.appendChild(corner);
     buildStatHeadRow(table, r.nature);
     var evLabel = document.createElement('div'); evLabel.className='dameke-adjust-evspec-rowlabel'; evLabel.textContent='努力値'; table.appendChild(evLabel);

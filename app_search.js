@@ -10,8 +10,7 @@
   var STAT_KEYS = ['H','A','B','C','D','S'];
   var ALL_TYPES = CALC.__typeEffectivenessAllTypes || ['ノーマル','ほのお','みず','でんき','くさ','こおり','かくとう','どく','じめん','ひこう','エスパー','むし','いわ','ゴースト','ドラゴン','あく','はがね','フェアリー'];
   var TYPE_ORDER = ALL_TYPES;
-  var TYPE_COLOR_MAP = { 'なし':'none', 'ノーマル':'normal', 'ほのお':'fire', 'みず':'water', 'でんき':'electric', 'くさ':'grass', 'こおり':'ice', 'かくとう':'fighting', 'どく':'poison', 'じめん':'ground', 'ひこう':'flying', 'エスパー':'psychic', 'むし':'bug', 'いわ':'rock', 'ゴースト':'ghost', 'ドラゴン':'dragon', 'あく':'dark', 'はがね':'steel', 'フェアリー':'fairy', 'ステラ':'stellar' };
-  function typeColorClass(t){ return 'dameke-type-' + (TYPE_COLOR_MAP[t] || 'none'); }
+  function typeColorClass(t){ return window.DAMEKE_COMMON.typeColorClass(t); }
   // 専用Z技・キョダイマックス技(てんこがすめつぼうのひかり等)の内部参照レコードは
   // DATA.enhancedMoveInternalRefsに分離済みで、DATA.moves自体には含まれないため、
   // 「選択可能な技一覧」としてDATA.movesをそのまま使えばよい(以前はここで個別除外していた)。
@@ -26,9 +25,6 @@
   var usageFormat = 'singles'; // 'singles' | 'doubles'
   var usageLoadPromise = null;
 
-  function isFiniteNumberInRange(v, min, max){
-    return typeof v === 'number' && isFinite(v) && v >= min && v <= max;
-  }
 
   // 最低限のスキーマ検証。ここを通らないデータは一切使用しない(ブラウザ側は安全性優先)。
   function validateUsageData(obj){
@@ -74,13 +70,8 @@
     return usageLoadPromise;
   }
 
-  var NATURE_STAT_MAP = {
-    'さみしがり':['A','B'], 'いじっぱり':['A','C'], 'やんちゃ':['A','D'], 'ゆうかん':['A','S'],
-    'ずぶとい':['B','A'], 'わんぱく':['B','C'], 'のうてんき':['B','D'], 'のんき':['B','S'],
-    'ひかえめ':['C','A'], 'おっとり':['C','B'], 'うっかりや':['C','D'], 'れいせい':['C','S'],
-    'おだやか':['D','A'], 'おとなしい':['D','B'], 'しんちょう':['D','C'], 'なまいき':['D','S'],
-    'おくびょう':['S','A'], 'せっかち':['S','B'], 'ようき':['S','C'], 'むじゃき':['S','D']
-  };
+  // 補正のある性格だけ(補正なしの性格は除く)。
+  var NATURE_STAT_MAP = (function(){ var src = window.DAMEKE_COMMON.NATURE_STAT_MAP, out = {}; Object.keys(src).forEach(function(n){ if(src[n][0]) out[n] = src[n]; }); return out; })();
   var UP_NATURE_FOR = {}, DOWN_NATURE_FOR = {};
   Object.keys(NATURE_STAT_MAP).forEach(function(n){
     var pair = NATURE_STAT_MAP[n];
@@ -88,10 +79,7 @@
     if(!DOWN_NATURE_FOR[pair[1]]) DOWN_NATURE_FOR[pair[1]] = n;
   });
 
-  function learnsetKeyFor(name){
-    var m = String(name||'').match(/^(.+?)\(([^)]+)\)$/);
-    return m ? (m[1] + '_' + m[2]) : name;
-  }
+  function learnsetKeyFor(name){ return window.DAMEKE_COMMON.learnsetKeyFor(name); }
   function pokemonLearnset(p){
     var LS = window.DAMEKE_LEARNSETS;
     if(!LS) return null;
@@ -165,7 +153,7 @@
   var filters = defaultFilters();
   var sortBy = 'dex'; // 'dex' | 'kana' | 'stat' | 'weight'
   var sortStatKey = 'total'; // used when sortBy==='stat': H/A/B/C/D/S/total
-  function kanaNormalize(s){ return String(s||'').replace(/[\u30a1-\u30f6]/g, function(c){ return String.fromCharCode(c.charCodeAt(0)-0x60); }).toLowerCase(); }
+  function kanaNormalize(s){ return window.DAMEKE_COMMON.kanaNormalize(s); }
   // 「4倍」「2倍以上」「等倍以上」「等倍以下」「半減以下」「1/4以下」の6段階。「以下」の3つは
   // 無効(0倍)も含めて「その水準以下」を満たすかどうかで判定する(等倍以下なら半減・1/4・無効も
   // すべて該当)。「以上」の2つは、その倍率以上(2倍以上なら4倍も該当、等倍以上なら2倍・4倍も
@@ -256,11 +244,7 @@
     return true;
   }
 
-  function fillSelect(select, items, placeholder){
-    select.textContent = '';
-    if(placeholder){ var op0=document.createElement('option'); op0.value=''; op0.textContent=placeholder; select.appendChild(op0); }
-    items.forEach(function(item){ var op=document.createElement('option'); op.value=item.id; op.textContent=item.name; select.appendChild(op); });
-  }
+  function fillSelect(select, items, placeholder){ return window.DAMEKE_COMMON.fillSelect(select, items, placeholder); }
   var comboIdCounter = 0;
   function makeCompactSelect(items, placeholder, withSearch){
     var id = 'damekeSearchCombo' + (comboIdCounter++);
@@ -676,10 +660,6 @@
     var host = q('damekeSearchDetailHost');
     if(host && !host.hidden && lastDetailPokemon) renderDetail(lastDetailPokemon);
   });
-  function closeDetail(){
-    q('damekeSearchDetailHost').hidden = true;
-    q('damekeSearchResultHost').hidden = false;
-  }
   // 種族値レーダーチャート: 12時の頂点をH、右回りにC/D/S/B/Aの六角形。数値は表示せず、あくまで
   // イメージ図として形と軸ラベルのみを示す(具体的な数値は下の表で確認できるため)。
   function buildStatRadarSvg(baseStats){
@@ -730,14 +710,7 @@
       + labels
       + '</svg>';
   }
-  function matchupClassFor(rate){
-    if(rate === 0) return 'dameke-search-matchup-immune';
-    if(rate >= 4) return 'dameke-search-matchup-weak4';
-    if(rate === 2) return 'dameke-search-matchup-weak2';
-    if(rate === 1) return 'dameke-search-matchup-neutral';
-    if(rate === 0.5) return 'dameke-search-matchup-resist2';
-    return 'dameke-search-matchup-resist4';
-  }
+  function matchupClassFor(rate){ return window.DAMEKE_COMMON.matchupClassFor(rate); }
   var moveListFilter = { name:'', type:'', category:'', minPower:null, minAccuracy:null, pp:null, target:'', contact:'' };
   var moveListSort = 'type';
   function renderDetail(p){
@@ -791,7 +764,7 @@
     host.appendChild(statTitle);
     var statTable = document.createElement('div');
     statTable.className = 'dameke-adjust-evspec-table dameke-search-combined-stat-table';
-    statTable.style.gridTemplateColumns = '5.4em repeat(6,minmax(3.6em,4.6em)) minmax(4.6em,5.6em)';
+    statTable.style.gridTemplateColumns = '5.4em repeat(6,minmax(1.375rem,4.6em)) minmax(1.375rem,5.6em)';
     var corner = document.createElement('div'); statTable.appendChild(corner);
     STAT_KEYS.concat(['合計']).forEach(function(k){ var h=document.createElement('div'); h.className='dameke-adjust-evspec-head'; h.textContent=k; statTable.appendChild(h); });
     function addStatRow(label, valueFn, totalFn){

@@ -263,13 +263,28 @@
     return atkName + ' の ' + mvName + ' → ' + defName;
   }
 
-  // Same idea as statRefFor() below, but usable at save time against a live result's trace.
-  function resolveStatRef(trace, labelKey, fallbackSide, fallbackKey){
-    var line = (trace || []).find(function(t){ return String(t.label||'').indexOf(labelKey) >= 0; });
-    var text = line ? (line.name||'') + ': ' + (line.value||'') + (line.note?(' / '+line.note):'') : '';
-    var m = text.match(/(攻撃側|防御側)ランク補正込み([ABCD])参照/);
-    if(m) return { side: m[1]==='攻撃側' ? 'attacker' : 'defender', key: m[2] };
-    return { side: fallbackSide, key: fallbackKey };
+  // 補正後攻撃側/防御側実数値が参照した能力(イカサマ・ボディプレス等で入れ替わる)を、計算結果の
+  // 表示用データ(DAMEKE_CALC.getDisplayData)から得る。which: 'atkRef' | 'defRef'。
+  function resolveStatRef(result, which, fallbackSide, fallbackKey){
+    var ref = window.DAMEKE_CALC.getDisplayData(result)[which];
+    return ref || { side: fallbackSide, key: fallbackKey };
+  }
+  // 計算履歴のカードに表示する特性・持ち物(名前と有効/無効の状態)。
+  function abilityItemSnapshot(result){
+    var dd = window.DAMEKE_CALC.getDisplayData(result);
+    return { abilities: dd.abilities, items: dd.items };
+  }
+  // この更新(2026-09-30)より前に保存された計算履歴は特性・持ち物を個別に持たず、計算過程(trace)ごと保存していた。
+  // そうした古い保存データを表示するときだけ、保存済みのtraceから同じ形に変換する。
+  function legacyAbilityItem(trace){
+    function pick(labelPart){
+      var e = (trace || []).find(function(x){ return String(x.label||'').indexOf(labelPart) >= 0; });
+      return e ? { name: e.name, status: e.value } : null;
+    }
+    return {
+      abilities: { attacker: pick('特性（攻撃側）'), defender: pick('特性（防御側）') },
+      items: { attacker: pick('持ち物（攻撃側）'), defender: pick('持ち物（防御側）') }
+    };
   }
 
   // Computes the result once, at save time, using the live calculator state (already what's on
@@ -291,15 +306,15 @@
       try{ faintPct = window.DAMEKE_CALC.computeFaintProbability ? window.DAMEKE_CALC.computeFaintProbability(inputArgs, result) : null; }
       catch(e){ faintPct = null; }
       var cat = result.effectiveCategory;
-      var atkRef = resolveStatRef(result.trace, '補正後攻撃側実数値', 'attacker', cat==='特殊'?'C':'A');
-      var defRef = resolveStatRef(result.trace, '補正後防御側実数値', 'defender', cat==='特殊'?'D':'B');
+      var atkRef = resolveStatRef(result, 'atkRef', 'attacker', cat==='特殊'?'C':'A');
+      var defRef = resolveStatRef(result, 'defRef', 'defender', cat==='特殊'?'D':'B');
       return {
         attackerName: result.attackerName, defenderName: result.defenderName, moveName: result.moveName,
         effectiveCategory: cat, minDamage: result.minDamage, maxDamage: result.maxDamage,
         minRate: result.minRate, maxRate: result.maxRate, koInfo: result.koInfo,
         substituteBlocksAll: result.substituteBlocksAll, defenderCurrentHp: result.defenderCurrentHp,
         defenderMaxHp: result.defenderMaxHp, faintPct: faintPct, atkRef: atkRef, defRef: defRef,
-        trace: result.trace
+        abilityItem: abilityItemSnapshot(result)
       };
     } catch(e){
       if(window.console) console.error('[history] compute failed:', e);
@@ -317,8 +332,8 @@
       var result = window.__damekeLastResult;
       if(!result) return computeResultSnapshot(state);
       var cat = result.effectiveCategory;
-      var atkRef = resolveStatRef(result.trace, '補正後攻撃側実数値', 'attacker', cat==='特殊'?'C':'A');
-      var defRef = resolveStatRef(result.trace, '補正後防御側実数値', 'defender', cat==='特殊'?'D':'B');
+      var atkRef = resolveStatRef(result, 'atkRef', 'attacker', cat==='特殊'?'C':'A');
+      var defRef = resolveStatRef(result, 'defRef', 'defender', cat==='特殊'?'D':'B');
       var snap = {
         attackerName: result.attackerName, defenderName: result.defenderName, moveName: result.moveName,
         effectiveCategory: cat, minDamage: result.minDamage, maxDamage: result.maxDamage,
@@ -327,7 +342,7 @@
         koText: window.__damekeFormatKoInfo ? window.__damekeFormatKoInfo(result) : null,
         substituteBlocksAll: result.substituteBlocksAll, defenderCurrentHp: result.defenderCurrentHp,
         defenderMaxHp: result.defenderMaxHp, faintPct: window.__damekeLastFaintPct, atkRef: atkRef, defRef: defRef,
-        trace: result.trace
+        abilityItem: abilityItemSnapshot(result)
       };
       var move2Active = window.__damekeIsMove2None ? !window.__damekeIsMove2None() : false;
       var c = move2Active ? window.__damekeCombinedResult : null;
@@ -385,13 +400,7 @@
     restoreCalculatorState(entry.state);
   }
 
-  function formatSavedAt(iso){
-    try{
-      var d = new Date(iso);
-      var pad = function(n){ return (n<10?'0':'')+n; };
-      return d.getFullYear()+'/'+pad(d.getMonth()+1)+'/'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes());
-    } catch(e){ return ''; }
-  }
+  function formatSavedAt(iso){ return window.DAMEKE_COMMON.formatDateTime(iso); }
 
   // state.attackerItemSelect/defenderItemSelect hold the <select>'s raw value, which is the
   // item's id (e.g. "none" for 持ち物なし), not its displayed name ("なし") -- buildMiniThumb's
@@ -653,25 +662,12 @@
       addRow(atkCol, 'ランク('+atkSideJp+atkRef.key+')', statFromState(state, atkRef.side, atkRef.key, 'rank'));
       addRow(defCol, 'ランク('+defRef.key+')', statFromState(state,'defender',defRef.key,'rank'));
     }
-    // 特性/持ち物: 下部固定枠(v082hResultPanel)と同じ、保存されたtraceを参照した有効/無効込みの
-    // 表示ロジック(abilityDisplay/itemDisplay相当)をここでも再現する。
-    var trace = snapshot.trace || [];
-    function findTrace(labelPart){ return trace.find(function(x){ return String(x.label||'').indexOf(labelPart) >= 0; }) || null; }
-    function abilityDisplay(labelPart){
-      var e = findTrace(labelPart);
-      if(!e) return '-';
-      return e.value === '有効' ? e.name : (e.name + '（' + e.value + '）');
-    }
-    function itemDisplay(labelPart){
-      var e = findTrace(labelPart);
-      if(!e) return '-';
-      var status = e.value === '持ち物なし' ? '無効' : e.value;
-      return status === '有効' ? e.name : (e.name + '（' + status + '）');
-    }
-    addRow(atkCol, '特性', abilityDisplay('特性（攻撃側）'));
-    addRow(defCol, '特性', abilityDisplay('特性（防御側）'));
-    addRow(atkCol, '持ち物', itemDisplay('持ち物（攻撃側）'));
-    addRow(defCol, '持ち物', itemDisplay('持ち物（防御側）'));
+    // 特性/持ち物: 下部固定枠と同じ表示(名前と有効/無効の状態)。
+    var ai = snapshot.abilityItem || legacyAbilityItem(snapshot.trace);
+    addRow(atkCol, '特性', window.__damekeAbilityStatusText(ai.abilities.attacker));
+    addRow(defCol, '特性', window.__damekeAbilityStatusText(ai.abilities.defender));
+    addRow(atkCol, '持ち物', window.__damekeItemStatusText(ai.items.attacker));
+    addRow(defCol, '持ち物', window.__damekeItemStatusText(ai.items.defender));
     wrap.appendChild(atkCol);
     wrap.appendChild(defCol);
     return wrap;
@@ -712,11 +708,10 @@
     return el.id || '';
   }
 
-  // Fields already shown elsewhere in the card (basic selectors, HP, stats, gender -- both the
-  // real field genderValue() reads and the unused static one -- and the EV quick-preset
-  // selectors) are excluded so "詳細" only adds genuinely new information.
+  // Fields already shown elsewhere in the card (basic selectors, HP, stats, gender and the EV
+  // quick-preset selectors) are excluded so "詳細" only adds genuinely new information.
   var STAT_DETAIL_ID_SUFFIXES = ['_nature', '_iv', '_ev', '_rank', '_actual'];
-  var ALREADY_SHOWN_IDS = ['attackerSelect','defenderSelect','moveSelect','move2Select','attackerLevel','defenderLevel','attackerCurrentHp','defenderCurrentHp','attackerSexSelect','defenderSexSelect','attackerGender','defenderGender','v082hEvPreset_attacker','v082hEvPreset_defender','attackerAbilitySelect','defenderAbilitySelect','attackerItemSelect','defenderItemSelect'];
+  var ALREADY_SHOWN_IDS = ['attackerSelect','defenderSelect','moveSelect','move2Select','attackerLevel','defenderLevel','attackerCurrentHp','defenderCurrentHp','attackerSexSelect','defenderSexSelect','v082hEvPreset_attacker','v082hEvPreset_defender','attackerAbilitySelect','defenderAbilitySelect','attackerItemSelect','defenderItemSelect'];
   function isAlreadyShownElsewhere(id){
     if(ALREADY_SHOWN_IDS.indexOf(id) >= 0) return true;
     return STAT_DETAIL_ID_SUFFIXES.some(function(suf){ return id.indexOf(suf) >= 0; });
@@ -862,46 +857,18 @@
   }
 
   // ---- Inject the "履歴保存" button into the calculator's own toolbar, next to 攻防交代.
-  function buildButtonGroup(label, groupClass, buttons){
-    var group = document.createElement('div');
-    group.className = 'dameke-btn-group ' + groupClass;
-    var lbl = document.createElement('span');
-    lbl.className = 'dameke-btn-group-label';
-    lbl.textContent = label;
-    var row = document.createElement('div');
-    row.className = 'dameke-btn-group-buttons';
-    buttons.forEach(function(b){
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'dameke-btn-group-btn ' + (b.cls||'');
-      btn.textContent = b.text;
-      btn.addEventListener('click', b.onClick);
-      row.appendChild(btn);
-    });
-    group.appendChild(lbl);
-    group.appendChild(row);
-    return group;
-  }
-
-  function injectHistorySaveButton(attemptsLeft){
-    var toolbar = q('v082hToolbar');
-    if(!toolbar){
-      if(attemptsLeft > 0) setTimeout(function(){ injectHistorySaveButton(attemptsLeft-1); }, 200);
-      return;
-    }
-    if(q('damekeHistoryGroup')) return;
-    var group = buildButtonGroup('履歴', 'dameke-btn-group-history', [
-      { text:'保存', cls:'dameke-btn-group-save', onClick: saveCurrentAsHistory },
-      { text:'呼び出し', cls:'dameke-btn-group-load', onClick: function(){ showPanel('history'); } }
-    ]);
-    group.id = 'damekeHistoryGroup';
-    toolbar.appendChild(group);
+  // 計算画面のツールバーにある「履歴」の保存・呼び出しボタン(index.html に配置済み)。
+  function bindHistoryButtons(){
+    var group = q('damekeHistoryGroup');
+    if(!group) return;
+    var saveBtn = group.querySelector('.dameke-btn-group-save'), loadBtn = group.querySelector('.dameke-btn-group-load');
+    if(saveBtn) saveBtn.addEventListener('click', saveCurrentAsHistory);
+    if(loadBtn) loadBtn.addEventListener('click', function(){ showPanel('history'); });
   }
 
   function init(){
     initMenu();
-    injectHistorySaveButton(25); // installLayout() runs during the calculator's own init
-                                   // sequence, which may finish slightly after this script does
+    bindHistoryButtons();
     if(window.__damekeInitPokemonPanel) window.__damekeInitPokemonPanel();
     if(window.__damekeInitPartyPanel) window.__damekeInitPartyPanel();
   }
@@ -909,7 +876,6 @@
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
   window.addEventListener('load', function(){
-    injectHistorySaveButton(10);
     if(window.__damekeInitPokemonPanel) window.__damekeInitPokemonPanel();
     if(window.__damekeInitPartyPanel) window.__damekeInitPartyPanel();
   });
@@ -1103,31 +1069,6 @@
     if(g==='♂'||g==='♀') return g+'\uFE0E';
     if(g==='不明') return '性別不明';
     return g;
-  }
-
-  function buildLabeledRow(label, value){
-    var row = document.createElement('div');
-    row.className = 'dameke-pokemon-detail-row';
-    var l = document.createElement('span'); l.className='dameke-pokemon-detail-label'; l.textContent = label;
-    var v = document.createElement('span'); v.textContent = value;
-    row.appendChild(l); row.appendChild(v);
-    return row;
-  }
-
-  // Same shape as buildLabeledRow(), but each move name gets its own inline span (with
-  // white-space:nowrap) so a narrow container wraps *between* move names instead of splitting
-  // a single move name mid-way.
-  function buildMovesRow(label, moveNames){
-    var row = document.createElement('div');
-    row.className = 'dameke-pokemon-detail-row';
-    var l = document.createElement('span'); l.className='dameke-pokemon-detail-label'; l.textContent = label;
-    var v = document.createElement('span'); v.className='dameke-pokemon-moves-value';
-    moveNames.forEach(function(name){
-      var m = document.createElement('span'); m.className='dameke-pokemon-move-name'; m.textContent = name;
-      v.appendChild(m);
-    });
-    row.appendChild(l); row.appendChild(v);
-    return row;
   }
 
   // Read-only version of the edit form's combined 努力値/実数値 table, for the card summary.
@@ -1436,10 +1377,7 @@
   }
 
   // ---- Move learnset filtering (standalone version of the calculator's own logic) ----
-  function getLearnsetKeyFor(name){
-    var m = String(name||'').match(/^(.+?)\(([^)]+)\)$/);
-    return m ? (m[1] + '_' + m[2]) : name;
-  }
+  function getLearnsetKeyFor(name){ return window.DAMEKE_COMMON.learnsetKeyFor(name); }
   function getFilteredMovesForPokemon(pokemonId, showAll){
     var d = D();
     var allMoves = d.moves; // 専用Z/キョダイマックスの内部参照レコードはd.enhancedMoveInternalRefsに分離済みのためフィルタ不要
@@ -2154,13 +2092,7 @@
 
   // Local copy -- the original formatSavedAt() lives in a different IIFE (the menu/history one)
   // and isn't reachable from here.
-  function formatSavedAtLocal(iso){
-    try{
-      var d = new Date(iso);
-      var pad = function(n){ return (n<10?'0':'')+n; };
-      return d.getFullYear()+'/'+pad(d.getMonth()+1)+'/'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes());
-    } catch(e){ return ''; }
-  }
+  function formatSavedAtLocal(iso){ return window.DAMEKE_COMMON.formatDateTime(iso); }
 
   function loadPartyList(){
     try{
@@ -2302,8 +2234,8 @@
   // Same type-to-color-suffix mapping the calculator itself uses for its type-colored selects
   // (see app.js's TYPE_COLOR_MAP) -- duplicated here since app_tools.js can't reach across to
   // app.js's own scope, but the actual gradient CSS (.dameke-type-xxx) is shared/reused as-is.
-  var TYPE_COLOR_MAP = { 'なし':'none', 'ノーマル':'normal', 'ほのお':'fire', 'みず':'water', 'でんき':'electric', 'くさ':'grass', 'こおり':'ice', 'かくとう':'fighting', 'どく':'poison', 'じめん':'ground', 'ひこう':'flying', 'エスパー':'psychic', 'むし':'bug', 'いわ':'rock', 'ゴースト':'ghost', 'ドラゴン':'dragon', 'あく':'dark', 'はがね':'steel', 'フェアリー':'fairy', 'ステラ':'stellar' };
-  function typeColorClass(typeName){ return 'dameke-type-' + (TYPE_COLOR_MAP[typeName] || 'none'); }
+  var TYPE_COLOR_MAP = window.DAMEKE_COMMON.TYPE_COLOR_MAP;
+  function typeColorClass(typeName){ return window.DAMEKE_COMMON.typeColorClass(typeName); }
 
   function buildCompactMemberCard(entry){
     var card = document.createElement('div');

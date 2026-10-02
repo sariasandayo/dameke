@@ -5,7 +5,7 @@
 (function(){
   'use strict';
   function q(id){ return document.getElementById(id); }
-  function fillSelect(select, items){ select.textContent=''; items.forEach(function(item){ var op=document.createElement('option'); op.value=item.id; op.textContent=item.name; select.appendChild(op); }); }
+  function fillSelect(select, items){ return window.DAMEKE_COMMON.fillSelect(select, items); }
 
   var DATA = window.DAMEKE_DATA;
   var CALC = window.DAMEKE_CALC;

@@ -1,6 +1,7 @@
 // v2.5.3: 瀕死率の表示。絶対に瀕死にならない場合(ちょうど0)は「不可」、ごくわずかでも可能性があれば0.00%。
 function fmtFaintPct(p){ if(p == null) return '計算不可'; if(p === 0) return '不可'; return p.toFixed(2) + '%'; }
 window.__damekeFmtFaintPct = fmtFaintPct;
+// v2.4.1 下部固定枠の回復量表示を「技②終了時点までの回復量の合計」に変更。技データの修正・追加、シンクロノイズ、防御側条件いかり。
 // v2.4.0 ポケモン名の変更(ゲッコウガ(サトシゲッコウガ)→ゲッコウガ(サトシ)、ヨワシ(むれたすがた)→
 // ヨワシ(むれた)。IDも ゲッコウガ_サトシ / ヨワシ_むれた に変更)に合わせ、端末に保存済みの計算履歴・
 // ポケモン管理・パーティ等(localStorageの dameke_ で始まるキー)に残っている旧ID・旧名を、他の
@@ -36,13 +37,10 @@ window.__damekeFmtFaintPct = fmtFaintPct;
 (function () {
   const DATA = window.DAMEKE_DATA;
   const CALC = window.DAMEKE_CALC;
-  const NL = String.fromCharCode(10);
   const STAT_KEYS = ['H','A','B','C','D','S','acc','eva'];
-  const STAT_LABELS = { H:'HP', A:'攻撃', B:'防御', C:'特攻', D:'特防', S:'素早さ', acc:'命中', eva:'回避' };
-  const NATURE_OPTIONS = [["がんばりや","がんばりや 補正なし"],["さみしがり","さみしがり A↑ B↓"],["いじっぱり","いじっぱり A↑ C↓"],["やんちゃ","やんちゃ A↑ D↓"],["ゆうかん","ゆうかん A↑ S↓"],["ずぶとい","ずぶとい B↑ A↓"],["すなお","すなお 補正なし"],["わんぱく","わんぱく B↑ C↓"],["のうてんき","のうてんき B↑ D↓"],["のんき","のんき B↑ S↓"],["ひかえめ","ひかえめ C↑ A↓"],["おっとり","おっとり C↑ B↓"],["てれや","てれや 補正なし"],["うっかりや","うっかりや C↑ D↓"],["れいせい","れいせい C↑ S↓"],["おだやか","おだやか D↑ A↓"],["おとなしい","おとなしい D↑ B↓"],["しんちょう","しんちょう D↑ C↓"],["きまぐれ","きまぐれ 補正なし"],["なまいき","なまいき D↑ S↓"],["おくびょう","おくびょう S↑ A↓"],["せっかち","せっかち S↑ B↓"],["ようき","ようき S↑ C↓"],["むじゃき","むじゃき S↑ D↓"],["まじめ","まじめ 補正なし"]];
   const OP_LABELS = { attackerPowerTrick:'攻撃側パワートリック', defenderPowerTrick:'防御側パワートリック', powerShare:'パワーシェア', guardShare:'ガードシェア', speedSwap:'スピードスワップ', wonderRoom:'ワンダールーム' };
   let transformOps = [];
-  const ids = ['attackerSelect','defenderSelect','moveSelect','moveShowAll','attackerLevel','defenderLevel','attackerSpecialState','defenderSpecialState','attackerTeraType','defenderTeraType','attackerType1','attackerType2','defenderType1','defenderType2','attackerTypeOverride','defenderTypeOverride','attackerAddType','defenderAddType','attackerItemSelect','defenderItemSelect','attackerNoItem','defenderNoItem','attackerAbilitySelect','defenderAbilitySelect','attackerNoAbility','defenderNoAbility','weatherSelect','fieldSelect','magicRoom','gravity','protect','plasmaShower','neutralizingGasField','critical','electrify','pledgeCombination','defenderLuckyChant','defenderForesight','defenderMiracleEye','attackerEmbargo','defenderEmbargo','attackerStealthRock','defenderStealthRock','attackerSpikes','defenderSpikes','attackerSteelSurge','defenderSteelSurge','attackerRootedSmacked','defenderRootedSmacked','attackerMagnetRise','defenderMagnetRise','attackerTelekinesis','defenderTelekinesis','attackerRoost','defenderRoost','attackerBurnUp','defenderBurnUp','attackerDoubleShock','defenderDoubleShock','attackerCurrentHp','defenderCurrentHp','attackerStatsGrid','defenderStatsGrid','calculateButton','copyTraceButton','summary','trace','transformOpsDisplay','resetTransformOps'];
+  const ids = ['attackerSelect','defenderSelect','moveSelect','moveShowAll','attackerLevel','defenderLevel','attackerSpecialState','defenderSpecialState','attackerTeraType','defenderTeraType','attackerType1','attackerType2','defenderType1','defenderType2','attackerTypeOverride','defenderTypeOverride','attackerAddType','defenderAddType','attackerItemSelect','defenderItemSelect','attackerNoItem','defenderNoItem','attackerAbilitySelect','defenderAbilitySelect','attackerNoAbility','defenderNoAbility','weatherSelect','fieldSelect','magicRoom','gravity','plasmaShower','neutralizingGasField','critical','electrify','pledgeCombination','defenderLuckyChant','defenderForesight','defenderMiracleEye','attackerEmbargo','defenderEmbargo','attackerStealthRock','defenderStealthRock','attackerSpikes','defenderSpikes','attackerSteelSurge','defenderSteelSurge','attackerRootedSmacked','defenderRootedSmacked','attackerMagnetRise','defenderMagnetRise','attackerTelekinesis','defenderTelekinesis','attackerRoost','defenderRoost','attackerBurnUp','defenderBurnUp','attackerDoubleShock','defenderDoubleShock','attackerCurrentHp','defenderCurrentHp','transformOpsDisplay','resetTransformOps'];
   const el = {};
   ids.forEach(id => { el[id] = document.getElementById(id); });
   function genderValue(prefix){
@@ -52,11 +50,8 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     if(v==='♀') return 'female';
     return 'unknown';
   }
-  function fillSelect(select, items) { select.textContent = ""; for (const item of items) { const op = document.createElement('option'); op.value = item.id; op.textContent = item.name; select.appendChild(op); } }
-  function getLearnsetKey(name) {
-    var m = String(name || '').match(/^(.+?)\(([^)]+)\)$/);
-    return m ? (m[1] + '_' + m[2]) : name;
-  }
+  function fillSelect(select, items){ return window.DAMEKE_COMMON.fillSelect(select, items); }
+  function getLearnsetKey(name){ return window.DAMEKE_COMMON.learnsetKeyFor(name); }
   function getFilteredMoves() {
     var D = window.DAMEKE_DATA;
     var allMoves = D.moves; // 専用Z/キョダイマックスの内部参照レコードはD.enhancedMoveInternalRefsに分離済みのためフィルタ不要
@@ -130,27 +125,6 @@ window.__damekeFmtFaintPct = fmtFaintPct;
   window.__damekeStatKeys = STAT_KEYS;
   window.__damekeStatInputId = statInputId;
   window.__damekeGetTransformOps = function(){ return transformOps; };
-  function createStatsGrid(side, host) {
-    let html = '<div class="stat-row header"><span>能力</span><span>個体値</span><span>努力値</span><span>実数値</span><span>ランク</span></div>';
-    html += '<div class="stat-row nature-row"><span>性格</span><select id="' + side + '_nature"></select><span>-</span><span>-</span><span>-</span></div>';
-    for (const key of STAT_KEYS) {
-      const hasIvEv = key !== 'acc' && key !== 'eva';
-      const hasRank = key !== 'H';
-      html += '<div class="stat-row"><span>' + STAT_LABELS[key] + '</span>';
-      html += hasIvEv ? '<input id="' + statInputId(side,key,'iv') + '" type="number" min="0" max="31" value="31" />' : '<span>-</span>';
-      html += hasIvEv ? '<input id="' + statInputId(side,key,'ev') + '" type="number" min="0" max="32" value="0" />' : '<span>-</span>';
-      html += hasIvEv ? '<input id="' + statInputId(side,key,'actual') + '" type="number" />' : '<span>-</span>';
-      html += hasRank ? '<input id="' + statInputId(side,key,'rank') + '" type="number" min="-6" max="6" value="0" />' : '<span>-</span>';
-      html += '</div>';
-    }
-    host.innerHTML = html;
-    const natureSelect = document.getElementById(side + '_nature');
-    if (natureSelect) {
-      for (const n of NATURE_OPTIONS) { const op = document.createElement('option'); op.value = n[0]; op.textContent = n[1]; natureSelect.appendChild(op); }
-      natureSelect.value = 'まじめ';
-    }
-    bindActualStatInputs(side);
-  }
   // 実数値 -> 努力値 reverse lookup: typing a target actual stat finds the minimum EV (0-32)
   // whose actual value reaches it, using that stat's own current nature/IV/level. The target is
   // clamped to [actualAt(0), actualAt(32)] first, so only values actually achievable for this
@@ -191,7 +165,7 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     return out;
   }
   function fillSelectBeatUpAllies() { ['beatUpAlly', 'move2BeatUpAlly'].forEach(function(prefix){ for (let i = 1; i <= 5; i++) { const s = document.getElementById(prefix + i); if (!s) continue; s.textContent = ""; const none = document.createElement('option'); none.value = 'none'; none.textContent = 'なし'; s.appendChild(none); for (const p of DATA.pokemons) { const op = document.createElement('option'); op.value = p.id; op.textContent = p.name; s.appendChild(op); } } }); } function setTypeDefaults(side) { const p = byId(DATA.pokemons, el[side + 'Select'].value); if (el[side + 'Type1']) el[side + 'Type1'].value = (p.types && p.types[0]) || 'なし'; if (el[side + 'Type2']) el[side + 'Type2'].value = (p.types && p.types[1]) || 'なし'; updateAllTypeColors(); if (el[side + 'AbilitySelect']) { el[side + 'AbilitySelect'].value = (p && p.abilities && p.abilities[0]) || 'なし'; } if (p && p.fixedGender) { const sexSel = document.getElementById(side + 'SexSelect'); if (sexSel) { sexSel.value = p.fixedGender; sexSel.dispatchEvent(new Event('change', {bubbles:true})); } } }
-  const TYPE_COLOR_MAP = { 'なし':'none', 'ノーマル':'normal', 'ほのお':'fire', 'みず':'water', 'でんき':'electric', 'くさ':'grass', 'こおり':'ice', 'かくとう':'fighting', 'どく':'poison', 'じめん':'ground', 'ひこう':'flying', 'エスパー':'psychic', 'むし':'bug', 'いわ':'rock', 'ゴースト':'ghost', 'ドラゴン':'dragon', 'あく':'dark', 'はがね':'steel', 'フェアリー':'fairy', 'ステラ':'stellar' };
+  const TYPE_COLOR_MAP = window.DAMEKE_COMMON.TYPE_COLOR_MAP;
   function updateTypeColor(sel) {
     if (!sel) return;
     sel.classList.add('dameke-type-select');
@@ -237,38 +211,7 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     input.classList.add('dameke-type-' + suffix);
   }
   window.__damekeUpdateMove2TypeColor = updateMove2TypeColor;
-  window.__damekeUpdateTypeColors = updateAllTypeColors; function formatTrace(trace) {
-  const order = [
-    '持ち物（攻撃側）','持ち物（防御側）','特性（攻撃側）','特性（防御側）','天候','フィールド',
-    'Z・ダイマックス（攻撃側）','ダイマックス（防御側）','テラスタル（攻撃側）','テラスタル（防御側）','技名変換','強化技効果',
-    '計算上タイプ（攻撃側）','計算上タイプ（防御側）','実数値操作','接地判定（攻撃側）','接地判定（防御側）',
-    'すばやさ詳細（攻撃側）','すばやさ詳細（防御側）','計算上おもさ（攻撃側）','計算上おもさ（防御側）',
-    '実効ランク（攻撃側）','実効ランク（防御側）','攻撃側ランク補正込み実数値','防御側ランク補正込み実数値',
-    '物理/特殊判定','技タイプ','連続攻撃','変動後威力','補正後攻撃側実数値','補正後防御側実数値',
-    'ダメージ変動値','タイプ相性詳細','ダメージ補正値','基本ダメージ','急所','乱数','優先度','直接攻撃判定','無効要素'
-  ];
-  const orderMap = new Map(order.map((x, i) => [x, i]));
-  function cleanLabel(label) {
-    let s = String(label || '');
-    s = s.replace(/^\s*00\s+/, '').replace(/^\s*02\s+/, '').replace(/^\s*N\d+\s+/, '').trim();
-    if (s === 'Z・ダイマックス（防御側）') s = 'ダイマックス（防御側）';
-    return s;
-  }
-  const rows = (trace || []).filter(x => !String(x.label).includes('まきびし接地判定')).map((x, i) => {
-    const label = cleanLabel(x.label);
-    let idx = orderMap.has(label) ? orderMap.get(label) : 999;
-    // ダメージ変動値は複数回出るため、元の出現順を維持します。
-    return { item: x, originalIndex: i, label, orderIndex: idx };
-  });
-  rows.sort((a, b) => (a.orderIndex - b.orderIndex) || (a.originalIndex - b.originalIndex));
-  return rows.map((row, i) => {
-    const x = row.item;
-    const no = String(i + 1).padStart(2, '0');
-    const mark = x.implemented === false ? ' [未実装]' : '';
-    const note = x.note ? ' / ' + x.note : '';
-    return no + '. [' + row.label + ']' + mark + ' ' + x.name + ': ' + x.value + note;
-  }).join(NL);
-}
+  window.__damekeUpdateTypeColors = updateAllTypeColors;
   function specialStatesForDefender() { return DATA.specialStates.filter(s => s.kind === 'none' || s.kind === 'dynamax' || s.kind === 'gmax'); }
   function updateOpsDisplay() { el.transformOpsDisplay.textContent = transformOps.length ? transformOps.map((x, i) => (i + 1) + '. ' + OP_LABELS[x]).join(' → ') : 'なし'; }
   window.__damekeUpdateOpsDisplay = updateOpsDisplay;
@@ -320,9 +263,9 @@ window.__damekeFmtFaintPct = fmtFaintPct;
       attackerItemId: el.attackerItemSelect.value, defenderItemId: el.defenderItemSelect.value, attackerNoItem: el.attackerNoItem.checked, defenderNoItem: el.defenderNoItem.checked,
       attackerAbilityId: el.attackerAbilitySelect.value, defenderAbilityId: el.defenderAbilitySelect.value, attackerNoAbility: el.attackerNoAbility.checked, defenderNoAbility: el.defenderNoAbility.checked,
       attackerSpecialState: el.attackerSpecialState.value, defenderSpecialState: el.defenderSpecialState.value, attackerTeraType: el.attackerTeraType.value, defenderTeraType: el.defenderTeraType.value, attackerGender: genderValue('attacker'), defenderGender: genderValue('defender'),
-      attackerType1: el.attackerType1.value, attackerType2: el.attackerType2.value, defenderType1: el.defenderType1.value, defenderType2: el.defenderType2.value, attackerTypeOverride: el.attackerTypeOverride.value, defenderTypeOverride: el.defenderTypeOverride.value, attackerAddType: el.attackerAddType.value, defenderAddType: el.defenderAddType.value, weather: el.weatherSelect.value, field: el.fieldSelect.value, magicRoom: el.magicRoom.checked, gravity: el.gravity.checked, protect: el.protect.checked, plasmaShower: el.plasmaShower.checked, neutralizingGasField: el.neutralizingGasField.checked,
+      attackerType1: el.attackerType1.value, attackerType2: el.attackerType2.value, defenderType1: el.defenderType1.value, defenderType2: el.defenderType2.value, attackerTypeOverride: el.attackerTypeOverride.value, defenderTypeOverride: el.defenderTypeOverride.value, attackerAddType: el.attackerAddType.value, defenderAddType: el.defenderAddType.value, weather: el.weatherSelect.value, field: el.fieldSelect.value, magicRoom: el.magicRoom.checked, gravity: el.gravity.checked, plasmaShower: el.plasmaShower.checked, neutralizingGasField: el.neutralizingGasField.checked,
       critical: (document.getElementById('attackerCriticalForce') && document.getElementById('attackerCriticalForce').checked) ? 3 : (parseInt(el.critical.value, 10) || 0), attackerGMaxRapidStrike: document.getElementById('attackerGMaxRapidStrike') ? (parseInt(document.getElementById('attackerGMaxRapidStrike').value, 10) || 0) : 0, attackerRainbow: !!(document.getElementById('attackerRainbow') && document.getElementById('attackerRainbow').checked), attackerFocusEnergy: !!(document.getElementById('attackerFocusEnergy') && document.getElementById('attackerFocusEnergy').checked), electrify: el.electrify.checked, pledgeCombination: el.pledgeCombination.checked,
-      defenderLuckyChant: el.defenderLuckyChant.checked, defenderForesight: el.defenderForesight.checked, defenderMiracleEye: el.defenderMiracleEye.checked,
+      defenderLuckyChant: el.defenderLuckyChant.checked, defenderForesight: el.defenderForesight.checked, defenderMiracleEye: el.defenderMiracleEye.checked, defenderRage: !!(document.getElementById('defenderRage') && document.getElementById('defenderRage').checked),
       attackerEmbargo: el.attackerEmbargo.checked, defenderEmbargo: el.defenderEmbargo.checked, attackerStealthRock: el.attackerStealthRock.checked, defenderStealthRock: el.defenderStealthRock.checked,
       attackerSpikes: el.attackerSpikes.value, defenderSpikes: el.defenderSpikes.value, attackerSteelSurge: el.attackerSteelSurge.checked, defenderSteelSurge: el.defenderSteelSurge.checked, attackerRootedSmacked: el.attackerRootedSmacked.checked, defenderRootedSmacked: el.defenderRootedSmacked.checked, attackerIngrain: !!(document.getElementById('attackerIngrain') && document.getElementById('attackerIngrain').checked), defenderIngrain: !!(document.getElementById('defenderIngrain') && document.getElementById('defenderIngrain').checked), defenderSeaOfFire: !!(document.getElementById('defenderSeaOfFire') && document.getElementById('defenderSeaOfFire').checked), attackerMagnetRise: el.attackerMagnetRise.checked, defenderMagnetRise: el.defenderMagnetRise.checked, attackerTelekinesis: el.attackerTelekinesis.checked, defenderTelekinesis: el.defenderTelekinesis.checked, attackerRoost: el.attackerRoost.checked, defenderRoost: el.defenderRoost.checked, attackerBurnUp: el.attackerBurnUp.checked, defenderBurnUp: el.defenderBurnUp.checked, attackerDoubleShock: el.attackerDoubleShock.checked, defenderDoubleShock: el.defenderDoubleShock.checked,
       attackerCurrentHpInput: el.attackerCurrentHp.value, defenderCurrentHpInput: el.defenderCurrentHp.value, attackerStats: readStats('attacker'), defenderStats: readStats('defender'), transformOps: transformOps.slice(), attackerStatus: statusForCalc('attacker'), defenderStatus: statusForCalc('defender'), attackerToxic: ((document.getElementById('attackerStatus')||{}).value === 'もうどく'), defenderToxic: ((document.getElementById('defenderStatus')||{}).value === 'もうどく'), attackerToxicCount: (document.getElementById('attackerToxicCount')||{}).value || '1', defenderToxicCount: (document.getElementById('defenderToxicCount')||{}).value || '1', defenderSemiInvulnerable: (document.getElementById('defenderSemiInvulnerable')||{}).value || 'なし', rolloutHit: document.getElementById('rolloutHit') ? document.getElementById('rolloutHit').value : '1', defenseCurl: !!(document.getElementById('defenseCurl') && document.getElementById('defenseCurl').checked), echoedVoiceCount: document.getElementById('echoedVoiceCount') ? document.getElementById('echoedVoiceCount').value : '1', moveOrder: document.getElementById('moveOrder') ? document.getElementById('moveOrder').value : 'first', targetSwitching: !!(document.getElementById('targetSwitching') && document.getElementById('targetSwitching').checked), faintedAllies: document.getElementById('faintedAllies') ? document.getElementById('faintedAllies').value : '0', supremeOverlordFaintedAllies: document.getElementById('supremeOverlordFaintedAllies') ? document.getElementById('supremeOverlordFaintedAllies').value : '0', friendship: document.getElementById('friendship') ? document.getElementById('friendship').value : '255', remainingPP: document.getElementById('remainingPP') ? document.getElementById('remainingPP').value : '4', lastMoveFailed: !!(document.getElementById('lastMoveFailed') && document.getElementById('lastMoveFailed').checked), userDamagedThisTurn: !!(document.getElementById('userDamagedThisTurn') && document.getElementById('userDamagedThisTurn').checked), targetDamagedThisTurn: !!(document.getElementById('targetDamagedThisTurn') && document.getElementById('targetDamagedThisTurn').checked), stockpileCount: document.getElementById('stockpileCount') ? document.getElementById('stockpileCount').value : '1', presentPower: document.getElementById('presentPower') ? document.getElementById('presentPower').value : '40', rageFistHitCount: document.getElementById('rageFistHitCount') ? document.getElementById('rageFistHitCount').value : '0', magnitudePower: document.getElementById('magnitudePower') ? document.getElementById('magnitudePower').value : '70', roundAllyUsed: !!(document.getElementById('roundAllyUsed') && document.getElementById('roundAllyUsed').checked), furyCutterCount: document.getElementById('furyCutterCount') ? document.getElementById('furyCutterCount').value : '1', psywaveMultiplier: document.getElementById('psywaveMultiplier') ? document.getElementById('psywaveMultiplier').value : '1', kimagureLaserDouble: !!(document.getElementById('kimagureLaserDouble') && document.getElementById('kimagureLaserDouble').checked), fixedDamageTaken: document.getElementById('fixedDamageTaken') ? document.getElementById('fixedDamageTaken').value : '0', defenderScreen: document.getElementById('defenderScreen') ? document.getElementById('defenderScreen').value : 'none', defenderFriendGuard: !!(document.getElementById('defenderFriendGuard') && document.getElementById('defenderFriendGuard').checked), defenderMinimized: !!(document.getElementById('defenderMinimized') && document.getElementById('defenderMinimized').checked), defenderProtectState: document.getElementById('defenderProtectState') ? document.getElementById('defenderProtectState').value : 'none', metronomeUseCount: document.getElementById('metronomeUseCount') ? document.getElementById('metronomeUseCount').value : '1', defenderForesight: !!(document.getElementById('defenderForesight') && document.getElementById('defenderForesight').checked), defenderMiracleEye: !!(document.getElementById('defenderMiracleEye') && document.getElementById('defenderMiracleEye').checked), defenderTarShot: !!(document.getElementById('defenderTarShot') && document.getElementById('defenderTarShot').checked), attackerStellarMoveCount: document.getElementById('attackerStellarMoveCount') ? document.getElementById('attackerStellarMoveCount').value : 'first', attackerDoubleDamage: !!(document.getElementById('attackerDoubleDamage') && document.getElementById('attackerDoubleDamage').checked), defenderGlaiveRush: !!(document.getElementById('defenderGlaiveRush') && document.getElementById('defenderGlaiveRush').checked), beadsOfRuinField: !!(document.getElementById('beadsOfRuinField') && document.getElementById('beadsOfRuinField').checked), swordOfRuinField: !!(document.getElementById('swordOfRuinField') && document.getElementById('swordOfRuinField').checked), defenderFlowerGiftSupport: !!(document.getElementById('defenderFlowerGiftSupport') && document.getElementById('defenderFlowerGiftSupport').checked), vesselOfRuinField: !!(document.getElementById('vesselOfRuinField') && document.getElementById('vesselOfRuinField').checked), tabletsOfRuinField: !!(document.getElementById('tabletsOfRuinField') && document.getElementById('tabletsOfRuinField').checked), flowerGiftSupport: !!(document.getElementById('flowerGiftSupport') && document.getElementById('flowerGiftSupport').checked), plusMinusSupport: !!(document.getElementById('plusMinusSupport') && document.getElementById('plusMinusSupport').checked), flashFireActivated: !!(document.getElementById('flashFireActivated') && document.getElementById('flashFireActivated').checked), stakeoutSwitchIn: !!(document.getElementById('stakeoutSwitchIn') && document.getElementById('stakeoutSwitchIn').checked), batterySupport: !!(document.getElementById('batterySupport') && document.getElementById('batterySupport').checked), powerSpotSupport: !!(document.getElementById('powerSpotSupport') && document.getElementById('powerSpotSupport').checked), steelSpiritCount: document.getElementById('steelSpiritCount') ? document.getElementById('steelSpiritCount').value : '0', helpingHandCount: document.getElementById('helpingHandCount') ? document.getElementById('helpingHandCount').value : '0', meFirst: !!(document.getElementById('meFirst') && document.getElementById('meFirst').checked), charge: !!(document.getElementById('charge') && document.getElementById('charge').checked), analyzeMovedLast: !!(document.getElementById('analyzeMovedLast') && document.getElementById('analyzeMovedLast').checked), fairyAuraField: !!(document.getElementById('fairyAuraField') && document.getElementById('fairyAuraField').checked), darkAuraField: !!(document.getElementById('darkAuraField') && document.getElementById('darkAuraField').checked), mudSport: !!(document.getElementById('mudSport') && document.getElementById('mudSport').checked), waterSport: !!(document.getElementById('waterSport') && document.getElementById('waterSport').checked), weatherSuppressField: !!(document.getElementById('weatherSuppressField') && document.getElementById('weatherSuppressField').checked), statDroppedThisTurn: !!(document.getElementById('statDroppedThisTurn') && document.getElementById('statDroppedThisTurn').checked), allyFaintedLastTurn: !!(document.getElementById('allyFaintedLastTurn') && document.getElementById('allyFaintedLastTurn').checked), beatUpAlly1: document.getElementById('beatUpAlly1') ? document.getElementById('beatUpAlly1').value : 'none', beatUpAlly2: document.getElementById('beatUpAlly2') ? document.getElementById('beatUpAlly2').value : 'none', beatUpAlly3: document.getElementById('beatUpAlly3') ? document.getElementById('beatUpAlly3').value : 'none', beatUpAlly4: document.getElementById('beatUpAlly4') ? document.getElementById('beatUpAlly4').value : 'none', beatUpAlly5: document.getElementById('beatUpAlly5') ? document.getElementById('beatUpAlly5').value : 'none', attackerTailwind: !!(document.getElementById('attackerTailwind') && document.getElementById('attackerTailwind').checked), attackerLockOn: !!(document.getElementById('attackerLockOn') && document.getElementById('attackerLockOn').checked), attackerMicleBerry: !!(document.getElementById('attackerMicleBerry') && document.getElementById('attackerMicleBerry').checked), attackerVictoryStar: !!(document.getElementById('attackerVictoryStar') && document.getElementById('attackerVictoryStar').checked), defenderConfusion: !!(document.getElementById('defenderConfusion') && document.getElementById('defenderConfusion').checked), defenderSubstitute: !!(document.getElementById('defenderSubstitute') && document.getElementById('defenderSubstitute').checked), focusLensMoveOrder: document.getElementById('focusLensMoveOrder') ? document.getElementById('focusLensMoveOrder').value : 'first', defenderTailwind: !!(document.getElementById('defenderTailwind') && document.getElementById('defenderTailwind').checked), attackerSwamp: !!(document.getElementById('attackerSwamp') && document.getElementById('attackerSwamp').checked), defenderSwamp: !!(document.getElementById('defenderSwamp') && document.getElementById('defenderSwamp').checked), attackerSlowStart: !!(document.getElementById('attackerSlowStart') && document.getElementById('attackerSlowStart').checked), defenderSlowStart: !!(document.getElementById('defenderSlowStart') && document.getElementById('defenderSlowStart').checked), attackerUnburden: !!(document.getElementById('attackerUnburden') && document.getElementById('attackerUnburden').checked), defenderUnburden: !!(document.getElementById('defenderUnburden') && document.getElementById('defenderUnburden').checked), attackerParadoxBoostStat: document.getElementById('attackerParadoxBoostStat') ? document.getElementById('attackerParadoxBoostStat').value : 'none', defenderParadoxBoostStat: document.getElementById('defenderParadoxBoostStat') ? document.getElementById('defenderParadoxBoostStat').value : 'none', attackerBodyPurge: document.getElementById('attackerBodyPurge') ? document.getElementById('attackerBodyPurge').value : '0', defenderBodyPurge: document.getElementById('defenderBodyPurge') ? document.getElementById('defenderBodyPurge').value : '0',
@@ -424,23 +367,13 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     catch(err){ var ev=document.createEvent('Event'); ev.initEvent('change', true, true); select.dispatchEvent(ev); }
   };
   function findTraceEntry(trace, labelPart){ return (trace||[]).find(function(x){ return String(x.label||'').indexOf(labelPart) >= 0; }) || null; }
-  window.__damekeFindTraceEntry = findTraceEntry;
-  function findTraceEntries(trace, labelPart){ return (trace||[]).filter(function(x){ return String(x.label||'').indexOf(labelPart) >= 0; }); }
-  function rateCell(label, rawText){
-    var tr = document.createElement('tr');
-    var th = document.createElement('th'); th.textContent = label; tr.appendChild(th);
-    var td = document.createElement('td');
-    var num = parseInt(rawText, 10);
-    if(!isNaN(num)){
-      td.textContent = String(num);
-      if(num > 4096) td.className = 'v082h-rate-up';
-      else if(num < 4096) td.className = 'v082h-rate-down';
-    } else {
-      td.textContent = rawText || '-';
-    }
-    tr.appendChild(td);
-    return tr;
-  }
+  // 特性・持ち物の「名前（状態）」表示(有効なら名前のみ)。x: {name, status} または null。
+  // 持ち物の「持ち物なし」状態は「無効」と表示する。下部固定枠と計算履歴で共通に使う。
+  function abilityStatusText(x){ if(!x) return '-'; return x.status === '有効' ? x.name : (x.name + '（' + x.status + '）'); }
+  function itemStatusText(x){ if(!x) return '-'; var status = x.status === '持ち物なし' ? '無効' : x.status; return status === '有効' ? x.name : (x.name + '（' + status + '）'); }
+  window.__damekeAbilityStatusText = abilityStatusText;
+  window.__damekeCalcTable = function(id){ return calcTables[id] || null; };
+  window.__damekeItemStatusText = itemStatusText;
   function pairedRow(label, atkText, defText){
     var tr = document.createElement('tr');
     var th = document.createElement('th'); th.textContent = label; tr.appendChild(th);
@@ -454,15 +387,13 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     var td = document.createElement('td'); td.colSpan = 2; td.textContent = value || '-'; tr.appendChild(td);
     return tr;
   }
-  function plainRow(label, value){ return spanRow(label, value); }
-  function renderCalcTable(result, hostId, anchorId){
+  // 計算過程の表(技①: v082hCalcTable、技②: v082hCalcTable2)を作り直す。表の配置は結果枠の描画(renderResult)が行う。
+  var calcTables = {};
+  function renderCalcTable(result, hostId){
     hostId = hostId || 'v082hCalcTable';
-    anchorId = anchorId || 'trace';
-    var host = document.getElementById(hostId);
+    var host = calcTables[hostId];
     if(!host){
-      host = document.createElement('table'); host.id = hostId; host.className = 'v082h-calc-table';
-      var traceEl = document.getElementById(anchorId);
-      if(traceEl && traceEl.parentNode) traceEl.parentNode.insertBefore(host, traceEl);
+      host = calcTables[hostId] = document.createElement('table'); host.id = hostId; host.className = 'v082h-calc-table';
     }
     host.innerHTML = '';
     var trace = result.trace || [];
@@ -830,12 +761,12 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     if (!parts.length) return '技①+②でも打点不足';
     return parts.join('+');
   }
-  // resultオブジェクト(CALC.calculateDamageの戻り値)から回復量の表示文字列を作る。
-  // きのみ等による回復が起こりうる場合のみ('result.recoveryAmount>0')、その量のみを返す
-  // (要因の名前は表示しない)。
-  function recoveryNoteFor(result) {
-    if (!result || !result.recoveryAmount || result.recoveryAmount <= 0) return null;
-    return result.recoveryAmount + '回復';
+  // 防御側の回復量の表示文字列を作る。rec = { max, certain }(CALC.computeMoveRecovery の戻り値、または
+  // CALC.calculateCombinedSequence の recoveryMax / recoveryCertain)。回復がなければ null。
+  // 回復するかどうか・回復する量が乱数や確率で変わる場合は「最大回復量」と表示する(要因の名前は表示しない)。
+  function recoveryNoteFor(rec) {
+    if (!rec || !(rec.max > 0)) return null;
+    return (rec.certain ? '回復量：' : '最大回復量：') + rec.max;
   }
   window.__damekeRecoveryNoteFor = recoveryNoteFor;
   // 「もうどく経過」欄は、状態異常で「もうどく」を選んでいるときだけ表示する。
@@ -854,22 +785,16 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     const result = CALC.calculateDamageWithEffects ? CALC.calculateDamageWithEffects(inputArgs) : CALC.calculateDamage(inputArgs);
     let faintPct = null;
     try { faintPct = CALC.computeFaintProbability ? CALC.computeFaintProbability(inputArgs, result) : null; } catch(e) { faintPct = null; }
-    const faintText = fmtFaintPct(faintPct);
-    const subLine = result.substituteActive ? (result.substituteMaxHp + '/' + result.substituteMinRemaining + '/' + result.substituteMaxRemaining) : '';
-    el.summary.innerHTML = ['<strong>' + result.attackerName + '</strong> の <strong>' + result.moveName + '</strong> → <strong>' + result.defenderName + '</strong>', '判定分類: <strong>' + result.effectiveCategory + '</strong>', '技タイプ: <strong>' + result.effectiveType + '</strong>', 'ダメージ: <strong>' + result.minDamage + ' ～ ' + result.maxDamage + '</strong>', '割合: <strong>' + result.minRate.toFixed(1) + '% ～ ' + result.maxRate.toFixed(1) + '%</strong>', '防御側HP: ' + result.defenderCurrentHp + ' / ' + result.defenderMaxHp, '確定数: <strong>' + formatKoInfo(result) + '</strong>', '命中率: <strong>' + (result.accuracyResult === '命中' ? formatAccuracyPercent(result.accuracyPercent) : result.accuracyResult) + '</strong>', '瀕死率: <strong>' + faintText + '</strong>', 'みがわり: ' + subLine].join('<br>');
+    // 結果枠の描画(renderResult)を予約する(以前は非表示の#summaryへ文字列を書き込み、その変更の監視で
+    // 描画していた。描画のタイミングは同じ: この計算の処理がすべて終わった直後に1回)。
+    if (window.__damekeScheduleResultRender) window.__damekeScheduleResultRender();
     // v2.4.0: 計算過程表の「追加効果」行(技①の追加効果、攻撃側/防御側)。
     try { result.effectSummary = CALC.describeMoveEffects ? CALC.describeMoveEffects(inputArgs, result) : null; } catch(e) { result.effectSummary = null; }
     renderCalcTable(result);
-    el.trace.textContent = formatTrace(result.trace);
-    // Exposed so renderResult() (a separate IIFE, driven by a MutationObserver on #summary/#trace
-    // rather than a direct call from here) can read the same structured trace entries the calc-
-    // process table itself uses for 特性/持ち物, instead of re-parsing the rendered trace text
-    // (which also carries each entry's note, and was producing "有効 / 有効"-style duplicates).
-    window.__damekeLastTrace = result.trace;
     window.__damekeLastResult = result;
-    // 瀕死率は#summaryへの表示専用の文字列(faintText)ではなく生の数値のまま保持しておく --
-    // 結果枠側(renderResult)はこれと result を直接読んで表示を組み立て、#summary/#traceの
-    // テキストを読み返すことはしない。
+    // 下部固定枠の回復量表示用(技①単体。技①のダメージ後の回復きのみ等まで)。
+    try { window.__damekeLastRecovery = CALC.computeMoveRecovery ? CALC.computeMoveRecovery(inputArgs) : null; } catch(e) { window.__damekeLastRecovery = null; }
+    // 瀕死率は生の数値のまま保持しておく(結果枠側(renderResult)はこれと result を直接読んで表示を組み立てる)。
     window.__damekeLastFaintPct = faintPct;
     updateMove2CombinedResult(inputArgs, result, faintPct);
     updateMove2StandaloneSection(inputArgs);
@@ -920,6 +845,7 @@ window.__damekeFmtFaintPct = fmtFaintPct;
       move2RepresentativeResult: combined.move2RepresentativeResult, move2RepresentativeStartHp: combined.move2RepresentativeStartHp,
       move2EasyResult: combined.move2EasyResult, move2EasyStartHp: combined.move2EasyStartHp,
       move2RecoveryName: combined.move2RecoveryName, move2RecoveryAmount: combined.move2RecoveryAmount,
+      recoveryMax: combined.recoveryMax, recoveryCertain: combined.recoveryCertain,
       move2StartHpMin: combined.move2StartHpMin, move2StartHpMax: combined.move2StartHpMax,
       totalMinDamage: combined.totalMinDamage, totalMaxDamage: combined.totalMaxDamage, totalMinRate: combined.totalMinRate, totalMaxRate: combined.totalMaxRate,
       totalRealMinDamage: combined.totalRealMinDamage, totalRealMaxDamage: combined.totalRealMaxDamage,
@@ -940,8 +866,8 @@ window.__damekeFmtFaintPct = fmtFaintPct;
   // 最大ダメージを与えた最も厳しい分岐(=技②開始時点のHPが最小)を代表として1つ表示しつつ、
   // ダメージ・割合・技威力・防御側HPなど、分岐によって値が変わりうる項目は幅(min～max)で示す。
   function updateMove2StandaloneSection(inputArgs1){
-    var section = document.getElementById('v082hMove2Section');
-    if(!section) return;
+    // 結果枠に技②のタブを出すかどうか(renderResultが参照する)。
+    window.__damekeMove2SectionActive = false;
     var isNone = window.__damekeIsMove2None ? window.__damekeIsMove2None() : true;
     // 技②に関する入力(技②本体の選択・急所チェックボックス・技②固有条件欄)が変化するたびに、
     // 結果枠のタブを技②側へ自動で切り替える(「なし」から実際の技に変わった最初の一回だけでは
@@ -955,9 +881,8 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     window.__damekePrevMove2InputSnapshot = move2InputSnapshot;
     var move2 = isNone ? null : byId(DATA.moves, el2Value('move2Select'));
     if (isNone || !move2 || move2.id !== el2Value('move2Select')) {
-      section.classList.add('v082h-hide');
       window.__damekeLastResult2 = null;
-      window.__damekeLastResult2Trace = null;
+      window.__damekeLastResult2PowerRange = null;
       window.__damekeMove2DisplayText = null;
       return;
     }
@@ -969,9 +894,8 @@ window.__damekeFmtFaintPct = fmtFaintPct;
       var inputArgs2Fallback = { attacker: inputArgs1.attacker, defender: inputArgs1.defender, move: move2, attackerLevel: inputArgs1.attackerLevel, defenderLevel: inputArgs1.defenderLevel, options: buildOptions(2) };
       try { result2 = CALC.calculateDamage(inputArgs2Fallback); }
       catch(e) {
-        section.classList.add('v082h-hide');
         window.__damekeLastResult2 = null;
-        window.__damekeLastResult2Trace = null;
+        window.__damekeLastResult2PowerRange = null;
         window.__damekeMove2DisplayText = null;
         return;
       }
@@ -1002,13 +926,8 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     }
     var faintText2 = combined ? fmtFaintPct(combined.faintPercent) : '計算不可';
     var subLine2 = result2.substituteActive ? (result2.substituteMaxHp + '/' + result2.substituteMinRemaining + '/' + result2.substituteMaxRemaining) : '';
-    var summaryEl = document.getElementById('move2Summary');
-    if (summaryEl) {
-      summaryEl.innerHTML = ['<strong>' + result2.attackerName + '</strong> の <strong>' + result2.moveName + '</strong> → <strong>' + result2.defenderName + '</strong>', '判定分類: <strong>' + result2.effectiveCategory + '</strong>', '技タイプ: <strong>' + result2.effectiveType + '</strong>', 'ダメージ: <strong>' + dispMinDmg + ' ～ ' + dispMaxDmg + '</strong>', '割合: <strong>' + dispMinRate.toFixed(1) + '% ～ ' + dispMaxRate.toFixed(1) + '%</strong>', '防御側HP: ' + hpRangeText + ' / ' + result2.defenderMaxHp, '確定数: <strong>' + koText2 + '</strong>', '命中率: <strong>' + (result2.accuracyResult === '命中' ? formatAccuracyPercent(result2.accuracyPercent) : result2.accuracyResult) + '</strong>', '瀕死率: <strong>' + faintText2 + '</strong>', 'みがわり: ' + subLine2].join('<br>');
-    }
-    // renderResult()/buildMoveDetailGridが#move2Summaryの描画済みテキストを読み返さなくて
-    // 済むよう、同じ内容を構造化フィールドのまま公開しておく(技②はcombinedの分岐幅を織り込んだ
-    // 表示専用の値なので、result2自身のフィールドだけでは再現できない)。
+    // 結果枠(renderResult/buildMoveDetailGrid)が表示する技②の値を、構造化フィールドのまま公開する
+    // (技②はcombinedの分岐幅を織り込んだ表示専用の値なので、result2自身のフィールドだけでは再現できない)。
     window.__damekeMove2DisplayText = {
       dmgText: dispMinDmg + ' ～ ' + dispMaxDmg,
       rateText: dispMinRate.toFixed(1) + '% ～ ' + dispMaxRate.toFixed(1) + '%',
@@ -1040,16 +959,14 @@ window.__damekeFmtFaintPct = fmtFaintPct;
       }
       renderResult2 = Object.assign({}, result2, { trace: clonedTrace });
     }
-    renderCalcTable(renderResult2, 'v082hCalcTable2', 'move2Trace');
-    var traceEl2 = document.getElementById('move2Trace');
-    if (traceEl2) traceEl2.textContent = formatTrace(renderResult2.trace);
+    renderCalcTable(renderResult2, 'v082hCalcTable2');
     window.__damekeLastResult2 = result2;
-    window.__damekeLastResult2Trace = renderResult2.trace;
+    // 結果枠の「技威力」: 分岐によって威力が変わる場合は、その幅(最小～最大)を表示する。
+    window.__damekeLastResult2PowerRange = (combined && combined.move2PowerMin != null && combined.move2PowerMin !== combined.move2PowerMax)
+      ? { min: combined.move2PowerMin, max: combined.move2PowerMax } : null;
     window.__damekeLastResult2FaintPct = combined ? combined.faintPercent : null;
-    section.classList.remove('v082h-hide');
+    window.__damekeMove2SectionActive = true;
   }
-  function setHpFraction(side, denom) { const pokemon = byId(DATA.pokemons, el[side + 'Select'].value); const level = el[side + 'Level'].value; const stats = readStats(side); const maxHp = CALC.previewBaseMaxHp(pokemon, level, stats); el[side + 'CurrentHp'].value = Math.max(1, Math.floor(maxHp / denom)); calculate(); }
-  async function copyTrace() { const text = el.trace.textContent || ''; if (!text) return; try { await navigator.clipboard.writeText(text); alert('計算過程をコピーしました。'); } catch { alert('コピーに失敗しました。'); } }
   // If the browser window/tab itself loses focus (switching to another app or tab), release
   // focus from whatever input was active -- otherwise a still-focused text field can prevent
   // other in-page controls (e.g. form-change buttons) from visibly taking effect afterward.
@@ -1061,28 +978,8 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     var panel = document.getElementById('v082hResultPanel');
     if(panel) document.documentElement.style.setProperty('--v082h-fixed-panel-h', panel.offsetHeight + 'px');
   });
-  // v2.4.0 技固有条件「シャリタツ」(いっちょうあがり用)。技①(#moveSpecificSection)・技②
-  // (#move2SpecificSection)の技固有条件グリッドへ、他の技固有条件と同じ<label>形式で追加する
-  // (レイアウト構築側のmoveConditionalLabels()が、他の項目と同様にバブルへ移設する)。
-  function ensureOrderUpInputs() {
-    [['moveSpecificSection', 'orderUpForm'], ['move2SpecificSection', 'move2OrderUpForm']].forEach(function (pair) {
-      if (document.getElementById(pair[1])) return;
-      var section = document.getElementById(pair[0]);
-      var grid = section ? section.querySelector('.grid') : null;
-      if (!grid) return;
-      var label = document.createElement('label');
-      label.appendChild(document.createTextNode('シャリタツ'));
-      var sel = document.createElement('select');
-      sel.id = pair[1];
-      ['なし', 'そったすがた', 'たれたすがた', 'のびたすがた'].forEach(function (v) { var op = document.createElement('option'); op.value = v; op.textContent = v; sel.appendChild(op); });
-      sel.value = 'なし';
-      label.appendChild(sel);
-      grid.appendChild(label);
-    });
-  }
   function init() {
-    ensureOrderUpInputs();
-    createStatsGrid('attacker', el.attackerStatsGrid); createStatsGrid('defender', el.defenderStatsGrid);
+    bindActualStatInputs('attacker'); bindActualStatInputs('defender');
     fillSelect(el.attackerSelect, DATA.pokemons); fillSelect(el.defenderSelect, DATA.pokemons); fillSelect(el.moveSelect, DATA.moves); fillSelect(el.attackerItemSelect, DATA.items); fillSelect(el.defenderItemSelect, DATA.items); fillSelect(el.attackerAbilitySelect, DATA.abilities); fillSelect(el.defenderAbilitySelect, DATA.abilities); fillSelect(el.attackerSpecialState, DATA.specialStates); fillSelect(el.defenderSpecialState, specialStatesForDefender()); fillSelect(el.attackerTeraType, DATA.teraTypes); fillSelect(el.defenderTeraType, DATA.teraTypes); fillSelect(el.attackerType1, DATA.typeOptions); fillSelect(el.attackerType2, DATA.typeOptions); fillSelect(el.defenderType1, DATA.typeOptions); fillSelect(el.defenderType2, DATA.typeOptions); fillSelect(el.weatherSelect, DATA.weatherOptions); fillSelect(el.fieldSelect, DATA.fieldOptions); fillSelectBeatUpAllies();
     // 技②専用のZ・ダイマ/テラスタルは、技①のもの(el.attackerSpecialState/el.attackerTeraType)と
     // 同じ選択肢構成で初期化する(専用Zの有無だけは後でupdateSpecialStateOptions()が技②の
@@ -1099,8 +996,6 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     var move2ShowAllEl = document.getElementById('move2ShowAll');
     if (move2ShowAllEl) move2ShowAllEl.addEventListener('change', () => { applyMoveFilter2(); calculate(); });
     el.resetTransformOps.addEventListener('click', () => { transformOps = []; updateOpsDisplay(); calculate(); });
-    el.calculateButton.addEventListener('click', calculate); el.copyTraceButton.addEventListener('click', copyTrace);
-    document.querySelectorAll('button[data-hp-side]').forEach(btn => btn.addEventListener('click', () => setHpFraction(btn.dataset.hpSide, Number(btn.dataset.hpRate))));
     document.addEventListener('change', function(e){ var t=e.target; if(t && t.matches && t.matches('input,select')){ calculate(); if(window.__damekeRefreshAll) window.__damekeRefreshAll(); } });
     updateOpsDisplay(); calculate();
   }
@@ -1117,7 +1012,8 @@ window.__damekeFmtFaintPct = fmtFaintPct;
   function current(side){const D=window.DAMEKE_DATA;return by(D.pokemons, q(side+'Select')&&q(side+'Select').value)||{};}
   function move(){const D=window.DAMEKE_DATA;return by(D.moves, q('moveSelect')&&q('moveSelect').value)||{};}
   function move2(){const D=window.DAMEKE_DATA;return by(D.moves, q('move2Select')&&q('move2Select').value)||{};}
-  function canDynamaxPokemon(p){const D=window.DAMEKE_DATA;return !(D.zMax&&D.zMax.dynamaxBanned||[]).includes(p.name);}
+  // ダイマックスできるかどうかは計算本体と同じ基準(DAMEKE_DATA_HELPERS.canDynamaxPokemon)。
+  function canDynamaxPokemon(p){return window.DAMEKE_DATA_HELPERS.canDynamaxPokemon(p);}
   function canGmaxPokemon(p){const D=window.DAMEKE_DATA;return (D.zMax&&D.zMax.gmaxEligible||[]).includes(p.name);}
   // 専用Zの判定は、計算本体(calc.jsのDAMEKE_DATA_HELPERS.specialZRuleFor)と同じ基準
   // (ポケモン名の完全一致)で行う。
@@ -1218,13 +1114,10 @@ window.__damekeFmtFaintPct = fmtFaintPct;
   function all(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
   function make(tag, cls, text){ var e=document.createElement(tag); if(cls) e.className=cls; if(text!==undefined && text!==null) e.textContent=text; return e; }
   function labelOf(id){ var e=q(id); return e ? e.closest('label') : null; }
-  function moveLabel(id, dest){ var l=labelOf(id); if(l && dest) dest.appendChild(l); }
   function valueOf(id){ var e=q(id); return e ? e.value : ''; }
   function optionText(id){ var e=q(id); return e && e.options && e.selectedIndex >= 0 ? e.options[e.selectedIndex].textContent : ''; }
   function dispatchChange(el){ if(!el) return; try{ el.dispatchEvent(new Event('change', {bubbles:true})); }catch(err){ var ev=document.createEvent('Event'); ev.initEvent('change', true, true); el.dispatchEvent(ev); } }
-  function kanaNormalize(s){
-    return String(s||'').replace(/[\u30a1-\u30f6]/g, function(c){ return String.fromCharCode(c.charCodeAt(0) - 0x60); }).toLowerCase();
-  }
+  function kanaNormalize(s){ return window.DAMEKE_COMMON.kanaNormalize(s); }
   var searchComboSyncList = [];
   var searchComboSyncTimer = null;
   function ensureSearchComboSync(){
@@ -1360,209 +1253,34 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     ensureSearchComboSync();
   }
   window.__damekeAttachSearchCombo = attachSearchCombo;
-  function firstTextNode(label){ if(!label) return null; for(var i=0;i<label.childNodes.length;i++){ var n=label.childNodes[i]; if(n.nodeType===3 && String(n.textContent).trim()) return n; } return null; }
-  function relabel(id, text){
-    var l=labelOf(id); if(!l) return;
-    for(var i=l.childNodes.length-1;i>=0;i--){
-      if(l.childNodes[i].nodeType===3) l.removeChild(l.childNodes[i]);
-    }
-    var control=q(id);
-    var isChoice=!!(control && (control.type==='checkbox' || control.type==='radio'));
-    var textNode=document.createTextNode(text);
-    if(isChoice){
-      if(control.parentNode!==l) l.appendChild(control);
-      if(control.nextSibling) l.insertBefore(textNode, control.nextSibling);
-      else l.appendChild(textNode);
-    }else{
-      l.insertBefore(textNode, l.firstChild);
-    }
-  }
   function selectByText(selectId, label){ var s=q(selectId); if(!s) return false; for(var i=0;i<s.options.length;i++){ if(s.options[i].textContent===label || s.options[i].value===label){ s.value=s.options[i].value; dispatchChange(s); return true; } } return false; }
-
-  function details(title, cls, open){ var d=document.createElement('details'); d.className=cls||'v082h-details'; d.open=!!open; d.appendChild(make('summary','',title)); return d; }
-  function box(title, cls, side){
-    var s=make('section','sub-card v082h-box '+(cls||''));
-    var head=make('div','v082h-box-head');
-    head.appendChild(make('h3','',title));
-    if(side){
-      var group=make('div','dameke-btn-group dameke-btn-group-poke');
-      group.appendChild(make('span','dameke-btn-group-label','ポケ管理'));
-      var row=make('div','dameke-btn-group-buttons');
-      var saveBtn=make('button','dameke-btn-group-btn dameke-btn-group-save','保存');
-      saveBtn.type='button';
-      saveBtn.addEventListener('click', function(){ if(window.__damekeSavePokemonFromSide) window.__damekeSavePokemonFromSide(side); });
-      var loadBtn=make('button','dameke-btn-group-btn dameke-btn-group-load','呼び出し');
-      loadBtn.type='button';
-      loadBtn.addEventListener('click', function(){ if(window.__damekeShowPanel) window.__damekeShowPanel('pokemon'); });
-      row.appendChild(saveBtn); row.appendChild(loadBtn);
-      group.appendChild(row);
-      head.appendChild(group);
-    }
-    s.appendChild(head);
-    return s;
-  }
-  function zone(id, title){ var d=details(title,'v082h-details v082h-trigger-details',false); d.id=id; return d; }
 
   function setActiveSide(side){
     document.body.classList.remove('v082h-tab-attacker','v082h-tab-defender');
     document.body.classList.add('v082h-tab-'+side);
     all('.v082h-side-tabs button').forEach(function(b){ b.classList.toggle('active', b.dataset.side===side); });
   }
-  function buildSideTabs(){
-    var bar=make('div','v082h-side-tabs');
-    ['attacker','defender'].forEach(function(side){
-      var b=document.createElement('button'); b.type='button';
-      b.textContent = side==='attacker' ? '攻撃側' : '防御側';
-      b.dataset.side=side;
-      b.addEventListener('click', function(){ setActiveSide(side); });
-      bar.appendChild(b);
-    });
-    return bar;
-  }
+  // 入力欄は index.html に最終的な配置で書かれている。ここでは各部品に動作を結び付ける。
   function installLayout(){
-    if(q('v082hBasicGrid')) return;
-    var top=document.querySelector('.top-inputs');
-    if(!top) return;
-    var root=top.closest('.sub-card');
-    if(!root) return;
-    root.classList.add('v082h-root-basic');
-
-    var toolbar=make('div','v082h-toolbar'); toolbar.id='v082hToolbar';
-    var swap=make('button','dameke-toolbar-btn dameke-toolbar-btn-swap','攻防交代'); swap.type='button'; swap.id='v082hSwapBtn'; swap.addEventListener('click', swapSides);
-    toolbar.appendChild(swap);
-    root.appendChild(toolbar);
-
-    root.appendChild(buildSideTabs());
-    var grid=make('div','v082h-basic-grid'); grid.id='v082hBasicGrid'; root.appendChild(grid);
-    var atk=box('攻撃側','v082h-attacker','attacker');
-    var def=box('防御側','v082h-defender','defender');
-    grid.appendChild(atk); grid.appendChild(def);
-    buildSide('attacker', atk, true);
-    buildSide('defender', def, false);
-    top.classList.add('v082h-hide');
-    all('.side-panel').forEach(function(p){ p.classList.add('v082h-hide'); });
-    hideOldItemAbilityBox();
-    var calc=q('calculateButton'); if(calc) calc.classList.add('v082h-hide');
-    var copy=q('copyTraceButton'); var traceEl=q('trace');
-    if(copy) copy.classList.add('v082h-hide');
-    if(traceEl){
-      traceEl.classList.add('v082h-hide');
-      if(traceEl.previousElementSibling && traceEl.previousElementSibling.tagName==='H3') traceEl.previousElementSibling.classList.add('v082h-hide');
-    }
-    var protect=labelOf('protect'); if(protect){ var p=q('protect'); if(p) p.checked=false; protect.classList.add('v082h-hide'); }
-  }
-  function hideOldItemAbilityBox(){
-    all('.input-card > .sub-card').forEach(function(section){ var h=section.querySelector('h3'); if(h && h.textContent==='持ち物・特性') section.classList.add('v082h-hide'); });
+    var swap=q('v082hSwapBtn'); if(swap) swap.addEventListener('click', swapSides);
+    all('.v082h-side-tabs button').forEach(function(b){ b.addEventListener('click', function(){ setActiveSide(b.dataset.side); }); });
+    ['attacker','defender'].forEach(function(side){
+      var group=document.querySelector('.v082h-box.v082h-'+side+' .dameke-btn-group-poke');
+      if(!group) return;
+      var saveBtn=group.querySelector('.dameke-btn-group-save'), loadBtn=group.querySelector('.dameke-btn-group-load');
+      if(saveBtn) saveBtn.addEventListener('click', function(){ if(window.__damekeSavePokemonFromSide) window.__damekeSavePokemonFromSide(side); });
+      if(loadBtn) loadBtn.addEventListener('click', function(){ if(window.__damekeShowPanel) window.__damekeShowPanel('pokemon'); });
+    });
+    attachSearchCombo('attackerSelect');
+    attachSearchCombo('attackerItemSelect');
+    bindStatsPanel('attacker');
+    attachSearchCombo('moveSelect');
+    attachSearchCombo('move2Select');
+    attachSearchCombo('defenderSelect');
+    attachSearchCombo('defenderItemSelect');
+    bindStatsPanel('defender');
   }
 
-  function buildSide(side, dest, isAttack){
-    moveLabel(side+'Select', dest);
-    relabel(side+'Select','ポケモン名');
-    var pokemonLabel=labelOf(side+'Select'); if(pokemonLabel) pokemonLabel.classList.add('v082h-pokemon-field');
-    attachSearchCombo(side+'Select');
-    var typeGrid=make('div','v082h-mini-grid v082h-type-grid'); dest.appendChild(typeGrid);
-    moveLabel(side+'Type1', typeGrid); moveLabel(side+'Type2', typeGrid);
-    var typeD=details('タイプ変更効果','v082h-details v082h-type-effects',false); dest.appendChild(typeD);
-    moveLabel(side+'TypeOverride', typeD); moveLabel(side+'AddType', typeD);
-    moveLabel(side+'Roost', typeD); moveLabel(side+'BurnUp', typeD); moveLabel(side+'DoubleShock', typeD);
-    addAbilityPanel(side, dest);
-    moveLabel(side+'ItemSelect', dest);
-    relabel(side+'ItemSelect','持ち物');
-    var itemLabel=labelOf(side+'ItemSelect'); if(itemLabel){ itemLabel.classList.add('dameke-main-control-label'); }
-    attachSearchCombo(side+'ItemSelect');
-    var itemZone=make('div','v082h-zone'); itemZone.id=isAttack?'v082hAttackerItemZone':'v082hDefenderItemZone'; dest.appendChild(itemZone);
-    var noItem=labelOf(side+'NoItem'); if(noItem){ var inp=q(side+'NoItem'); noItem.classList.add('v082h-inline-check'); noItem.textContent = ""; if(inp) noItem.appendChild(inp); noItem.appendChild(document.createTextNode('持ち物なし')); dest.appendChild(noItem); }
-    // 攻撃側のZ・ダイマ/テラスタルは技①・技②それぞれ専用のフィールドを持つため、ここ(攻撃側の
-    // 全般ステータス欄)には置かず、下のisAttackブロックで技①(move1Fold)・技②(move2Fold)の
-    // 急所ランクの下にそれぞれ移設する。防御側は従来通りここに置く。
-    if(!isAttack){
-      var specialGrid=make('div','v082h-mini-grid'); dest.appendChild(specialGrid);
-      moveLabel(side+'SpecialState', specialGrid);
-      moveLabel(side+'TeraType', specialGrid);
-    }
-    if(isAttack){ var teraZone=make('div','v082h-zone'); teraZone.id='v082hAttackerTeraZone'; dest.appendChild(teraZone); }
-    addStatsPanel(side, dest);
-    if(isAttack){
-      // 急所ランク(id="critical")はaddStatsPanel内で命中・回避の隣へ移設済みのため、ここでは移動しない。
-      // 技①のまとまり(技名選択・技固有条件バブル・急所ランク)を、技②(.dameke-move2-fold)と
-      // 同じ見た目の枠で囲む。
-      var move1Fold=make('div','dameke-move1-fold'); dest.appendChild(move1Fold);
-      var moveRow=make('div','v082h-move1-row'); move1Fold.appendChild(moveRow);
-      moveLabel('moveSelect', moveRow);
-      relabel('moveSelect','技①');
-      var moveLabelEl=labelOf('moveSelect'); if(moveLabelEl){ moveLabelEl.classList.add('dameke-main-control-label'); }
-      attachSearchCombo('moveSelect');
-      // 全技チェックボックスを「技①」というラベルのテキストと同じ行の右側に並べる。
-      // (検索ボックス自体はテキストの下に全幅で表示されるため、テキストとチェックボックスだけを
-      //  ヘッダー行としてひとまとめにし、検索ボックスはその下の行として残す。)
-      if(moveLabelEl){
-        var moveHeaderRow=make('span','dameke-move-label-header');
-        var moveTextNode=firstTextNode(moveLabelEl);
-        // 「技①」の見出し文字は、技②側の<summary>(dameke-move2-fold summary)と見た目
-        // (太さ・サイズ・色)を揃えるため、専用のspanでラップしてCSSで個別にスタイルする
-        // (全技チェックボックス側の見た目は変えない)。
-        if(moveTextNode){
-          var moveTextSpan=make('span','dameke-move-label-text');
-          moveTextSpan.appendChild(moveTextNode);
-          moveHeaderRow.appendChild(moveTextSpan);
-        }
-        var moveShowAllLabel=labelOf('moveShowAll');
-        if(moveShowAllLabel) moveHeaderRow.appendChild(moveShowAllLabel);
-        // ヘッダー行(「技①」テキスト+全技チェックボックス)は、moveLabelEl(select本体を暗黙的に
-        // ラベル付けする<label>)の"外"(直前の兄弟)に置く。中に入れてしまうと、暗黙ラベルの
-        // 結びつけ先が「DOM順で最初のlabelable要素」であるチェックボックス側になってしまい、
-        // 行のどこをクリックしても(本来のselectではなく)チェックボックスがトグルされる不具合が
-        // あったため。見た目上の配置(select本体の直前の行)は変わらない。
-        if(moveTextNode) moveLabelEl.setAttribute('aria-label', String(moveTextNode.textContent||'').trim());
-        moveLabelEl.parentNode.insertBefore(moveHeaderRow, moveLabelEl);
-      }
-      var moveZone=make('div','v082h-zone'); moveZone.id='v082hMoveZone'; move1Fold.appendChild(moveZone);
-      moveLabel('attackerCriticalForce', move1Fold);
-      // Z・ダイマ/テラスタル(技①側): 急所ランクのすぐ下に、技②側(dameke-move2-fold内の
-      // move2AttackerSpecialState/move2AttackerTeraType、HTML側で既に急所の下に静的配置済み)と
-      // 揃う見た目(v082h-mini-grid)で配置する。
-      var move1SpecialGrid=make('div','v082h-mini-grid dameke-move-special-grid'); move1Fold.appendChild(move1SpecialGrid);
-      moveLabel('attackerSpecialState', move1SpecialGrid);
-      moveLabel('attackerTeraType', move1SpecialGrid);
-
-      var move2Fold=document.querySelector('.dameke-move2-fold');
-      if(move2Fold){
-        dest.appendChild(move2Fold);
-        var move2SelectLabel=labelOf('move2Select');
-        if(move2SelectLabel){ move2SelectLabel.classList.add('dameke-main-control-label'); }
-        attachSearchCombo('move2Select');
-        // 全技チェックボックスの位置だけを、技①(選択ボックスの上の行、右寄せ)と同じ位置関係に
-        // する。「技②」という見出し文字自体は<summary>のまま動かさない(折り畳みの開閉トグルは
-        // <summary>が担うため、そこにチェックボックスを混ぜると折り畳みの見た目が崩れる)。
-        if(move2SelectLabel){
-          var move2HeaderRow=make('span','dameke-move-label-header');
-          var move2ShowAllLabel=labelOf('move2ShowAll');
-          if(move2ShowAllLabel) move2HeaderRow.appendChild(move2ShowAllLabel);
-          // 技①側と同じ理由で、move2SelectLabel(select本体の暗黙ラベル)の外(直前の兄弟)に置く。
-          move2SelectLabel.parentNode.insertBefore(move2HeaderRow, move2SelectLabel);
-        }
-        // 技②固有条件も技①とまったく同じ「該当する項目だけを自動で開閉するバブル」の仕組みに
-        // するため、専用のズーン(v082hMove2Zone)を、旧来の常設グリッド(move2SpecificSection)
-        // があった位置に差し込む。実際のフィールドの移設はmoveConditionalLabels()で行う。
-        var move2Zone=make('div','v082h-zone'); move2Zone.id='v082hMove2Zone';
-        var move2SpecificSection=q('move2SpecificSection');
-        if(move2SpecificSection && move2SpecificSection.parentNode){ move2SpecificSection.parentNode.insertBefore(move2Zone, move2SpecificSection); }
-        else move2Fold.appendChild(move2Zone);
-        var moveOrderActions=document.querySelector('.dameke-move-order-actions');
-        if(moveOrderActions) move2Fold.appendChild(moveOrderActions);
-      }
-    }
-  }
-
-  function addAbilityPanel(side, dest){
-    var wrap=make('div','v082h-ability-panel'); wrap.id='v082hAbilityPanel_'+side;
-    dest.appendChild(wrap);
-    wrap.appendChild(make('div','v082h-minititle','特性'));
-    var buttons=make('div','v082h-ability-buttons'); buttons.id='v082hAbilityButtons_'+side; wrap.appendChild(buttons);
-    moveLabel(side+'AbilitySelect', wrap);
-    var abilityZone=make('div','v082h-zone'); abilityZone.id=side==='attacker'?'v082hAttackerAbilityZone':'v082hDefenderAbilityZone'; wrap.appendChild(abilityZone);
-    var no=labelOf(side+'NoAbility'); if(no){ var inp=q(side+'NoAbility'); no.classList.add('v082h-inline-check'); no.textContent = ""; if(inp) no.appendChild(inp); no.appendChild(document.createTextNode('特性なし')); wrap.appendChild(no); }
-  }
   function updateAbilityButtons(side){
     var host=q('v082hAbilityButtons_'+side); if(!host) return;
     host.innerHTML='';
@@ -1634,16 +1352,6 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     dispatchChange(input);
   }
 
-  function readOnlyStatRow(side,label,stats,idPrefix){
-    var row=make('div','v082h-stat-row');
-    row.appendChild(make('span','v082h-stat-label',label));
-    stats.forEach(function(k){
-      var cell=make('span','v082h-stat-cell v082h-stat-readonly');
-      cell.id = idPrefix+'_'+side+'_'+k;
-      row.appendChild(cell);
-    });
-    return row;
-  }
   function updateReadOnlyStatRows(side){
     var C=window.DAMEKE_CALC, p=currentPokemon(side);
     if(!p) return;
@@ -1672,78 +1380,32 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     });
   }
 
-  function addStatsPanel(side, dest){
-    var panel=make('div','v082h-stats-panel'); panel.id='v082hStatsPanel_'+side;
-    dest.appendChild(panel);
-    var titleRow = make('div','v082h-minititle-row');
-    titleRow.appendChild(make('div','v082h-minititle','詳細ステータス'));
+  // 詳細ステータス欄(index.html に配置済み)の動作。登録順は以前の組み立て時と同じ。
+  function bindStatsPanel(side){
+    var panel=q('v082hStatsPanel_'+side); if(!panel) return;
     // "調整": jumps to the 攻撃・防御調整 tool (see app_adjust.js), preset to this side's mode.
-    var adjustBtn = document.createElement('button');
-    adjustBtn.type = 'button';
-    adjustBtn.className = 'v082h-stats-adjust-btn v082h-stats-adjust-btn-'+side;
-    adjustBtn.textContent = '調整';
-    adjustBtn.addEventListener('click', function(){
+    var adjustBtn=panel.querySelector('.v082h-stats-adjust-btn');
+    if(adjustBtn) adjustBtn.addEventListener('click', function(){
       if(window.__damekeShowPanel) window.__damekeShowPanel('adjust');
       if(window.__damekeSetAdjustMode) window.__damekeSetAdjustMode(side === 'attacker' ? 'attacker' : 'defender');
     });
-    titleRow.appendChild(adjustBtn);
-    panel.appendChild(titleRow);
-
-    addNatureField(side, panel);
-
-    var visible=make('div','v082h-stat-table'); panel.appendChild(visible);
-    visible.appendChild(statHeader(['H','A','B','C','D','S']));
-    visible.appendChild(readOnlyStatRow(side,'種族値',['H','A','B','C','D','S'],'v082hBaseStat'));
-    visible.appendChild(statRow(side,'努力値',['H','A','B','C','D','S'],'ev'));
-    visible.appendChild(statRow(side,'実数値',['H','A','B','C','D','S'],'actual'));
-    visible.appendChild(statRow(side,'ランク',['H','A','B','C','D','S'],'rank'));
-
-    var accEva=make('div','v082h-stat-table v082h-rank-sub'); panel.appendChild(accEva);
-    // 急所ランク(id="critical")は攻撃側専用の技固有条件だが、命中・回避と同じ「ランク」の
-    // 見た目(attachNumberPicker)で扱えるよう、攻撃側パネルに限りここへ3列目として合流させる。
-    var accEvaKeys = (side === 'attacker') ? ['acc','eva','critical'] : ['acc','eva'];
-    accEva.appendChild(statHeader(accEvaKeys));
-    accEva.appendChild(statRow(side,'ランク',accEvaKeys,'rank'));
-
+    var natureSel=q(side+'_nature');
+    if(natureSel){
+      natureSel.addEventListener('change', function(){ updateNatureStatColors(side); updateReadOnlyStatRows(side); });
+      setTimeout(function(){ updateNatureStatColors(side); updateReadOnlyStatRows(side); }, 0);
+    }
+    // 努力値・実数値・ランク(命中・回避・急所を含む)の表の数値入力に、スマホ用のナンバーピッカーを付ける
+    // (実数値は範囲が決まっていないため付けない)。
+    all('.v082h-stat-table > .v082h-stat-row input[type="number"]', panel).forEach(function(input){
+      var mn=parseInt(input.min,10), mx=parseInt(input.max,10);
+      if(!/_actual$/.test(input.id) && !isNaN(mn) && !isNaN(mx)) attachNumberPicker(input, mn, mx);
+    });
     var levelInputEl = q(side+'Level');
     if(levelInputEl){
       levelInputEl.addEventListener('input', function(){ updateReadOnlyStatRows(side); });
       levelInputEl.addEventListener('change', function(){ updateReadOnlyStatRows(side); });
     }
-
-    addRemainingEvDisplay(side, panel);
-    addEvPreset(side, panel);
-    addHpPreset(side, panel);
-    addLevelIvFold(side, panel);
-
-    var original=q(side+'StatsGrid'); if(original) original.classList.add('v082h-hide');
-  }
-  function addNatureField(side, panel){
-    var sel=q(side+'_nature'); if(!sel) return;
-    var lbl=document.createElement('label');
-    lbl.className='v082h-nature-field';
-    lbl.appendChild(document.createTextNode('性格'));
-    lbl.appendChild(sel);
-    panel.appendChild(lbl);
-    sel.addEventListener('change', function(){ updateNatureStatColors(side); updateReadOnlyStatRows(side); });
-    setTimeout(function(){ updateNatureStatColors(side); updateReadOnlyStatRows(side); }, 0);
-  }
-  function updateRemainingEvDisplay(side){
-    var textEl = q('v082hEvRemainingText_'+side);
-    if(!textEl) return;
-    var total = 0;
-    ['H','A','B','C','D','S'].forEach(function(k){ var e=q(side+'_'+k+'_ev'); total += e ? (parseInt(e.value,10)||0) : 0; });
-    var remaining = 66 - total;
-    textEl.textContent = '残り努力値：' + remaining;
-    textEl.classList.toggle('v082h-ev-remaining-over', remaining < 0);
-  }
-  function addRemainingEvDisplay(side, panel){
-    var wrap = make('div', 'v082h-ev-remaining');
-    wrap.id = 'v082hEvRemaining_'+side;
-    var textEl = document.createElement('span');
-    textEl.id = 'v082hEvRemainingText_'+side;
-    wrap.appendChild(textEl);
-    panel.appendChild(wrap);
+    // 残り努力値の表示
     function update(){
       updateRemainingEvDisplay(side);
       updateReadOnlyStatRows(side);
@@ -1755,18 +1417,29 @@ window.__damekeFmtFaintPct = fmtFaintPct;
       if(iv){ iv.addEventListener('input', function(){ updateReadOnlyStatRows(side); }); iv.addEventListener('change', function(){ updateReadOnlyStatRows(side); }); }
     });
     update();
+    // 努力値簡易入力
+    var preset=q('v082hEvPreset_'+side);
+    if(preset){
+      preset.addEventListener('change', function(){ applyEvPreset(side, preset.value); });
+      var resetBtn=preset.parentNode.querySelector('button');
+      if(resetBtn) resetBtn.addEventListener('click', function(){ preset.value='選択なし'; applyEvPreset(side, '選択なし'); });
+    }
+    // 現HP簡易入力(最大・1/2・1/3・1/4)
+    all('.v082h-hp-buttons button', panel).forEach(function(b, i){
+      b.addEventListener('click', function(){ applyHpFraction(side, [1,2,3,4][i]); });
+    });
+    // レベル・個体値(折り畳み内)
+    if(levelInputEl) attachNumberPicker(levelInputEl, 1, 100);
+    ['H','A','B','C','D','S'].forEach(function(k){ var iv=q(side+'_'+k+'_iv'); if(iv) attachNumberPicker(iv, parseInt(iv.min,10), parseInt(iv.max,10)); });
   }
-  function addEvPreset(side, panel){
-    var wrap=make('div','v082h-ev-preset');
-    wrap.appendChild(make('span','v082h-muted','努力値簡易入力'));
-    var select=make('select','v082h-ev-select'); select.id='v082hEvPreset_'+side;
-    var options=['選択なし','HA','HB','HC','HD','HS','AB','AC','AD','AS','BC','BD','BS','CD','CS','DS'];
-    options.forEach(function(x){ var op=document.createElement('option'); op.value=x; op.textContent=x; select.appendChild(op); });
-    select.value='選択なし';
-    select.addEventListener('change', function(){ applyEvPreset(side, select.value); });
-    var btn=make('button','v082h-ability-chip','リセット'); btn.type='button';
-    btn.addEventListener('click', function(){ select.value='選択なし'; applyEvPreset(side, '選択なし'); });
-    wrap.appendChild(select); wrap.appendChild(btn); panel.appendChild(wrap);
+  function updateRemainingEvDisplay(side){
+    var textEl = q('v082hEvRemainingText_'+side);
+    if(!textEl) return;
+    var total = 0;
+    ['H','A','B','C','D','S'].forEach(function(k){ var e=q(side+'_'+k+'_ev'); total += e ? (parseInt(e.value,10)||0) : 0; });
+    var remaining = 66 - total;
+    textEl.textContent = '残り努力値：' + remaining;
+    textEl.classList.toggle('v082h-ev-remaining-over', remaining < 0);
   }
   function applyEvPreset(side, preset){
     ['H','A','B','C','D','S'].forEach(function(k){ var e=q(side+'_'+k+'_ev'); if(e) e.value='0'; });
@@ -1778,41 +1451,6 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     // correctly updated.
     ['H','A','B','C','D','S'].forEach(function(k){ dispatchChange(q(side+'_'+k+'_ev')); });
   }
-  function addHpPreset(side, panel){
-    var row=make('div','v082h-mini-grid v082h-hp-row');
-    var currentHpInput=q(side+'CurrentHp');
-    var oldHpTools = currentHpInput ? currentHpInput.closest('.hp-tools') : null;
-    moveLabel(side+'CurrentHp', row);
-    var btnLabel=document.createElement('label');
-    btnLabel.appendChild(document.createTextNode('現HP簡易入力'));
-    var buttons=make('div','v082h-hp-buttons');
-    [['最大',1],['1/2',2],['1/3',3],['1/4',4]].forEach(function(pair){
-      var b=make('button','v082h-ability-chip',pair[0]); b.type='button';
-      b.addEventListener('click', function(){ applyHpFraction(side, pair[1]); });
-      buttons.appendChild(b);
-    });
-    btnLabel.appendChild(buttons);
-    row.appendChild(btnLabel);
-    panel.appendChild(row);
-    if(oldHpTools && oldHpTools.parentNode) oldHpTools.parentNode.removeChild(oldHpTools);
-  }
-  function levelRow(side){
-    var input=q(side+'Level'); if(!input) return null;
-    var row=make('div','v082h-stat-row');
-    row.appendChild(make('span','v082h-stat-label','レベル'));
-    var cell=make('span','v082h-stat-cell'); cell.appendChild(input); row.appendChild(cell);
-    attachNumberPicker(input, 1, 100);
-    return row;
-  }
-  function addLevelIvFold(side, panel){
-    var d=details('レベル・個体値','v082h-details v082h-type-effects',false); panel.appendChild(d);
-    var lr=levelRow(side); if(lr) d.appendChild(lr);
-    var ivTable=make('div','v082h-stat-table'); d.appendChild(ivTable);
-    ivTable.appendChild(statHeader(['H','A','B','C','D','S']));
-    ivTable.appendChild(statRow(side,'個体値',['H','A','B','C','D','S'],'iv'));
-  }
-  function statHeader(stats){ var row=make('div','v082h-stat-row v082h-stat-head'); row.appendChild(make('span','','')); stats.forEach(function(k){ var cell=make('span','',labelStat(k)); cell.setAttribute('data-stat-key', k); row.appendChild(cell); }); return row; }
-  function labelStat(k){ return {H:'H',A:'A',B:'B',C:'C',D:'D',S:'S',acc:'命中',eva:'回避',critical:'急所'}[k] || k; }
   function updateNatureStatColors(side){
     var natureSel = q(side+'_nature');
     if(!natureSel || !window.DAMEKE_NATURE) return;
@@ -1840,44 +1478,6 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     if(input.parentNode) input.parentNode.insertBefore(sel, input.nextSibling);
   }
   window.__damekeAttachNumberPicker = attachNumberPicker;
-  function statRow(side,label,stats,kind,extraRowClass){ var row=make('div','v082h-stat-row'+(extraRowClass?(' '+extraRowClass):'')); row.appendChild(make('span','v082h-stat-label',label)); stats.forEach(function(k){ var input=(k==='critical') ? q('critical') : q(side+'_'+k+'_'+kind); var cell=make('span','v082h-stat-cell'); if(input){ if(k==='critical') input.classList.remove('v082h-hide'); cell.appendChild(input); var mn=parseInt(input.min,10), mx=parseInt(input.max,10); if(!isNaN(mn) && !isNaN(mx)) attachNumberPicker(input, mn, mx); } else cell.textContent='-'; row.appendChild(cell); }); return row; }
-
-  function setupZones(){
-    if(q('v082hMoveDetails')) return;
-    var abilityA=q('v082hAttackerAbilityZone'), abilityD=q('v082hDefenderAbilityZone'), itemA=q('v082hAttackerItemZone'), itemD=q('v082hDefenderItemZone'), tera=q('v082hAttackerTeraZone'), move=q('v082hMoveZone'), move2=q('v082hMove2Zone');
-    if(abilityA) abilityA.appendChild(zone('v082hAbilityDetails','特性固有条件'));
-    if(abilityD) abilityD.appendChild(zone('v082hDefenderAbilityDetails','特性固有条件'));
-    if(itemA) itemA.appendChild(zone('v082hItemDetails','持ち物固有条件'));
-    if(itemD) itemD.appendChild(zone('v082hDefenderItemDetails','持ち物固有条件'));
-    if(tera) tera.appendChild(zone('v082hTeraDetails','テラスタル固有条件'));
-    if(move) move.appendChild(zone('v082hMoveDetails','技固有条件'));
-    // 技②固有条件も、技①とまったく同じ「該当項目だけが表示されるバブル」にする。
-    // 見出しは技①と同じく「技固有条件」とし、「技②」という文言は持たせない。
-    if(move2) move2.appendChild(zone('v082hMove2Details','技固有条件'));
-    relabelControls(); moveConditionalLabels();
-  }
-  function move2Id(id){ return 'move2' + id.charAt(0).toUpperCase() + id.slice(1); }
-  function relabelControls(){
-    var pairs=[['flashFireActivated','ほのお技被弾'],['stakeoutSwitchIn','防御側繰り出し'],['supremeOverlordFaintedAllies','味方ひんし数'],['attackerSlowStart','発動'],['attackerUnburden','発動'],['attackerParadoxBoostStat','上昇する能力値'],['analyzeMovedLast','行動順'],['defenderSlowStart','発動'],['defenderUnburden','発動'],['defenderParadoxBoostStat','上昇する能力値'],['metronomeUseCount','回数'],['attackerStellarMoveCount','ステラ技回数'],['pledgeCombination','コンビネーション'],['psywaveMultiplier','倍率'],['fixedDamageTaken','被ダメ'],['statDroppedThisTurn','自身のランク下降'],['allyFaintedLastTurn','前ターン味方ひんし'],['defenseCurl','まるくなる'],['echoedVoiceCount','回数'],['presentPower','威力'],['magnitudePower','威力'],['roundAllyUsed','同ターン内りんしょう'],['furyCutterCount','回数']];
-    pairs.forEach(function(x){ relabel(x[0],x[1]); });
-    for(var i=1;i<=5;i++) relabel('beatUpAlly'+i,'控え'+i);
-    // 技②側で実際に使われる項目(技の種類だけで表示が決まるもの)は、技①とまったく同じ
-    // 短縮ラベルを使う。「技②」の文言はここでは一切付けない。
-    var move2Shortened=['statDroppedThisTurn','allyFaintedLastTurn','defenseCurl','echoedVoiceCount','presentPower','magnitudePower','roundAllyUsed','furyCutterCount','supremeOverlordFaintedAllies'];
-    pairs.forEach(function(x){ if(move2Shortened.indexOf(x[0])>=0) relabel(move2Id(x[0]), x[1]); });
-    for(var j=1;j<=5;j++) relabel('move2BeatUpAlly'+j,'控え'+j);
-  }
-  function moveConditionalLabels(){
-    var ability=q('v082hAbilityDetails'), defAbility=q('v082hDefenderAbilityDetails'), item=q('v082hItemDetails'), tera=q('v082hTeraDetails'), move=q('v082hMoveDetails'), move2=q('v082hMove2Details');
-    ['flashFireActivated','stakeoutSwitchIn','supremeOverlordFaintedAllies','attackerSlowStart','attackerUnburden','attackerParadoxBoostStat','analyzeMovedLast'].forEach(function(id){ moveLabel(id, ability); });
-    ['defenderSlowStart','defenderUnburden','defenderParadoxBoostStat'].forEach(function(id){ moveLabel(id, defAbility); });
-    ['metronomeUseCount','focusLensMoveOrder'].forEach(function(id){ moveLabel(id, item); });
-    ['attackerStellarMoveCount'].forEach(function(id){ moveLabel(id, tera); });
-    ['pledgeCombination','psywaveMultiplier','kimagureLaserDouble','fixedDamageTaken','statDroppedThisTurn','allyFaintedLastTurn','beatUpAlly1','beatUpAlly2','beatUpAlly3','beatUpAlly4','beatUpAlly5','rolloutHit','defenseCurl','echoedVoiceCount','moveOrder','targetSwitching','faintedAllies','friendship','remainingPP','lastMoveFailed','userDamagedThisTurn','targetDamagedThisTurn','stockpileCount','presentPower','rageFistHitCount','magnitudePower','roundAllyUsed','furyCutterCount','orderUpForm'].forEach(function(id){ moveLabel(id, move); });
-    // 技②固有条件: 技①のupdateConditional()のうち、選択中の技そのものに応じて表示が変わる項目
-    // (m.powerKind/技名で判定するもの)だけを、技②(move2Select)を基準に複製している。
-    ['move2SupremeOverlordFaintedAllies','move2StatDroppedThisTurn','move2AllyFaintedLastTurn','move2BeatUpAlly1','move2BeatUpAlly2','move2BeatUpAlly3','move2BeatUpAlly4','move2BeatUpAlly5','move2RolloutHit','move2DefenseCurl','move2EchoedVoiceCount','move2MoveOrder','move2TargetSwitching','move2FaintedAllies','move2Friendship','move2RemainingPP','move2LastMoveFailed','move2UserDamagedThisTurn','move2TargetDamagedThisTurn','move2StockpileCount','move2PresentPower','move2RageFistHitCount','move2MagnitudePower','move2RoundAllyUsed','move2FuryCutterCount','move2OrderUpForm'].forEach(function(id){ moveLabel(id, move2); });
-  }
 
   function show(id, visible){ var l=labelOf(id); if(l) l.style.display=visible?'':'none'; }
   function detailVisible(id){ var d=q(id); if(!d) return; var visible=false; all('label',d).forEach(function(l){ if(l.style.display!=='none') visible=true; }); d.style.display=visible?'':'none'; if(visible) d.open=true; }
@@ -1912,78 +1512,17 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     detailVisible('v082hMove2Details');
   }
 
-  function findSectionByTitle(title){
-    return all('.input-card > .sub-card').find(function(s){ var h=s.querySelector('h3'); return h && h.textContent===title; });
-  }
-  function convertToDetails(section, title, cls){
-    if(!section) return null;
-    var d=details(title, cls||'sub-card v082h-section-details', false);
-    Array.prototype.slice.call(section.childNodes).forEach(function(n){ if(n.nodeName!=='H3') d.appendChild(n); });
-    section.parentNode.replaceChild(d, section);
-    return d;
-  }
-  function forceCols(el, cols){
-    if(!el) return;
-    el.classList.toggle('v082h-cond-grid-cols-4', Number(cols) === 4);
-  }
-  function buildDoubleFold(container, ids, cols){
-    var d=details('ダブル','v082h-details v082h-section-details v082h-double-fold',false);
-    var inner=document.createElement('div');
-    inner.className='v082h-cond-grid';
-    forceCols(inner, cols||2);
-    ids.forEach(function(id){ moveLabel(id, inner); });
-    d.appendChild(inner);
-    container.appendChild(d);
-    return d;
-  }
-  function buildConditionDetails(title, ids, doubleIds){
-    var section=findSectionByTitle(title);
-    if(!section) return null;
-    var sideClass=title==='攻撃側条件'?' v082h-attacker':(title==='防御側条件'?' v082h-defender':'');
-    var d=details(title,'sub-card v082h-section-details'+sideClass,false);
-    var mainGrid=document.createElement('div');
-    mainGrid.className='v082h-cond-grid';
-    forceCols(mainGrid, 2);
-    ids.forEach(function(id){ moveLabel(id, mainGrid); });
-    d.appendChild(mainGrid);
-    if(doubleIds && doubleIds.length) buildDoubleFold(d, doubleIds, 2);
-    if(section.parentNode) section.parentNode.replaceChild(d, section);
-    return d;
-  }
 
   function restructureConditions(){
-    var field=convertToDetails(findSectionByTitle('場'),'場','sub-card v082h-section-details');
-    // 天候・フィールドを変える特性の自動反映(v2.2.0)が、この折り畳み(details)自体を開けるよう公開する。
-    window.__damekeFieldFoldDetails = field;
-
-    var atk=buildConditionDetails('攻撃側条件',
-      ['attackerStatus','attackerToxicCount','attackerEmbargo','attackerStealthRock','attackerSpikes','attackerSteelSurge','electrify','plasmaShower','charge','meFirst','attackerIngrain','attackerRootedSmacked','attackerMagnetRise','attackerTelekinesis','attackerBodyPurge','attackerTailwind','attackerGMaxRapidStrike','attackerFocusEnergy','attackerLockOn','attackerMicleBerry'],
-      ['attackerDoubleDamage','helpingHandCount','powerSpotSupport','batterySupport','flowerGiftSupport','plusMinusSupport','steelSpiritCount','attackerSwamp','attackerRainbow','attackerVictoryStar']);
-
-    relabel('defenderSemiInvulnerable','姿を隠す');
-    relabel('defenderProtectState','まもる');
-    var def=buildConditionDetails('防御側条件',
-      ['defenderStatus','defenderToxicCount','defenderConfusion','defenderSubstitute','defenderEmbargo','defenderStealthRock','defenderSpikes','defenderSteelSurge','defenderScreen','defenderTarShot','defenderLuckyChant','defenderGlaiveRush','defenderMinimized','defenderSemiInvulnerable','defenderProtectState','defenderIngrain','defenderRootedSmacked','defenderMagnetRise','defenderTelekinesis','defenderForesight','defenderMiracleEye','defenderBodyPurge','defenderTailwind'],
-      ['defenderFlowerGiftSupport','defenderFriendGuard','defenderSwamp','defenderSeaOfFire']);
-
-    if(field){
-      buildDoubleFold(field, ['darkAuraField','fairyAuraField','vesselOfRuinField','beadsOfRuinField','swordOfRuinField','tabletsOfRuinField','weatherSuppressField','neutralizingGasField'], 4);
-    }
-
-    if(atk && def && atk.parentNode){
-      var wrap=make('div','v082h-cond-wrap-outer');
-      atk.parentNode.insertBefore(wrap, atk);
-      wrap.appendChild(buildSideTabs());
-      var condWrap=make('div','v082h-cond-wrap');
-      wrap.appendChild(condWrap);
-      condWrap.appendChild(atk); condWrap.appendChild(def);
+    // 天候・フィールドを変える特性の自動反映(v2.2.0)が、「場」の折り畳み(details)自体を開けるよう公開する。
+    window.__damekeFieldFoldDetails = all('#panel-calculator details.v082h-section-details').find(function(d){ var sm=d.querySelector('summary'); return sm && sm.textContent==='場'; }) || null;
+    // 攻撃側条件・防御側条件の折り畳みは、開閉を連動させる。
+    var atk=document.querySelector('.v082h-cond-wrap > details.v082h-attacker'), def=document.querySelector('.v082h-cond-wrap > details.v082h-defender');
+    if(atk && def){
       var syncingOpen=false;
       atk.addEventListener('toggle', function(){ if(syncingOpen) return; syncingOpen=true; def.open=atk.open; syncingOpen=false; });
       def.addEventListener('toggle', function(){ if(syncingOpen) return; syncingOpen=true; atk.open=def.open; syncingOpen=false; });
     }
-
-    var moveSpecific=findSectionByTitle('技固有条件');
-    if(moveSpecific) moveSpecific.classList.add('v082h-hide');
   }
 
   // Every input whose state should swap sides symmetrically. Left column is the attacker-side id,
@@ -1993,7 +1532,6 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     ['attackerSelect','defenderSelect'], ['attackerLevel','defenderLevel'],
     ['attackerSpecialState','defenderSpecialState'], ['attackerTeraType','defenderTeraType'],
     ['attackerSexSelect','defenderSexSelect'], // the field genderValue() actually reads; the static
-    // attackerGender/defenderGender selects are dead UI (unused by buildOptions) and are left alone.
     ['attackerType1','defenderType1'], ['attackerType2','defenderType2'],
     ['attackerTypeOverride','defenderTypeOverride'], ['attackerAddType','defenderAddType'],
     ['attackerItemSelect','defenderItemSelect'], ['attackerNoItem','defenderNoItem'],
@@ -2032,7 +1570,7 @@ window.__damekeFmtFaintPct = fmtFaintPct;
   const ATTACKER_ROLE_ONLY_IDS = ['moveSelect','moveShowAll','critical','attackerCriticalForce',
     'move2Select','move2ShowAll','move2CriticalForce','move2RolloutHit','move2DefenseCurl','move2EchoedVoiceCount','move2MoveOrder','move2TargetSwitching','move2FaintedAllies','move2SupremeOverlordFaintedAllies','move2Friendship','move2RemainingPP','move2LastMoveFailed','move2UserDamagedThisTurn','move2TargetDamagedThisTurn','move2StockpileCount','move2PresentPower','move2RageFistHitCount','move2MagnitudePower','move2RoundAllyUsed','move2FuryCutterCount','move2StatDroppedThisTurn','move2AllyFaintedLastTurn','move2BeatUpAlly1','move2BeatUpAlly2','move2BeatUpAlly3','move2BeatUpAlly4','move2BeatUpAlly5',
     'attackerFocusEnergy','attackerGMaxRapidStrike','attackerLockOn','attackerMicleBerry','attackerVictoryStar','attackerStellarMoveCount','charge','pledgeCombination','meFirst','helpingHandCount','batterySupport','powerSpotSupport','flowerGiftSupport','plusMinusSupport','flashFireActivated','stakeoutSwitchIn','attackerDoubleDamage','metronomeUseCount','focusLensMoveOrder','steelSpiritCount','analyzeMovedLast','supremeOverlordFaintedAllies','beatUpAlly1','beatUpAlly2','beatUpAlly3','beatUpAlly4','beatUpAlly5','allyFaintedLastTurn','defenseCurl','echoedVoiceCount','moveOrder','targetSwitching','faintedAllies','friendship','remainingPP','lastMoveFailed','userDamagedThisTurn','targetDamagedThisTurn','stockpileCount','presentPower','rageFistHitCount','magnitudePower','roundAllyUsed','furyCutterCount','psywaveMultiplier','kimagureLaserDouble','fixedDamageTaken','statDroppedThisTurn','electrify','orderUpForm','move2OrderUpForm','attackerRainbow'];
-  const DEFENDER_ROLE_ONLY_IDS = ['defenderConfusion','defenderForesight','defenderMiracleEye','defenderTarShot','defenderScreen','defenderFriendGuard','defenderMinimized','defenderProtectState','defenderSemiInvulnerable','defenderGlaiveRush','defenderFlowerGiftSupport','defenderSubstitute','defenderLuckyChant','protect','defenderSeaOfFire'];
+  const DEFENDER_ROLE_ONLY_IDS = ['defenderConfusion','defenderForesight','defenderMiracleEye','defenderTarShot','defenderScreen','defenderFriendGuard','defenderMinimized','defenderProtectState','defenderSemiInvulnerable','defenderGlaiveRush','defenderFlowerGiftSupport','defenderSubstitute','defenderLuckyChant','defenderSeaOfFire','defenderRage'];
   var attackerRoleShadow = {};
   var defenderRoleShadow = {};
   function swapWithShadow(ids, shadow){
@@ -2199,47 +1737,32 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     if(window.__damekeCalculate) window.__damekeCalculate(); // the one recalculation for this swap
   }
 
-  // 技威力(N46 変動後威力)の表示文字列を、result.trace(構造化データ、findTraceEntryで
-  // renderCalcTable自身が特性/持ち物などを読むのと同じ経路)から直接組み立てる。#trace等の
-  // 描画済みテキスト<pre>を読み返すことはしない -- そちらは単なる出力であり、参照元にはしない。
-  // traceOverride: updateMove2StandaloneSectionが分岐幅を仮のtrace値として詰め替えたクローン
-  // (renderResult2)がある場合はそちらを渡す。
-  function powerTextFor(result){
+  // 結果枠の「技威力」の表示文字列。計算過程欄(result.trace)は読まず、計算結果の表示用データ
+  // (CALC.getDisplayData)から組み立てる。連続攻撃で1回ごとに威力が変わる技(ふくろだたき・
+  // トリプルキック・トリプルアクセル・おやこあい)は「1回目=…/2回目=…」、それ以外は1回目の威力。
+  // powerRange: 技②で分岐によって威力が変わる場合の幅 {min,max}(あれば「最小～最大」を表示)。
+  function powerTextFor(result, powerRange){
+    if(powerRange) return powerRange.min + '～' + powerRange.max;
     if(!result) return '-';
-    var line = window.__damekeFindTraceEntry(result.trace, '変動後威力');
-    var txt = line ? String(line.value) : '';
-    if(txt==='-') return '-';
-    var nums=[], re=/(\d+)回目=([0-9]+)/g, m;
-    while((m=re.exec(txt))) nums.push({idx:m[1], val:m[2]});
-    if(nums.length){
-      if(nums.length===1) return nums[0].val;
-      var moveEntry = window.__damekeFindTraceEntry(result.trace, '技名変換');
-      var moveNameNow = moveEntry ? String(moveEntry.value||'') : '';
-      var abilityEntry = window.__damekeFindTraceEntry(result.trace, '特性（攻撃側）');
-      var isParental = !!abilityEntry && abilityEntry.name==='おやこあい' && abilityEntry.value==='有効';
+    var dd = window.DAMEKE_CALC.getDisplayData(result), p = dd.power;
+    if(p.perHit && p.perHit.length){
+      if(p.perHit.length===1) return String(p.perHit[0]);
+      var ab = dd.abilities.attacker;
+      var isParental = !!ab && ab.name==='おやこあい' && ab.status==='有効';
       var variableMoves = ['ふくろだたき', 'トリプルキック', 'トリプルアクセル'];
-      var isVariable = variableMoves.indexOf(moveNameNow) >= 0 || isParental;
-      if(!isVariable) return nums[0].val;
-      return nums.map(function(n){ return n.idx+'回目='+n.val; }).join('/');
+      var isVariable = variableMoves.indexOf(result.moveName) >= 0 || isParental;
+      if(!isVariable) return String(p.perHit[0]);
+      return p.perHit.map(function(v, i){ return (i+1)+'回目='+v; }).join('/');
     }
-    // 技②(結果枠)で、防御側の残りHPによって威力が変わる技の分岐幅を "X～Y（分岐幅）" の
-    // 形で仮のtraceエントリに詰めている場合(updateMove2StandaloneSection参照)は、それを
-    // 単一数値パースより先に拾って範囲表示のまま使う。
-    var rangeM = txt.match(/([0-9]+)～([0-9]+)（分岐幅）/);
-    if(rangeM) return rangeM[1]+'～'+rangeM[2];
-    if(/^[0-9]+$/.test(txt)) return txt;
-    return '-';
+    return p.single != null ? String(p.single) : '-';
   }
   function statText(side, key, kind) { var el = q(side+'_'+key+'_'+kind); return el ? el.value : ''; }
   function natureText(side) { var el = q(side+'_nature'); if (!el) return ''; var opt = el.options[el.selectedIndex]; return opt ? opt.textContent : ''; }
-  // labelKeyのtraceエントリのnote(例:「物理: 攻撃側ランク補正込みA参照」)から、イカサマ・
-  // ボディプレス等で参照先ステータスが入れ替わっている場合を構造化データのまま検出する。
-  function statRefFor(labelKey, fallbackSide, fallbackKey, result) {
-    var entry = window.__damekeFindTraceEntry(result ? result.trace : null, labelKey);
-    var noteText = entry ? String(entry.note||'') : '';
-    var m = noteText.match(/(攻撃側|防御側)ランク補正込み([ABCD])参照/);
-    if (m) return { side: m[1]==='攻撃側' ? 'attacker' : 'defender', key: m[2] };
-    return { side: fallbackSide, key: fallbackKey };
+  // 補正後攻撃側/防御側実数値が参照した能力(イカサマ・ボディプレス等で入れ替わる)。
+  // which: 'atkRef' | 'defRef'。変化技など参照先が決まらない場合は fallbackSide/fallbackKey。
+  function statRefFor(which, fallbackSide, fallbackKey, result) {
+    var ref = result ? window.DAMEKE_CALC.getDisplayData(result)[which] : null;
+    return ref || { side: fallbackSide, key: fallbackKey };
   }
   function hpColorClass(remainHp, maxHp) {
     if (remainHp <= 0) return 'v082h-hp-faint';
@@ -2418,8 +1941,7 @@ window.__damekeFmtFaintPct = fmtFaintPct;
   // 性格/特性/持ち物のグリッドは含まない(それらは下部固定枠側にのみ表示する)。技②がある
   // ときはこれを技①・技②それぞれについて1つずつ作り、直後にその技自身の計算過程表を
   // 並べて表示する(cfg.labelでボックス先頭に「技①」「技②」のラベルを付ける)。
-  // cfg.which: 'move1' | 'move2'。#summary/#move2Summary/#trace/#move2Traceの描画済みテキストは
-  // 一切読み返さず、calculate()/updateMove2StandaloneSectionがその場で公開した構造化フィールド
+  // cfg.which: 'move1' | 'move2'。calculate()/updateMove2StandaloneSectionが公開した構造化フィールド
   // (window.__damekeLastResult / __damekeLastFaintPct / __damekeMove2DisplayText / トレース配列)
   // だけから直接組み立てる。
   function buildMoveDetailGrid(cfg){
@@ -2435,7 +1957,7 @@ window.__damekeFmtFaintPct = fmtFaintPct;
         certainty = disp2.certaintyText || '未計算';
         faintRate = disp2.faintText || '未計算';
         accuracyDisplay = disp2.accuracyText || '未計算';
-        power = powerTextFor({ trace: window.__damekeLastResult2Trace });
+        power = powerTextFor(result2, window.__damekeLastResult2PowerRange);
       }
     } else {
       var result = window.__damekeLastResult;
@@ -2482,11 +2004,10 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     });
     return bar;
   }
+  var calcTitles = {};
   function renderResult(){
-    var src=q('summary'); if(!src) return;
-    // #summary/#trace(いずれも非表示のまま残る旧UIの中間置き場)の描画済みテキストを読み返す
-    // のではなく、calculate()がその場で公開した構造化フィールド(window.__damekeLastResult等)
-    // から直接組み立てる。結果枠はあくまで出力であり、参照元にはしない。
+    var resultHead=document.querySelector('#panel-calculator .result-card > h2'); if(!resultHead) return;
+    // calculate()が公開した構造化フィールド(window.__damekeLastResult等)から直接組み立てる。
     var lastResult = window.__damekeLastResult;
     var lastFaintPct = window.__damekeLastFaintPct;
     var head = lastResult ? (lastResult.attackerName+' の '+lastResult.moveName+' → '+lastResult.defenderName) : '未計算';
@@ -2500,7 +2021,7 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     // ---- compact HP-bar summary: this is the only part pinned at the top on narrow screens ----
     var panel=q('v082hResultPanel');
     if(!panel){
-      panel=make('div','v082h-result-panel'); panel.id='v082hResultPanel'; src.parentNode.insertBefore(panel,src); src.classList.add('v082h-hide');
+      panel=make('div','v082h-result-panel'); panel.id='v082hResultPanel'; resultHead.parentNode.insertBefore(panel,resultHead.nextSibling);
     }
     updateResultPanelFieldTint(panel);
     panel.innerHTML='';
@@ -2583,22 +2104,15 @@ window.__damekeFmtFaintPct = fmtFaintPct;
         barWrap.appendChild(subOuter);
       }
       barWrap.appendChild(buildHpBar(maxHp, minRemain, maxRemain));
-      // きのみ等による回復が起こりうる場合、その旨を表示する。技②タブ(統合表示)のときは技①・
-      // 技②それぞれについて別々にチェックする。技②側は代表分岐(技①最大ダメージのケース)単体
-      // だけを見ると、その分岐では技①の時点で既にきのみを消費済みになっていて見逃すことが
-      // あるため、combined.move2RecoveryName/Amount(全分岐を通じて検出済み)を使う。
+      // 防御側の回復量(きのみ・たべのこし・フィールド・特性などによる回復の合計)。技②が指定されているときは
+      // 技①の開始から技②の終了まで(技①のターン終了時の回復を含む)の合計、技①だけのときは技①の終了まで。
+      // 同じきのみが技①・技②のどちらかで1回だけ発動する場合は1回分として数える(合計はCALC側で分岐ごとに求めている)。
       // 下部固定枠の高さを抑えるため、残りHP表示と同じ行に右寄せで並べる(別行にはしない)。
       var recoveryNotes = [];
-      if (showCombined) {
-        var note1 = window.__damekeRecoveryNoteFor(window.__damekeLastResult);
-        if (note1) recoveryNotes.push('①'+note1);
-        if (combined.move2RecoveryName && combined.move2RecoveryAmount > 0) {
-          recoveryNotes.push('②'+combined.move2RecoveryAmount+'回復');
-        }
-      } else {
-        var noteSolo = window.__damekeRecoveryNoteFor(window.__damekeLastResult);
-        if (noteSolo) recoveryNotes.push(noteSolo);
-      }
+      var recoveryNote = showCombined
+        ? window.__damekeRecoveryNoteFor({ max: combined.recoveryMax, certain: combined.recoveryCertain })
+        : window.__damekeRecoveryNoteFor(window.__damekeLastRecovery);
+      if (recoveryNote) recoveryNotes.push(recoveryNote);
       var numsRow = make('div','v082h-hpbar-numsrow');
       numsRow.appendChild(make('span','v082h-hpbar-nums', maxRemain+' ～ '+minRemain+' / '+maxHp));
       if (recoveryNotes.length) {
@@ -2611,8 +2125,8 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     // ---- 性格/特性/持ち物の枠。技②の有無にかかわらず、ポケモン自体の情報として常に表示する
     // (技①・技②どちらを選んでも同じ攻撃側/防御側のポケモンなので、共通で構わない)。----
     {
-      var atkRef = statRefFor('補正後攻撃側実数値', 'attacker', cat==='特殊'?'C':'A', lastResult);
-      var defRef = statRefFor('補正後防御側実数値', 'defender', cat==='特殊'?'D':'B', lastResult);
+      var atkRef = statRefFor('atkRef', 'attacker', cat==='特殊'?'C':'A', lastResult);
+      var defRef = statRefFor('defRef', 'defender', cat==='特殊'?'D':'B', lastResult);
       var sideGrid = make('div','v082h-result-sidegrid');
       panel.appendChild(sideGrid);
       var atkCol = make('div','v082h-result-col'), defCol = make('div','v082h-result-col');
@@ -2635,77 +2149,38 @@ window.__damekeFmtFaintPct = fmtFaintPct;
         // suggest a rank for H too.
         resultRow(defCol, '努力値(H/'+defRef.key+')/ランク('+defRef.key+')', statText('defender','H','ev')+' / '+statText('defender',defRef.key,'ev')+' / '+signedRank('defender', defRef.key));
       }
-      // 特性/持ち物: reuses the exact same structured trace lookup and formatting the 計算過程
-      // column itself uses (renderCalcTable's pairedNameRow/itemStatusText), rather than
-      // re-parsing the rendered trace *text* -- that text also carries each entry's note appended
-      // after the value, which is what was producing "有効 / 有効"-style duplicates here before.
-      var lastTrace = window.__damekeLastTrace || [];
-      var findTrace = function(labelPart){ return lastTrace.find(function(x){ return String(x.label||'').indexOf(labelPart) >= 0; }) || null; };
-      var abilityDisplay = function(labelPart){
-        var e = findTrace(labelPart);
-        if(!e) return '-';
-        return e.value === '有効' ? e.name : (e.name + '（' + e.value + '）');
-      };
-      var itemDisplay = function(labelPart){
-        var e = findTrace(labelPart);
-        if(!e) return '-';
-        var status = e.value === '持ち物なし' ? '無効' : e.value;
-        return status === '有効' ? e.name : (e.name + '（' + status + '）');
-      };
-      resultRow(atkCol, '特性', abilityDisplay('特性（攻撃側）'));
-      resultRow(defCol, '特性', abilityDisplay('特性（防御側）'));
-      resultRow(atkCol, '持ち物', itemDisplay('持ち物（攻撃側）'));
-      resultRow(defCol, '持ち物', itemDisplay('持ち物（防御側）'));
+      // 特性/持ち物: 計算結果の表示用データ(CALC.getDisplayData)の名前と有効/無効の状態から表示する。
+      var dd = lastResult ? window.DAMEKE_CALC.getDisplayData(lastResult) : null;
+      resultRow(atkCol, '特性', window.__damekeAbilityStatusText(dd && dd.abilities.attacker));
+      resultRow(defCol, '特性', window.__damekeAbilityStatusText(dd && dd.abilities.defender));
+      resultRow(atkCol, '持ち物', window.__damekeItemStatusText(dd && dd.items.attacker));
+      resultRow(defCol, '持ち物', window.__damekeItemStatusText(dd && dd.items.defender));
     }
 
     // ---- detail area (結果枠): 結果の要点の表示(技分類～瀕死率の小さな詳細グリッド)と、その
     // 直後に計算過程の表を並べる。技②が指定されているときは、この2点セットを技①・技②の
-    // 2つ分並べて表示する(画像・HPバーは下部固定枠のみに表示し、ここには含めない)。
-    // #summary / #trace / #move2Summary / #move2Trace は非表示のまま、上記の表示を組み立てる
-    // ためのデータ抽出元として残す(旧式の生のトレース文字列<pre>そのものは表示しない)。----
+    // 2つ分並べて表示する(画像・HPバーは下部固定枠のみに表示し、ここには含めない)。----
     var detail=q('v082hResultDetailPanel');
     if(!detail){ detail=make('div','v082h-move-cards-holder'); detail.id='v082hResultDetailPanel'; panel.parentNode.insertBefore(detail, panel.nextSibling); }
-    var staleResult2Panel = q('v082hResult2Panel');
-    if(staleResult2Panel && staleResult2Panel.parentNode) staleResult2Panel.parentNode.removeChild(staleResult2Panel);
 
-    var move2Section = document.getElementById('v082hMove2Section');
-    var move2SummaryEl = document.getElementById('move2Summary');
-    var traceEl = document.getElementById('trace');
-    var move2TraceEl = document.getElementById('move2Trace');
-    if (traceEl) traceEl.classList.add('v082h-hide');
-    if (move2TraceEl) move2TraceEl.classList.add('v082h-hide');
-    // 計算過程表の見出し(「計算過程」「計算過程②」のh3)はもともと#trace/#move2Traceの直前に
-    // 静的に置かれているだけなので、一度だけid(v082hCalcTitle/v082hCalcTitle2)を振って以後
-    // getElementByIdで安定して参照できるようにする(表と一緒にdetail内へ移動させて対にするため)。
-    function ensureCalcTitle(preEl, idName){
-      var existing = document.getElementById(idName);
-      if (existing) return existing;
-      if (preEl && preEl.previousElementSibling && preEl.previousElementSibling.tagName === 'H3') {
-        preEl.previousElementSibling.id = idName;
-        return preEl.previousElementSibling;
-      }
-      return null;
+    // 計算過程表の見出し(「計算過程」「計算過程②」)。表と対にして、毎回detail内へ並べ直す。
+    function calcTitle(idName, text){
+      var t = calcTitles[idName];
+      if(!t){ t = calcTitles[idName] = document.createElement('h3'); t.id = idName; t.textContent = text; }
+      return t;
     }
-    var traceTitle = ensureCalcTitle(traceEl, 'v082hCalcTitle');
-    var move2TraceTitle = ensureCalcTitle(move2TraceEl, 'v082hCalcTitle2');
-    // installLayout()がページ初期化時に#trace直前のh3(「計算過程」見出し)へv082h-hideを付けて
-    // 隠している(その時点ではまだ計算過程表そのものが無いため)。ここで表と対にしてdetail内へ
-    // 表示する以上、その古いhideは解除する。
-    if (traceTitle) traceTitle.classList.remove('v082h-hide');
-    if (move2TraceTitle) move2TraceTitle.classList.remove('v082h-hide');
-    var calcTable1 = document.getElementById('v082hCalcTable');
-    var calcTable2 = document.getElementById('v082hCalcTable2');
-    // v082hCalcTable/v082hCalcTable2とその見出しは、前回の描画でdetail内(または技②が
-    // 「なし」に戻った際の退避先であるmove2Section内)のどちらかに置かれている可能性があるので、
-    // 一旦すべて現在の親から切り離してから、detail.innerHTML=''で(切り離し済みのため無害に)
-    // detailを空にし、今回の状態に応じてあらためて正しい位置へ組み立て直す。
+    var traceTitle = calcTitle('v082hCalcTitle', '計算過程');
+    var move2TraceTitle = calcTitle('v082hCalcTitle2', '計算過程②');
+    var calcTable1 = window.__damekeCalcTable('v082hCalcTable');
+    var calcTable2 = window.__damekeCalcTable('v082hCalcTable2');
+    // 前回の描画でdetail内に置かれた見出し・表をいったん切り離してから、detailを空にして組み立て直す
+    // (技②が「なし」のときは、技②の見出し・表は切り離したままにする)。
     [traceTitle, calcTable1, move2TraceTitle, calcTable2].forEach(function(n){
       if (n && n.parentNode) n.parentNode.removeChild(n);
     });
     detail.innerHTML='';
 
-    var move2Active = !!(combined && move2Section && !move2Section.classList.contains('v082h-hide'));
-    if (move2SummaryEl) move2SummaryEl.classList.toggle('v082h-hide', !!combined);
+    var move2Active = !!(combined && window.__damekeMove2SectionActive);
     if (move2Active) {
       // 技①・技②が両方あるときは、結果枠内をタブ切り替え式にする(狭い画面での攻撃側/防御側
       // 切り替えと同じ見た目の2ボタンバー。ただし配色はそれと紛らわしくないよう、特に意味の
@@ -2715,29 +2190,22 @@ window.__damekeFmtFaintPct = fmtFaintPct;
       detail.appendChild(panel1);
       var box1 = buildMoveDetailGrid({ which:'move1' });
       panel1.appendChild(box1);
-      if (traceTitle) panel1.appendChild(traceTitle);
+      panel1.appendChild(traceTitle);
       if (calcTable1) panel1.appendChild(calcTable1);
 
       var panel2 = make('div','v082h-move-tab-panel'); panel2.id='v082hMoveTabPanel2';
       detail.appendChild(panel2);
       var box2 = buildMoveDetailGrid({ which:'move2' });
       panel2.appendChild(box2);
-      if (move2TraceTitle) panel2.appendChild(move2TraceTitle);
+      panel2.appendChild(move2TraceTitle);
       if (calcTable2) panel2.appendChild(calcTable2);
 
       setActiveMoveTab(window.__damekeActiveMoveTab || 'move1');
     } else {
       var box1 = buildMoveDetailGrid({ which:'move1' });
       detail.appendChild(box1);
-      if (traceTitle) detail.appendChild(traceTitle);
+      detail.appendChild(traceTitle);
       if (calcTable1) detail.appendChild(calcTable1);
-    }
-    if (!move2Active && move2Section) {
-      // 技②が「なし」のときは、技②用の計算過程表とその見出しを元の置き場所
-      // (v082hMove2Section、v082h-hideで隠れている)へ戻す -- detail内に孤立して残ってしまい、
-      // 技②が「なし」に戻された後もdetail枠内に表示され続けてしまうのを防ぐため。
-      if (move2TraceTitle) move2Section.insertBefore(move2TraceTitle, move2Section.firstChild);
-      if (calcTable2) move2Section.insertBefore(calcTable2, move2TraceEl || null);
     }
 
     requestAnimationFrame(function(){
@@ -2767,7 +2235,17 @@ window.__damekeFmtFaintPct = fmtFaintPct;
       ro.observe(panel);
     }
   }
-  function setupResult(){ var s=q('summary'), t=q('trace'); if(!s) return; var obs=new MutationObserver(renderResult); obs.observe(s,{childList:true,subtree:true,characterData:true}); if(t) obs.observe(t,{childList:true,subtree:true,characterData:true}); setTimeout(renderResult,0); }
+  function setupResult(){
+    if(!document.querySelector('#panel-calculator .result-card > h2')) return;
+    // 計算のたびに、その処理が終わった直後(マイクロタスク)に結果枠を1回描画する。
+    var pending = false;
+    window.__damekeScheduleResultRender = function(){
+      if(pending) return;
+      pending = true;
+      queueMicrotask(function(){ pending = false; renderResult(); });
+    };
+    setTimeout(renderResult,0);
+  }
   function refreshAll(){ updateAbilityButtons('attacker'); updateAbilityButtons('defender'); updateConditional(); updateConditional2(); updateMoveOrderSwapButton(); renderResult(); updateNatureStatColors('attacker'); updateNatureStatColors('defender'); updateReadOnlyStatRows('attacker'); updateReadOnlyStatRows('defender'); updateRemainingEvDisplay('attacker'); updateRemainingEvDisplay('defender'); if(window.__damekeUpdateMoveTypeColor) window.__damekeUpdateMoveTypeColor(); if(window.__damekeUpdateMove2TypeColor) window.__damekeUpdateMove2TypeColor(); }
   window.__damekeRefreshAll = refreshAll;
   function bind(){ ['attackerSelect','defenderSelect'].forEach(function(id){ var e=q(id); if(e) e.addEventListener('change',function(){ setTimeout(refreshAll,0); }); }); ['moveSelect','attackerAbilitySelect','defenderAbilitySelect','attackerItemSelect','attackerTeraType','move2AttackerTeraType'].forEach(function(id){ var e=q(id); if(e) e.addEventListener('change',function(){ setTimeout(updateConditional,0); }); }); ['move2Select'].forEach(function(id){ var e=q(id); if(e) e.addEventListener('change',function(){ setTimeout(function(){ updateConditional2(); updateMoveOrderSwapButton(); },0); }); }); ['attackerAbilitySelect','defenderAbilitySelect'].forEach(function(id){ var e=q(id); if(e) e.addEventListener('change',function(){ if(window.__damekeApplyAbilityFieldAuto) window.__damekeApplyAbilityFieldAuto(e.value); }); }); var swapMoveBtn=q('moveOrderSwapButton'); if(swapMoveBtn) swapMoveBtn.addEventListener('click', swapMoveOrder); }
@@ -2804,7 +2282,6 @@ window.__damekeFmtFaintPct = fmtFaintPct;
   }
   function buildLayoutAndZones(){
     safeStep('installLayout', installLayout);
-    safeStep('setupZones', setupZones);
     safeStep('restructureConditions', restructureConditions);
     safeStep('finalizeSearchCombos', finalizeSearchCombos);
     safeStep('finalizeNumberPickers', finalizeNumberPickers);
@@ -2833,7 +2310,6 @@ window.__damekeFmtFaintPct = fmtFaintPct;
   var syncing = false;
   var renderTimer = null;
   var recalcTimer = null;
-  var initialized = false;
 
   function arr(x){ return Array.isArray(x) ? x : []; }
   function norm(x){ return x == null ? '' : String(x).trim(); }
@@ -3080,9 +2556,6 @@ window.__damekeFmtFaintPct = fmtFaintPct;
   }
   function ensurePanel(side){
     var id = side === 'A' ? 'attackerFormPanelV091' : 'defenderFormPanelV091';
-    var oldId = side === 'A' ? 'attackerFormPanelV090' : 'defenderFormPanelV090';
-    var old = byIdLocal(oldId);
-    if(old) old.remove();
     var anchor = anchorAfterPokemon(side);
     if(!anchor) return null;
     var panel = byIdLocal(id);
@@ -3214,10 +2687,6 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     ensureSexField(side);
   }
   function attachAll(){ attachSide('A'); attachSide('D'); }
-  function removeLegacyNodes(){
-    var nodes = document.querySelectorAll('#attackerFormPanelV090,#defenderFormPanelV090,.v090e-sex-field,.v090f-sex-field,.v090g-sex-field,.v090-form-select');
-    Array.prototype.slice.call(nodes).forEach(function(n){ n.remove(); });
-  }
   document.addEventListener('pointerdown', function(e){
     var btn = e.target && e.target.closest ? e.target.closest('.v091-form-chip') : null;
     if(!btn) return;
@@ -3233,7 +2702,6 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     e.stopPropagation();
   }, true);
   function init(){
-    removeLegacyNodes();
     attachAll();
     renderAll();
   }
@@ -3291,80 +2759,6 @@ window.__damekeFmtFaintPct = fmtFaintPct;
 
 
 
-
-// Integrated read-only application diagnostic
-(function(){
-  'use strict';
-  window.DAMEKE_APP_DIAGNOSTIC_REPORT = function(){
-    function exists(id){ return !!document.getElementById(id); }
-    function selectText(id){
-      var el = document.getElementById(id);
-      if(!el) return '';
-      var option = el.options && el.selectedIndex >= 0 ? el.options[el.selectedIndex] : null;
-      return option ? String(option.textContent || option.value || '') : String(el.value || '');
-    }
-    var scripts = Array.prototype.slice.call(document.querySelectorAll('script[src]')).map(function(script){
-      return script.getAttribute('src') || '';
-    });
-    var oldFormChangeScripts = scripts.filter(function(src){ return /^app\.formchange\./.test(src); });
-    var ui = {
-      basicGrid: exists('v082hBasicGrid'),
-      toolbar: exists('v082hToolbar'),
-      resultPanel: exists('v082hResultPanel'),
-      zones: {
-        moveDetails: exists('v082hMoveDetails'),
-        attackerAbilityDetails: exists('v082hAbilityDetails'),
-        defenderAbilityDetails: exists('v082hDefenderAbilityDetails'),
-        attackerItemDetails: exists('v082hItemDetails'),
-        defenderItemDetails: exists('v082hDefenderItemDetails'),
-        teraDetails: exists('v082hTeraDetails')
-      },
-      abilityButtonCounts: {
-        attacker: document.querySelectorAll('#v082hAbilityButtons_attacker button').length,
-        defender: document.querySelectorAll('#v082hAbilityButtons_defender button').length
-      },
-      bodyClass: document.body.className
-    };
-    var forms = {
-      attacker: {
-        pokemon: selectText('attackerSelect'),
-        panel: exists('attackerFormPanelV091'),
-        sexSelect: exists('attackerSexSelect'),
-        listener: !!(document.getElementById('attackerSelect') && document.getElementById('attackerSelect').dataset.v091Form),
-        ability: selectText('attackerAbilitySelect')
-      },
-      defender: {
-        pokemon: selectText('defenderSelect'),
-        panel: exists('defenderFormPanelV091'),
-        sexSelect: exists('defenderSexSelect'),
-        listener: !!(document.getElementById('defenderSelect') && document.getElementById('defenderSelect').dataset.v091Form),
-        ability: selectText('defenderAbilitySelect')
-      },
-      legacyPanelCount: document.querySelectorAll('#attackerFormPanelV090,#defenderFormPanelV090').length
-    };
-    var initialization = {
-      appJsLoaded: scripts.indexOf('app.js') >= 0,
-      singleEntryGuard: window.__damekeSingleInitDone === true,
-      formChangeIntegratedIntoApp: true,
-      oldFormChangeScriptsLoaded: oldFormChangeScripts
-    };
-    var checks = {
-      requiredUiPresent: ui.basicGrid && ui.toolbar && ui.resultPanel && ui.zones.moveDetails && ui.zones.attackerAbilityDetails && ui.zones.defenderAbilityDetails,
-      formRuntimePresent: forms.attacker.panel && forms.defender.panel && forms.attacker.sexSelect && forms.defender.sexSelect && forms.attacker.listener && forms.defender.listener,
-      oldScriptsAbsent: oldFormChangeScripts.length === 0,
-      legacyPanelsAbsent: forms.legacyPanelCount === 0
-    };
-    return {
-      version: 'v1.2.0',
-      loaded: true,
-      initialization: initialization,
-      ui: ui,
-      forms: forms,
-      checks: checks,
-      healthy: initialization.appJsLoaded && initialization.singleEntryGuard && checks.requiredUiPresent && checks.formRuntimePresent && checks.oldScriptsAbsent && checks.legacyPanelsAbsent
-    };
-  };
-})();
 
 // Single-entry initialization orchestrator
 // Runs each existing init stage exactly once, in a fixed, deterministic order,

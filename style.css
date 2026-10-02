@@ -229,12 +229,16 @@ body { margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Se
 .app-header h1 { margin: 0 0 4px; font-size: 22px; }
 .app-header p { margin: 0; color: #d1d5db; } /* ヘッダーは常に暗色背景固定のため、文字色もテーマに連動させない */
 .layout { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; padding: 16px; align-items: start; }
+/* 画面幅の切り替え(@media)はem指定: 標準の文字サイズ(16px)では1250px・760pxなどの従来の幅で切り替わり、
+   ブラウザの文字サイズ設定を大きくしている場合は、その分広い画面幅から狭い画面用の配置になる。 */
+/* ダメージ計算: 入力欄の列は、攻撃側・防御側の枠(各320px)が横に並ぶ幅(710px)を下回らないようにする。
+   (710px=44.375rem、320px=20rem。文字サイズ設定に合わせて伸びる)
+   画面幅が約1468px以上なら従来どおり左右半々、それより狭い(1251〜1467px)ときは結果欄の列が狭くなる。 */
+.layout.layout-calc { grid-template-columns: minmax(44.375rem,1fr) minmax(0,1fr); }
 body:not(.v082h-ready) .layout { visibility: hidden; }
 .card,.sub-card { background:var(--dameke-surface); border: 1px solid var(--dameke-border); border-radius: 14px; box-shadow: 0 1px 3px rgba(15,23,42,.08); }
 .card { padding: 16px; }
 .sub-card { padding: 12px; margin: 12px 0; }
-.side-by-side { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
-.side-panel { margin: 0; }
 h2,h3 { margin: 0 0 10px; }
 h2 { font-size: 20px; }
 h3 { font-size: 15px; color: var(--dameke-text-secondary); }
@@ -242,7 +246,6 @@ h3 { font-size: 15px; color: var(--dameke-text-secondary); }
 .grid.two { grid-template-columns: repeat(2,minmax(0,1fr)); }
 .grid.three { grid-template-columns: repeat(3,minmax(0,1fr)); }
 .grid.four { grid-template-columns: repeat(4,minmax(0,1fr)); }
-.compact-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
 label { display: grid; gap: 4px; font-size: 12px; color: var(--dameke-text-mid); }
 label.check { display: flex; gap: 6px; align-items: center; min-height: 34px; }
 input,select,button { font: inherit; border: 1px solid var(--dameke-border-strong); border-radius: 8px; padding: 7px 8px; background:var(--dameke-surface); min-width: 0; }
@@ -252,24 +255,14 @@ button { cursor: pointer; background: var(--dameke-btn-bg); border-color: var(--
 button:hover:not(:disabled) { filter: var(--dameke-hover-filter); }
 .actions { display: flex; gap: 10px; margin-top: 14px; }
 .actions button:first-child { background: #2563eb; border-color: #2563eb; color: #fff; }
-.stat-grid-wrap { overflow-x:auto; border:1px solid var(--dameke-border); border-radius:10px; }
-.stat-grid { min-width:410px; }
-.hp-tools { grid-template-columns: 1fr repeat(3,72px); }
-.hp-tools button{min-height:34px;padding-left:4px;padding-right:4px}
 .operation-panel{border:1px dashed var(--dameke-border-subtle);border-radius:10px;padding:10px;background:var(--dameke-surface-faint)}
 .operation-title{font-size:12px;font-weight:700;color:var(--dameke-text-label);margin-bottom:8px}
 .operation-buttons{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
 .operation-display{font-size:12px;color:var(--dameke-text-slate);background:var(--dameke-surface);border:1px solid var(--dameke-border-slate);border-radius:8px;padding:8px;min-height:34px}
-.summary{background:var(--dameke-surface-alt);border:1px solid var(--dameke-border);border-radius:10px;padding:10px;line-height:1.7}
-.output{background:#0b1020;color:var(--dameke-border);border-radius:10px;padding:12px;min-height:54px;overflow:auto;white-space:pre-wrap}
-.trace{min-height:520px;font-size:12px}
-.result-card pre#trace{margin-bottom:0;}
 .v082h-calc-table{width:100%;border-collapse:collapse;margin:0 0 10px;font-size:12px;table-layout:fixed;}
 .v082h-calc-table th{text-align:left;padding:5px 8px;background:var(--dameke-surface-subtle);color:var(--dameke-text-slate);font-weight:700;border:1px solid var(--dameke-border-slate);white-space:nowrap;}
 .v082h-calc-table th:first-child{width:132px;}
 .v082h-calc-table td{padding:5px 8px;border:1px solid var(--dameke-border-slate);color:var(--dameke-text-heading);overflow-wrap:break-word;}
-.v082h-rate-up{color:var(--dameke-up-text);font-weight:700;}
-.v082h-rate-down{color:var(--dameke-down-text);font-weight:700;}
 
 /* ==== v082h main UI ==== */
 .v082h-hide{display:none!important;}
@@ -278,7 +271,8 @@ button:hover:not(:disabled) { filter: var(--dameke-hover-filter); }
 .v082h-side-tabs button.active{background:#2563eb;border-color:#2563eb;color:#fff;}
 .v082h-root-basic{width:100%;box-sizing:border-box;}
 .v082h-basic-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);width:100%;box-sizing:border-box;gap:10px;margin-top:10px;}
-.v082h-box{margin:0;width:320px;}
+/* 2列表示時は幅320px(20rem。ブラウザの文字サイズ設定に合わせて伸びる)を基本とし、列幅がそれより狭いとき(1251〜1400px前後の画面)だけ列幅に収める */
+.v082h-box{margin:0;width:20rem;max-width:100%;}
 .v082h-box-head{display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .v082h-box-head h3{margin:0;}
 .v082h-attacker,.v082h-section-details.v082h-attacker{background:var(--dameke-attacker-tint);border-color:var(--dameke-attacker-tint-border);}
@@ -296,6 +290,8 @@ button:hover:not(:disabled) { filter: var(--dameke-hover-filter); }
 .v082h-type-grid{margin-top:4px;}
 .v082h-mini-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:8px;}
 .v082h-details,.v082h-section-details{border:1px solid var(--dameke-border-slate);border-radius:12px;padding:8px 10px;margin:8px 0;background:var(--dameke-surface-faint);}
+/* 基本(攻撃側・防御側)の枠と「場」の折り畳みの間隔 */
+.v082h-root-basic + .v082h-section-details{margin-top:20px;}
 .v082h-details>summary,.v082h-section-details>summary{cursor:pointer;font-weight:700;color:var(--dameke-text-slate);}
 .v082h-type-effects{font-size:.86rem;opacity:.82;padding:6px 8px;background:var(--dameke-surface-faint);}
 .v082h-type-effects>summary{font-weight:600;color:var(--dameke-text-muted);}
@@ -318,7 +314,7 @@ button:hover:not(:disabled) { filter: var(--dameke-hover-filter); }
 .dameke-btn-group{display:inline-flex;flex-direction:column;gap:3px;align-items:flex-start;}
 .dameke-btn-group-label{font-size:.62rem;font-weight:700;color:var(--dameke-text-faint);letter-spacing:.04em;padding-left:2px;}
 .dameke-btn-group-buttons{display:flex;box-shadow:0 1px 4px rgba(15,23,42,.18);border:1px solid rgba(15,23,42,.06);border-radius:999px;}
-.dameke-btn-group-btn{border:none;padding:7px 8px;font-size:.8rem;font-weight:700;cursor:pointer;color:#fff;width:76px;text-align:center;transition:transform .12s,box-shadow .12s;position:relative;box-sizing:border-box;white-space:nowrap;}
+.dameke-btn-group-btn{border:none;padding:7px 8px;font-size:.8rem;font-weight:700;cursor:pointer;color:#fff;width:auto;min-width:76px;/* 幅76px(文字が大きく入り切らないときだけ広がる) */text-align:center;transition:transform .12s,box-shadow .12s;position:relative;box-sizing:border-box;white-space:nowrap;}
 .dameke-btn-group-btn:first-child{border-radius:999px 0 0 999px;}
 .dameke-btn-group-btn:last-child{border-radius:0 999px 999px 0;}
 .dameke-btn-group-save{background:#059669;}
@@ -328,7 +324,6 @@ button:hover:not(:disabled) { filter: var(--dameke-hover-filter); }
 .dameke-btn-group-btn:hover{transform:translateY(-1px);box-shadow:0 3px 8px rgba(15,23,42,.28);z-index:1;}
 .dameke-btn-group-btn:active{transform:translateY(0);box-shadow:none;}
 .v082h-muted{font-size:.86rem;opacity:.72;}
-.v082h-secondary-action{opacity:.62;font-size:.9rem;padding:6px 9px;margin-top:16px;display:inline-block;}
 .v082h-ability-panel{border:1px solid var(--dameke-border);border-radius:12px;padding:8px 10px;margin:8px 0;background:var(--dameke-surface);}
 .v082h-minititle{font-weight:700;color:var(--dameke-text-slate);margin-bottom:6px;}
 .v082h-minititle-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;}
@@ -351,12 +346,18 @@ button:hover:not(:disabled) { filter: var(--dameke-hover-filter); }
 .v082h-ev-remaining-over{color:var(--dameke-up-text);}
 .v082h-ev-preset{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0;}
 .v082h-ev-select{max-width:78px;font-size:.8rem;padding:5px 4px;}
-.v082h-hp-row{margin:8px 0;align-items:start;grid-template-columns:130px 1fr;}
+/* 幅が足りないときは現HP欄(130px)の方を縮めて、簡易入力ボタンがはみ出さないようにする */
+.v082h-hp-row{margin:8px 0;align-items:start;grid-template-columns:minmax(0,130px) 1fr;}
 .v082h-hp-row input{font-size:.68rem;}
 .v082h-hp-buttons{display:flex;gap:4px;flex-wrap:nowrap;}
 .v082h-hp-buttons button{padding:3px 5px;font-size:.72rem;}
-.v082h-stat-table{display:grid;gap:4px;margin-bottom:8px;}
-.v082h-stat-row{display:grid;grid-template-columns:34px repeat(6,minmax(0,1fr));gap:2px;align-items:center;}
+/* 文字サイズを大きく設定した端末で表が枠に入り切らないときは、表だけを横にスクロールさせる
+   (各行の最小幅をrem指定。標準の文字サイズでは最も狭い画面でも最小幅に達しないので見た目は変わらない)。
+   左右・下のpadding/margin 2pxは、入力欄のフォーカス枠がスクロール枠で切れないための余白(全体の位置・大きさは不変)。 */
+.v082h-stat-table{display:grid;gap:4px;margin:0 -2px 6px;padding:0 2px 2px;overflow-x:auto;}
+.v082h-stat-table > .v082h-stat-row{min-width:10.875rem;}
+/* 左端のラベル列(種族値・努力値など)はラベルの文字(.66rem)と一緒に伸びるようrem指定(標準の文字サイズでは34px) */
+.v082h-stat-row{display:grid;grid-template-columns:2.125rem repeat(6,minmax(0,1fr));gap:2px;align-items:center;}
 .v082h-stat-boost{color:var(--dameke-up-text) !important;font-weight:800;}
 .v082h-stat-drop{color:var(--dameke-down-text) !important;font-weight:800;}
 .v082h-stat-head span{font-size:.72rem;font-weight:700;color:var(--dameke-text-label2);text-align:center;}
@@ -419,7 +420,6 @@ button:hover:not(:disabled) { filter: var(--dameke-hover-filter); }
 .v082h-hpbar-wrap{margin:8px 0 10px;}
 .v082h-subbar-outer{display:flex;justify-content:flex-end;margin-bottom:3px;}
 .v082h-hpbar-track.v082h-subbar-track{width:25%;height:7px;border-radius:4px;}
-.v082h-hpbar-label{font-size:.78rem;color:var(--dameke-text-label);margin-bottom:3px;}
 .v082h-hpbar-track{position:relative;height:14px;border-radius:7px;background:#3f3f46;overflow:hidden;display:flex;}
 .v082h-hpbar-seg{height:100%;}
 .v082h-hpbar-solid{opacity:1;}
@@ -457,11 +457,12 @@ button:hover:not(:disabled) { filter: var(--dameke-hover-filter); }
 .dameke-main-control-label{font-size:14px;font-weight:700;color:var(--dameke-text-slate);line-height:1.25;}
 .dameke-main-control-label > select,.dameke-main-control-label .v082h-search-input{font-size:12px;font-weight:400;color:var(--dameke-text);padding:6px 8px;min-height:32px;width:100%;margin-top:4px;}
 
-@media(max-width:1250px){
-  .layout{grid-template-columns:minmax(0,1fr)}
+@media(max-width:78.125em){
+  .layout,.layout.layout-calc{grid-template-columns:minmax(0,1fr)}
   .layout{padding-bottom:calc(var(--v082h-fixed-panel-h, 180px) + 24px);}
   .result-card{padding-bottom:calc(var(--v082h-fixed-panel-h, 180px) + 30px);}
-  #v082hResultPanel{position:fixed;bottom:0;left:0;right:0;z-index:50;margin:0;border-radius:0;box-shadow:0 -6px 16px rgba(15,23,42,.22);padding:6px 10px;max-height:none;overflow:visible;}
+  /* 下部固定の結果欄は画面の高さの60%までにし、それを超える(文字サイズが大きい・画面の高さが低い)ときは欄の中をスクロールさせる */
+  #v082hResultPanel{position:fixed;bottom:0;left:0;right:0;z-index:50;margin:0;border-radius:0;box-shadow:0 -6px 16px rgba(15,23,42,.22);padding:6px 10px;max-height:60vh;overflow-y:auto;overscroll-behavior:contain;}
   #v082hResultPanel .v082h-result-title{font-size:.8rem;margin-bottom:2px;}
   #v082hResultPanel .v082h-result-move-line{font-size:.76rem;margin-bottom:3px;}
   #v082hResultPanel .v082h-hp-infoline{font-size:.82rem;margin-bottom:2px;}
@@ -490,20 +491,19 @@ button:hover:not(:disabled) { filter: var(--dameke-hover-filter); }
      columns x 3 rows fits, which matters since the goal here is a whole party visible on one
      screen without scrolling. */
 }
-@media(max-width:760px){
+@media(max-width:47.5em){
   body{font-size:15px;}
   .app-header{padding:12px 14px 26px;} /* ハンバーガーメニュー下のテーマ切り替えスイッチが
     ヘッダー下端にぎりぎりはみ出さないよう、スマホ幅では下側の余白を広めに取る */
   .layout{padding:10px;gap:10px;}
   .v082h-side-tabs{display:flex;}
-  .v082h-basic-grid{grid-template-columns:1fr;width:auto;}
+  .v082h-basic-grid{grid-template-columns:minmax(0,1fr);width:auto;}
   .v082h-box{width:auto;}
   .v082h-cond-wrap{grid-template-columns:1fr;}
   body.v082h-tab-attacker .v082h-basic-grid .v082h-defender,
   body.v082h-tab-attacker .v082h-cond-wrap .v082h-defender{display:none;}
   body.v082h-tab-defender .v082h-basic-grid .v082h-attacker,
   body.v082h-tab-defender .v082h-cond-wrap .v082h-attacker{display:none;}
-  .trace{min-height:160px;}
   input[data-v082h-picker]{display:none;}
   .v082h-num-picker{display:block;width:100%;font-size:.72rem;padding:3px 4px;}
   .grid.four{grid-template-columns:repeat(2,minmax(0,1fr));}
@@ -511,7 +511,6 @@ button:hover:not(:disabled) { filter: var(--dameke-hover-filter); }
   .v082h-result-grid{grid-template-columns:1fr;}
   .v082h-result-item{grid-template-columns:88px minmax(0,1fr);}
 
-  .dameke-pokemon-detail-row{grid-template-columns:80px minmax(0,1fr) !important;}
   .dameke-pokemon-combined-stat-table{font-size:.72rem !important;gap:3px 4px !important;}
   .dameke-party-card{padding:8px !important;}
   .dameke-party-list{gap:12px !important;}
@@ -587,7 +586,6 @@ select.dameke-type-select option{background-color:var(--dameke-surface);color:va
 .dameke-menu-item:hover{background:rgba(255,255,255,.1);}
 .dameke-menu-item.dameke-menu-item-active{background:rgba(255,255,255,.16);font-weight:700;}
 .dameke-tool-panel[hidden]{display:none;}
-.dameke-history-hint{font-size:.85rem;color:var(--dameke-text-muted);margin:0 0 16px;line-height:1.6;}
 .dameke-history-list{display:flex;flex-direction:column;gap:12px;}
 .dameke-history-card{border:1px solid var(--dameke-border);border-radius:10px;padding:10px 12px;background:var(--dameke-surface-faint2);}
 .dameke-history-card-meta{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;}
@@ -648,11 +646,7 @@ select.dameke-type-select option{background-color:var(--dameke-surface);color:va
 .dameke-history-detail-section-title{font-size:.74rem;font-weight:700;color:var(--dameke-text-muted);}
 .dameke-pokemon-list{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
 .dameke-pokemon-card{border:1px solid var(--dameke-border);border-radius:10px;padding:10px 12px;display:flex;align-items:flex-start;gap:12px;background:var(--dameke-surface-faint2);position:relative;}
-.dameke-pokemon-detail-grid{margin-top:6px;display:flex;flex-direction:column;gap:2px;}
-.dameke-pokemon-detail-row{display:grid;grid-template-columns:72px minmax(0,1fr);gap:8px;font-size:.78rem;color:var(--dameke-text-mid);}
 .dameke-pokemon-detail-label{color:var(--dameke-text-faint);font-weight:600;}
-.dameke-pokemon-moves-value{display:flex;flex-wrap:wrap;gap:0 6px;}
-.dameke-pokemon-move-name{white-space:nowrap;}
 .dameke-pokemon-card-thumb{flex:0 0 auto;width:52px;height:52px;display:flex;align-items:center;justify-content:center;}
 .dameke-pokemon-card-thumb img{max-width:100%;max-height:100%;image-rendering:pixelated;}
 .dameke-pokemon-card-thumb-missing{width:52px;height:52px;border-radius:50%;background:var(--dameke-border);}
@@ -700,7 +694,6 @@ select.dameke-type-select option{background-color:var(--dameke-surface);color:va
 .dameke-pokemon-edit-mega-ability-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px;}
 .dameke-pokemon-edit-nature-row select{max-width:calc(50% - 8px);}
 .dameke-pokemon-edit-mega-ability-pair select:disabled{background:var(--dameke-surface-alt2);color:var(--dameke-text-muted);}
-.dameke-pokemon-edit-stat-table{display:grid;grid-template-columns:2.4em minmax(0,1fr);gap:4px 8px;font-size:.78rem;align-items:center;margin-top:4px;}
 
 /* Combined 努力値/実数値 table: corner cell + 6 stat-name headers, then a 努力値 row and a 実数値 row */
 .dameke-pokemon-combined-stat-table{display:grid;grid-template-columns:3.4em repeat(6,minmax(0,4.4em));justify-content:center;gap:4px 6px;font-size:.76rem;align-items:center;margin-top:12px;}
@@ -737,7 +730,6 @@ select.dameke-type-select option{background-color:var(--dameke-surface);color:va
    同じ、通常の黒系の色・太さに揃える。文字サイズは「技①」ラベル(.dameke-main-control-label)
    と揃える。 */
 .dameke-move2-fold summary{cursor:pointer;color:var(--dameke-text-slate);font-weight:700;font-size:14px;}
-.dameke-move2-fold #move2SpecificSection{margin-top:8px;}
 .dameke-move2-fold .v082h-move1-row{margin-top:8px;}
 /* 技①のまとまり全体を、技②(.dameke-move2-fold)と同じ枠線・角丸・背景で囲む。 */
 .dameke-move1-fold{margin-top:10px;border:1px solid var(--dameke-border);border-radius:10px;padding:8px 10px;background:var(--dameke-surface-alt);}
@@ -768,7 +760,7 @@ select.dameke-type-select option{background-color:var(--dameke-surface);color:va
 .dameke-pokemon-edit-cancel{background:var(--dameke-border);color:var(--dameke-text);}
 
 /* 320px-wide side box headers need a more compact button group */
-.dameke-btn-group-poke .dameke-btn-group-btn{padding:5px 9px;font-size:.7rem;min-width:48px;}
+.dameke-btn-group-poke .dameke-btn-group-btn{padding:5px 9px;font-size:.7rem;}
 .dameke-btn-group-poke .dameke-btn-group-label{font-size:.58rem;}
 
 /* Pokemon management card: load-into-side buttons, placed left of edit/delete */
@@ -784,15 +776,11 @@ select.dameke-type-select option{background-color:var(--dameke-surface);color:va
 .dameke-pokemon-panel-toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
 .dameke-pokemon-filter-row{margin-bottom:10px;}
 .dameke-pokemon-filter-input{width:100%;box-sizing:border-box;font-size:.86rem;padding:8px 10px;}
-.dameke-toolbar-btn-new,.dameke-toolbar-btn-party,.dameke-toolbar-btn-copy{height:38px;box-sizing:border-box;}
+.dameke-toolbar-btn-new,.dameke-toolbar-btn-party{height:38px;box-sizing:border-box;}
 .dameke-toolbar-btn-party{background:linear-gradient(135deg,#7c3aed,#6d28d9);box-shadow:0 2px 6px rgba(124,58,237,.35);transition:transform .12s,box-shadow .12s;}
 .dameke-toolbar-btn-party::before{content:'⛨';font-size:1rem;}
 .dameke-toolbar-btn-party:hover{background:linear-gradient(135deg,#7c3aed,#6d28d9);transform:translateY(-1px);box-shadow:0 4px 10px rgba(124,58,237,.45);}
 .dameke-toolbar-btn-party:active{transform:translateY(0);box-shadow:0 1px 3px rgba(124,58,237,.35);}
-.dameke-toolbar-btn-copy{background:linear-gradient(135deg,#0891b2,#0e7490);box-shadow:0 2px 6px rgba(8,145,178,.35);transition:transform .12s,box-shadow .12s;}
-.dameke-toolbar-btn-copy::before{content:'⧉';font-size:1rem;}
-.dameke-toolbar-btn-copy:hover{background:linear-gradient(135deg,#0891b2,#0e7490);transform:translateY(-1px);box-shadow:0 4px 10px rgba(8,145,178,.45);}
-.dameke-toolbar-btn-copy:active{transform:translateY(0);box-shadow:0 1px 3px rgba(8,145,178,.35);}
 
 .dameke-party-list{display:flex;flex-direction:column;gap:16px;margin-top:8px;}
 .dameke-party-card{border:1px solid var(--dameke-border);border-radius:10px;padding:12px;background:var(--dameke-surface-faint2);}
@@ -860,22 +848,15 @@ select.dameke-type-select option{background-color:var(--dameke-surface);color:va
    cards themselves becoming clickable copy sources, rather than opening a separate screen that
    just shows the same cards again. */
 .dameke-pokemon-create-banner{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--dameke-emerald-border);background:var(--dameke-tint-emerald-bg);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:.86rem;color:var(--dameke-emerald-strong-text);}
-.dameke-pokemon-create-banner-actions{display:flex;gap:8px;flex:0 0 auto;}
-.dameke-pokemon-create-banner-actions button{border-radius:8px;padding:7px 14px;font-size:.82rem;font-weight:700;cursor:pointer;border:none;}
 .dameke-pokemon-card-copyable{cursor:pointer;border:1px dashed #059669;transition:border-color .12s,box-shadow .12s,background .12s;}
 .dameke-pokemon-card-copyable:hover{background:var(--dameke-tint-green-bg);box-shadow:0 0 0 2px rgba(5,150,105,.15);}
-.dameke-party-selector-row{display:flex;align-items:center;gap:8px;font-size:.84rem;padding:4px 2px;cursor:pointer;}
-.dameke-party-selector-row:hover{background:var(--dameke-surface-alt);}
 
 /* ==================== 攻撃・防御調整ツール ==================== */
-.dameke-adjust-jump-btn{font-size:.62rem;font-weight:700;padding:2px 8px;border-radius:999px;border:none;background:var(--dameke-accent-soft-bg);color:var(--dameke-accent-soft-text);cursor:pointer;vertical-align:middle;margin-left:6px;}
-.dameke-adjust-jump-btn:hover{background:var(--dameke-accent-soft-bg-hover);filter:none;}
 .dameke-adjust-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;}
 .dameke-adjust-mode-tabs{display:flex;gap:6px;}
 .dameke-adjust-mode-btn{border:1px solid var(--dameke-border-strong);background:var(--dameke-surface-alt);color:var(--dameke-text-mid);border-radius:8px;padding:7px 16px;font-size:.86rem;font-weight:700;cursor:pointer;}
 .dameke-adjust-mode-active{background:var(--dameke-active-bg);color:var(--dameke-active-text);border-color:var(--dameke-active-bg);}
 .dameke-adjust-summary{border:1px solid var(--dameke-border);background:var(--dameke-surface-alt);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:.86rem;}
-.dameke-adjust-summary-line{margin-bottom:2px;}
 .dameke-adjust-summary-note{font-size:.74rem;color:var(--dameke-text-muted);}
 .dameke-adjust-nature-title{font-size:.8rem;font-weight:700;color:var(--dameke-text-secondary);margin-bottom:6px;}
 .dameke-adjust-nature-select{margin-bottom:14px;}
@@ -906,14 +887,17 @@ select.dameke-type-select option{background-color:var(--dameke-surface);color:va
 
 /* 努力値指定・防御側ステータス（計算機の詳細ステータス表と同じ見た目のグリッド表） */
 .dameke-adjust-evspec{margin-bottom:14px;}
-.dameke-adjust-evspec-wrapper{width:fit-content;margin:0 auto;}
+.dameke-adjust-evspec-wrapper{width:fit-content;max-width:100%;margin:0 auto;}
 .dameke-adjust-evspec-remaining{margin-top:6px;font-size:.8rem;font-weight:700;color:var(--dameke-ok-text);text-align:left;}
 .dameke-adjust-evspec-remaining-over{color:var(--dameke-up-text);}
 .dameke-adjust-evspec-table{display:grid;justify-content:center;gap:5px 8px;align-items:center;margin-top:6px;}
+/* 文字サイズを大きく設定していて表が入り切らないときは、表だけを横にスクロールさせる(標準の文字サイズでは入り切るので見た目は不変)。
+   左右・下のpadding/margin 2pxは入力欄のフォーカス枠が切れないための余白で、全体の位置・大きさは変わらない。 */
+.dameke-adjust-evspec-table:not(.dameke-search-combined-stat-table){justify-content:safe center;overflow-x:auto;padding:0 2px 2px;margin:6px -2px -2px;}
 .dameke-adjust-evspec-head{font-size:.72rem;font-weight:700;color:var(--dameke-text-muted);text-align:center;}
 .dameke-adjust-evspec-rowlabel{font-size:.74rem;font-weight:700;color:var(--dameke-text-secondary);}
 .dameke-adjust-evspec-cell{font-size:.78rem;color:var(--dameke-text-secondary);text-align:center;}
-.dameke-adjust-evspec-input{width:100%;max-width:36px;font-size:.76rem;padding:2px 3px;border:1px solid var(--dameke-border-strong);border-radius:5px;text-align:center;}
+.dameke-adjust-evspec-input{width:100%;max-width:2.25rem;font-size:.76rem;padding:2px 3px;border:1px solid var(--dameke-border-strong);border-radius:5px;text-align:center;}
 
 /* サマリーの詳細トグル */
 .dameke-adjust-detail-toggle{margin-top:8px;background:none;border:none;color:var(--dameke-link-text);font-size:.76rem;font-weight:700;cursor:pointer;padding:0;}
@@ -944,7 +928,8 @@ select.dameke-type-select option{background-color:var(--dameke-surface);color:va
 .dameke-speed-roster-header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;}
 .dameke-speed-roster-header h3{margin:0;font-size:.9rem;}
 .dameke-speed-roster-host{max-height:65vh;overflow-y:auto;border:1px solid var(--dameke-border);border-radius:10px;}
-.dameke-speed-roster-row{display:grid;grid-template-columns:3.6em 1fr 6.4em 6.4em;gap:6px;align-items:start;padding:6px 8px;border-bottom:2px solid var(--dameke-border-subtle);font-size:.76rem;}
+/* ポケモン名の列は最低6文字分を確保し、文字が大きくて入り切らないときは右2列(必要努力値)の方を縮める */
+.dameke-speed-roster-row{display:grid;grid-template-columns:3.6em minmax(6em,1fr) minmax(0,6.4em) minmax(0,6.4em);gap:6px;align-items:start;padding:6px 8px;border-bottom:2px solid var(--dameke-border-subtle);font-size:.76rem;}
 .dameke-speed-roster-row:last-child{border-bottom:none;}
 .dameke-speed-roster-headerrow{position:sticky;top:0;background:var(--dameke-surface-alt);font-weight:700;color:var(--dameke-text-secondary);font-size:.68rem;text-align:center;z-index:1;align-items:center;}
 .dameke-speed-roster-row-outsped{background:var(--dameke-tint-emerald-bg);}
@@ -961,8 +946,8 @@ select.dameke-type-select option{background-color:var(--dameke-surface);color:va
 .dameke-speed-roster-thumb-missing{border-radius:50%;background:var(--dameke-border);}
 .dameke-speed-roster-name-text{font-weight:700;color:var(--dameke-text);font-size:.74rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;max-width:9em;}
 .dameke-speed-roster-labels{flex-basis:100%;font-size:.7rem;font-weight:700;color:var(--dameke-text-mid);}
-@media(max-width:640px){
-  .dameke-speed-roster-row{grid-template-columns:3em 1fr 6.6em 6.6em;font-size:.66rem;padding:5px 5px;}
+@media(max-width:40em){
+  .dameke-speed-roster-row{grid-template-columns:3em minmax(6em,1fr) minmax(0,6.6em) minmax(0,6.6em);font-size:.66rem;padding:5px 5px;}
 }
 
 /* ==================== 努力値最適化ツール ==================== */
@@ -975,7 +960,7 @@ select.dameke-type-select option{background-color:var(--dameke-surface);color:va
 .dameke-evopt-picker-host{margin-bottom:14px;border:1px solid var(--dameke-border);border-radius:10px;padding:10px;background:var(--dameke-surface-alt);}
 .dameke-evopt-nature-row{margin-top:14px;margin-bottom:10px;max-width:220px;}
 .dameke-evopt-table-host{margin-bottom:16px;}
-.dameke-evopt-table-host .dameke-adjust-evspec-input{max-width:46px;}
+.dameke-evopt-table-host .dameke-adjust-evspec-input{max-width:2.875rem;}
 .dameke-evopt-levelfold{max-width:360px;}
 .dameke-evopt-input-box{margin-bottom:14px;border:1px solid var(--dameke-border);background:var(--dameke-surface-alt);border-radius:10px;padding:12px 14px;}
 .dameke-evopt-input-box h3{margin:0 0 10px;font-size:.9rem;color:var(--dameke-text-secondary);}
@@ -983,7 +968,7 @@ select.dameke-type-select option{background-color:var(--dameke-surface);color:va
 .dameke-evopt-result-header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;}
 .dameke-evopt-result-header h3{margin:0;font-size:.9rem;}
 .dameke-evopt-result-host{}
-.dameke-evopt-result-host .dameke-adjust-evspec-input{max-width:46px;}
+.dameke-evopt-result-host .dameke-adjust-evspec-input{max-width:2.875rem;}
 .dameke-evopt-already-optimal{text-align:center;font-weight:700;color:var(--dameke-tint-emerald-text);font-size:.92rem;padding:8px 0;}
 .dameke-evopt-stat-up{color:var(--dameke-up-text) !important;}
 .dameke-evopt-stat-down{color:var(--dameke-down-text) !important;}
@@ -1014,7 +999,7 @@ select.dameke-type-select option{background-color:var(--dameke-surface);color:va
 .dameke-search-move-title{margin-bottom:2px;}
 .dameke-search-range-row{display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:.8rem;}
 .dameke-search-range-label{flex:0 0 3.4em;color:var(--dameke-text-secondary);font-weight:700;font-size:.76rem;}
-.dameke-search-range-input{width:100%;max-width:80px;padding:4px 6px;border:1px solid var(--dameke-border-strong);border-radius:5px;}
+.dameke-search-range-input{width:100%;max-width:5rem;padding:4px 6px;border:1px solid var(--dameke-border-strong);border-radius:5px;}
 
 .dameke-search-result-header{font-size:.8rem;color:var(--dameke-text-muted);margin-bottom:4px;font-weight:700;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
 .dameke-search-usage-date-host{font-size:.68rem;color:var(--dameke-text-faint);font-weight:400;white-space:nowrap;}
@@ -1059,7 +1044,6 @@ select.dameke-type-select option{background-color:var(--dameke-surface);color:va
 .dameke-search-usage-item-thumb img{max-width:100%;max-height:100%;}
 /* 同じチームのポケモン */
 .dameke-search-teammate-host{margin-bottom:8px;}
-.dameke-search-usage-source-note{font-size:.62rem;color:var(--dameke-text-faint);white-space:nowrap;}
 .dameke-search-usage-source-host{font-size:.62rem;color:var(--dameke-text-faint);margin-top:4px;padding:0 2px;}
 .dameke-search-ability-chip-active{background:var(--dameke-active-bg);color:var(--dameke-active-text);border-color:var(--dameke-active-bg);}
 
@@ -1105,7 +1089,7 @@ select.dameke-type-select option{background-color:var(--dameke-surface);color:va
 .dameke-search-move-name{font-weight:700;color:var(--dameke-text);text-overflow:ellipsis;white-space:nowrap;}
 .dameke-search-move-row:last-child{border-bottom:none;}
 .dameke-search-move-header{background:var(--dameke-surface-alt);font-weight:700;color:var(--dameke-text-secondary);border:1px solid var(--dameke-border);border-radius:8px 8px 0 0;font-size:.7rem;}
-@media(max-width:640px){
+@media(max-width:40em){
   .dameke-search-result-host{grid-template-columns:repeat(auto-fill,minmax(72px,1fr));}
   .dameke-search-thumb{width:44px;height:44px;}
   .dameke-search-move-row{grid-template-columns:.85fr .7fr .4fr .35fr .35fr .3fr .3fr .55fr;font-size:.56rem;gap:2px;padding:3px 3px;}
@@ -1117,7 +1101,6 @@ select.dameke-type-select option{background-color:var(--dameke-surface);color:va
   .dameke-search-matchup-grid{grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:3px;}
   .dameke-typecell{font-size:.62rem;padding:4px 1px;}
   .dameke-typecell-value{font-size:.68rem;padding:2px 7px;}
-  .dameke-search-matchup-cell b{font-size:.72rem;}
   .dameke-search-move-filter-grid{gap:3px;}
   .dameke-search-move-filter-row1 input,.dameke-search-move-filter-row1 .dameke-search-move-name-select{font-size:.66rem;}
   .dameke-search-move-filter-row2-box{gap:2px;padding:3px;}
@@ -1188,7 +1171,7 @@ select.dameke-type-select option{background-color:var(--dameke-surface);color:va
 .dameke-partytype-tier-mid{background:var(--dameke-surface-alt2);color:var(--dameke-text-mid);}
 .dameke-partytype-tier-low{background:#dbeafe;color:#1d4ed8;}
 .dameke-partytype-tier-verylow{background:#bfdbfe;color:#1e3a8a;}
-@media(max-width:640px){
+@media(max-width:40em){
   .dameke-partytype-slots-host{grid-template-columns:1fr;}
   .dameke-partytype-slot{flex-direction:row-reverse;}
   .dameke-partytype-slot-image{width:44px;height:44px;}
@@ -1204,7 +1187,7 @@ select.dameke-type-select option{background-color:var(--dameke-surface);color:va
 .dameke-coverage-condition-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;}
 .dameke-coverage-condition-grid label{font-size:.78rem;color:var(--dameke-text-secondary);}
 .dameke-coverage-condition-grid select{width:100%;margin-top:2px;}
-@media(max-width:480px){
+@media(max-width:30em){
   .dameke-coverage-condition-grid{grid-template-columns:1fr;}
 }
 .dameke-coverage-category-row{margin-top:14px;}
@@ -1229,7 +1212,7 @@ select.dameke-type-select option{background-color:var(--dameke-surface);color:va
 .dameke-coverage-breakdown-name{font-size:.66rem;text-align:center;color:var(--dameke-text-secondary);line-height:1.2;margin-top:2px;}
 .dameke-coverage-breakdown-chip .dameke-search-detail-types{flex-direction:column;align-items:center;margin-top:3px;}
 .dameke-coverage-breakdown-chip .dameke-party-type-badge{white-space:nowrap;}
-@media(max-width:640px){
+@media(max-width:40em){
   .dameke-coverage-moves-host{grid-template-columns:1fr 1fr;}
 }
 
@@ -1273,7 +1256,8 @@ select.dameke-type-select option{background-color:var(--dameke-surface);color:va
 .dameke-wordle-letter-box{width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;border-radius:6px;color:#fff;background:#9ca3af;}
 
 /* 自由入力欄+決定ボタン: 高さを揃える(同じheight/box-sizingを指定) */
-.dameke-wordle-row-input{flex-wrap:wrap;}
+/* 横に収まらないときだけ候補数などを次の行へ折り返す */
+.dameke-wordle-row-input,.dameke-wordle-row-result{flex-wrap:wrap;}
 .dameke-wordle-text-input,.dameke-wordle-submit-btn{height:38px;box-sizing:border-box;font-size:.85rem;}
 .dameke-wordle-text-input{flex:1 1 220px;max-width:260px;padding:0 10px;border:1px solid var(--dameke-border-strong);border-radius:8px;}
 .dameke-wordle-submit-btn{margin-bottom:0;padding:0 16px;}
@@ -1325,7 +1309,7 @@ select.dameke-type-select option{background-color:var(--dameke-surface);color:va
 .dameke-stathl-guess-mark{font-weight:900;}
 .dameke-stathl-message{text-align:center;}
 .dameke-stathl-gameover-message{font-weight:700;color:var(--dameke-text-secondary);margin:6px 0;}
-@media(max-width:480px){
+@media(max-width:30em){
   /* スマホ幅では、パネル幅を「最長のポケモン名が1行で収まる幅」で固定するのをやめ、
      左右の枠(側)をflexで画面幅いっぱいに均等配分することで、常に横並びを維持する。
      ポケモン名は(括弧書きの区切り以外でも)複数行に折り返してよいことにする代わりに、
@@ -1340,14 +1324,15 @@ select.dameke-type-select option{background-color:var(--dameke-surface);color:va
   .dameke-stathl-guess-row{gap:6px;}
   .dameke-stathl-guess-btn{font-size:.72rem;padding:0 10px;}
 }
-@media(max-width:480px){
-  .dameke-wordle-board-row{gap:14px;flex-wrap:nowrap;}
-  .dameke-wordle-rows{min-width:0;flex:1 1 auto;gap:4px;}
+@media(max-width:30em){
+  /* 解答欄は「画像＋5文字」の幅より狭くしない。それと「使った文字」が横に並ばない幅では、
+     「使った文字」を解答欄の下へ回す(重なり防止)。 */
+  .dameke-wordle-board-row{gap:14px;flex-wrap:wrap;}
+  .dameke-wordle-rows{min-width:var(--dameke-wordle-rows-min,186px);flex:1 1 0;gap:4px;}
   .dameke-wordle-letter-box{width:24px;height:24px;font-size:.72rem;border-radius:4px;}
   .dameke-wordle-row{gap:4px;}
   .dameke-wordle-row-thumb{width:50px;height:50px;}
   .dameke-wordle-letters{gap:3px;}
-  .dameke-wordle-row-input{flex-wrap:nowrap;}
   .dameke-wordle-text-input{flex:0 1 130px;max-width:130px;min-width:0;padding:0 6px;font-size:.72rem;}
   .dameke-wordle-submit-btn{padding:0 8px;font-size:.72rem;flex:0 0 auto;}
   .dameke-wordle-correct-label{height:24px;padding:0 10px;font-size:.72rem;}
@@ -1357,6 +1342,16 @@ select.dameke-type-select option{background-color:var(--dameke-surface);color:va
   .dameke-wordle-hint-cell{height:20px;font-size:.6rem;}
 }
 
+@media(max-width:23.75em){
+  /* さらに狭いスマホ: 画像・文字マスを少し小さくして、解答欄と「使った文字」を横に並べたままにする。 */
+  .dameke-wordle-board-row{gap:10px;}
+  .dameke-wordle-rows{--dameke-wordle-rows-min:154px;}
+  .dameke-wordle-row-thumb{width:40px;height:40px;}
+  .dameke-wordle-letter-box{width:20px;height:22px;font-size:.66rem;}
+  .dameke-wordle-letters{gap:2px;}
+  .dameke-wordle-text-input{flex-basis:100px;max-width:100px;}
+  .dameke-wordle-hint-row{grid-template-columns:repeat(5,20px);}
+}
 /* ---- 種族値チャートクイズ ---- */
 .dameke-statchart-wrap{display:flex;flex-direction:column;gap:2px;}
 .dameke-statchart-chart-host{display:flex;justify-content:center;margin-bottom:8px;}
@@ -1388,7 +1383,7 @@ select.dameke-type-select option{background-color:var(--dameke-surface);color:va
 .dameke-statchart-answer-reveal{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
 .dameke-statchart-answer-thumb{width:64px;height:64px;}
 .dameke-statchart-answer-name{font-weight:700;color:var(--dameke-text-heading);}
-@media(max-width:480px){
+@media(max-width:30em){
   .dameke-statchart-label-name{font-size:15px;}
   .dameke-statchart-label-value{font-size:16px;}
   .dameke-statchart-tick-label{font-size:7px;}
@@ -1413,7 +1408,7 @@ select.dameke-type-select option{background-color:var(--dameke-surface);color:va
 .dameke-randomgen-redraw-row{display:flex;justify-content:flex-end;margin-top:8px;}
 .dameke-randomgen-redraw-btn{margin-bottom:0;}
 .dameke-randomgen-empty{color:var(--dameke-text-muted);font-size:.85rem;padding:10px 0;}
-@media(max-width:480px){
+@media(max-width:30em){
   .dameke-randomgen-grid{gap:8px;}
   .dameke-randomgen-card{padding:8px;}
   .dameke-randomgen-thumb{width:64px;height:64px;}

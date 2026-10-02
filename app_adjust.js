@@ -8,14 +8,7 @@
   'use strict';
   function q(id){ return document.getElementById(id); }
 
-  var NATURE_STAT_MAP = {
-    'さみしがり':['A','B'], 'いじっぱり':['A','C'], 'やんちゃ':['A','D'], 'ゆうかん':['A','S'],
-    'ずぶとい':['B','A'], 'わんぱく':['B','C'], 'のうてんき':['B','D'], 'のんき':['B','S'],
-    'ひかえめ':['C','A'], 'おっとり':['C','B'], 'うっかりや':['C','D'], 'れいせい':['C','S'],
-    'おだやか':['D','A'], 'おとなしい':['D','B'], 'しんちょう':['D','C'], 'なまいき':['D','S'],
-    'おくびょう':['S','A'], 'せっかち':['S','B'], 'ようき':['S','C'], 'むじゃき':['S','D'],
-    'がんばりや':[null,null], 'すなお':[null,null], 'てれや':[null,null], 'きまぐれ':[null,null], 'まじめ':[null,null]
-  };
+  var NATURE_STAT_MAP = window.DAMEKE_COMMON.NATURE_STAT_MAP;
   var ALL_NATURE_NAMES = Object.keys(NATURE_STAT_MAP);
   var STAT_KEYS = ['H','A','B','C','D','S'];
 
@@ -421,7 +414,7 @@
     var base = pokemon.baseStats;
     var table = document.createElement('div');
     table.className = 'dameke-adjust-evspec-table';
-    table.style.gridTemplateColumns = '3.4em repeat(6,minmax(2.4em,3.4em))';
+    table.style.gridTemplateColumns = '3.4em repeat(6,minmax(1.375rem,3.4em))';
     var corner = document.createElement('div');
     table.appendChild(corner);
     STAT_KEYS.forEach(function(k){ var h=document.createElement('div'); h.className='dameke-adjust-evspec-head'; h.textContent=k; table.appendChild(h); });
@@ -523,7 +516,7 @@
     var base = pokemon.baseStats;
     var table = document.createElement('div');
     table.className = 'dameke-adjust-evspec-table';
-    table.style.gridTemplateColumns = '3.4em repeat(6,minmax(2.4em,3.4em))';
+    table.style.gridTemplateColumns = '3.4em repeat(6,minmax(1.375rem,3.4em))';
     var corner = document.createElement('div'); table.appendChild(corner);
     STAT_KEYS.forEach(function(k){ var h=document.createElement('div'); h.className='dameke-adjust-evspec-head'; h.textContent=k; table.appendChild(h); });
     function addRow(rowLabel, valueFn){
@@ -713,7 +706,7 @@
     host.innerHTML = '';
     var table = document.createElement('div');
     table.className = 'dameke-adjust-evspec-table';
-    table.style.gridTemplateColumns = '3.4em repeat(6,minmax(2.6em,3.6em))';
+    table.style.gridTemplateColumns = '3.4em repeat(6,minmax(1.375rem,3.6em))';
     var displayNature = bulkNature || bBoostNatureFor(snapshot.defender); // used only for showing a plausible 実数値 while typing (not for coloring); doesn't affect optimization
     var corner = document.createElement('div'); table.appendChild(corner);
     BULK_STAT_KEYS.forEach(function(k){ var h=document.createElement('div'); h.className='dameke-adjust-evspec-head '+(bulkNature ? natureStatClassBulk(bulkNature,k) : ''); h.textContent=k; table.appendChild(h); });
@@ -773,7 +766,7 @@
     var r = lastBulkResult;
     var table = document.createElement('div');
     table.className = 'dameke-adjust-evspec-table';
-    table.style.gridTemplateColumns = '3.4em repeat(6,minmax(2.6em,3.6em))';
+    table.style.gridTemplateColumns = '3.4em repeat(6,minmax(1.375rem,3.6em))';
     var corner = document.createElement('div'); table.appendChild(corner);
     BULK_STAT_KEYS.forEach(function(k){ var h=document.createElement('div'); h.className='dameke-adjust-evspec-head '+natureStatClassBulk(r.nature,k); h.textContent=k; table.appendChild(h); });
     var evLabel = document.createElement('div'); evLabel.className='dameke-adjust-evspec-rowlabel'; evLabel.textContent='努力値'; table.appendChild(evLabel);
@@ -973,10 +966,6 @@
     if(defBtn) defBtn.addEventListener('click', function(){ setMode('defender'); });
     var goCalcBtn = q('damekeAdjustGoCalcBtn');
     if(goCalcBtn) goCalcBtn.addEventListener('click', function(){ if(window.__damekeShowPanel) window.__damekeShowPanel('calculator'); });
-    var goAdjustAtk = q('damekeGoAdjustAttackerBtn');
-    if(goAdjustAtk) goAdjustAtk.addEventListener('click', function(){ if(window.__damekeShowPanel) window.__damekeShowPanel('adjust'); setMode('attacker'); });
-    var goAdjustDef = q('damekeGoAdjustDefenderBtn');
-    if(goAdjustDef) goAdjustDef.addEventListener('click', function(){ if(window.__damekeShowPanel) window.__damekeShowPanel('adjust'); setMode('defender'); });
 
     var bulkNatureSelect = q('damekeBulkNature');
     if(bulkNatureSelect){

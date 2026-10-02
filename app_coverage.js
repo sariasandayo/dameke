@@ -7,25 +7,13 @@
   function q(id){ return document.getElementById(id); }
   var DATA = window.DAMEKE_DATA;
   var CALC = window.DAMEKE_CALC;
-  var TYPE_COLOR_MAP = { 'なし':'none', 'ノーマル':'normal', 'ほのお':'fire', 'みず':'water', 'でんき':'electric', 'くさ':'grass', 'こおり':'ice', 'かくとう':'fighting', 'どく':'poison', 'じめん':'ground', 'ひこう':'flying', 'エスパー':'psychic', 'むし':'bug', 'いわ':'rock', 'ゴースト':'ghost', 'ドラゴン':'dragon', 'あく':'dark', 'はがね':'steel', 'フェアリー':'fairy', 'ステラ':'stellar' };
+  var TYPE_COLOR_MAP = window.DAMEKE_COMMON.TYPE_COLOR_MAP;
   var ALL_TYPES = CALC.__typeEffectivenessAllTypes || ['ノーマル','ほのお','みず','でんき','くさ','こおり','かくとう','どく','じめん','ひこう','エスパー','むし','いわ','ゴースト','ドラゴン','あく','はがね','フェアリー'];
-  function typeColorClass(t){ return 'dameke-type-' + (TYPE_COLOR_MAP[t] || 'none'); }
-  function typeBadgesHtml(types){
-    return (types||[]).map(function(t){ return '<span class="dameke-party-type-badge '+typeColorClass(t)+'">'+t+'</span>'; }).join('');
-  }
-  function learnsetKeyFor(name){
-    var m = String(name||'').match(/^(.+?)\(([^)]+)\)$/);
-    return m ? (m[1] + '_' + m[2]) : name;
-  }
-  function hasChampionsEntry(p){
-    var LS = window.DAMEKE_LEARNSETS;
-    return !!(LS && LS.hasLearnset(learnsetKeyFor(p.name)));
-  }
-  function fillSelect(select, items, placeholder){
-    select.textContent = '';
-    if(placeholder){ var op0=document.createElement('option'); op0.value=''; op0.textContent=placeholder; select.appendChild(op0); }
-    items.forEach(function(item){ var op=document.createElement('option'); op.value=item.id; op.textContent=item.name; select.appendChild(op); });
-  }
+  function typeColorClass(t){ return window.DAMEKE_COMMON.typeColorClass(t); }
+  function typeBadgesHtml(types){ return window.DAMEKE_COMMON.typeBadgesHtml(types); }
+  function learnsetKeyFor(name){ return window.DAMEKE_COMMON.learnsetKeyFor(name); }
+  function hasChampionsEntry(p){ return window.DAMEKE_COMMON.hasChampionsEntry(p); }
+  function fillSelect(select, items, placeholder){ return window.DAMEKE_COMMON.fillSelect(select, items, placeholder); }
 
   var selectedPokemon = null;
   // Each slot is just the move id, or '' if left to the automatic maximizer. A non-empty slot

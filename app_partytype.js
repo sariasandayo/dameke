@@ -8,21 +8,14 @@
   var DATA = window.DAMEKE_DATA;
   var CALC = window.DAMEKE_CALC;
   var ALL_TYPES = CALC.__typeEffectivenessAllTypes || ['ノーマル','ほのお','みず','でんき','くさ','こおり','かくとう','どく','じめん','ひこう','エスパー','むし','いわ','ゴースト','ドラゴン','あく','はがね','フェアリー'];
-  var TYPE_COLOR_MAP = { 'なし':'none', 'ノーマル':'normal', 'ほのお':'fire', 'みず':'water', 'でんき':'electric', 'くさ':'grass', 'こおり':'ice', 'かくとう':'fighting', 'どく':'poison', 'じめん':'ground', 'ひこう':'flying', 'エスパー':'psychic', 'むし':'bug', 'いわ':'rock', 'ゴースト':'ghost', 'ドラゴン':'dragon', 'あく':'dark', 'はがね':'steel', 'フェアリー':'fairy', 'ステラ':'stellar' };
-  function typeColorClass(t){ return 'dameke-type-' + (TYPE_COLOR_MAP[t] || 'none'); }
-  function typeBadgesHtml(types){
-    return (types||[]).map(function(t){ return '<span class="dameke-party-type-badge '+typeColorClass(t)+'">'+t+'</span>'; }).join('');
-  }
+  function typeColorClass(t){ return window.DAMEKE_COMMON.typeColorClass(t); }
+  function typeBadgesHtml(types){ return window.DAMEKE_COMMON.typeBadgesHtml(types); }
 
   var SLOT_COUNT = 6;
   var slots = []; // { pokemon, abilityName } per slot
   for(var i=0;i<SLOT_COUNT;i++) slots.push({ pokemon: null, abilityName: null });
 
-  function fillSelect(select, items, placeholder){
-    select.textContent = '';
-    if(placeholder){ var op0=document.createElement('option'); op0.value=''; op0.textContent=placeholder; select.appendChild(op0); }
-    items.forEach(function(item){ var op=document.createElement('option'); op.value=item.id; op.textContent=item.name; select.appendChild(op); });
-  }
+  function fillSelect(select, items, placeholder){ return window.DAMEKE_COMMON.fillSelect(select, items, placeholder); }
 
   // Same 特性1-by-default convention as 補完ポケモン出力/素早さ調整/etc, and the same exclusion
   // of the literal "なし" ability entry (never a real Pokemon's actual ability).
@@ -121,14 +114,7 @@
   // CALC.computeTypeEffectiveness (identical ability handling as the 一貫度 grid above) --
   // no separate scoring formula or ability logic is introduced for this feature.
 
-  function learnsetKeyFor(name){
-    var m = String(name||'').match(/^(.+?)\(([^)]+)\)$/);
-    return m ? (m[1] + '_' + m[2]) : name;
-  }
-  function hasChampionsEntry(p){
-    var LS = window.DAMEKE_LEARNSETS;
-    return !!(LS && LS.hasLearnset(learnsetKeyFor(p.name)));
-  }
+  function hasChampionsEntry(p){ return window.DAMEKE_COMMON.hasChampionsEntry(p); }
   // Candidate pool -- filterable via the two checkboxes (both default-checked, matching the
   // previous fixed scope exactly). Because the whole evaluation is recomputed from scratch on
   // every party or filter change (nothing here is incremental), a filter change safely produces

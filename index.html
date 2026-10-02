@@ -19,7 +19,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="./icon/apple-touch-icon.png">
   <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjogIuOBoOOCgeOBkeODvCBXZWIiLCAic2hvcnRfbmFtZSI6ICLjgaDjgoHjgZHjg7wiLCAiZGVzY3JpcHRpb24iOiAi6Z2e5YWs5byP44O76Z2e5Za25Yip44Gu44Od44Kx44Oi44Oz44OA44Oh44O844K46KiI566X5qmf44Gn44GZ77yI44OB44Oj44Oz44OU44Kq44Oz44K65a++5b+c77yJ44CC5bqD5ZGK44O755m76Yyy5LiA5YiH44Gq44GX77yBIiwgInN0YXJ0X3VybCI6ICIuLyIsICJzY29wZSI6ICIuLyIsICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLCAiYmFja2dyb3VuZF9jb2xvciI6ICIjZjVmN2ZiIiwgInRoZW1lX2NvbG9yIjogIiMxNzIwMzMiLCAiaWNvbnMiOiBbeyJzcmMiOiAiLi9pY29uL2ljb24tMTkyLnBuZyIsICJzaXplcyI6ICIxOTJ4MTkyIiwgInR5cGUiOiAiaW1hZ2UvcG5nIiwgInB1cnBvc2UiOiAiYW55In0sIHsic3JjIjogIi4vaWNvbi9pY29uLTUxMi5wbmciLCAic2l6ZXMiOiAiNTEyeDUxMiIsICJ0eXBlIjogImltYWdlL3BuZyIsICJwdXJwb3NlIjogImFueSJ9LCB7InNyYyI6ICIuL2ljb24vaWNvbi1tYXNrYWJsZS01MTIucG5nIiwgInNpemVzIjogIjUxMng1MTIiLCAidHlwZSI6ICJpbWFnZS9wbmciLCAicHVycG9zZSI6ICJtYXNrYWJsZSJ9XX0=">
   <meta name="theme-color" content="#172033">
-  <link rel="stylesheet" href="style.css?v=20260929j" />
+  <link rel="stylesheet" href="style.css?v=20261002c" />
 </head>
 <body>
   <header class="app-header">
@@ -37,7 +37,7 @@
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
       </span>
     </div>
-    <h1>だめけー Web v2.4.0</h1>
+    <h1>だめけー Web v2.4.1</h1>
     <p>for Pokémon Champions</p>
     <nav id="damekeMenuNav" class="dameke-menu-nav" hidden>
       <button type="button" class="dameke-menu-item" data-panel="calculator">ダメージ計算</button>
@@ -55,298 +55,588 @@
     </nav>
   </header>
   <div id="panel-calculator" class="dameke-tool-panel">
-  <main class="layout">
+  <main class="layout layout-calc">
     <section class="card input-card">
-      <h2>入力</h2>
-      <section class="sub-card">
-        <h3>基本</h3>
-        <div class="grid three top-inputs">
-          <label>攻撃側ポケモン<select id="attackerSelect"></select></label>
-          <label>防御側ポケモン<select id="defenderSelect"></select></label>
-          <label>技①<select id="moveSelect"></select></label>
-        </div>
-        <label class="check dameke-move-filter-toggle"><input id="moveShowAll" type="checkbox" />全技</label>
-      </section>
-      <div class="side-by-side">
-        <section class="sub-card side-panel">
-          <h3>攻撃側ステータス <button type="button" id="damekeGoAdjustAttackerBtn" class="dameke-adjust-jump-btn">攻撃側調整</button></h3>
-          <div class="grid two compact-grid">
-            <label>レベル<input id="attackerLevel" type="number" min="1" max="100" value="50" /></label>
-            <label>Z・ダイマ<select id="attackerSpecialState"></select></label>
-            <label>テラスタル<select id="attackerTeraType"></select></label>
-            <label>性別<select id="attackerGender"><option value="unknown">性別不明</option><option value="male">♂</option><option value="female">♀</option></select></label>
+        <h2>入力</h2>
+        <section class="sub-card v082h-root-basic">
+          <h3>基本</h3>
+          <div class="v082h-toolbar" id="v082hToolbar">
+            <button class="dameke-toolbar-btn dameke-toolbar-btn-swap" type="button" id="v082hSwapBtn">攻防交代</button>
+            <div class="dameke-btn-group dameke-btn-group-history" id="damekeHistoryGroup">
+              <span class="dameke-btn-group-label">履歴</span>
+              <div class="dameke-btn-group-buttons">
+                <button type="button" class="dameke-btn-group-btn dameke-btn-group-save">保存</button>
+                <button type="button" class="dameke-btn-group-btn dameke-btn-group-load">呼び出し</button>
+              </div>
+            </div>
           </div>
-          <div class="grid two compact-grid">
-            <label>タイプ1<select id="attackerType1"></select></label>
-            <label>タイプ2<select id="attackerType2"></select></label>
-            <label>タイプ変更<select id="attackerTypeOverride"><option value="none">なし</option><option value="soak">みずびたし</option><option value="magicPowder">まほうのこな</option></select></label>
-            <label>追加タイプ<select id="attackerAddType"><option value="none">なし</option><option value="halloween">ハロウィン</option><option value="forestCurse">もりののろい</option></select></label>
-          </div>
-          <div class="stat-grid-wrap"><div id="attackerStatsGrid" class="stat-grid"></div></div>
-          <div class="grid four hp-tools">
-            <label>現HP<input id="attackerCurrentHp" type="number" min="1" placeholder="空欄なら最大HP" /></label>
-            <button type="button" data-hp-side="attacker" data-hp-rate="4">HP 1/4</button>
-            <button type="button" data-hp-side="attacker" data-hp-rate="3">HP 1/3</button>
-            <button type="button" data-hp-side="attacker" data-hp-rate="2">HP 1/2</button>
+          <div class="v082h-side-tabs"><button type="button" data-side="attacker">攻撃側</button><button type="button" data-side="defender">防御側</button></div>
+          <div class="v082h-basic-grid" id="v082hBasicGrid">
+            <section class="sub-card v082h-box v082h-attacker">
+              <div class="v082h-box-head">
+                <h3>攻撃側</h3>
+                <div class="dameke-btn-group dameke-btn-group-poke">
+                  <span class="dameke-btn-group-label">ポケ管理</span>
+                  <div class="dameke-btn-group-buttons">
+                    <button class="dameke-btn-group-btn dameke-btn-group-save" type="button">保存</button>
+                    <button class="dameke-btn-group-btn dameke-btn-group-load" type="button">呼び出し</button>
+                  </div>
+                </div>
+              </div>
+              <label class="v082h-pokemon-field">ポケモン名<select id="attackerSelect"></select></label>
+              <div class="v082h-mini-grid v082h-type-grid">
+                <label>タイプ1<select id="attackerType1"></select></label>
+                <label>タイプ2<select id="attackerType2"></select></label>
+              </div>
+              <details class="v082h-details v082h-type-effects">
+                <summary>タイプ変更効果</summary>
+                <label>タイプ変更<select id="attackerTypeOverride"><option value="none">なし</option><option value="soak">みずびたし</option><option value="magicPowder">まほうのこな</option></select></label>
+                <label>追加タイプ<select id="attackerAddType"><option value="none">なし</option><option value="halloween">ハロウィン</option><option value="forestCurse">もりののろい</option></select></label>
+                <label class="check"><input id="attackerRoost" type="checkbox">はねやすめ</label>
+                <label class="check"><input id="attackerBurnUp" type="checkbox">もえつきる</label>
+                <label class="check"><input id="attackerDoubleShock" type="checkbox">でんこうそうげき</label>
+              </details>
+              <div class="v082h-ability-panel" id="v082hAbilityPanel_attacker">
+                <div class="v082h-minititle">特性</div>
+                <div class="v082h-ability-buttons" id="v082hAbilityButtons_attacker">
+                </div>
+                <label class="dameke-main-control-label">特性選択<select id="attackerAbilitySelect"></select></label>
+                <div class="v082h-zone" id="v082hAttackerAbilityZone">
+                  <details class="v082h-details v082h-trigger-details" id="v082hAbilityDetails">
+                    <summary>特性固有条件</summary>
+                    <label class="check"><input id="flashFireActivated" type="checkbox">ほのお技被弾</label>
+                    <label class="check"><input id="stakeoutSwitchIn" type="checkbox">防御側繰り出し</label>
+                    <label>味方ひんし数<input id="supremeOverlordFaintedAllies" type="number" min="0" max="5" value="0"></label>
+                    <label class="check"><input id="attackerSlowStart" type="checkbox">発動</label>
+                    <label class="check"><input id="attackerUnburden" type="checkbox">発動</label>
+                    <label>上昇する能力値<select id="attackerParadoxBoostStat"><option value="none">なし</option><option value="A">攻撃</option><option value="B">防御</option><option value="C">特攻</option><option value="D">特防</option><option value="S">素早さ</option></select></label>
+                    <label class="check"><input id="analyzeMovedLast" type="checkbox">行動順</label>
+                  </details>
+                </div>
+                <label class="check v082h-inline-check"><input id="attackerNoAbility" type="checkbox">特性なし</label>
+              </div>
+              <label class="dameke-main-control-label">持ち物<select id="attackerItemSelect"></select></label>
+              <div class="v082h-zone" id="v082hAttackerItemZone">
+                <details class="v082h-details v082h-trigger-details" id="v082hItemDetails">
+                  <summary>持ち物固有条件</summary>
+                  <label>回数<select id="metronomeUseCount"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option></select></label>
+                  <label>行動順<select id="focusLensMoveOrder"><option value="first">先攻</option><option value="second">後攻</option></select></label>
+                </details>
+              </div>
+              <label class="check v082h-inline-check"><input id="attackerNoItem" type="checkbox">持ち物なし</label>
+              <div class="v082h-zone" id="v082hAttackerTeraZone">
+                <details class="v082h-details v082h-trigger-details" id="v082hTeraDetails">
+                  <summary>テラスタル固有条件</summary>
+                  <label>ステラ技回数<select id="attackerStellarMoveCount"><option value="first">1回目</option><option value="later">2回目以降</option></select></label>
+                </details>
+              </div>
+              <div class="v082h-stats-panel" id="v082hStatsPanel_attacker">
+                <div class="v082h-minititle-row">
+                  <div class="v082h-minititle">詳細ステータス</div>
+                  <button type="button" class="v082h-stats-adjust-btn v082h-stats-adjust-btn-attacker">調整</button>
+                </div>
+                <label class="v082h-nature-field">性格<select id="attacker_nature"><option value="がんばりや">がんばりや 補正なし</option><option value="さみしがり">さみしがり A↑ B↓</option><option value="いじっぱり">いじっぱり A↑ C↓</option><option value="やんちゃ">やんちゃ A↑ D↓</option><option value="ゆうかん">ゆうかん A↑ S↓</option><option value="ずぶとい">ずぶとい B↑ A↓</option><option value="すなお">すなお 補正なし</option><option value="わんぱく">わんぱく B↑ C↓</option><option value="のうてんき">のうてんき B↑ D↓</option><option value="のんき">のんき B↑ S↓</option><option value="ひかえめ">ひかえめ C↑ A↓</option><option value="おっとり">おっとり C↑ B↓</option><option value="てれや">てれや 補正なし</option><option value="うっかりや">うっかりや C↑ D↓</option><option value="れいせい">れいせい C↑ S↓</option><option value="おだやか">おだやか D↑ A↓</option><option value="おとなしい">おとなしい D↑ B↓</option><option value="しんちょう">しんちょう D↑ C↓</option><option value="きまぐれ">きまぐれ 補正なし</option><option value="なまいき">なまいき D↑ S↓</option><option value="おくびょう">おくびょう S↑ A↓</option><option value="せっかち">せっかち S↑ B↓</option><option value="ようき">ようき S↑ C↓</option><option value="むじゃき">むじゃき S↑ D↓</option><option value="まじめ" selected="">まじめ 補正なし</option></select></label>
+                <div class="v082h-stat-table">
+                  <div class="v082h-stat-row v082h-stat-head">
+                    <span>
+                    </span>
+                    <span data-stat-key="H">H</span>
+                    <span data-stat-key="A">A</span>
+                    <span data-stat-key="B">B</span>
+                    <span data-stat-key="C">C</span>
+                    <span data-stat-key="D">D</span>
+                    <span data-stat-key="S">S</span>
+                  </div>
+                  <div class="v082h-stat-row">
+                    <span class="v082h-stat-label">種族値</span>
+                    <span class="v082h-stat-cell v082h-stat-readonly" id="v082hBaseStat_attacker_H"></span>
+                    <span class="v082h-stat-cell v082h-stat-readonly" id="v082hBaseStat_attacker_A"></span>
+                    <span class="v082h-stat-cell v082h-stat-readonly" id="v082hBaseStat_attacker_B"></span>
+                    <span class="v082h-stat-cell v082h-stat-readonly" id="v082hBaseStat_attacker_C"></span>
+                    <span class="v082h-stat-cell v082h-stat-readonly" id="v082hBaseStat_attacker_D"></span>
+                    <span class="v082h-stat-cell v082h-stat-readonly" id="v082hBaseStat_attacker_S"></span>
+                  </div>
+                  <div class="v082h-stat-row">
+                    <span class="v082h-stat-label">努力値</span>
+                    <span class="v082h-stat-cell"><input id="attacker_H_ev" type="number" min="0" max="32" value="0"></span>
+                    <span class="v082h-stat-cell"><input id="attacker_A_ev" type="number" min="0" max="32" value="0"></span>
+                    <span class="v082h-stat-cell"><input id="attacker_B_ev" type="number" min="0" max="32" value="0"></span>
+                    <span class="v082h-stat-cell"><input id="attacker_C_ev" type="number" min="0" max="32" value="0"></span>
+                    <span class="v082h-stat-cell"><input id="attacker_D_ev" type="number" min="0" max="32" value="0"></span>
+                    <span class="v082h-stat-cell"><input id="attacker_S_ev" type="number" min="0" max="32" value="0"></span>
+                  </div>
+                  <div class="v082h-stat-row">
+                    <span class="v082h-stat-label">実数値</span>
+                    <span class="v082h-stat-cell"><input id="attacker_H_actual" type="number"></span>
+                    <span class="v082h-stat-cell"><input id="attacker_A_actual" type="number"></span>
+                    <span class="v082h-stat-cell"><input id="attacker_B_actual" type="number"></span>
+                    <span class="v082h-stat-cell"><input id="attacker_C_actual" type="number"></span>
+                    <span class="v082h-stat-cell"><input id="attacker_D_actual" type="number"></span>
+                    <span class="v082h-stat-cell"><input id="attacker_S_actual" type="number"></span>
+                  </div>
+                  <div class="v082h-stat-row">
+                    <span class="v082h-stat-label">ランク</span>
+                    <span class="v082h-stat-cell">-</span>
+                    <span class="v082h-stat-cell"><input id="attacker_A_rank" type="number" min="-6" max="6" value="0"></span>
+                    <span class="v082h-stat-cell"><input id="attacker_B_rank" type="number" min="-6" max="6" value="0"></span>
+                    <span class="v082h-stat-cell"><input id="attacker_C_rank" type="number" min="-6" max="6" value="0"></span>
+                    <span class="v082h-stat-cell"><input id="attacker_D_rank" type="number" min="-6" max="6" value="0"></span>
+                    <span class="v082h-stat-cell"><input id="attacker_S_rank" type="number" min="-6" max="6" value="0"></span>
+                  </div>
+                </div>
+                <div class="v082h-stat-table v082h-rank-sub">
+                  <div class="v082h-stat-row v082h-stat-head">
+                    <span>
+                    </span>
+                    <span data-stat-key="acc">命中</span>
+                    <span data-stat-key="eva">回避</span>
+                    <span data-stat-key="critical">急所</span>
+                  </div>
+                  <div class="v082h-stat-row">
+                    <span class="v082h-stat-label">ランク</span>
+                    <span class="v082h-stat-cell"><input id="attacker_acc_rank" type="number" min="-6" max="6" value="0"></span>
+                    <span class="v082h-stat-cell"><input id="attacker_eva_rank" type="number" min="-6" max="6" value="0"></span>
+                    <span class="v082h-stat-cell"><input id="critical" type="number" min="0" max="3" value="0"></span>
+                  </div>
+                </div>
+                <div class="v082h-ev-remaining" id="v082hEvRemaining_attacker">
+                  <span id="v082hEvRemainingText_attacker"></span>
+                </div>
+                <div class="v082h-ev-preset">
+                  <span class="v082h-muted">努力値簡易入力</span>
+                  <select class="v082h-ev-select" id="v082hEvPreset_attacker"><option value="選択なし">選択なし</option><option value="HA">HA</option><option value="HB">HB</option><option value="HC">HC</option><option value="HD">HD</option><option value="HS">HS</option><option value="AB">AB</option><option value="AC">AC</option><option value="AD">AD</option><option value="AS">AS</option><option value="BC">BC</option><option value="BD">BD</option><option value="BS">BS</option><option value="CD">CD</option><option value="CS">CS</option><option value="DS">DS</option></select>
+                  <button class="v082h-ability-chip" type="button">リセット</button>
+                </div>
+                <div class="v082h-mini-grid v082h-hp-row">
+                  <label>現HP<input id="attackerCurrentHp" type="number" min="1" placeholder="空欄なら最大HP"></label>
+                  <label>現HP簡易入力<div class="v082h-hp-buttons">
+                      <button class="v082h-ability-chip" type="button">最大</button>
+                      <button class="v082h-ability-chip" type="button">1/2</button>
+                      <button class="v082h-ability-chip" type="button">1/3</button>
+                      <button class="v082h-ability-chip" type="button">1/4</button>
+                    </div></label>
+                </div>
+                <details class="v082h-details v082h-type-effects">
+                  <summary>レベル・個体値</summary>
+                  <div class="v082h-stat-row">
+                    <span class="v082h-stat-label">レベル</span>
+                    <span class="v082h-stat-cell"><input id="attackerLevel" type="number" min="1" max="100" value="50"></span>
+                  </div>
+                  <div class="v082h-stat-table">
+                    <div class="v082h-stat-row v082h-stat-head">
+                      <span>
+                      </span>
+                      <span data-stat-key="H">H</span>
+                      <span data-stat-key="A">A</span>
+                      <span data-stat-key="B">B</span>
+                      <span data-stat-key="C">C</span>
+                      <span data-stat-key="D">D</span>
+                      <span data-stat-key="S">S</span>
+                    </div>
+                    <div class="v082h-stat-row">
+                      <span class="v082h-stat-label">個体値</span>
+                      <span class="v082h-stat-cell"><input id="attacker_H_iv" type="number" min="0" max="31" value="31"></span>
+                      <span class="v082h-stat-cell"><input id="attacker_A_iv" type="number" min="0" max="31" value="31"></span>
+                      <span class="v082h-stat-cell"><input id="attacker_B_iv" type="number" min="0" max="31" value="31"></span>
+                      <span class="v082h-stat-cell"><input id="attacker_C_iv" type="number" min="0" max="31" value="31"></span>
+                      <span class="v082h-stat-cell"><input id="attacker_D_iv" type="number" min="0" max="31" value="31"></span>
+                      <span class="v082h-stat-cell"><input id="attacker_S_iv" type="number" min="0" max="31" value="31"></span>
+                    </div>
+                  </div>
+                </details>
+              </div>
+              <div class="dameke-move1-fold">
+                <div class="v082h-move1-row">
+                  <span class="dameke-move-label-header">
+                    <span class="dameke-move-label-text">技①</span>
+                    <label class="check dameke-move-filter-toggle"><input id="moveShowAll" type="checkbox">全技</label>
+                  </span>
+                  <label class="dameke-main-control-label" aria-label="技①">
+                    <select id="moveSelect"></select>
+                  </label>
+                </div>
+                <div class="v082h-zone" id="v082hMoveZone">
+                  <details class="v082h-details v082h-trigger-details" id="v082hMoveDetails">
+                    <summary>技固有条件</summary>
+                    <label class="check"><input id="pledgeCombination" type="checkbox">コンビネーション</label>
+                    <label>倍率<input id="psywaveMultiplier" type="number" min="0.5" max="1.5" step="0.01" value="1"></label>
+                    <label class="check"><input id="kimagureLaserDouble" type="checkbox">威力2倍</label>
+                    <label>被ダメ<input id="fixedDamageTaken" type="number" min="0" step="1" value="0"></label>
+                    <label class="check"><input id="statDroppedThisTurn" type="checkbox">自身のランク下降</label>
+                    <label class="check"><input id="allyFaintedLastTurn" type="checkbox">前ターン味方ひんし</label>
+                    <label>控え1<select id="beatUpAlly1"><option value="none">なし</option></select></label>
+                    <label>控え2<select id="beatUpAlly2"><option value="none">なし</option></select></label>
+                    <label>控え3<select id="beatUpAlly3"><option value="none">なし</option></select></label>
+                    <label>控え4<select id="beatUpAlly4"><option value="none">なし</option></select></label>
+                    <label>控え5<select id="beatUpAlly5"><option value="none">なし</option></select></label>
+                    <label>ころがる等 回数<input id="rolloutHit" type="number" min="1" max="5" value="1"></label>
+                    <label class="check"><input id="defenseCurl" type="checkbox">まるくなる</label>
+                    <label>回数<input id="echoedVoiceCount" type="number" min="1" max="5" value="1"></label>
+                    <label>行動順<select id="moveOrder"><option value="first">先攻</option><option value="second">後攻</option></select></label>
+                    <label class="check"><input id="targetSwitching" type="checkbox">相手が交代</label>
+                    <label>味方ひんし数<input id="faintedAllies" type="number" min="0" max="100" value="0"></label>
+                    <label>なつき度<input id="friendship" type="number" min="0" max="255" value="255"></label>
+                    <label>残りPP<input id="remainingPP" type="number" min="0" max="8" value="4"></label>
+                    <label class="check"><input id="lastMoveFailed" type="checkbox">前ターン技失敗</label>
+                    <label class="check"><input id="userDamagedThisTurn" type="checkbox">自分がこのターン被ダメ</label>
+                    <label class="check"><input id="targetDamagedThisTurn" type="checkbox">相手がこのターン被ダメ</label>
+                    <label>たくわえる回数<select id="stockpileCount"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
+                    <label>威力<select id="presentPower"><option value="40">40</option><option value="80">80</option><option value="120">120</option></select></label>
+                    <label>被ダメ回数<input id="rageFistHitCount" type="number" min="0" max="6" value="0"></label>
+                    <label>威力<select id="magnitudePower"><option value="10">10</option><option value="30">30</option><option value="50">50</option><option value="70">70</option><option value="90">90</option><option value="110">110</option><option value="150">150</option></select></label>
+                    <label class="check"><input id="roundAllyUsed" type="checkbox">同ターン内りんしょう</label>
+                    <label>回数<input id="furyCutterCount" type="number" min="1" max="3" value="1"></label>
+                    <label>シャリタツ<select id="orderUpForm"><option value="なし">なし</option><option value="そったすがた">そったすがた</option><option value="たれたすがた">たれたすがた</option><option value="のびたすがた">のびたすがた</option></select></label>
+                  </details>
+                </div>
+                <label class="check"><input id="attackerCriticalForce" type="checkbox">急所</label>
+                <div class="v082h-mini-grid dameke-move-special-grid">
+                  <label>Z・ダイマ<select id="attackerSpecialState"></select></label>
+                  <label>テラスタル<select id="attackerTeraType"></select></label>
+                </div>
+              </div>
+              <details class="dameke-move2-fold">
+                <summary>技②</summary>
+                <div class="v082h-move1-row dameke-move2-select-row">
+                  <span class="dameke-move-label-header">
+                    <label class="check dameke-move-filter-toggle"><input id="move2ShowAll" type="checkbox">全技</label>
+                  </span>
+                  <label class="dameke-main-control-label">
+                    <select id="move2Select"></select>
+                  </label>
+                </div>
+                <div class="v082h-zone" id="v082hMove2Zone">
+                  <details class="v082h-details v082h-trigger-details" id="v082hMove2Details">
+                    <summary>技固有条件</summary>
+                    <label>味方ひんし数<input id="move2SupremeOverlordFaintedAllies" type="number" min="0" max="5" value="0"></label>
+                    <label class="check"><input id="move2StatDroppedThisTurn" type="checkbox">自身のランク下降</label>
+                    <label class="check"><input id="move2AllyFaintedLastTurn" type="checkbox">前ターン味方ひんし</label>
+                    <label>控え1<select id="move2BeatUpAlly1"><option value="none">なし</option></select></label>
+                    <label>控え2<select id="move2BeatUpAlly2"><option value="none">なし</option></select></label>
+                    <label>控え3<select id="move2BeatUpAlly3"><option value="none">なし</option></select></label>
+                    <label>控え4<select id="move2BeatUpAlly4"><option value="none">なし</option></select></label>
+                    <label>控え5<select id="move2BeatUpAlly5"><option value="none">なし</option></select></label>
+                    <label>ころがる等 回数<input id="move2RolloutHit" type="number" min="1" max="5" value="1"></label>
+                    <label class="check"><input id="move2DefenseCurl" type="checkbox">まるくなる</label>
+                    <label>回数<input id="move2EchoedVoiceCount" type="number" min="1" max="5" value="1"></label>
+                    <label>行動順<select id="move2MoveOrder"><option value="first">先攻</option><option value="second">後攻</option></select></label>
+                    <label class="check"><input id="move2TargetSwitching" type="checkbox">相手が交代</label>
+                    <label>味方ひんし数<input id="move2FaintedAllies" type="number" min="0" max="100" value="0"></label>
+                    <label>なつき度<input id="move2Friendship" type="number" min="0" max="255" value="255"></label>
+                    <label>残りPP<input id="move2RemainingPP" type="number" min="0" max="8" value="4"></label>
+                    <label class="check"><input id="move2LastMoveFailed" type="checkbox">前ターン技失敗</label>
+                    <label class="check"><input id="move2UserDamagedThisTurn" type="checkbox">自分がこのターン被ダメ</label>
+                    <label class="check"><input id="move2TargetDamagedThisTurn" type="checkbox">相手がこのターン被ダメ</label>
+                    <label>たくわえる回数<select id="move2StockpileCount"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
+                    <label>威力<select id="move2PresentPower"><option value="40">40</option><option value="80">80</option><option value="120">120</option></select></label>
+                    <label>被ダメ回数<input id="move2RageFistHitCount" type="number" min="0" max="6" value="0"></label>
+                    <label>威力<select id="move2MagnitudePower"><option value="10">10</option><option value="30">30</option><option value="50">50</option><option value="70">70</option><option value="90">90</option><option value="110">110</option><option value="150">150</option></select></label>
+                    <label class="check"><input id="move2RoundAllyUsed" type="checkbox">同ターン内りんしょう</label>
+                    <label>回数<input id="move2FuryCutterCount" type="number" min="1" max="3" value="1"></label>
+                    <label>シャリタツ<select id="move2OrderUpForm"><option value="なし">なし</option><option value="そったすがた">そったすがた</option><option value="たれたすがた">たれたすがた</option><option value="のびたすがた">のびたすがた</option></select></label>
+                  </details>
+                </div>
+                <label class="check"><input id="move2CriticalForce" type="checkbox">急所</label>
+                <div class="v082h-mini-grid dameke-move-special-grid">
+                  <label>Z・ダイマ<select id="move2AttackerSpecialState"></select></label>
+                  <label>テラスタル<select id="move2AttackerTeraType"></select></label>
+                </div>
+                <div class="actions dameke-move-order-actions">
+                  <button id="moveOrderSwapButton" type="button" class="dameke-toolbar-btn-move-order">技順序入替</button>
+                </div>
+              </details>
+            </section>
+            <section class="sub-card v082h-box v082h-defender">
+              <div class="v082h-box-head">
+                <h3>防御側</h3>
+                <div class="dameke-btn-group dameke-btn-group-poke">
+                  <span class="dameke-btn-group-label">ポケ管理</span>
+                  <div class="dameke-btn-group-buttons">
+                    <button class="dameke-btn-group-btn dameke-btn-group-save" type="button">保存</button>
+                    <button class="dameke-btn-group-btn dameke-btn-group-load" type="button">呼び出し</button>
+                  </div>
+                </div>
+              </div>
+              <label class="v082h-pokemon-field">ポケモン名<select id="defenderSelect"></select></label>
+              <div class="v082h-mini-grid v082h-type-grid">
+                <label>タイプ1<select id="defenderType1"></select></label>
+                <label>タイプ2<select id="defenderType2"></select></label>
+              </div>
+              <details class="v082h-details v082h-type-effects">
+                <summary>タイプ変更効果</summary>
+                <label>タイプ変更<select id="defenderTypeOverride"><option value="none">なし</option><option value="soak">みずびたし</option><option value="magicPowder">まほうのこな</option></select></label>
+                <label>追加タイプ<select id="defenderAddType"><option value="none">なし</option><option value="halloween">ハロウィン</option><option value="forestCurse">もりののろい</option></select></label>
+                <label class="check"><input id="defenderRoost" type="checkbox">はねやすめ</label>
+                <label class="check"><input id="defenderBurnUp" type="checkbox">もえつきる</label>
+                <label class="check"><input id="defenderDoubleShock" type="checkbox">でんこうそうげき</label>
+              </details>
+              <div class="v082h-ability-panel" id="v082hAbilityPanel_defender">
+                <div class="v082h-minititle">特性</div>
+                <div class="v082h-ability-buttons" id="v082hAbilityButtons_defender">
+                </div>
+                <label class="dameke-main-control-label">特性選択<select id="defenderAbilitySelect"></select></label>
+                <div class="v082h-zone" id="v082hDefenderAbilityZone">
+                  <details class="v082h-details v082h-trigger-details" id="v082hDefenderAbilityDetails">
+                    <summary>特性固有条件</summary>
+                    <label class="check"><input id="defenderSlowStart" type="checkbox">発動</label>
+                    <label class="check"><input id="defenderUnburden" type="checkbox">発動</label>
+                    <label>上昇する能力値<select id="defenderParadoxBoostStat"><option value="none">なし</option><option value="A">攻撃</option><option value="B">防御</option><option value="C">特攻</option><option value="D">特防</option><option value="S">素早さ</option></select></label>
+                  </details>
+                </div>
+                <label class="check v082h-inline-check"><input id="defenderNoAbility" type="checkbox">特性なし</label>
+              </div>
+              <label class="dameke-main-control-label">持ち物<select id="defenderItemSelect"></select></label>
+              <div class="v082h-zone" id="v082hDefenderItemZone">
+                <details class="v082h-details v082h-trigger-details" id="v082hDefenderItemDetails">
+                  <summary>持ち物固有条件</summary>
+                </details>
+              </div>
+              <label class="check v082h-inline-check"><input id="defenderNoItem" type="checkbox">持ち物なし</label>
+              <div class="v082h-mini-grid">
+                <label>ダイマ<select id="defenderSpecialState"></select></label>
+                <label>テラスタル<select id="defenderTeraType"></select></label>
+              </div>
+              <div class="v082h-stats-panel" id="v082hStatsPanel_defender">
+                <div class="v082h-minititle-row">
+                  <div class="v082h-minititle">詳細ステータス</div>
+                  <button type="button" class="v082h-stats-adjust-btn v082h-stats-adjust-btn-defender">調整</button>
+                </div>
+                <label class="v082h-nature-field">性格<select id="defender_nature"><option value="がんばりや">がんばりや 補正なし</option><option value="さみしがり">さみしがり A↑ B↓</option><option value="いじっぱり">いじっぱり A↑ C↓</option><option value="やんちゃ">やんちゃ A↑ D↓</option><option value="ゆうかん">ゆうかん A↑ S↓</option><option value="ずぶとい">ずぶとい B↑ A↓</option><option value="すなお">すなお 補正なし</option><option value="わんぱく">わんぱく B↑ C↓</option><option value="のうてんき">のうてんき B↑ D↓</option><option value="のんき">のんき B↑ S↓</option><option value="ひかえめ">ひかえめ C↑ A↓</option><option value="おっとり">おっとり C↑ B↓</option><option value="てれや">てれや 補正なし</option><option value="うっかりや">うっかりや C↑ D↓</option><option value="れいせい">れいせい C↑ S↓</option><option value="おだやか">おだやか D↑ A↓</option><option value="おとなしい">おとなしい D↑ B↓</option><option value="しんちょう">しんちょう D↑ C↓</option><option value="きまぐれ">きまぐれ 補正なし</option><option value="なまいき">なまいき D↑ S↓</option><option value="おくびょう">おくびょう S↑ A↓</option><option value="せっかち">せっかち S↑ B↓</option><option value="ようき">ようき S↑ C↓</option><option value="むじゃき">むじゃき S↑ D↓</option><option value="まじめ" selected="">まじめ 補正なし</option></select></label>
+                <div class="v082h-stat-table">
+                  <div class="v082h-stat-row v082h-stat-head">
+                    <span>
+                    </span>
+                    <span data-stat-key="H">H</span>
+                    <span data-stat-key="A">A</span>
+                    <span data-stat-key="B">B</span>
+                    <span data-stat-key="C">C</span>
+                    <span data-stat-key="D">D</span>
+                    <span data-stat-key="S">S</span>
+                  </div>
+                  <div class="v082h-stat-row">
+                    <span class="v082h-stat-label">種族値</span>
+                    <span class="v082h-stat-cell v082h-stat-readonly" id="v082hBaseStat_defender_H"></span>
+                    <span class="v082h-stat-cell v082h-stat-readonly" id="v082hBaseStat_defender_A"></span>
+                    <span class="v082h-stat-cell v082h-stat-readonly" id="v082hBaseStat_defender_B"></span>
+                    <span class="v082h-stat-cell v082h-stat-readonly" id="v082hBaseStat_defender_C"></span>
+                    <span class="v082h-stat-cell v082h-stat-readonly" id="v082hBaseStat_defender_D"></span>
+                    <span class="v082h-stat-cell v082h-stat-readonly" id="v082hBaseStat_defender_S"></span>
+                  </div>
+                  <div class="v082h-stat-row">
+                    <span class="v082h-stat-label">努力値</span>
+                    <span class="v082h-stat-cell"><input id="defender_H_ev" type="number" min="0" max="32" value="0"></span>
+                    <span class="v082h-stat-cell"><input id="defender_A_ev" type="number" min="0" max="32" value="0"></span>
+                    <span class="v082h-stat-cell"><input id="defender_B_ev" type="number" min="0" max="32" value="0"></span>
+                    <span class="v082h-stat-cell"><input id="defender_C_ev" type="number" min="0" max="32" value="0"></span>
+                    <span class="v082h-stat-cell"><input id="defender_D_ev" type="number" min="0" max="32" value="0"></span>
+                    <span class="v082h-stat-cell"><input id="defender_S_ev" type="number" min="0" max="32" value="0"></span>
+                  </div>
+                  <div class="v082h-stat-row">
+                    <span class="v082h-stat-label">実数値</span>
+                    <span class="v082h-stat-cell"><input id="defender_H_actual" type="number"></span>
+                    <span class="v082h-stat-cell"><input id="defender_A_actual" type="number"></span>
+                    <span class="v082h-stat-cell"><input id="defender_B_actual" type="number"></span>
+                    <span class="v082h-stat-cell"><input id="defender_C_actual" type="number"></span>
+                    <span class="v082h-stat-cell"><input id="defender_D_actual" type="number"></span>
+                    <span class="v082h-stat-cell"><input id="defender_S_actual" type="number"></span>
+                  </div>
+                  <div class="v082h-stat-row">
+                    <span class="v082h-stat-label">ランク</span>
+                    <span class="v082h-stat-cell">-</span>
+                    <span class="v082h-stat-cell"><input id="defender_A_rank" type="number" min="-6" max="6" value="0"></span>
+                    <span class="v082h-stat-cell"><input id="defender_B_rank" type="number" min="-6" max="6" value="0"></span>
+                    <span class="v082h-stat-cell"><input id="defender_C_rank" type="number" min="-6" max="6" value="0"></span>
+                    <span class="v082h-stat-cell"><input id="defender_D_rank" type="number" min="-6" max="6" value="0"></span>
+                    <span class="v082h-stat-cell"><input id="defender_S_rank" type="number" min="-6" max="6" value="0"></span>
+                  </div>
+                </div>
+                <div class="v082h-stat-table v082h-rank-sub">
+                  <div class="v082h-stat-row v082h-stat-head">
+                    <span>
+                    </span>
+                    <span data-stat-key="acc">命中</span>
+                    <span data-stat-key="eva">回避</span>
+                  </div>
+                  <div class="v082h-stat-row">
+                    <span class="v082h-stat-label">ランク</span>
+                    <span class="v082h-stat-cell"><input id="defender_acc_rank" type="number" min="-6" max="6" value="0"></span>
+                    <span class="v082h-stat-cell"><input id="defender_eva_rank" type="number" min="-6" max="6" value="0"></span>
+                  </div>
+                </div>
+                <div class="v082h-ev-remaining" id="v082hEvRemaining_defender">
+                  <span id="v082hEvRemainingText_defender"></span>
+                </div>
+                <div class="v082h-ev-preset">
+                  <span class="v082h-muted">努力値簡易入力</span>
+                  <select class="v082h-ev-select" id="v082hEvPreset_defender"><option value="選択なし">選択なし</option><option value="HA">HA</option><option value="HB">HB</option><option value="HC">HC</option><option value="HD">HD</option><option value="HS">HS</option><option value="AB">AB</option><option value="AC">AC</option><option value="AD">AD</option><option value="AS">AS</option><option value="BC">BC</option><option value="BD">BD</option><option value="BS">BS</option><option value="CD">CD</option><option value="CS">CS</option><option value="DS">DS</option></select>
+                  <button class="v082h-ability-chip" type="button">リセット</button>
+                </div>
+                <div class="v082h-mini-grid v082h-hp-row">
+                  <label>現HP<input id="defenderCurrentHp" type="number" min="1" placeholder="空欄なら最大HP"></label>
+                  <label>現HP簡易入力<div class="v082h-hp-buttons">
+                      <button class="v082h-ability-chip" type="button">最大</button>
+                      <button class="v082h-ability-chip" type="button">1/2</button>
+                      <button class="v082h-ability-chip" type="button">1/3</button>
+                      <button class="v082h-ability-chip" type="button">1/4</button>
+                    </div></label>
+                </div>
+                <details class="v082h-details v082h-type-effects">
+                  <summary>レベル・個体値</summary>
+                  <div class="v082h-stat-row">
+                    <span class="v082h-stat-label">レベル</span>
+                    <span class="v082h-stat-cell"><input id="defenderLevel" type="number" min="1" max="100" value="50"></span>
+                  </div>
+                  <div class="v082h-stat-table">
+                    <div class="v082h-stat-row v082h-stat-head">
+                      <span>
+                      </span>
+                      <span data-stat-key="H">H</span>
+                      <span data-stat-key="A">A</span>
+                      <span data-stat-key="B">B</span>
+                      <span data-stat-key="C">C</span>
+                      <span data-stat-key="D">D</span>
+                      <span data-stat-key="S">S</span>
+                    </div>
+                    <div class="v082h-stat-row">
+                      <span class="v082h-stat-label">個体値</span>
+                      <span class="v082h-stat-cell"><input id="defender_H_iv" type="number" min="0" max="31" value="31"></span>
+                      <span class="v082h-stat-cell"><input id="defender_A_iv" type="number" min="0" max="31" value="31"></span>
+                      <span class="v082h-stat-cell"><input id="defender_B_iv" type="number" min="0" max="31" value="31"></span>
+                      <span class="v082h-stat-cell"><input id="defender_C_iv" type="number" min="0" max="31" value="31"></span>
+                      <span class="v082h-stat-cell"><input id="defender_D_iv" type="number" min="0" max="31" value="31"></span>
+                      <span class="v082h-stat-cell"><input id="defender_S_iv" type="number" min="0" max="31" value="31"></span>
+                    </div>
+                  </div>
+                </details>
+              </div>
+            </section>
           </div>
         </section>
-        <section class="sub-card side-panel">
-          <h3>防御側ステータス <button type="button" id="damekeGoAdjustDefenderBtn" class="dameke-adjust-jump-btn">防御側調整</button></h3>
-          <div class="grid two compact-grid">
-            <label>レベル<input id="defenderLevel" type="number" min="1" max="100" value="50" /></label>
-            <label>ダイマ<select id="defenderSpecialState"></select></label>
-            <label>テラスタル<select id="defenderTeraType"></select></label>
-            <label>性別<select id="defenderGender"><option value="unknown">性別不明</option><option value="male">♂</option><option value="female">♀</option></select></label>
-          </div>
-          <div class="grid two compact-grid">
-            <label>タイプ1<select id="defenderType1"></select></label>
-            <label>タイプ2<select id="defenderType2"></select></label>
-            <label>タイプ変更<select id="defenderTypeOverride"><option value="none">なし</option><option value="soak">みずびたし</option><option value="magicPowder">まほうのこな</option></select></label>
-            <label>追加タイプ<select id="defenderAddType"><option value="none">なし</option><option value="halloween">ハロウィン</option><option value="forestCurse">もりののろい</option></select></label>
-          </div>
-          <div class="stat-grid-wrap"><div id="defenderStatsGrid" class="stat-grid"></div></div>
-          <div class="grid four hp-tools">
-            <label>現HP<input id="defenderCurrentHp" type="number" min="1" placeholder="空欄なら最大HP" /></label>
-            <button type="button" data-hp-side="defender" data-hp-rate="4">HP 1/4</button>
-            <button type="button" data-hp-side="defender" data-hp-rate="3">HP 1/3</button>
-            <button type="button" data-hp-side="defender" data-hp-rate="2">HP 1/2</button>
-          </div>
-        </section>
-      </div>
-      <section class="sub-card">
-        <h3>持ち物・特性</h3>
-        <div class="grid two">
-          <label>攻撃側持ち物<select id="attackerItemSelect"></select></label>
-          <label>防御側持ち物<select id="defenderItemSelect"></select></label>
-        </div>
-        <div class="grid two">
-          <label class="check"><input id="attackerNoItem" type="checkbox" />攻撃側は持ち物なし</label>
-          <label class="check"><input id="defenderNoItem" type="checkbox" />防御側は持ち物なし</label>
-        </div>
-        <div class="grid two">
-          <label>攻撃側特性<select id="attackerAbilitySelect"></select></label>
-          <label>防御側特性<select id="defenderAbilitySelect"></select></label>
-        </div>
-        <div class="grid two">
-          <label class="check"><input id="attackerNoAbility" type="checkbox" />攻撃側は特性なし</label>
-          <label class="check"><input id="defenderNoAbility" type="checkbox" />防御側は特性なし</label>
-        </div>
-      </section>
-      <section class="sub-card">
-        <h3>場</h3>
-        <div class="grid four">
-          <label>天候<select id="weatherSelect"></select></label>
-          <label>フィールド<select id="fieldSelect"></select></label>
-          <label class="check"><input id="magicRoom" type="checkbox" />マジックルーム</label>
-          <label class="check"><input id="gravity" type="checkbox" />じゅうりょく</label>
-          <label class="check"><input id="protect" type="checkbox" />まもる</label>
-          <label class="check"><input id="plasmaShower" type="checkbox" />プラズマシャワー</label>
-          <label class="check"><input id="fairyAuraField" type="checkbox" />フェアリーオーラ</label>
-          <label class="check"><input id="vesselOfRuinField" type="checkbox" />わざわいのうつわ</label>
-          <label class="check"><input id="beadsOfRuinField" type="checkbox" />わざわいのたま</label>
-          <label class="check"><input id="swordOfRuinField" type="checkbox" />わざわいのつるぎ</label>
-          <label class="check"><input id="tabletsOfRuinField" type="checkbox" />わざわいのおふだ</label>
-          <label class="check"><input id="darkAuraField" type="checkbox" />ダークオーラ</label>
-          <label class="check"><input id="mudSport" type="checkbox" />どろあそび</label>
-          <label class="check"><input id="waterSport" type="checkbox" />みずあそび</label>
-          <label class="check"><input id="weatherSuppressField" type="checkbox" />ノーてんき・エアロック</label>
-          <label class="check"><input id="neutralizingGasField" type="checkbox" />かがくへんかガス</label>
-        </div>
-        <div class="operation-panel">
-          <div class="operation-title">実数値操作、押した順に適用</div>
-          <div class="operation-buttons">
-            <button type="button" data-op="attackerPowerTrick">攻撃側パワートリック</button>
-            <button type="button" data-op="defenderPowerTrick">防御側パワートリック</button>
-            <button type="button" data-op="powerShare">パワーシェア</button>
-            <button type="button" data-op="guardShare">ガードシェア</button>
-            <button type="button" data-op="speedSwap">スピードスワップ</button>
-            <button type="button" data-op="wonderRoom">ワンダールーム</button>
-            <button type="button" id="resetTransformOps">リセット</button>
-          </div>
-          <div id="transformOpsDisplay" class="operation-display">なし</div>
-        </div>
-      </section>
-      <section class="sub-card">
-        <h3>攻撃側条件</h3>
-        <div class="grid four">
-          <input id="critical" type="number" min="0" max="3" value="0" class="v082h-hide" />
-          <label class="check"><input id="electrify" type="checkbox" />そうでん</label>
-          <label class="check"><input id="pledgeCombination" type="checkbox" />コンビネーション</label>
-          <label class="check"><input id="attackerEmbargo" type="checkbox" />さしおさえ</label>
-          <label>状態異常<select id="attackerStatus"><option value="なし">なし</option><option value="やけど">やけど</option><option value="まひ">まひ</option><option value="どく">どく</option><option value="もうどく">もうどく</option><option value="ねむり">ねむり</option><option value="こおり">こおり</option></select></label>
-          <label>もうどく経過<input id="attackerToxicCount" type="number" min="1" max="15" value="1" /></label>
-          <label class="check"><input id="attackerStealthRock" type="checkbox" />ステルスロック</label>
-          <label>まきびし<select id="attackerSpikes"><option value="0">なし</option><option value="1">1回</option><option value="2">2回</option><option value="3">3回</option></select></label>
-          <label class="check"><input id="attackerSteelSurge" type="checkbox" />キョダイコウジン</label>
-          <label class="check"><input id="batterySupport" type="checkbox" />バッテリー</label>
-          <label class="check"><input id="flowerGiftSupport" type="checkbox" />フラワーギフト</label>
-          <label class="check"><input id="plusMinusSupport" type="checkbox" />プラス/マイナス</label>
-          <label class="check"><input id="flashFireActivated" type="checkbox" />もらいび ほのお技被弾</label>
-          <label class="check"><input id="stakeoutSwitchIn" type="checkbox" />はりこみ 防御側繰り出し</label>
-          <label class="check"><input id="powerSpotSupport" type="checkbox" />パワースポット</label>
-          <label class="check"><input id="attackerDoubleDamage" type="checkbox" />ダブルダメージ</label>
-          <label>メトロノーム回数<select id="metronomeUseCount"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option></select></label>
-          <label>行動順<select id="focusLensMoveOrder"><option value="first">先攻</option><option value="second">後攻</option></select></label>
-          <label>サイコウェーブ倍率<input id="psywaveMultiplier" type="number" min="0.5" max="1.5" step="0.01" value="1" /></label>
-          <label class="check"><input id="kimagureLaserDouble" type="checkbox" />威力2倍</label>
-          <label>被ダメ<input id="fixedDamageTaken" type="number" min="0" step="1" value="0" /></label>
-          <label>ステラ技回数<select id="attackerStellarMoveCount"><option value="first">1回目</option><option value="later">2回目以降</option></select></label>
-          <label>はがねのせいしん<select id="steelSpiritCount"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
-          <label>てだすけ<select id="helpingHandCount"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
-          <label class="check"><input id="meFirst" type="checkbox" />さきどり</label>
-          <label class="check"><input id="charge" type="checkbox" />じゅうでん</label>
-          <label class="check"><input id="analyzeMovedLast" type="checkbox" />アナライズ後攻</label>
-          <label class="check"><input id="attackerTailwind" type="checkbox" />おいかぜ</label>
-          <label>キョダイシンゲキ回数<input id="attackerGMaxRapidStrike" type="number" min="0" max="3" value="0" /></label>
-          <label class="check"><input id="attackerFocusEnergy" type="checkbox" />とぎすます</label>
-          <label class="check"><input id="attackerLockOn" type="checkbox" />ロックオン</label>
-          <label class="check"><input id="attackerMicleBerry" type="checkbox" />ミクルのみ</label>
-          <label class="check"><input id="attackerSwamp" type="checkbox" />しつげん</label>
-          <label class="check"><input id="attackerRainbow" type="checkbox" />にじ</label>
-          <label class="check"><input id="attackerVictoryStar" type="checkbox" />しょうりのほし</label>
-          <label class="check"><input id="attackerSlowStart" type="checkbox" />スロースタート発動</label>
-          <label class="check"><input id="attackerUnburden" type="checkbox" />かるわざ発動</label>
-          <label>古代/クォーク上昇<select id="attackerParadoxBoostStat"><option value="none">なし</option><option value="A">攻撃</option><option value="B">防御</option><option value="C">特攻</option><option value="D">特防</option><option value="S">素早さ</option></select></label>
-          <label class="check"><input id="attackerIngrain" type="checkbox" />ねをはる</label>
-          <label class="check"><input id="attackerRootedSmacked" type="checkbox" />うちおとす</label>
-          <label class="check"><input id="attackerMagnetRise" type="checkbox" />でんじふゆう</label>
-          <label class="check"><input id="attackerTelekinesis" type="checkbox" />テレキネシス</label>
-          <label class="check"><input id="attackerRoost" type="checkbox" />はねやすめ</label>
-          <label class="check"><input id="attackerBurnUp" type="checkbox" />もえつきる</label>
-          <label class="check"><input id="attackerDoubleShock" type="checkbox" />でんこうそうげき</label>
-          <label>ボディパージ回数<input id="attackerBodyPurge" type="number" min="0" max="6" value="0" /></label>
-        </div>
-      </section>
-      <section class="sub-card">
-        <h3>防御側条件</h3>
-        <div class="grid four">
-          <label class="check"><input id="defenderLuckyChant" type="checkbox" />おまじない</label>
-          <label class="check"><input id="defenderForesight" type="checkbox" />みやぶる</label>
-          <label class="check"><input id="defenderMiracleEye" type="checkbox" />ミラクルアイ</label>
-          <label class="check"><input id="defenderTarShot" type="checkbox" />タールショット</label>
-          <label>壁<select id="defenderScreen"><option value="none">なし</option><option value="reflect">リフレクター</option><option value="lightScreen">ひかりのかべ</option><option value="auroraVeil">オーロラベール</option></select></label>
-          <label class="check"><input id="defenderFriendGuard" type="checkbox" />フレンドガード</label>
-          <label class="check"><input id="defenderMinimized" type="checkbox" />ちいさくなる</label>
-          <label>防御側状態まもる<select id="defenderProtectState"><option value="none">なし</option><option value="protect">まもる</option><option value="maxGuard">ダイウォール</option></select></label>
-          <label class="check"><input id="defenderEmbargo" type="checkbox" />さしおさえ</label>
-          <label>状態異常<select id="defenderStatus"><option value="なし">なし</option><option value="やけど">やけど</option><option value="まひ">まひ</option><option value="どく">どく</option><option value="もうどく">もうどく</option><option value="ねむり">ねむり</option><option value="こおり">こおり</option></select></label>
-          <label>もうどく経過<input id="defenderToxicCount" type="number" min="1" max="15" value="1" /></label>
-          <label class="check"><input id="defenderConfusion" type="checkbox" />こんらん</label>
-          <label class="check"><input id="defenderSubstitute" type="checkbox" />みがわり</label>
-          <label>防御側状態<select id="defenderSemiInvulnerable"><option value="なし">なし</option><option value="そらをとぶ">そらをとぶ</option><option value="あなをほる">あなをほる</option><option value="ダイビング">ダイビング</option><option value="シャドーダイブ">シャドーダイブ</option></select></label>
-          <label class="check"><input id="defenderStealthRock" type="checkbox" />ステルスロック</label>
-          <label>まきびし<select id="defenderSpikes"><option value="0">なし</option><option value="1">1回</option><option value="2">2回</option><option value="3">3回</option></select></label>
-          <label class="check"><input id="defenderSteelSurge" type="checkbox" />キョダイコウジン</label>
-          <label class="check"><input id="defenderFlowerGiftSupport" type="checkbox" />フラワーギフト</label>
-          <label class="check"><input id="defenderGlaiveRush" type="checkbox" />むぼうび</label>
-          <label class="check"><input id="defenderTailwind" type="checkbox" />おいかぜ</label>
-          <label class="check"><input id="defenderSwamp" type="checkbox" />しつげん</label>
-          <label class="check"><input id="defenderSeaOfFire" type="checkbox" />ひのうみ</label>
-          <label class="check"><input id="defenderSlowStart" type="checkbox" />スロースタート発動</label>
-          <label class="check"><input id="defenderUnburden" type="checkbox" />かるわざ発動</label>
-          <label>古代/クォーク上昇<select id="defenderParadoxBoostStat"><option value="none">なし</option><option value="A">攻撃</option><option value="B">防御</option><option value="C">特攻</option><option value="D">特防</option><option value="S">素早さ</option></select></label>
-          <label class="check"><input id="defenderIngrain" type="checkbox" />ねをはる</label>
-          <label class="check"><input id="defenderRootedSmacked" type="checkbox" />うちおとす</label>
-          <label class="check"><input id="defenderMagnetRise" type="checkbox" />でんじふゆう</label>
-          <label class="check"><input id="defenderTelekinesis" type="checkbox" />テレキネシス</label>
-          <label class="check"><input id="defenderRoost" type="checkbox" />はねやすめ</label>
-          <label class="check"><input id="defenderBurnUp" type="checkbox" />もえつきる</label>
-          <label class="check"><input id="defenderDoubleShock" type="checkbox" />でんこうそうげき</label>
-          <label>ボディパージ回数<input id="defenderBodyPurge" type="number" min="0" max="6" value="0" /></label>
-        </div>
-      </section>
-
-      <section class="sub-card" id="moveSpecificSection">
-        <h3>技固有条件</h3>
-        <div class="grid four">
-          <label>ころがる等 回数<input id="rolloutHit" type="number" min="1" max="5" value="1" /></label>
-          <label class="check"><input id="defenseCurl" type="checkbox" />まるくなる済み</label>
-          <label>エコーボイス回数<input id="echoedVoiceCount" type="number" min="1" max="5" value="1" /></label>
-          <label>行動順<select id="moveOrder"><option value="first">先攻</option><option value="second">後攻</option></select></label>
-          <label class="check"><input id="targetSwitching" type="checkbox" />相手が交代</label>
-          <label>味方ひんし数<input id="faintedAllies" type="number" min="0" max="100" value="0" /></label>
-          <label>そうだいしょう味方ひんし数<input id="supremeOverlordFaintedAllies" type="number" min="0" max="5" value="0" /></label>
-          <label>なつき度<input id="friendship" type="number" min="0" max="255" value="255" /></label>
-          <label>残りPP<input id="remainingPP" type="number" min="0" max="8" value="4" /></label>
-          <label class="check"><input id="lastMoveFailed" type="checkbox" />前ターン技失敗</label>
-          <label class="check"><input id="userDamagedThisTurn" type="checkbox" />自分がこのターン被ダメ</label>
-          <label class="check"><input id="targetDamagedThisTurn" type="checkbox" />相手がこのターン被ダメ</label>
-          <label>たくわえる回数<select id="stockpileCount"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
-          <label>プレゼント威力<select id="presentPower"><option value="40">40</option><option value="80">80</option><option value="120">120</option></select></label>
-          <label>被ダメ回数<input id="rageFistHitCount" type="number" min="0" max="6" value="0" /></label>
-          <label>マグニチュード威力<select id="magnitudePower"><option value="10">10</option><option value="30">30</option><option value="50">50</option><option value="70">70</option><option value="90">90</option><option value="110">110</option><option value="150">150</option></select></label>
-          <label class="check"><input id="roundAllyUsed" type="checkbox" />同ターンりんしょうあり</label>
-          <label>れんぞくぎり回数<input id="furyCutterCount" type="number" min="1" max="3" value="1" /></label>
-          <label class="check"><input id="statDroppedThisTurn" type="checkbox" />自身のランク下降</label>
-          <label class="check"><input id="allyFaintedLastTurn" type="checkbox" />前ターン味方ひんし</label>
-          <label>控え1<select id="beatUpAlly1"><option value="none">なし</option></select></label>
-          <label>控え2<select id="beatUpAlly2"><option value="none">なし</option></select></label>
-          <label>控え3<select id="beatUpAlly3"><option value="none">なし</option></select></label>
-          <label>控え4<select id="beatUpAlly4"><option value="none">なし</option></select></label>
-          <label>控え5<select id="beatUpAlly5"><option value="none">なし</option></select></label>
-        </div>
-      </section>
-      <label class="check"><input id="attackerCriticalForce" type="checkbox" />急所</label>
-      <details class="dameke-move2-fold">
-        <summary>技②</summary>
-        <div class="v082h-move1-row dameke-move2-select-row">
-          <label><select id="move2Select"></select></label>
-          <label class="check dameke-move-filter-toggle"><input id="move2ShowAll" type="checkbox" />全技</label>
-        </div>
-        <section class="sub-card v082h-hide" id="move2SpecificSection">
-          <h3>技固有条件</h3>
+        <details class="sub-card v082h-section-details">
+          <summary>場</summary>
           <div class="grid four">
-            <label>ころがる等 回数<input id="move2RolloutHit" type="number" min="1" max="5" value="1" /></label>
-            <label class="check"><input id="move2DefenseCurl" type="checkbox" />まるくなる済み</label>
-            <label>エコーボイス回数<input id="move2EchoedVoiceCount" type="number" min="1" max="5" value="1" /></label>
-            <label>行動順<select id="move2MoveOrder"><option value="first">先攻</option><option value="second">後攻</option></select></label>
-            <label class="check"><input id="move2TargetSwitching" type="checkbox" />相手が交代</label>
-            <label>味方ひんし数<input id="move2FaintedAllies" type="number" min="0" max="100" value="0" /></label>
-            <label>そうだいしょう味方ひんし数<input id="move2SupremeOverlordFaintedAllies" type="number" min="0" max="5" value="0" /></label>
-            <label>なつき度<input id="move2Friendship" type="number" min="0" max="255" value="255" /></label>
-            <label>残りPP<input id="move2RemainingPP" type="number" min="0" max="8" value="4" /></label>
-            <label class="check"><input id="move2LastMoveFailed" type="checkbox" />前ターン技失敗</label>
-            <label class="check"><input id="move2UserDamagedThisTurn" type="checkbox" />自分がこのターン被ダメ</label>
-            <label class="check"><input id="move2TargetDamagedThisTurn" type="checkbox" />相手がこのターン被ダメ</label>
-            <label>たくわえる回数<select id="move2StockpileCount"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
-            <label>プレゼント威力<select id="move2PresentPower"><option value="40">40</option><option value="80">80</option><option value="120">120</option></select></label>
-            <label>被ダメ回数<input id="move2RageFistHitCount" type="number" min="0" max="6" value="0" /></label>
-            <label>マグニチュード威力<select id="move2MagnitudePower"><option value="10">10</option><option value="30">30</option><option value="50">50</option><option value="70">70</option><option value="90">90</option><option value="110">110</option><option value="150">150</option></select></label>
-            <label class="check"><input id="move2RoundAllyUsed" type="checkbox" />同ターンりんしょうあり</label>
-            <label>れんぞくぎり回数<input id="move2FuryCutterCount" type="number" min="1" max="3" value="1" /></label>
-            <label class="check"><input id="move2StatDroppedThisTurn" type="checkbox" />自身のランク下降</label>
-            <label class="check"><input id="move2AllyFaintedLastTurn" type="checkbox" />前ターン味方ひんし</label>
-            <label>控え1<select id="move2BeatUpAlly1"><option value="none">なし</option></select></label>
-            <label>控え2<select id="move2BeatUpAlly2"><option value="none">なし</option></select></label>
-            <label>控え3<select id="move2BeatUpAlly3"><option value="none">なし</option></select></label>
-            <label>控え4<select id="move2BeatUpAlly4"><option value="none">なし</option></select></label>
-            <label>控え5<select id="move2BeatUpAlly5"><option value="none">なし</option></select></label>
+            <label>天候<select id="weatherSelect"></select></label>
+            <label>フィールド<select id="fieldSelect"></select></label>
+            <label class="check"><input id="magicRoom" type="checkbox">マジックルーム</label>
+            <label class="check"><input id="gravity" type="checkbox">じゅうりょく</label>
+            <label class="check"><input id="mudSport" type="checkbox">どろあそび</label>
+            <label class="check"><input id="waterSport" type="checkbox">みずあそび</label>
           </div>
-        </section>
-        <label class="check"><input id="move2CriticalForce" type="checkbox" />急所</label>
-        <div class="v082h-mini-grid dameke-move-special-grid">
-          <label>Z・ダイマ<select id="move2AttackerSpecialState"></select></label>
-          <label>テラスタル<select id="move2AttackerTeraType"></select></label>
+          <div class="operation-panel">
+            <div class="operation-title">実数値操作、押した順に適用</div>
+            <div class="operation-buttons">
+              <button type="button" data-op="attackerPowerTrick">攻撃側パワートリック</button>
+              <button type="button" data-op="defenderPowerTrick">防御側パワートリック</button>
+              <button type="button" data-op="powerShare">パワーシェア</button>
+              <button type="button" data-op="guardShare">ガードシェア</button>
+              <button type="button" data-op="speedSwap">スピードスワップ</button>
+              <button type="button" data-op="wonderRoom">ワンダールーム</button>
+              <button type="button" id="resetTransformOps">リセット</button>
+            </div>
+            <div id="transformOpsDisplay" class="operation-display">なし</div>
+          </div>
+          <details class="v082h-details v082h-section-details v082h-double-fold">
+            <summary>ダブル</summary>
+            <div class="v082h-cond-grid v082h-cond-grid-cols-4">
+              <label class="check"><input id="darkAuraField" type="checkbox">ダークオーラ</label>
+              <label class="check"><input id="fairyAuraField" type="checkbox">フェアリーオーラ</label>
+              <label class="check"><input id="vesselOfRuinField" type="checkbox">わざわいのうつわ</label>
+              <label class="check"><input id="beadsOfRuinField" type="checkbox">わざわいのたま</label>
+              <label class="check"><input id="swordOfRuinField" type="checkbox">わざわいのつるぎ</label>
+              <label class="check"><input id="tabletsOfRuinField" type="checkbox">わざわいのおふだ</label>
+              <label class="check"><input id="weatherSuppressField" type="checkbox">ノーてんき・エアロック</label>
+              <label class="check"><input id="neutralizingGasField" type="checkbox">かがくへんかガス</label>
+            </div>
+          </details>
+        </details>
+        <div class="v082h-cond-wrap-outer">
+          <div class="v082h-side-tabs"><button type="button" data-side="attacker">攻撃側</button><button type="button" data-side="defender">防御側</button></div>
+          <div class="v082h-cond-wrap">
+            <details class="sub-card v082h-section-details v082h-attacker">
+              <summary>攻撃側条件</summary>
+              <div class="v082h-cond-grid">
+                <label>状態異常<select id="attackerStatus"><option value="なし">なし</option><option value="やけど">やけど</option><option value="まひ">まひ</option><option value="どく">どく</option><option value="もうどく">もうどく</option><option value="ねむり">ねむり</option><option value="こおり">こおり</option></select></label>
+                <label>もうどく経過<input id="attackerToxicCount" type="number" min="1" max="15" value="1"></label>
+                <label class="check"><input id="attackerEmbargo" type="checkbox">さしおさえ</label>
+                <label class="check"><input id="attackerStealthRock" type="checkbox">ステルスロック</label>
+                <label>まきびし<select id="attackerSpikes"><option value="0">なし</option><option value="1">1回</option><option value="2">2回</option><option value="3">3回</option></select></label>
+                <label class="check"><input id="attackerSteelSurge" type="checkbox">キョダイコウジン</label>
+                <label class="check"><input id="electrify" type="checkbox">そうでん</label>
+                <label class="check"><input id="plasmaShower" type="checkbox">プラズマシャワー</label>
+                <label class="check"><input id="charge" type="checkbox">じゅうでん</label>
+                <label class="check"><input id="meFirst" type="checkbox">さきどり</label>
+                <label class="check"><input id="attackerIngrain" type="checkbox">ねをはる</label>
+                <label class="check"><input id="attackerRootedSmacked" type="checkbox">うちおとす</label>
+                <label class="check"><input id="attackerMagnetRise" type="checkbox">でんじふゆう</label>
+                <label class="check"><input id="attackerTelekinesis" type="checkbox">テレキネシス</label>
+                <label>ボディパージ回数<input id="attackerBodyPurge" type="number" min="0" max="6" value="0"></label>
+                <label class="check"><input id="attackerTailwind" type="checkbox">おいかぜ</label>
+                <label>キョダイシンゲキ回数<input id="attackerGMaxRapidStrike" type="number" min="0" max="3" value="0"></label>
+                <label class="check"><input id="attackerFocusEnergy" type="checkbox">とぎすます</label>
+                <label class="check"><input id="attackerLockOn" type="checkbox">ロックオン</label>
+                <label class="check"><input id="attackerMicleBerry" type="checkbox">ミクルのみ</label>
+              </div>
+              <details class="v082h-details v082h-section-details v082h-double-fold">
+                <summary>ダブル</summary>
+                <div class="v082h-cond-grid">
+                  <label class="check"><input id="attackerDoubleDamage" type="checkbox">ダブルダメージ</label>
+                  <label>てだすけ<select id="helpingHandCount"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
+                  <label class="check"><input id="powerSpotSupport" type="checkbox">パワースポット</label>
+                  <label class="check"><input id="batterySupport" type="checkbox">バッテリー</label>
+                  <label class="check"><input id="flowerGiftSupport" type="checkbox">フラワーギフト</label>
+                  <label class="check"><input id="plusMinusSupport" type="checkbox">プラス/マイナス</label>
+                  <label>はがねのせいしん<select id="steelSpiritCount"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
+                  <label class="check"><input id="attackerSwamp" type="checkbox">しつげん</label>
+                  <label class="check"><input id="attackerRainbow" type="checkbox">にじ</label>
+                  <label class="check"><input id="attackerVictoryStar" type="checkbox">しょうりのほし</label>
+                </div>
+              </details>
+            </details>
+            <details class="sub-card v082h-section-details v082h-defender">
+              <summary>防御側条件</summary>
+              <div class="v082h-cond-grid">
+                <label>状態異常<select id="defenderStatus"><option value="なし">なし</option><option value="やけど">やけど</option><option value="まひ">まひ</option><option value="どく">どく</option><option value="もうどく">もうどく</option><option value="ねむり">ねむり</option><option value="こおり">こおり</option></select></label>
+                <label>もうどく経過<input id="defenderToxicCount" type="number" min="1" max="15" value="1"></label>
+                <label class="check"><input id="defenderConfusion" type="checkbox">こんらん</label>
+                <label class="check"><input id="defenderSubstitute" type="checkbox">みがわり</label>
+                <label class="check"><input id="defenderEmbargo" type="checkbox">さしおさえ</label>
+                <label class="check"><input id="defenderStealthRock" type="checkbox">ステルスロック</label>
+                <label>まきびし<select id="defenderSpikes"><option value="0">なし</option><option value="1">1回</option><option value="2">2回</option><option value="3">3回</option></select></label>
+                <label class="check"><input id="defenderSteelSurge" type="checkbox">キョダイコウジン</label>
+                <label>壁<select id="defenderScreen"><option value="none">なし</option><option value="reflect">リフレクター</option><option value="lightScreen">ひかりのかべ</option><option value="auroraVeil">オーロラベール</option></select></label>
+                <label class="check"><input id="defenderTarShot" type="checkbox">タールショット</label>
+                <label class="check"><input id="defenderLuckyChant" type="checkbox">おまじない</label>
+                <label class="check"><input id="defenderGlaiveRush" type="checkbox">むぼうび</label>
+                <label class="check"><input id="defenderMinimized" type="checkbox">ちいさくなる</label>
+                <label>姿を隠す<select id="defenderSemiInvulnerable"><option value="なし">なし</option><option value="そらをとぶ">そらをとぶ</option><option value="あなをほる">あなをほる</option><option value="ダイビング">ダイビング</option><option value="シャドーダイブ">シャドーダイブ</option></select></label>
+                <label>まもる<select id="defenderProtectState"><option value="none">なし</option><option value="protect">まもる</option><option value="maxGuard">ダイウォール</option></select></label>
+                <label class="check"><input id="defenderIngrain" type="checkbox">ねをはる</label>
+                <label class="check"><input id="defenderRootedSmacked" type="checkbox">うちおとす</label>
+                <label class="check"><input id="defenderMagnetRise" type="checkbox">でんじふゆう</label>
+                <label class="check"><input id="defenderTelekinesis" type="checkbox">テレキネシス</label>
+                <label class="check"><input id="defenderForesight" type="checkbox">みやぶる</label>
+                <label class="check"><input id="defenderMiracleEye" type="checkbox">ミラクルアイ</label>
+                <label>ボディパージ回数<input id="defenderBodyPurge" type="number" min="0" max="6" value="0"></label>
+                <label class="check"><input id="defenderTailwind" type="checkbox">おいかぜ</label>
+                <label class="check"><input id="defenderRage" type="checkbox">いかり</label>
+              </div>
+              <details class="v082h-details v082h-section-details v082h-double-fold">
+                <summary>ダブル</summary>
+                <div class="v082h-cond-grid">
+                  <label class="check"><input id="defenderFlowerGiftSupport" type="checkbox">フラワーギフト</label>
+                  <label class="check"><input id="defenderFriendGuard" type="checkbox">フレンドガード</label>
+                  <label class="check"><input id="defenderSwamp" type="checkbox">しつげん</label>
+                  <label class="check"><input id="defenderSeaOfFire" type="checkbox">ひのうみ</label>
+                </div>
+              </details>
+            </details>
+          </div>
         </div>
-        <div class="actions dameke-move-order-actions">
-          <button id="moveOrderSwapButton" type="button" class="dameke-toolbar-btn-move-order">技順序入替</button>
+        <div class="actions">
         </div>
-      </details>
-      <div class="actions">
-        <button id="calculateButton" type="button">計算</button>
-        <button id="copyTraceButton" type="button">計算過程をコピー</button>
-      </div>
-    </section>
+      </section>
     <section class="card result-card">
       <h2>結果</h2>
-      <div id="summary" class="summary">未計算です。</div>
-      <h3>計算過程</h3>
-      <pre id="trace" class="output trace"></pre>
-      <div id="v082hMove2Section" class="v082h-hide">
-        <div id="move2Summary" class="summary"></div>
-        <h3>計算過程②</h3>
-        <pre id="move2Trace" class="output trace"></pre>
-      </div>
       <p class="dameke-image-credit">ポケモンの画像はPokéAPI（https://pokeapi.co）経由で参照しています。ポケモンおよび関連の著作権は任天堂・クリーチャーズ・ゲームフリークに帰属します。本ツールは非公式・非営利のファン制作物であり、画像ファイルの独自保存・改変は行っていません。</p>
     </section>
   </main>
@@ -667,23 +957,24 @@
       </section>
     </main>
   </div>
-<script src="data.js?v=20260929j"></script>
-<script src="data_learnsets.js?v=20260929j"></script>
-<script src="data_regulations.js?v=20260929j"></script>
-<script src="data_pokemon_images.js?v=20260929j"></script>
-<script src="data_item_images.js?v=20260929j"></script>
-<script src="calc.js?v=20260929j"></script>
+<script src="common.js?v=20261002c"></script>
+<script src="data.js?v=20261002c"></script>
+<script src="data_learnsets.js?v=20261002c"></script>
+<script src="data_regulations.js?v=20261002c"></script>
+<script src="data_pokemon_images.js?v=20261002c"></script>
+<script src="data_item_images.js?v=20261002c"></script>
+<script src="calc.js?v=20261002c"></script>
 
-<script src="app.js?v=20260929j"></script>
-<script src="app_tools.js?v=20260929j"></script>
-<script src="app_adjust.js?v=20260929j"></script>
-<script src="app_speed.js?v=20260929j"></script>
-<script src="app_evopt.js?v=20260929j"></script>
-<script src="app_coverage.js?v=20260929j"></script>
-<script src="app_search.js?v=20260929j"></script>
-<script src="app_complement.js?v=20260929j"></script>
-<script src="app_partytype.js?v=20260929j"></script>
-<script src="app_minigame.js?v=20260929j"></script>
+<script src="app.js?v=20261002c"></script>
+<script src="app_tools.js?v=20261002c"></script>
+<script src="app_adjust.js?v=20261002c"></script>
+<script src="app_speed.js?v=20261002c"></script>
+<script src="app_evopt.js?v=20261002c"></script>
+<script src="app_coverage.js?v=20261002c"></script>
+<script src="app_search.js?v=20261002c"></script>
+<script src="app_complement.js?v=20261002c"></script>
+<script src="app_partytype.js?v=20261002c"></script>
+<script src="app_minigame.js?v=20261002c"></script>
 <script>
   // オフライン対応(Service Worker登録)。対応していないブラウザでは単に何も起きず、
   // 通常通りオンラインで動作する。

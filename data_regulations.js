@@ -39,10 +39,7 @@
   // data_learnsets.js側のキー形式(フォルム名を「ベース名(サフィックス)」ではなく
   // 「ベース名_サフィックス」で持つ)に合わせて変換する。app_search.jsのlearnsetKeyFor()と
   // 同じロジック。
-  function learnsetKeyFor(name){
-    var m = String(name || '').match(/^(.+?)\(([^)]+)\)$/);
-    return m ? (m[1] + '_' + m[2]) : name;
-  }
+  function learnsetKeyFor(name){ return window.DAMEKE_COMMON.learnsetKeyFor(name); }
 
   // ポケモン名から、該当するレギュレーションタグ('mb'|'mc'|'ma'|null)を判定する。
   // M-B/M-Cのいずれにも含まれず、かつチャンピオンズの採用技データが存在する場合のみ
