@@ -64,6 +64,62 @@
     } catch(e){ return ''; }
   }
 
+  // ---- 採用率データ(data/data.usage.json) ----
+  // ポケモン検索と、ダメージ計算の「採用率上位の提案」で共通に使う。読み込みは1回だけ。
+  // 取得できない・形式が違う場合は null のまま(呼び出し側は「データなし」として何も表示しない)。
+  var usageData = null;
+  var usageLoadPromise = null;
+  // 最低限のスキーマ検証。ここを通らないデータは一切使用しない(ブラウザ側は安全性優先)。
+  function validateUsageData(obj){
+    if(!obj || typeof obj !== 'object') return 'obj not an object';
+    if(obj.schemaVersion !== 1) return 'schemaVersion !== 1 (got ' + obj.schemaVersion + ')';
+    if(!obj.source || obj.source.sourceType !== 'pokemon-champions-in-game') return 'source.sourceType mismatch';
+    if(!obj.formats || typeof obj.formats !== 'object') return 'formats missing/not object';
+    if(!obj.formats.singles && !obj.formats.doubles) return 'both formats.singles and formats.doubles are empty';
+    return null; // null = 検証OK
+  }
+  // 解決値は、検証に通ったデータ(なければ null)。失敗しても reject しない。
+  function loadUsageData(){
+    if(usageLoadPromise) return usageLoadPromise;
+    // ブラウザのHTTPキャッシュ(cache:'no-store')に加え、GitHub Pages側のCDNキャッシュも
+    // 回避するため、日付ベースのクエリを付与する(このデータは1日1回しか更新されないため、
+    // 日付単位での区別で十分)。
+    var cacheBustDate = new Date().toISOString().slice(0, 10);
+    var url = 'data/data.usage.json?v=' + cacheBustDate;
+    var resolvedUrl = (function(){ try{ return new URL(url, document.baseURI).href; }catch(e){ return url; } })();
+    usageLoadPromise = fetch(url, { cache: 'no-store' })
+      .then(function(res){ if(!res.ok) throw new Error('HTTP ' + res.status + '（URL: ' + resolvedUrl + '）'); return res.json(); })
+      .then(function(json){
+        var invalidReason = validateUsageData(json);
+        if(invalidReason){ console.warn('[使用率] スキーマ検証に失敗したため無効化します。理由: ' + invalidReason); return null; }
+        usageData = json;
+        return usageData;
+      })
+      .catch(function(e){
+        // 使用率データがまだ存在しない/取得できない場合は、使用率関連の表示なしで動作させる
+        // だけでよいので、警告のみに留める(エラー表示やダイアログは出さない)。
+        console.warn('[使用率] 読み込みに失敗しました。使用率機能なしで動作します。', e);
+        return null;
+      });
+    return usageLoadPromise;
+  }
+  // format('singles'|'doubles')でのポケモン p の採用率データ。なければ null。
+  // メガシンカのフォルムはデータがないので、メガシンカ前のポケモンのデータを返す。
+  function usageEntryForPokemon(format, p){
+    if(!usageData || !p) return null;
+    var fd = usageData.formats && usageData.formats[format];
+    var table = fd && fd.pokemon;
+    if(!table) return null;
+    if(table[p.name]) return table[p.name];
+    if(!/^メガ[XYZ]?$/.test(p.formKey || '') || String(p.name).indexOf('メガ') !== 0) return null;
+    var baseName = String(p.name).replace(/^メガ/, '').replace(/[XYZ]$/, '');
+    if(table[baseName]) return table[baseName];
+    // 名前から決まらない場合(例: フラエッテ)は、同じ種族でデータのあるフォルムが1つだけならそれを使う。
+    var list = (window.DAMEKE_DATA && window.DAMEKE_DATA.pokemons) || [];
+    var same = list.filter(function(x){ return x.speciesKey === p.speciesKey && table[x.name]; });
+    return same.length === 1 ? table[same[0].name] : null;
+  }
+
   window.DAMEKE_COMMON = {
     TYPE_COLOR_MAP: TYPE_COLOR_MAP,
     typeColorClass: typeColorClass,
@@ -74,6 +130,8 @@
     hasChampionsEntry: hasChampionsEntry,
     fillSelect: fillSelect,
     kanaNormalize: kanaNormalize,
-    formatDateTime: formatDateTime
+    formatDateTime: formatDateTime,
+    loadUsageData: loadUsageData,
+    usageEntryForPokemon: usageEntryForPokemon
   };
 })();

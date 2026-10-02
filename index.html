@@ -4,22 +4,22 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>だめけー Web</title>
-  <meta name="description" content="非公式・非営利のポケモンダメージ計算機です（チャンピオンズ対応）。広告・登録一切なし！" />
+  <meta name="description" content="広告なし、登録不要のポケモンチャンピオンズ対応のダメージ計算機。加算計算や調整機能にも対応。" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="だめけー Web" />
   <meta property="og:title" content="だめけー Web" />
-  <meta property="og:description" content="非公式・非営利のポケモンダメージ計算機です（チャンピオンズ対応）。広告・登録一切なし！" />
+  <meta property="og:description" content="広告なし、登録不要のポケモンチャンピオンズ対応のダメージ計算機。加算計算や調整機能にも対応。" />
   <meta property="og:image" content="./icon/icon-512.png" />
   <meta name="twitter:card" content="summary" />
   <meta name="twitter:title" content="だめけー Web" />
-  <meta name="twitter:description" content="非公式・非営利のポケモンダメージ計算機です（チャンピオンズ対応）。広告・登録一切なし！" />
+  <meta name="twitter:description" content="広告なし、登録不要のポケモンチャンピオンズ対応のダメージ計算機。加算計算や調整機能にも対応。" />
   <meta name="twitter:image" content="./icon/icon-512.png" />
   <link rel="icon" href="./icon/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="32x32" href="./icon/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./icon/apple-touch-icon.png">
-  <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjogIuOBoOOCgeOBkeODvCBXZWIiLCAic2hvcnRfbmFtZSI6ICLjgaDjgoHjgZHjg7wiLCAiZGVzY3JpcHRpb24iOiAi6Z2e5YWs5byP44O76Z2e5Za25Yip44Gu44Od44Kx44Oi44Oz44OA44Oh44O844K46KiI566X5qmf44Gn44GZ77yI44OB44Oj44Oz44OU44Kq44Oz44K65a++5b+c77yJ44CC5bqD5ZGK44O755m76Yyy5LiA5YiH44Gq44GX77yBIiwgInN0YXJ0X3VybCI6ICIuLyIsICJzY29wZSI6ICIuLyIsICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLCAiYmFja2dyb3VuZF9jb2xvciI6ICIjZjVmN2ZiIiwgInRoZW1lX2NvbG9yIjogIiMxNzIwMzMiLCAiaWNvbnMiOiBbeyJzcmMiOiAiLi9pY29uL2ljb24tMTkyLnBuZyIsICJzaXplcyI6ICIxOTJ4MTkyIiwgInR5cGUiOiAiaW1hZ2UvcG5nIiwgInB1cnBvc2UiOiAiYW55In0sIHsic3JjIjogIi4vaWNvbi9pY29uLTUxMi5wbmciLCAic2l6ZXMiOiAiNTEyeDUxMiIsICJ0eXBlIjogImltYWdlL3BuZyIsICJwdXJwb3NlIjogImFueSJ9LCB7InNyYyI6ICIuL2ljb24vaWNvbi1tYXNrYWJsZS01MTIucG5nIiwgInNpemVzIjogIjUxMng1MTIiLCAidHlwZSI6ICJpbWFnZS9wbmciLCAicHVycG9zZSI6ICJtYXNrYWJsZSJ9XX0=">
+  <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjogIuOBoOOCgeOBkeODvCBXZWIiLCAic2hvcnRfbmFtZSI6ICLjgaDjgoHjgZHjg7wiLCAiZGVzY3JpcHRpb24iOiAi5bqD5ZGK44Gq44GX44CB55m76Yyy5LiN6KaB44Gu44Od44Kx44Oi44Oz44OB44Oj44Oz44OU44Kq44Oz44K65a++5b+c44Gu44OA44Oh44O844K46KiI566X5qmf44CC5Yqg566X6KiI566X44KE6Kq/5pW05qmf6IO944Gr44KC5a++5b+c44CCIiwgInN0YXJ0X3VybCI6ICIuLyIsICJzY29wZSI6ICIuLyIsICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLCAiYmFja2dyb3VuZF9jb2xvciI6ICIjZjVmN2ZiIiwgInRoZW1lX2NvbG9yIjogIiMxNzIwMzMiLCAiaWNvbnMiOiBbeyJzcmMiOiAiLi9pY29uL2ljb24tMTkyLnBuZyIsICJzaXplcyI6ICIxOTJ4MTkyIiwgInR5cGUiOiAiaW1hZ2UvcG5nIiwgInB1cnBvc2UiOiAiYW55In0sIHsic3JjIjogIi4vaWNvbi9pY29uLTUxMi5wbmciLCAic2l6ZXMiOiAiNTEyeDUxMiIsICJ0eXBlIjogImltYWdlL3BuZyIsICJwdXJwb3NlIjogImFueSJ9LCB7InNyYyI6ICIuL2ljb24vaWNvbi1tYXNrYWJsZS01MTIucG5nIiwgInNpemVzIjogIjUxMng1MTIiLCAidHlwZSI6ICJpbWFnZS9wbmciLCAicHVycG9zZSI6ICJtYXNrYWJsZSJ9XX0=">
   <meta name="theme-color" content="#172033">
-  <link rel="stylesheet" href="style.css?v=20261002c" />
+  <link rel="stylesheet" href="style.css?v=20261002u" />
 </head>
 <body>
   <header class="app-header">
@@ -37,7 +37,7 @@
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
       </span>
     </div>
-    <h1>だめけー Web v2.4.1</h1>
+    <h1>だめけー Web v2.5.0</h1>
     <p>for Pokémon Champions</p>
     <nav id="damekeMenuNav" class="dameke-menu-nav" hidden>
       <button type="button" class="dameke-menu-item" data-panel="calculator">ダメージ計算</button>
@@ -46,6 +46,7 @@
       <button type="button" class="dameke-menu-item" data-panel="speed">素早さ調整</button>
       <button type="button" class="dameke-menu-item" data-panel="evopt">努力値最適化</button>
       <button type="button" class="dameke-menu-item" data-panel="coverage">技範囲調整</button>
+      <button type="button" class="dameke-menu-item" data-panel="learncompare">習得技比較</button>
       <button type="button" class="dameke-menu-item" data-panel="complement">補完ポケモン出力</button>
       <button type="button" class="dameke-menu-item" data-panel="partytype">パーティタイプ評価</button>
       <button type="button" class="dameke-menu-item" data-panel="pokemon">ポケモン管理</button>
@@ -54,10 +55,17 @@
       <button type="button" class="dameke-menu-item" data-panel="minigame">ミニゲーム</button>
     </nav>
   </header>
-  <div id="panel-calculator" class="dameke-tool-panel">
+  <div id="panel-calculator" class="dameke-tool-panel" data-nosnippet>
   <main class="layout layout-calc">
     <section class="card input-card">
-        <h2>入力</h2>
+        <div class="dameke-panel-title-row">
+          <h2>入力</h2>
+          <div class="dameke-format-switch">
+            <span class="dameke-format-single">シングル</span>
+            <input id="attackerDoubleDamage" type="checkbox" role="switch" aria-label="シングル/ダブル切り替え">
+            <label class="dameke-format-double" for="attackerDoubleDamage">ダブル</label>
+          </div>
+        </div>
         <section class="sub-card v082h-root-basic">
           <h3>基本</h3>
           <div class="v082h-toolbar" id="v082hToolbar">
@@ -123,6 +131,15 @@
                   <label>行動順<select id="focusLensMoveOrder"><option value="first">先攻</option><option value="second">後攻</option></select></label>
                 </details>
               </div>
+              <details class="v082h-details dameke-item-quick" data-side="attacker">
+                <summary>持ち物簡易入力</summary>
+                <div class="dameke-item-quick-grid">
+                  <label>半減実<select data-item-quick="ResistBerry"></select></label>
+                  <label>タイプ強化系<select data-item-quick="TypeBoost"></select></label>
+                  <label>プレート<select data-item-quick="Plate"></select></label>
+                  <label>ジュエル<select data-item-quick="Gem"></select></label>
+                </div>
+              </details>
               <label class="check v082h-inline-check"><input id="attackerNoItem" type="checkbox">持ち物なし</label>
               <div class="v082h-zone" id="v082hAttackerTeraZone">
                 <details class="v082h-details v082h-trigger-details" id="v082hTeraDetails">
@@ -136,6 +153,7 @@
                   <button type="button" class="v082h-stats-adjust-btn v082h-stats-adjust-btn-attacker">調整</button>
                 </div>
                 <label class="v082h-nature-field">性格<select id="attacker_nature"><option value="がんばりや">がんばりや 補正なし</option><option value="さみしがり">さみしがり A↑ B↓</option><option value="いじっぱり">いじっぱり A↑ C↓</option><option value="やんちゃ">やんちゃ A↑ D↓</option><option value="ゆうかん">ゆうかん A↑ S↓</option><option value="ずぶとい">ずぶとい B↑ A↓</option><option value="すなお">すなお 補正なし</option><option value="わんぱく">わんぱく B↑ C↓</option><option value="のうてんき">のうてんき B↑ D↓</option><option value="のんき">のんき B↑ S↓</option><option value="ひかえめ">ひかえめ C↑ A↓</option><option value="おっとり">おっとり C↑ B↓</option><option value="てれや">てれや 補正なし</option><option value="うっかりや">うっかりや C↑ D↓</option><option value="れいせい">れいせい C↑ S↓</option><option value="おだやか">おだやか D↑ A↓</option><option value="おとなしい">おとなしい D↑ B↓</option><option value="しんちょう">しんちょう D↑ C↓</option><option value="きまぐれ">きまぐれ 補正なし</option><option value="なまいき">なまいき D↑ S↓</option><option value="おくびょう">おくびょう S↑ A↓</option><option value="せっかち">せっかち S↑ B↓</option><option value="ようき">ようき S↑ C↓</option><option value="むじゃき">むじゃき S↑ D↓</option><option value="まじめ" selected="">まじめ 補正なし</option></select></label>
+                <div class="dameke-usage-natures" id="damekeUsageNatures_attacker" hidden></div>
                 <div class="v082h-stat-table">
                   <div class="v082h-stat-row v082h-stat-head">
                     <span>
@@ -391,6 +409,15 @@
                   <summary>持ち物固有条件</summary>
                 </details>
               </div>
+              <details class="v082h-details dameke-item-quick" data-side="defender">
+                <summary>持ち物簡易入力</summary>
+                <div class="dameke-item-quick-grid">
+                  <label>半減実<select data-item-quick="ResistBerry"></select></label>
+                  <label>タイプ強化系<select data-item-quick="TypeBoost"></select></label>
+                  <label>プレート<select data-item-quick="Plate"></select></label>
+                  <label>ジュエル<select data-item-quick="Gem"></select></label>
+                </div>
+              </details>
               <label class="check v082h-inline-check"><input id="defenderNoItem" type="checkbox">持ち物なし</label>
               <div class="v082h-mini-grid">
                 <label>ダイマ<select id="defenderSpecialState"></select></label>
@@ -402,6 +429,7 @@
                   <button type="button" class="v082h-stats-adjust-btn v082h-stats-adjust-btn-defender">調整</button>
                 </div>
                 <label class="v082h-nature-field">性格<select id="defender_nature"><option value="がんばりや">がんばりや 補正なし</option><option value="さみしがり">さみしがり A↑ B↓</option><option value="いじっぱり">いじっぱり A↑ C↓</option><option value="やんちゃ">やんちゃ A↑ D↓</option><option value="ゆうかん">ゆうかん A↑ S↓</option><option value="ずぶとい">ずぶとい B↑ A↓</option><option value="すなお">すなお 補正なし</option><option value="わんぱく">わんぱく B↑ C↓</option><option value="のうてんき">のうてんき B↑ D↓</option><option value="のんき">のんき B↑ S↓</option><option value="ひかえめ">ひかえめ C↑ A↓</option><option value="おっとり">おっとり C↑ B↓</option><option value="てれや">てれや 補正なし</option><option value="うっかりや">うっかりや C↑ D↓</option><option value="れいせい">れいせい C↑ S↓</option><option value="おだやか">おだやか D↑ A↓</option><option value="おとなしい">おとなしい D↑ B↓</option><option value="しんちょう">しんちょう D↑ C↓</option><option value="きまぐれ">きまぐれ 補正なし</option><option value="なまいき">なまいき D↑ S↓</option><option value="おくびょう">おくびょう S↑ A↓</option><option value="せっかち">せっかち S↑ B↓</option><option value="ようき">ようき S↑ C↓</option><option value="むじゃき">むじゃき S↑ D↓</option><option value="まじめ" selected="">まじめ 補正なし</option></select></label>
+                <div class="dameke-usage-natures" id="damekeUsageNatures_defender" hidden></div>
                 <div class="v082h-stat-table">
                   <div class="v082h-stat-row v082h-stat-head">
                     <span>
@@ -579,7 +607,6 @@
               <details class="v082h-details v082h-section-details v082h-double-fold">
                 <summary>ダブル</summary>
                 <div class="v082h-cond-grid">
-                  <label class="check"><input id="attackerDoubleDamage" type="checkbox">ダブルダメージ</label>
                   <label>てだすけ<select id="helpingHandCount"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
                   <label class="check"><input id="powerSpotSupport" type="checkbox">パワースポット</label>
                   <label class="check"><input id="batterySupport" type="checkbox">バッテリー</label>
@@ -641,18 +668,30 @@
     </section>
   </main>
   </div>
-  <div id="panel-history" class="dameke-tool-panel" hidden>
+  <div id="panel-history" class="dameke-tool-panel" data-nosnippet hidden>
     <main class="layout">
       <section class="card">
-        <h2>計算履歴</h2>
+        <div class="dameke-panel-title-row">
+          <h2>計算履歴</h2>
+          <div class="dameke-btn-group-buttons dameke-transfer-buttons" id="damekeHistoryTransferButtons">
+            <button type="button" id="damekeHistoryExportBtn" class="dameke-btn-group-btn dameke-btn-group-save">エクスポート</button>
+            <button type="button" id="damekeHistoryImportBtn" class="dameke-btn-group-btn dameke-btn-group-load">インポート</button>
+          </div>
+        </div>
         <div id="damekeHistoryList" class="dameke-history-list"></div>
       </section>
     </main>
   </div>
-  <div id="panel-pokemon" class="dameke-tool-panel" hidden>
+  <div id="panel-pokemon" class="dameke-tool-panel" data-nosnippet hidden>
     <main class="layout">
       <section class="card">
-        <h2>ポケモン管理</h2>
+        <div class="dameke-panel-title-row">
+          <h2>ポケモン管理</h2>
+          <div class="dameke-btn-group-buttons dameke-transfer-buttons" id="damekePokemonTransferButtons">
+            <button type="button" id="damekePokemonExportBtn" class="dameke-btn-group-btn dameke-btn-group-save">エクスポート</button>
+            <button type="button" id="damekePokemonImportBtn" class="dameke-btn-group-btn dameke-btn-group-load">インポート</button>
+          </div>
+        </div>
         <div class="dameke-pokemon-panel-toolbar">
           <button type="button" id="damekePokemonNewBtn" class="dameke-toolbar-btn dameke-toolbar-btn-new">新規作成</button>
           <button type="button" id="damekePartyNewFromPokemonBtn" class="dameke-toolbar-btn dameke-toolbar-btn-party">パーティ作成</button>
@@ -665,17 +704,23 @@
       </section>
     </main>
   </div>
-  <div id="panel-party" class="dameke-tool-panel" hidden>
+  <div id="panel-party" class="dameke-tool-panel" data-nosnippet hidden>
     <main class="layout">
       <section class="card">
-        <h2>パーティ管理</h2>
+        <div class="dameke-panel-title-row">
+          <h2>パーティ管理</h2>
+          <div class="dameke-btn-group-buttons dameke-transfer-buttons" id="damekePartyTransferButtons">
+            <button type="button" id="damekePartyExportBtn" class="dameke-btn-group-btn dameke-btn-group-save">エクスポート</button>
+            <button type="button" id="damekePartyImportBtn" class="dameke-btn-group-btn dameke-btn-group-load">インポート</button>
+          </div>
+        </div>
         <button type="button" id="damekePartyNewBtn" class="dameke-toolbar-btn dameke-toolbar-btn-new">新規作成</button>
         <div id="damekePartyList" class="dameke-party-list"></div>
         <div id="damekePartySelectorHost" class="dameke-party-selector-host" hidden></div>
       </section>
     </main>
   </div>
-  <div id="panel-adjust" class="dameke-tool-panel" hidden>
+  <div id="panel-adjust" class="dameke-tool-panel" data-nosnippet hidden>
     <main class="layout">
       <section class="card">
         <h2>攻撃・防御調整</h2>
@@ -723,7 +768,7 @@
       </section>
     </main>
   </div>
-  <div id="panel-speed" class="dameke-tool-panel" hidden>
+  <div id="panel-speed" class="dameke-tool-panel" data-nosnippet hidden>
     <main class="layout">
       <section class="card">
         <h2>素早さ調整</h2>
@@ -766,7 +811,7 @@
       </section>
     </main>
   </div>
-  <div id="panel-evopt" class="dameke-tool-panel" hidden>
+  <div id="panel-evopt" class="dameke-tool-panel" data-nosnippet hidden>
     <main class="layout">
       <section class="card">
         <h2>努力値最適化</h2>
@@ -802,7 +847,7 @@
       </section>
     </main>
   </div>
-  <div id="panel-coverage" class="dameke-tool-panel" hidden>
+  <div id="panel-coverage" class="dameke-tool-panel" data-nosnippet hidden>
     <main class="layout">
       <section class="card" id="damekeCoverageInputSection">
         <h2>技範囲調整</h2>
@@ -864,7 +909,38 @@
       </section>
     </main>
   </div>
-  <div id="panel-complement" class="dameke-tool-panel" hidden>
+  <div id="panel-learncompare" class="dameke-tool-panel" data-nosnippet hidden>
+    <main class="layout dameke-learncmp-layout">
+      <section class="card" id="damekeLearnCmpInputSection">
+        <h2>習得技比較</h2>
+        <div class="dameke-evopt-input-box">
+          <h3>入力</h3>
+          <div class="dameke-learncmp-slots">
+            <div class="dameke-learncmp-slot dameke-learncmp-slot-a">
+              <label>ポケモン1<select id="damekeLearnCmpPokemonA"></select></label>
+              <div class="dameke-learncmp-slot-visual">
+                <div id="damekeLearnCmpImageA" class="dameke-learncmp-image"></div>
+                <div id="damekeLearnCmpTypesA" class="dameke-search-detail-types"></div>
+              </div>
+            </div>
+            <div class="dameke-learncmp-slot dameke-learncmp-slot-b">
+              <label>ポケモン2<select id="damekeLearnCmpPokemonB"></select></label>
+              <div class="dameke-learncmp-slot-visual">
+                <div id="damekeLearnCmpImageB" class="dameke-learncmp-image"></div>
+                <div id="damekeLearnCmpTypesB" class="dameke-search-detail-types"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="card" id="damekeLearnCmpResultSection">
+        <h3>出力</h3>
+        <div id="damekeLearnCmpSummaryHost" class="dameke-learncmp-summary"></div>
+        <div id="damekeLearnCmpResultHost" class="dameke-learncmp-result-host"></div>
+      </section>
+    </main>
+  </div>
+  <div id="panel-complement" class="dameke-tool-panel" data-nosnippet hidden>
     <main class="layout">
       <section class="card" id="damekeComplementInputSection">
         <h2>補完ポケモン出力</h2>
@@ -896,7 +972,7 @@
       </section>
     </main>
   </div>
-  <div id="panel-partytype" class="dameke-tool-panel" hidden>
+  <div id="panel-partytype" class="dameke-tool-panel" data-nosnippet hidden>
     <main class="layout">
       <div class="dameke-partytype-left-col">
       <section class="card" id="damekePartyTypeInputSection">
@@ -928,7 +1004,7 @@
       </section>
     </main>
   </div>
-  <div id="panel-search" class="dameke-tool-panel" hidden>
+  <div id="panel-search" class="dameke-tool-panel" data-nosnippet hidden>
     <main class="layout">
       <section class="card" id="damekeSearchFilterSection">
         <h2>ポケモン検索</h2>
@@ -948,7 +1024,7 @@
       <div id="damekeSearchUsageSourceHost" class="dameke-search-usage-source-host"></div>
     </main>
   </div>
-  <div id="panel-minigame" class="dameke-tool-panel" hidden>
+  <div id="panel-minigame" class="dameke-tool-panel" data-nosnippet hidden>
     <main class="layout">
       <section class="card" id="damekeMinigameSection">
         <h2>ミニゲーム</h2>
@@ -957,24 +1033,25 @@
       </section>
     </main>
   </div>
-<script src="common.js?v=20261002c"></script>
-<script src="data.js?v=20261002c"></script>
-<script src="data_learnsets.js?v=20261002c"></script>
-<script src="data_regulations.js?v=20261002c"></script>
-<script src="data_pokemon_images.js?v=20261002c"></script>
-<script src="data_item_images.js?v=20261002c"></script>
-<script src="calc.js?v=20261002c"></script>
+<script src="common.js?v=20261002u"></script>
+<script src="data.js?v=20261002u"></script>
+<script src="data_learnsets.js?v=20261002u"></script>
+<script src="data_regulations.js?v=20261002u"></script>
+<script src="data_pokemon_images.js?v=20261002u"></script>
+<script src="data_item_images.js?v=20261002u"></script>
+<script src="calc.js?v=20261002u"></script>
 
-<script src="app.js?v=20261002c"></script>
-<script src="app_tools.js?v=20261002c"></script>
-<script src="app_adjust.js?v=20261002c"></script>
-<script src="app_speed.js?v=20261002c"></script>
-<script src="app_evopt.js?v=20261002c"></script>
-<script src="app_coverage.js?v=20261002c"></script>
-<script src="app_search.js?v=20261002c"></script>
-<script src="app_complement.js?v=20261002c"></script>
-<script src="app_partytype.js?v=20261002c"></script>
-<script src="app_minigame.js?v=20261002c"></script>
+<script src="app.js?v=20261002u"></script>
+<script src="app_tools.js?v=20261002u"></script>
+<script src="app_adjust.js?v=20261002u"></script>
+<script src="app_speed.js?v=20261002u"></script>
+<script src="app_evopt.js?v=20261002u"></script>
+<script src="app_coverage.js?v=20261002u"></script>
+<script src="app_learncompare.js?v=20261002u"></script>
+<script src="app_search.js?v=20261002u"></script>
+<script src="app_complement.js?v=20261002u"></script>
+<script src="app_partytype.js?v=20261002u"></script>
+<script src="app_minigame.js?v=20261002u"></script>
 <script>
   // オフライン対応(Service Worker登録)。対応していないブラウザでは単に何も起きず、
   // 通常通りオンラインで動作する。

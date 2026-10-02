@@ -35,6 +35,8 @@
   --dameke-tint-green-border:#bbf7d0;
   --dameke-tint-blue-bg:#eff6ff;
   --dameke-tint-blue-border:#bfdbfe;
+  --dameke-learncmp-b-bg:#eff6ff;
+  --dameke-learncmp-b-border:#bfdbfe;
   --dameke-tint-emerald-bg:#ecfdf5;
   --dameke-tint-emerald-text:#059669;
   --dameke-tint-yellow-bg:#fef9c3;
@@ -107,6 +109,8 @@
     --dameke-tint-green-border:#2f5942;
     --dameke-tint-blue-bg:#182a3f;
     --dameke-tint-blue-border:#2f4a6b;
+    --dameke-learncmp-b-bg:#1a3866;
+    --dameke-learncmp-b-border:#2f5c9e;
     --dameke-tint-emerald-bg:#122a20;
     --dameke-tint-emerald-text:#34d399;
     --dameke-tint-yellow-bg:#4a3f10;
@@ -179,6 +183,8 @@
   --dameke-tint-green-border:#2f5942;
   --dameke-tint-blue-bg:#182a3f;
   --dameke-tint-blue-border:#2f4a6b;
+  --dameke-learncmp-b-bg:#1a3866;
+  --dameke-learncmp-b-border:#2f5c9e;
   --dameke-tint-emerald-bg:#122a20;
   --dameke-tint-emerald-text:#34d399;
   --dameke-tint-yellow-bg:#4a3f10;
@@ -338,6 +344,34 @@ button:hover:not(:disabled) { filter: var(--dameke-hover-filter); }
 .v082h-ability-chip,.operation-buttons button{font-size:.86rem;padding:3px 8px;border-radius:999px;background:var(--dameke-surface-faint);border:1px solid var(--dameke-border-subtle);color:var(--dameke-text-slate);font-weight:500;box-shadow:none;}
 .v082h-ability-chip:hover,.operation-buttons button:hover{background:var(--dameke-hover-tint);filter:none;}
 .v082h-inline-check{display:flex;align-items:center;gap:6px;margin-top:6px;}
+/* ---- 採用率上位の提案 ---- */
+/* 特性ボタン・性格ボタン・候補一覧の右に添える採用率。 */
+.dameke-usage-rate{font-size:10px;font-weight:400;color:var(--dameke-text-muted);margin-left:4px;white-space:nowrap;}
+/* 性格の採用率上位(性格欄のすぐ下)。1行に入る分だけ見せる: 折り返した分は高さの外に出て隠れる。 */
+.dameke-usage-natures{display:flex;flex-wrap:wrap;gap:3px;height:22px;overflow:hidden;margin:-4px 0 8px;}
+.dameke-usage-natures[hidden]{display:none;}
+.dameke-usage-natures .dameke-usage-rate{margin-left:3px;}
+.dameke-usage-natures .v082h-ability-chip{flex:0 0 auto;box-sizing:border-box;height:22px;padding:0 6px;font-size:11px;line-height:20px;white-space:nowrap;}
+/* 技・持ち物の候補一覧の先頭に出す採用率上位。背景色は変えない(下の区切り線で従来の候補と分かれるため)。押したとき・選択中の色も通常の候補と同じ。 */
+.v082h-search-item.dameke-usage-top{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+.dameke-usage-top-name{min-width:0;overflow:hidden;text-overflow:ellipsis;}
+.dameke-usage-sep{height:0;border-top:1px solid var(--dameke-border-subtle);margin:3px 2px;list-style:none;}
+/* シングル/ダブルの切り替え(「入力」見出しと同じ行の右寄せ)。 */
+.dameke-format-switch{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dameke-text-muted);}
+.dameke-format-switch span,.dameke-format-switch label{display:inline;cursor:pointer;font-size:12px;color:inherit;width:auto;}
+.dameke-format-switch input{appearance:none;-webkit-appearance:none;position:relative;flex:0 0 auto;width:38px;height:21px;min-height:0;margin:0;padding:0;border-radius:999px;background:var(--dameke-border-slate);border:1px solid var(--dameke-border-slate);cursor:pointer;transition:background-color .15s;}
+.dameke-format-switch input::before{content:"";position:absolute;top:1px;left:1px;width:17px;height:17px;border-radius:50%;background:#fff;transition:left .15s ease;}
+.dameke-format-switch input:checked{background:#2563eb;border-color:#2563eb;}
+.dameke-format-switch input:checked::before{left:18px;}
+.dameke-format-switch input:not(:checked) ~ .dameke-format-double,.dameke-format-switch:has(input:checked) .dameke-format-single{font-weight:400;}
+.dameke-format-switch:has(input:not(:checked)) .dameke-format-single,.dameke-format-switch input:checked ~ .dameke-format-double{font-weight:700;color:var(--dameke-text-slate);}
+/* 持ち物簡易入力(持ち物欄と「持ち物なし」の間の折り畳み)。2列に並べ、文字サイズを大きくして
+   入りきらない幅では1列に折り返す。 */
+/* 見出しは「持ち物」の項目名(14px)より一段小さくし、中の項目名(12px)と同じ文字サイズにする。 */
+.dameke-item-quick>summary{font-size:12px;}
+.dameke-item-quick-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(5.5rem,1fr));gap:8px;margin-top:8px;}
+.dameke-item-quick-grid > label{min-width:0;}
+.dameke-item-quick-grid select{width:100%;min-width:0;}
 .v082h-stats-panel{border:1px solid var(--dameke-border);border-radius:12px;padding:8px 10px;margin:8px 0;background:var(--dameke-surface);}
 .v082h-stats-panel>label{margin:0 0 8px;grid-template-columns:1fr;}
 .v082h-nature-field{display:flex;align-items:center;gap:6px;margin:0 0 8px;font-size:12px;color:inherit;}
@@ -1216,6 +1250,84 @@ select.dameke-type-select option{background-color:var(--dameke-surface);color:va
   .dameke-coverage-moves-host{grid-template-columns:1fr 1fr;}
 }
 
+/* ==================== 覚える技比較ツール ==================== */
+/* 出力は「1体目のみ / 共通 / 2体目のみ」の3列で、入力欄の左右の並びと対応させる。
+   横幅を広く使うため、このツールだけ入力と出力を縦に並べる(横2列にしない)。 */
+.layout.dameke-learncmp-layout{grid-template-columns:minmax(0,1fr);}
+#damekeLearnCmpInputSection .dameke-evopt-input-box{margin-bottom:0;}
+.dameke-learncmp-slots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+.dameke-learncmp-slot{display:flex;align-items:flex-start;gap:12px;min-width:0;padding:10px;border:1px solid var(--dameke-border);border-radius:10px;background:var(--dameke-surface);}
+.dameke-learncmp-slot-a{border-color:var(--dameke-tint-red-border);}
+.dameke-learncmp-slot-b{border-color:var(--dameke-learncmp-b-border);}
+.dameke-learncmp-slot label{flex:1 1 auto;min-width:0;display:block;font-size:.78rem;color:var(--dameke-text-secondary);}
+.dameke-learncmp-slot label select{width:100%;margin-top:2px;}
+.dameke-learncmp-slot-visual{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:4.5rem;}
+.dameke-learncmp-image{width:72px;height:72px;display:flex;align-items:center;justify-content:center;}
+.dameke-learncmp-image img{max-width:100%;max-height:100%;}
+.dameke-learncmp-slot-visual .dameke-search-detail-types{margin:0;min-height:1.1rem;flex-wrap:wrap;justify-content:center;gap:3px;}
+.dameke-learncmp-slot-visual .dameke-party-type-badge{display:inline-flex;align-items:center;justify-content:center;margin-right:0;padding:3px 6px;line-height:1;white-space:nowrap;}
+/* 技名の列幅は「いちばん長い技名の文字数」から決める(--dameke-learncmp-chars は app_learncompare.js が
+   覚える技データから求めて設定する)。配置は、上段に「1体目のみ」「2体目のみ」を左右半分ずつ並べ、下段に
+   「共通」を全幅で置く。どの枠も横幅いっぱいを使い、技名は入るぶんだけ列を作って各列の先頭を揃える
+   (右側だけに余白を作らない)。列数には上限がある(下の --dameke-learncmp-half を参照)。 */
+#damekeLearnCmpResultSection{
+  --dameke-learncmp-fs:.74rem;
+  --dameke-learncmp-chip-pad:6px;   /* 技名チップの左右の余白 */
+  --dameke-learncmp-group-pad:8px;  /* 枠の左右の余白 */
+  --dameke-learncmp-gap:8px;        /* 枠どうしの間隔 */
+  /* 文字幅はフォントによって1文字ぶんよりわずかに広くなることがあるので、2%+2pxの余裕を持たせる。 */
+  --dameke-learncmp-col:calc(var(--dameke-learncmp-chars,8) * var(--dameke-learncmp-fs) * 1.02 + var(--dameke-learncmp-chip-pad) * 2 + 2px);
+  /* 列数の上限: 片方のみ4列・共通8列。左右の1枠 = 技名4列ぶん、全体 = その2枠ぶんの幅までとし、
+     それより画面が広いときは全体を中央に寄せる。上限を変えるときは下の 4 と 3(=列数-1) を変える。 */
+  --dameke-learncmp-half:calc(var(--dameke-learncmp-col) * 4 + 4px * 3 + var(--dameke-learncmp-group-pad) * 2 + 3px);
+  --dameke-learncmp-block:calc(var(--dameke-learncmp-half) * 2 + var(--dameke-learncmp-gap));
+}
+/* スマホ幅では技名の文字と余白を少し詰める(左右2枠を並べたまま、各枠は技名1列になる幅を確保する)。 */
+@media(max-width:40em){
+  #damekeLearnCmpResultSection{
+    --dameke-learncmp-fs:.7rem;
+    --dameke-learncmp-chip-pad:5px;
+    --dameke-learncmp-group-pad:6px;
+    --dameke-learncmp-gap:6px;
+  }
+}
+#damekeLearnCmpResultSection > h3{margin:0 0 10px;font-size:.9rem;}
+/* 件数は1段3列(1体目のみ / 2体目のみ / 共通)。 */
+.dameke-learncmp-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--dameke-learncmp-gap);margin:0 auto 14px;max-width:var(--dameke-learncmp-block);}
+.dameke-learncmp-summary:empty{display:none;}
+.dameke-learncmp-summary-item{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:6px 12px;border:1px solid var(--dameke-border);border-radius:8px;min-width:0;}
+.dameke-learncmp-summary-label{font-size:.8rem;font-weight:700;color:var(--dameke-text-secondary);min-width:0;overflow-wrap:anywhere;}
+.dameke-learncmp-summary-count{font-size:.9rem;font-weight:800;color:var(--dameke-text);white-space:nowrap;}
+.dameke-learncmp-same-note{margin-bottom:10px;}
+.dameke-learncmp-result-host{display:flex;flex-direction:column;gap:16px;max-width:var(--dameke-learncmp-block);margin:0 auto;}
+.dameke-learncmp-category-head{display:flex;align-items:baseline;gap:8px;margin-bottom:6px;padding-bottom:4px;border-bottom:2px solid var(--dameke-border-strong);}
+.dameke-learncmp-category-title{margin:0;font-size:.95rem;color:var(--dameke-text-heading);}
+.dameke-learncmp-category-count{font-size:.72rem;color:var(--dameke-text-muted);}
+/* 左右2枠は同じ幅・同じ高さで並べる。技名1列ぶんの幅も取れないほど狭いとき(文字サイズを大きくしたスマホなど)だけ、
+   技名を欠けさせないよう1枠ずつ縦に並べる。 */
+.dameke-learncmp-groups{display:grid;gap:var(--dameke-learncmp-gap);align-items:stretch;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,max(calc(var(--dameke-learncmp-col) + var(--dameke-learncmp-group-pad) * 2 + 2px),calc((100% - var(--dameke-learncmp-gap)) / 2))),1fr));}
+.dameke-learncmp-group{box-sizing:border-box;min-width:0;border:1px solid var(--dameke-border);border-radius:8px;padding:8px var(--dameke-learncmp-group-pad);}
+.dameke-learncmp-groups > .dameke-learncmp-group-common{grid-column:1 / -1;}
+.dameke-learncmp-group-a{background:var(--dameke-tint-red-bg);border-color:var(--dameke-tint-red-border);}
+.dameke-learncmp-group-common{background:var(--dameke-tint-green-bg);border-color:var(--dameke-tint-green-border);}
+.dameke-learncmp-group-b{background:var(--dameke-learncmp-b-bg);border-color:var(--dameke-learncmp-b-border);}
+.dameke-learncmp-group-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:6px;}
+.dameke-learncmp-group-label{font-size:.76rem;font-weight:700;color:var(--dameke-text-secondary);min-width:0;overflow-wrap:anywhere;}
+.dameke-learncmp-group-count{font-size:.72rem;font-weight:700;color:var(--dameke-text-muted);white-space:nowrap;}
+/* 列数は枠の幅に入るぶんだけ(幅が広ければ増え、狭ければ減る)。列は枠の幅いっぱいに均等に広げる。 */
+.dameke-learncmp-chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,var(--dameke-learncmp-col)),1fr));gap:5px 4px;align-items:start;}
+.dameke-learncmp-chip{justify-self:start;display:inline-block;max-width:100%;box-sizing:border-box;border-radius:6px;padding:3px var(--dameke-learncmp-chip-pad);font-size:var(--dameke-learncmp-fs);font-weight:700;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dameke-learncmp-empty{font-size:.74rem;color:var(--dameke-text-faint);}
+@media(max-width:40em){
+  .dameke-learncmp-summary-item{flex-direction:column;align-items:flex-start;gap:0;padding:5px 8px;}
+  .dameke-learncmp-summary-label{font-size:.7rem;}
+  .dameke-learncmp-slots{gap:6px;}
+  .dameke-learncmp-slot{flex-direction:column;align-items:stretch;gap:6px;padding:8px;}
+  .dameke-learncmp-slot-visual{align-self:center;}
+  .dameke-learncmp-image{width:56px;height:56px;}
+}
+
 /* ==================== ミニゲーム ==================== */
 .dameke-minigame-tab-host{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
 .dameke-minigame-switch-btn{border:1px solid var(--dameke-border-strong);background:var(--dameke-surface-alt);color:var(--dameke-text-mid);border-radius:8px;padding:7px 14px;font-size:.85rem;font-weight:700;cursor:pointer;}
@@ -1414,3 +1526,34 @@ select.dameke-type-select option{background-color:var(--dameke-surface);color:va
   .dameke-randomgen-thumb{width:64px;height:64px;}
   .dameke-randomgen-card-body{min-height:120px;}
 }
+
+/* ==================== エクスポート / インポート(計算履歴・ポケモン管理・パーティ管理) ==================== */
+/* 画面タイトルと同じ行の右寄せにボタンを置く。幅が足りない(狭い画面・文字サイズが大きい)ときは
+   重ならないよう、ボタンだけ次の行へ折り返す(右寄せのまま)。 */
+.dameke-panel-title-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 10px;margin:0 0 10px;}
+.dameke-panel-title-row h2{margin:0;}
+.dameke-transfer-buttons{flex:0 0 auto;margin-left:auto;}
+.dameke-transfer-buttons[hidden]{display:none;}
+/* 選択モードのあいだ、新規作成などの他の操作を隠す */
+.dameke-transfer-hide{display:none !important;}
+/* ポケモン・パーティの編集中は「新規作成」を隠す(JS側のhidden指定を効かせる。ボタン自体のdisplay指定がhidden属性より優先されてしまうため) */
+#damekePokemonNewBtn[hidden],#damekePartyNewBtn[hidden]{display:none;}
+/* ファイル選択用の入力欄は画面に出さない(ボタンから開く) */
+.dameke-transfer-file-input{position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;}
+/* エクスポートするものを選ぶあいだ、一覧の上に出す案内枠。一覧が長くても操作できるよう上端に留める。 */
+.dameke-transfer-banner{position:sticky;top:8px;z-index:20;margin-bottom:0;box-shadow:0 2px 8px rgba(15,23,42,.18);}
+.dameke-transfer-banner-actions{display:flex;flex-wrap:wrap;gap:6px;margin-left:auto;}
+.dameke-transfer-banner-actions button{border-radius:999px;padding:6px 12px;font-size:.78rem;font-weight:700;white-space:nowrap;}
+.dameke-transfer-banner-export{background:#059669;border-color:#059669;color:#fff;}
+.dameke-transfer-banner-export:disabled,.dameke-transfer-banner-all:disabled{background:var(--dameke-border-strong);border-color:var(--dameke-border-strong);color:var(--dameke-text-faint);cursor:not-allowed;}
+.dameke-transfer-banner-cancel{background:var(--dameke-border);border-color:var(--dameke-border);color:var(--dameke-text);}
+/* 選択できるカード(押すと選択/解除)。選択中は枠の太さを変えず(中身がずれないよう)、影で縁取る。 */
+.dameke-transfer-selectable{cursor:pointer;transition:border-color .12s,box-shadow .12s;}
+.dameke-transfer-selectable:hover{border-color:var(--dameke-text-faint);}
+.dameke-transfer-selected,.dameke-transfer-selected:hover{border-color:#059669;box-shadow:0 0 0 1px #059669,0 0 0 3px rgba(5,150,105,.15);background:var(--dameke-tint-green-bg);}
+.dameke-transfer-badge{flex:0 0 auto;font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:999px;background:var(--dameke-border);color:var(--dameke-text-mid);white-space:nowrap;}
+.dameke-transfer-selected .dameke-transfer-badge{background:#059669;color:#fff;}
+/* ポケモンのカードは、選択状態を右上の独立した行に出す(メガシンカの切り替えと重ならないように)。 */
+.dameke-pokemon-card.dameke-transfer-selectable{flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:6px;}
+.dameke-pokemon-card.dameke-transfer-selectable > .dameke-transfer-badge{align-self:flex-end;}
+.dameke-pokemon-card.dameke-transfer-selectable > .dameke-pokemon-card-main{flex:0 0 auto !important;width:auto;}

@@ -26,16 +26,6 @@
   var usageLoadPromise = null;
 
 
-  // 最低限のスキーマ検証。ここを通らないデータは一切使用しない(ブラウザ側は安全性優先)。
-  function validateUsageData(obj){
-    if(!obj || typeof obj !== 'object') return 'obj not an object';
-    if(obj.schemaVersion !== 1) return 'schemaVersion !== 1 (got ' + obj.schemaVersion + ')';
-    if(!obj.source || obj.source.sourceType !== 'pokemon-champions-in-game') return 'source.sourceType mismatch';
-    if(!obj.formats || typeof obj.formats !== 'object') return 'formats missing/not object';
-    if(!obj.formats.singles && !obj.formats.doubles) return 'both formats.singles and formats.doubles are empty';
-    return null; // null = 検証OK
-  }
-
   function usageFormatData(){
     if(!usageData) return null;
     return usageData.formats && usageData.formats[usageFormat] || null;
@@ -47,26 +37,10 @@
     return fd.pokemon[pokemonName] || null;
   }
 
+  // 読み込み・検証は common.js の共通処理(ダメージ計算の採用率表示と共用。取得は1回だけ)。
   function loadUsageData(){
     if(usageLoadPromise) return usageLoadPromise;
-    // ブラウザのHTTPキャッシュ(cache:'no-store')に加え、GitHub Pages側のCDNキャッシュも
-    // 回避するため、日付ベースのクエリを付与する(このデータは1日1回しか更新されないため、
-    // 日付単位での区別で十分)。
-    var cacheBustDate = new Date().toISOString().slice(0, 10);
-    var url = 'data/data.usage.json?v=' + cacheBustDate;
-    var resolvedUrl = (function(){ try{ return new URL(url, document.baseURI).href; }catch(e){ return url; } })();
-    usageLoadPromise = fetch(url, { cache: 'no-store' })
-      .then(function(res){ if(!res.ok) throw new Error('HTTP ' + res.status + '（URL: ' + resolvedUrl + '）'); return res.json(); })
-      .then(function(json){
-        var invalidReason = validateUsageData(json);
-        if(invalidReason){ console.warn('[使用率] スキーマ検証に失敗したため無効化します。理由: ' + invalidReason); return; }
-        usageData = json;
-      })
-      .catch(function(e){
-        // 使用率データがまだ存在しない/取得できない場合は、通常のポケモン検索として
-        // 動作させるだけでよいので、警告のみに留める(エラー表示やダイアログは出さない)。
-        console.warn('[使用率] 読み込みに失敗しました。使用率機能なしで動作します。', e);
-      });
+    usageLoadPromise = window.DAMEKE_COMMON.loadUsageData().then(function(json){ usageData = json || null; });
     return usageLoadPromise;
   }
 

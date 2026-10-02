@@ -1,3 +1,251 @@
+// ==================== エクスポート / インポート 共通処理 ====================
+// 計算履歴・ポケモン管理・パーティ管理の保存データを、JSONファイルとして書き出し/読み込みする
+// ための共通部品。各画面ごとの処理(何を書き出すか・どう取り込むか)は、それぞれの保存処理と
+// 同じ場所(下の2つのかたまり)に置き、ここにはファイルの受け渡し・形式の検査・重複判定の
+// ための文字列化・選択モードの画面部品だけを置く。
+(function(){
+  'use strict';
+
+  var APP_ID = 'dameke-web';
+  var FORMAT_VERSION = 1;
+  var KIND_LABEL = { history: '計算履歴', pokemon: 'ポケモン管理', party: 'パーティ管理' };
+  var MAX_FILE_BYTES = 20 * 1024 * 1024;
+
+  // iPhone / iPad / iPod(iPadOSはMacと名乗るため、タッチ点数で見分ける)。
+  function isIOS(){
+    var ua = navigator.userAgent || '';
+    if(/iPad|iPhone|iPod/.test(ua)) return true;
+    return navigator.platform === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1;
+  }
+
+  // 重複判定用: キーの順序に左右されない文字列にする(同じ中身なら必ず同じ文字列になる)。
+  function canonical(value){
+    if(value === null || typeof value !== 'object') return JSON.stringify(value === undefined ? null : value);
+    if(Array.isArray(value)) return '[' + value.map(canonical).join(',') + ']';
+    var keys = Object.keys(value).filter(function(k){ return value[k] !== undefined; }).sort();
+    return '{' + keys.map(function(k){ return JSON.stringify(k) + ':' + canonical(value[k]); }).join(',') + '}';
+  }
+  // 指定したキーを除いた中身の文字列(IDなど、中身の比較に含めない項目を除く)。
+  function contentKey(obj, omitKeys){
+    var copy = {};
+    Object.keys(obj || {}).forEach(function(k){ if(omitKeys.indexOf(k) < 0) copy[k] = obj[k]; });
+    return canonical(copy);
+  }
+  function clone(v){ return JSON.parse(JSON.stringify(v)); }
+  function isPlainObject(v){ return !!v && typeof v === 'object' && !Array.isArray(v); }
+
+  // 既存のIDと重ならない新しいIDを作る(同じミリ秒に何件作っても重ならない)。
+  function makeIdGenerator(prefix, usedIds){
+    var used = {};
+    (usedIds || []).forEach(function(id){ if(id != null) used[id] = true; });
+    return function(){
+      var id;
+      do { id = prefix + Date.now() + '_' + Math.floor(Math.random() * 1000000); } while(used[id]);
+      used[id] = true;
+      return id;
+    };
+  }
+
+  function appVersion(){
+    var h1 = document.querySelector('.app-header h1');
+    var m = h1 ? /v(\d+(?:\.\d+)*)/.exec(h1.textContent) : null;
+    return m ? m[1] : '';
+  }
+  function pad2(n){ return (n < 10 ? '0' : '') + n; }
+  function fileNameFor(kind){
+    var d = new Date();
+    return 'dameke_' + kind + '_' + d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '_' + pad2(d.getHours()) + pad2(d.getMinutes()) + pad2(d.getSeconds()) + '.json';
+  }
+
+  function buildEnvelope(kind, items, extra){
+    var env = { app: APP_ID, kind: kind, formatVersion: FORMAT_VERSION, appVersion: appVersion(), exportedAt: new Date().toISOString(), items: items };
+    Object.keys(extra || {}).forEach(function(k){ env[k] = extra[k]; });
+    return env;
+  }
+
+  function downloadText(text, name){
+    var blob = new Blob([text], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){
+      if(a.parentNode) a.parentNode.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 10000);
+  }
+
+  // ファイルを端末へ渡す。iOSは共有シート(「ファイルに保存」等)、それ以外はダウンロード。
+  // iOSでも共有が使えない場合はダウンロードに切り替える。done(true)=渡した、done(false)=利用者が
+  // 共有を取りやめた。
+  function deliver(envelope, done){
+    var text = JSON.stringify(envelope);
+    var name = fileNameFor(envelope.kind);
+    if(isIOS() && navigator.share && navigator.canShare && typeof File === 'function'){
+      var file = null;
+      ['application/json', 'text/plain'].some(function(type){
+        try{
+          var f = new File([text], name, { type: type });
+          if(navigator.canShare({ files: [f] })){ file = f; return true; }
+        }catch(e){}
+        return false;
+      });
+      if(file){
+        var p;
+        try{ p = navigator.share({ files: [file] }); }catch(e){ p = null; }
+        if(p && p.then){
+          p.then(function(){ done(true); }, function(err){
+            if(err && err.name === 'AbortError'){ done(false); return; }
+            downloadText(text, name);
+            done(true);
+          });
+          return;
+        }
+      }
+    }
+    downloadText(text, name);
+    done(true);
+  }
+
+  // ファイル選択を開き、選ばれたファイルの文字列を cb(text) に渡す(読めないときは cb(null, メッセージ))。
+  // 取りやめた場合は何も呼ばない。
+  var fileInput = null;
+  function pickFile(cb){
+    if(fileInput && fileInput.parentNode) fileInput.parentNode.removeChild(fileInput);
+    fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.json,application/json';
+    fileInput.className = 'dameke-transfer-file-input';
+    fileInput.addEventListener('change', function(){
+      var input = this;
+      var file = input.files && input.files[0];
+      if(input.parentNode) input.parentNode.removeChild(input);
+      if(fileInput === input) fileInput = null;
+      if(!file) return;
+      if(file.size > MAX_FILE_BYTES){ cb(null, 'ファイルが大きすぎるため読み込めません。'); return; }
+      var reader = new FileReader();
+      reader.onload = function(){ cb(String(reader.result || '')); };
+      reader.onerror = function(){ cb(null, 'ファイルを読み込めませんでした。'); };
+      reader.readAsText(file, 'utf-8');
+    });
+    document.body.appendChild(fileInput);
+    fileInput.click();
+  }
+
+  // 読み込んだ文字列を検査する。問題なければ {ok:true, envelope}、あれば {ok:false, message}。
+  // validators: キー名 -> その配列の各要素を検査する関数(items は必須、それ以外は種類ごとの追加分)。
+  function parseEnvelope(text, expectedKind, validators){
+    var env;
+    try{ env = JSON.parse(String(text).replace(/^﻿/, '')); }
+    catch(e){ return { ok: false, message: 'ファイルを読み取れませんでした（だめけー Web のエクスポートファイルではないか、内容が壊れています）。' }; }
+    if(!isPlainObject(env) || env.app !== APP_ID || typeof env.kind !== 'string'){
+      return { ok: false, message: 'だめけー Web のエクスポートファイルではありません。' };
+    }
+    if(env.kind !== expectedKind){
+      var other = KIND_LABEL[env.kind];
+      return { ok: false, message: other
+        ? 'これは「' + other + '」のファイルです。「' + other + '」の画面からインポートしてください。'
+        : 'この画面では読み込めない種類のファイルです。' };
+    }
+    if(typeof env.formatVersion !== 'number' || env.formatVersion > FORMAT_VERSION){
+      return { ok: false, message: 'このファイルは新しい版のだめけー Web で書き出されたため、読み込めません。アプリを更新してからお試しください。' };
+    }
+    var broken = Object.keys(validators).some(function(key){
+      var arr = env[key];
+      return !Array.isArray(arr) || !arr.every(validators[key]);
+    });
+    if(broken) return { ok: false, message: 'ファイルの内容が正しくないため、読み込めませんでした（データは変更していません）。' };
+    return { ok: true, envelope: env };
+  }
+
+  // ---- エクスポートする項目を選ぶ「選択モード」の画面部品 ----
+  // sel.ids: 選択中のID。sel.painters: いま画面に出ているカードの表示更新関数(ID -> 関数)。
+  function createSelection(){
+    return { ids: {}, painters: {}, refresh: function(){} };
+  }
+  function selectedCount(sel){
+    return Object.keys(sel.ids).filter(function(id){ return sel.ids[id]; }).length;
+  }
+  // カードを「押すと選択/解除」にする。badge は「選択する / ✓ 選択中」を出す要素。
+  function bindSelectable(sel, card, badge, id){
+    card.classList.add('dameke-transfer-selectable');
+    badge.classList.add('dameke-transfer-badge');
+    function paint(){
+      var on = !!sel.ids[id];
+      card.classList.toggle('dameke-transfer-selected', on);
+      badge.textContent = on ? '✓ 選択中' : '選択する';
+    }
+    sel.painters[id] = paint;
+    card.addEventListener('click', function(e){
+      // カード内の折り畳み(詳細)やメガシンカの切り替えは、選択とは別の操作として扱う。
+      if(e.target && e.target.closest && e.target.closest('details, .dameke-pokemon-mega-toggle')) return;
+      sel.ids[id] = !sel.ids[id];
+      paint();
+      sel.refresh();
+    });
+    paint();
+  }
+  // 一覧の上に出す案内枠(選択件数・すべて選択・エクスポート・キャンセル)。
+  function buildSelectBanner(sel, noun, unit, onExport, onCancel){
+    var banner = document.createElement('div');
+    banner.className = 'dameke-pokemon-create-banner dameke-transfer-banner';
+    var text = document.createElement('span');
+    banner.appendChild(text);
+    var actions = document.createElement('div');
+    actions.className = 'dameke-transfer-banner-actions';
+    function button(cls, label, handler){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = cls;
+      b.textContent = label;
+      b.addEventListener('click', handler);
+      actions.appendChild(b);
+      return b;
+    }
+    function shownIds(){ return Object.keys(sel.painters); }
+    function allShownSelected(){
+      var ids = shownIds();
+      return ids.length > 0 && ids.every(function(id){ return sel.ids[id]; });
+    }
+    var allBtn = button('dameke-transfer-banner-all', 'すべて選択', function(){
+      var turnOn = !allShownSelected();
+      shownIds().forEach(function(id){ sel.ids[id] = turnOn; sel.painters[id](); });
+      sel.refresh();
+    });
+    var exportBtn = button('dameke-transfer-banner-export', 'エクスポート', onExport);
+    button('dameke-transfer-banner-cancel', 'キャンセル', onCancel);
+    banner.appendChild(actions);
+    sel.refresh = function(){
+      var n = selectedCount(sel);
+      text.textContent = 'エクスポートする' + noun + 'を選んでください。（選択中: ' + n + unit + '）';
+      allBtn.textContent = allShownSelected() ? 'すべて解除' : 'すべて選択';
+      allBtn.disabled = shownIds().length === 0;
+      exportBtn.disabled = n === 0;
+    };
+    sel.refresh();
+    return banner;
+  }
+
+  window.DAMEKE_TRANSFER = {
+    canonical: canonical,
+    contentKey: contentKey,
+    clone: clone,
+    isPlainObject: isPlainObject,
+    makeIdGenerator: makeIdGenerator,
+    buildEnvelope: buildEnvelope,
+    deliver: deliver,
+    pickFile: pickFile,
+    parseEnvelope: parseEnvelope,
+    createSelection: createSelection,
+    selectedCount: selectedCount,
+    bindSelectable: bindSelectable,
+    buildSelectBanner: buildSelectBanner
+  };
+})();
+
 (function(){
   'use strict';
 
@@ -105,6 +353,9 @@
     var target = q('panel-' + panelName);
     if(target) target.hidden = false;
     setActiveMenuItem(panelName);
+    // エクスポートの選択モードは、画面を切り替えたら解除する(戻ってきたときは通常の一覧)。
+    resetHistoryExport();
+    if(window.__damekeResetPokemonTransfer) window.__damekeResetPokemonTransfer();
     if(panelName === 'history') renderHistoryList();
     if(panelName === 'pokemon' && window.__damekeRenderPokemonList) window.__damekeRenderPokemonList();
     if(panelName === 'party' && window.__damekeRenderPartyList) window.__damekeRenderPartyList();
@@ -112,6 +363,7 @@
     if(panelName === 'speed' && window.__damekeRenderSpeedPanel) window.__damekeRenderSpeedPanel();
     if(panelName === 'evopt' && window.__damekeRenderEvoptPanel) window.__damekeRenderEvoptPanel();
     if(panelName === 'coverage' && window.__damekeRenderCoveragePanel) window.__damekeRenderCoveragePanel();
+    if(panelName === 'learncompare' && window.__damekeRenderLearnComparePanel) window.__damekeRenderLearnComparePanel();
     if(panelName === 'search' && window.__damekeRenderSearchPanel) window.__damekeRenderSearchPanel();
     if(panelName === 'complement' && window.__damekeRenderComplementPanel) window.__damekeRenderComplementPanel();
     if(panelName === 'partytype' && window.__damekeRenderPartyTypePanel) window.__damekeRenderPartyTypePanel();
@@ -822,6 +1074,8 @@
       host.appendChild(empty);
       return;
     }
+    var sel = historySelect;
+    if(sel) sel.painters = {};
     list.forEach(function(entry){
       var card = document.createElement('div');
       card.className = 'dameke-history-card';
@@ -831,6 +1085,18 @@
       var sub = document.createElement('span');
       sub.className = 'dameke-history-card-sub';
       sub.textContent = formatSavedAt(entry.savedAt);
+      if(sel){
+        // エクスポートの選択モード: 呼び出す/削除の代わりに選択状態を出し、カード全体で選択する。
+        var badge = document.createElement('span');
+        meta.appendChild(sub);
+        meta.appendChild(badge);
+        card.appendChild(meta);
+        card.appendChild(buildHistoryCardPreview(entry.resultSnapshot, entry.state));
+        card.appendChild(buildDetailSection(entry.state, entry.visibleIds));
+        T.bindSelectable(sel, card, badge, entry.id);
+        host.appendChild(card);
+        return;
+      }
       var actions = document.createElement('div');
       actions.className = 'dameke-history-card-actions';
       var loadBtn = document.createElement('button');
@@ -854,6 +1120,106 @@
       card.appendChild(buildDetailSection(entry.state, entry.visibleIds));
       host.appendChild(card);
     });
+    if(sel) host.insertBefore(T.buildSelectBanner(sel, '履歴', '件', exportSelectedHistory, cancelHistoryExport), host.firstChild);
+  }
+
+  // ---- 計算履歴のエクスポート / インポート ----
+  var T = window.DAMEKE_TRANSFER;
+  var historySelect = null; // エクスポートする履歴を選んでいる間だけ、選択状態を持つ
+  function setHistoryTransferButtonsHidden(hidden){
+    var group = q('damekeHistoryTransferButtons');
+    if(group) group.hidden = hidden;
+  }
+  // 選択モードを解除する(一覧の描き直しは呼び出し側で行う)。
+  function resetHistoryExport(){
+    historySelect = null;
+    setHistoryTransferButtonsHidden(false);
+  }
+  function startHistoryExport(){
+    if(!loadHistory().length){ window.alert('エクスポートできる履歴がありません。'); return; }
+    historySelect = T.createSelection();
+    setHistoryTransferButtonsHidden(true);
+    renderHistoryList();
+  }
+  function cancelHistoryExport(){
+    resetHistoryExport();
+    renderHistoryList();
+  }
+  function exportSelectedHistory(){
+    var sel = historySelect;
+    if(!sel) return;
+    var items = loadHistory().filter(function(e){ return sel.ids[e.id]; });
+    if(!items.length) return;
+    T.deliver(T.buildEnvelope('history', items), function(delivered){
+      if(delivered && historySelect === sel) cancelHistoryExport();
+    });
+  }
+
+  function historyTime(entry){
+    var t = Date.parse(entry && entry.savedAt);
+    return isNaN(t) ? 0 : t;
+  }
+  function isValidHistoryItem(it){
+    return T.isPlainObject(it) && T.isPlainObject(it.state)
+      && (it.visibleIds === undefined || Array.isArray(it.visibleIds))
+      && (it.resultSnapshot == null || T.isPlainObject(it.resultSnapshot));
+  }
+  // 一覧に出せない(表示処理が途中で止まる)内容でないかを、実際に組み立てて確かめる。
+  function canRenderHistoryEntry(entry){
+    try{
+      buildHistoryCardPreview(entry.resultSnapshot, entry.state);
+      buildDetailSection(entry.state, entry.visibleIds);
+      return true;
+    } catch(e){ return false; }
+  }
+  // 中身(保存日時を含む、ID以外のすべて)が同じ履歴が既にあれば追加しない。それ以外は新しいIDで
+  // 追加し、保存日時の新しい順に並べ、上限を超えた分は古い方から外す。
+  function importHistory(){
+    T.pickFile(function(text, errorMessage){
+      if(text == null){ window.alert(errorMessage); return; }
+      var parsed = T.parseEnvelope(text, 'history', { items: isValidHistoryItem });
+      if(!parsed.ok){ window.alert(parsed.message); return; }
+      var existing = loadHistory();
+      var keys = {};
+      existing.forEach(function(e){ keys[T.contentKey(e, ['id'])] = true; });
+      var newId = T.makeIdGenerator('h', existing.map(function(e){ return e.id; }));
+      var added = [], duplicates = 0, isNew = {};
+      parsed.envelope.items.forEach(function(it){
+        var key = T.contentKey(it, ['id']);
+        if(keys[key]){ duplicates++; return; }
+        keys[key] = true;
+        var copy = T.clone(it);
+        copy.id = newId();
+        isNew[copy.id] = true;
+        added.push(copy);
+      });
+      var ordered = added.concat(existing).map(function(e, i){ return { e: e, i: i }; });
+      ordered.sort(function(a, b){ return (historyTime(b.e) - historyTime(a.e)) || (a.i - b.i); });
+      ordered = ordered.map(function(x){ return x.e; });
+      var kept = ordered.slice(0, MAX_HISTORY), dropped = ordered.slice(MAX_HISTORY);
+      var droppedNew = dropped.filter(function(e){ return isNew[e.id]; }).length;
+      var droppedOld = dropped.length - droppedNew;
+      var addedCount = added.length - droppedNew;
+      var keptNew = kept.filter(function(e){ return isNew[e.id]; });
+      if(!keptNew.every(canRenderHistoryEntry)){
+        window.alert('ファイルの内容が正しくないため、読み込めませんでした（データは変更していません）。');
+        return;
+      }
+      if(addedCount > 0 && !saveHistoryList(kept)){
+        window.alert('保存できませんでした（端末の保存容量が不足している可能性があります）。データは変更していません。');
+        return;
+      }
+      renderHistoryList();
+      var msg = 'インポートが完了しました。\n追加: ' + addedCount + '件\n重複のため追加なし: ' + duplicates + '件';
+      if(droppedNew) msg += '\n上限（' + MAX_HISTORY + '件）を超えるため追加しなかった古い履歴: ' + droppedNew + '件';
+      if(droppedOld && addedCount > 0) msg += '\n上限（' + MAX_HISTORY + '件）を超えたため削除した古い履歴: ' + droppedOld + '件';
+      window.alert(msg);
+    });
+  }
+  function bindHistoryTransferButtons(){
+    var exportBtn = q('damekeHistoryExportBtn'), importBtn = q('damekeHistoryImportBtn');
+    if(exportBtn) exportBtn.addEventListener('click', startHistoryExport);
+    if(importBtn) importBtn.addEventListener('click', importHistory);
   }
 
   // ---- Inject the "履歴保存" button into the calculator's own toolbar, next to 攻防交代.
@@ -869,6 +1235,7 @@
   function init(){
     initMenu();
     bindHistoryButtons();
+    bindHistoryTransferButtons();
     if(window.__damekeInitPokemonPanel) window.__damekeInitPokemonPanel();
     if(window.__damekeInitPartyPanel) window.__damekeInitPartyPanel();
   }
@@ -1043,6 +1410,9 @@
     // 呼び出したポケモン・技に合わせて、Z・ダイマの選択肢(専用Zの可否)を作り直す(条件から
     // 外れた専用Zは「なし」に戻る)。
     if(window.__damekeUpdateSpecialStateOptions) window.__damekeUpdateSpecialStateOptions();
+    // 呼び出したポケモンの持ち物が、選択中のZワザ/専用Zに対応するクリスタルでなければ、Zの指定を
+    // 「なし」に戻す(持ち物欄を手で変えたときと同じ扱い)。
+    if(side === 'attacker' && window.__damekeCheckZItem) window.__damekeCheckZItem();
     if(side === 'attacker' && window.__damekeUpdateAttackerTeraExclusivity) window.__damekeUpdateAttackerTeraExclusivity();
     if(window.__damekeUpdateTypeColors) window.__damekeUpdateTypeColors();
     if(window.__damekeRefreshAll) window.__damekeRefreshAll();
@@ -1355,9 +1725,32 @@
       empty.className = 'dameke-pokemon-empty';
       empty.textContent = filterText ? '該当するポケモンが見つかりません。' : '保存されたポケモンはまだありません。';
       host.appendChild(empty);
+      if(pokemonSelect){
+        pokemonSelect.painters = {};
+        host.insertBefore(T.buildSelectBanner(pokemonSelect, 'ポケモン', '匹', exportSelectedPokemon, cancelPokemonExport), host.firstChild);
+      }
+      return;
+    }
+    if(pokemonSelect){
+      // エクスポートの選択モード: 絞り込みを変えても、選んだ状態は保ったまま描き直す。
+      var sel = pokemonSelect;
+      sel.painters = {};
+      list.forEach(function(entry){ host.appendChild(buildExportSelectPokemonCard(sel, entry)); });
+      host.insertBefore(T.buildSelectBanner(sel, 'ポケモン', '匹', exportSelectedPokemon, cancelPokemonExport), host.firstChild);
       return;
     }
     list.forEach(function(entry){ host.appendChild(buildPokemonCard(entry)); });
+  }
+
+  // エクスポートするポケモンを選ぶためのカード(編集・削除・呼び出しボタンの代わりに選択状態を出す)。
+  function buildExportSelectPokemonCard(sel, entry){
+    var card = document.createElement('div');
+    card.className = 'dameke-pokemon-card';
+    var badge = document.createElement('div');
+    card.appendChild(badge);
+    card.appendChild(buildPokemonCardInfo(entry, card));
+    T.bindSelectable(sel, card, badge, entry.id);
+    return card;
   }
 
   // Same rich display as buildPokemonCard(), but for the party selector: no edit/delete/load
@@ -1989,8 +2382,9 @@
 
   function openPokemonEditor(entry){
     editingEntry = entry;
-    q('damekePokemonList').hidden = true;
+    // 保存済みの一覧は編集中もそのまま表示しておき、編集欄へは下の自動スクロールで誘導する。
     q('damekePokemonNewBtn').hidden = true;
+    setTransferButtonsHidden('damekePokemon', true);
     var host = q('damekePokemonEditHost');
     host.hidden = false;
     buildEditForm(entry);
@@ -2000,12 +2394,12 @@
     editingEntry = null;
     q('damekePokemonEditHost').hidden = true;
     q('damekePokemonEditHost').innerHTML = '';
-    q('damekePokemonList').hidden = false;
     q('damekePokemonNewBtn').hidden = false;
+    setTransferButtonsHidden('damekePokemon', false);
     // Rebuilds the list back to its normal state -- without this, if the last thing rendered
     // into #damekePokemonList was the copy-picker's banner+clickable cards (see
-    // openCopyPickerInEditForm), simply un-hiding it left that stale copy-mode content visible
-    // instead of the normal edit/delete/load card list.
+    // openCopyPickerInEditForm), that stale copy-mode content stayed visible instead of the
+    // normal edit/delete/load card list.
     renderPokemonList();
   }
 
@@ -2023,7 +2417,6 @@
     var host = q('damekePokemonEditHost');
     host.hidden = true;
     var listHost = q('damekePokemonList');
-    listHost.hidden = false;
     listHost.innerHTML = '';
 
     var banner = document.createElement('div');
@@ -2049,7 +2442,6 @@
         var merged = JSON.parse(JSON.stringify(picked));
         merged.id = baseEntry.id || null;
         merged.savedAt = baseEntry.savedAt || null;
-        listHost.hidden = true;
         host.hidden = false;
         buildEditForm(merged);
         requestAnimationFrame(function(){ host.scrollIntoView({behavior:'smooth', block:'start'}); });
@@ -2083,6 +2475,8 @@
       filterInput.setAttribute('data-dameke-init', '1');
       filterInput.addEventListener('input', renderPokemonList);
     }
+    bindTransferButton('damekePokemonExportBtn', startPokemonExport);
+    bindTransferButton('damekePokemonImportBtn', importPokemon);
   }
 
   // ==================== パーティ管理 (kept in this same IIFE so it can reuse all the
@@ -2115,10 +2509,10 @@
   var selectorEditingParty = null;
   function openPartySelector(party){
     selectorEditingParty = party;
-    var listHost = q('damekePartyList');
+    // 保存済みの一覧は編集中もそのまま表示しておき、編集欄へは下の自動スクロールで誘導する。
     var newBtn = q('damekePartyNewBtn');
-    if(listHost) listHost.hidden = true;
     if(newBtn) newBtn.hidden = true;
+    setTransferButtonsHidden('damekeParty', true);
     var host = q('damekePartySelectorHost');
     host.hidden = false;
     buildPartySelectorForm(party);
@@ -2129,10 +2523,9 @@
     var host = q('damekePartySelectorHost');
     host.hidden = true;
     host.innerHTML = '';
-    var listHost = q('damekePartyList');
     var newBtn = q('damekePartyNewBtn');
-    if(listHost) listHost.hidden = false;
     if(newBtn) newBtn.hidden = false;
+    setTransferButtonsHidden('damekeParty', false);
   }
 
   function buildPartySelectorForm(party){
@@ -2391,7 +2784,7 @@
     return card;
   }
 
-  function buildPartyCard(party, onPickForLoad){
+  function buildPartyCard(party, onPickForLoad, exportSel){
     var card = document.createElement('div');
     card.className = 'dameke-party-card';
 
@@ -2411,6 +2804,11 @@
       // relevant -- the whole card becomes the "use this party" action instead, same as
       // buildPokemonCard's own onPickForCopy mode.
       card.classList.add('dameke-party-card-pickable');
+    } else if(exportSel){
+      // エクスポートの選択モード: 編集/削除の代わりに選択状態を出し、カード全体で選択する。
+      var badge = document.createElement('span');
+      meta.appendChild(badge);
+      T.bindSelectable(exportSel, card, badge, party.id);
     } else {
       var actions = document.createElement('div');
       actions.className = 'dameke-history-card-actions';
@@ -2462,7 +2860,205 @@
       host.appendChild(empty);
       return;
     }
+    if(partySelect){
+      var sel = partySelect;
+      sel.painters = {};
+      list.forEach(function(party){ host.appendChild(buildPartyCard(party, null, sel)); });
+      host.insertBefore(T.buildSelectBanner(sel, 'パーティ', '件', exportSelectedParties, cancelPartyExport), host.firstChild);
+      return;
+    }
     list.forEach(function(party){ host.appendChild(buildPartyCard(party)); });
+  }
+
+  // ==================== ポケモン管理・パーティ管理のエクスポート / インポート ====================
+  var T = window.DAMEKE_TRANSFER;
+  var pokemonSelect = null, partySelect = null; // エクスポートするものを選んでいる間だけ、選択状態を持つ
+  var IMPORT_INVALID_MESSAGE = 'ファイルの内容が正しくないため、読み込めませんでした（データは変更していません）。';
+  var IMPORT_SAVE_FAILED_MESSAGE = '保存できませんでした（端末の保存容量が不足している可能性があります）。データは変更していません。';
+
+  function setTransferButtonsHidden(idPrefix, hidden){
+    var group = q(idPrefix + 'TransferButtons');
+    if(group) group.hidden = hidden;
+  }
+  // 選択モード中は、新規作成などの他の操作を隠す。
+  function setPokemonSelectChrome(selecting){
+    setTransferButtonsHidden('damekePokemon', selecting);
+    var toolbar = document.querySelector('#panel-pokemon .dameke-pokemon-panel-toolbar');
+    if(toolbar) toolbar.classList.toggle('dameke-transfer-hide', selecting);
+  }
+  function setPartySelectChrome(selecting){
+    setTransferButtonsHidden('damekeParty', selecting);
+    var newBtn = q('damekePartyNewBtn');
+    if(newBtn) newBtn.classList.toggle('dameke-transfer-hide', selecting);
+  }
+  // 選択モードを解除する(一覧の描き直しは呼び出し側で行う)。編集画面を開いている間は
+  // 選択モードに入れないので、ここで戻すのは選択モードが隠したものだけ。
+  function resetTransferSelect(){
+    if(pokemonSelect){ pokemonSelect = null; setPokemonSelectChrome(false); }
+    if(partySelect){ partySelect = null; setPartySelectChrome(false); }
+  }
+
+  // ---- ポケモン管理 ----
+  // 中身の比較には、IDと保存日時を含めない。
+  function pokemonContentKey(entry){ return T.contentKey(entry, ['id', 'savedAt']); }
+  function isValidPokemonItem(it){
+    return T.isPlainObject(it) && typeof it.pokemonId === 'string' && it.pokemonId !== ''
+      && (it.moves === undefined || Array.isArray(it.moves))
+      && (it.ivs === undefined || T.isPlainObject(it.ivs))
+      && (it.evs === undefined || T.isPlainObject(it.evs));
+  }
+  // 一覧に出せない(表示処理が途中で止まる)内容でないかを、実際に組み立てて確かめる。
+  function canRenderPokemonEntry(entry){
+    try{ buildPokemonCard(entry); buildCompactMemberCard(entry); return true; }
+    catch(e){ return false; }
+  }
+  // items を existing に取り込んだ結果を返す(保存はしない)。中身が同じものが既にあれば追加せず、
+  // なければ新しいIDで一覧の先頭側に追加する。idMap: ファイル内のID -> 取り込み後の手元のID。
+  function mergeImportedPokemon(items, existing){
+    var idByKey = {};
+    existing.forEach(function(e){
+      var key = pokemonContentKey(e);
+      if(!Object.prototype.hasOwnProperty.call(idByKey, key)) idByKey[key] = e.id;
+    });
+    var newId = T.makeIdGenerator('pk', existing.map(function(e){ return e.id; }));
+    var added = [], duplicates = 0, idMap = Object.create(null), renderable = true;
+    items.forEach(function(it){
+      var key = pokemonContentKey(it), localId;
+      if(Object.prototype.hasOwnProperty.call(idByKey, key)){
+        duplicates++;
+        localId = idByKey[key];
+      } else {
+        var copy = T.clone(it);
+        copy.id = newId();
+        if(!canRenderPokemonEntry(copy)) renderable = false;
+        idByKey[key] = copy.id;
+        added.push(copy);
+        localId = copy.id;
+      }
+      if(typeof it.id === 'string' && !(it.id in idMap)) idMap[it.id] = localId;
+    });
+    return { renderable: renderable, list: added.concat(existing), added: added.length, duplicates: duplicates, idMap: idMap };
+  }
+
+  function startPokemonExport(){
+    if(!loadPokemonList().length){ window.alert('エクスポートできるポケモンがありません。'); return; }
+    pokemonSelect = T.createSelection();
+    setPokemonSelectChrome(true);
+    renderPokemonList();
+  }
+  function cancelPokemonExport(){
+    resetTransferSelect();
+    renderPokemonList();
+  }
+  function exportSelectedPokemon(){
+    var sel = pokemonSelect;
+    if(!sel) return;
+    var items = loadPokemonList().filter(function(e){ return sel.ids[e.id]; });
+    if(!items.length) return;
+    T.deliver(T.buildEnvelope('pokemon', items), function(delivered){
+      if(delivered && pokemonSelect === sel) cancelPokemonExport();
+    });
+  }
+  function importPokemon(){
+    T.pickFile(function(text, errorMessage){
+      if(text == null){ window.alert(errorMessage); return; }
+      var parsed = T.parseEnvelope(text, 'pokemon', { items: isValidPokemonItem });
+      if(!parsed.ok){ window.alert(parsed.message); return; }
+      var merged = mergeImportedPokemon(parsed.envelope.items, loadPokemonList());
+      if(!merged.renderable){ window.alert(IMPORT_INVALID_MESSAGE); return; }
+      if(merged.added > 0 && !savePokemonListToStorage(merged.list)){ window.alert(IMPORT_SAVE_FAILED_MESSAGE); return; }
+      renderPokemonList();
+      window.alert('インポートが完了しました。\n追加: ' + merged.added + '匹\n重複のため追加なし: ' + merged.duplicates + '匹');
+    });
+  }
+
+  // ---- パーティ管理 ----
+  // パーティはポケモン管理のIDを参照しているだけなので、エクスポートには所属ポケモンも同梱する。
+  // 中身の比較は、パーティ名とメンバー構成(各メンバーの中身。IDではない)で行う。
+  function partyContentKey(party, pokemonById){
+    var members = [];
+    (party.memberIds || []).forEach(function(id){
+      var entry = pokemonById[id];
+      if(entry) members.push(pokemonContentKey(entry));
+    });
+    return T.canonical({ name: party.name || '', members: members });
+  }
+  function isValidPartyItem(it){
+    return T.isPlainObject(it) && Array.isArray(it.memberIds)
+      && it.memberIds.every(function(id){ return typeof id === 'string'; })
+      && (it.name == null || typeof it.name === 'string');
+  }
+  function isValidBundledPokemon(it){ return isValidPokemonItem(it) && typeof it.id === 'string'; }
+
+  function startPartyExport(){
+    if(!loadPartyList().length){ window.alert('エクスポートできるパーティがありません。'); return; }
+    partySelect = T.createSelection();
+    setPartySelectChrome(true);
+    renderPartyList();
+  }
+  function cancelPartyExport(){
+    resetTransferSelect();
+    renderPartyList();
+  }
+  function exportSelectedParties(){
+    var sel = partySelect;
+    if(!sel) return;
+    var parties = loadPartyList().filter(function(p){ return sel.ids[p.id]; });
+    if(!parties.length) return;
+    var needed = Object.create(null);
+    parties.forEach(function(p){ (p.memberIds || []).forEach(function(id){ needed[id] = true; }); });
+    var bundled = loadPokemonList().filter(function(e){ return needed[e.id]; });
+    T.deliver(T.buildEnvelope('party', parties, { pokemon: bundled }), function(delivered){
+      if(delivered && partySelect === sel) cancelPartyExport();
+    });
+  }
+  function importParties(){
+    T.pickFile(function(text, errorMessage){
+      if(text == null){ window.alert(errorMessage); return; }
+      var parsed = T.parseEnvelope(text, 'party', { items: isValidPartyItem, pokemon: isValidBundledPokemon });
+      if(!parsed.ok){ window.alert(parsed.message); return; }
+      var env = parsed.envelope;
+      // 1) 同梱のポケモンを取り込む(中身が同じものが既にあれば、それを使う)。
+      var originalPokemon = loadPokemonList();
+      var merged = mergeImportedPokemon(env.pokemon, originalPokemon);
+      if(!merged.renderable){ window.alert(IMPORT_INVALID_MESSAGE); return; }
+      var pokemonById = Object.create(null);
+      merged.list.forEach(function(e){ pokemonById[e.id] = e; });
+      // 2) パーティの参照を手元のIDに付け替えたうえで、中身が同じパーティが既にあれば追加しない。
+      var existing = loadPartyList();
+      var keys = {};
+      existing.forEach(function(p){ keys[partyContentKey(p, pokemonById)] = true; });
+      var newId = T.makeIdGenerator('party', existing.map(function(p){ return p.id; }));
+      var added = [], duplicates = 0;
+      env.items.forEach(function(it){
+        var copy = T.clone(it);
+        copy.memberIds = it.memberIds.map(function(id){ return merged.idMap[id]; })
+          .filter(function(id){ return !!id; }).slice(0, MAX_PARTY_SIZE);
+        var key = partyContentKey(copy, pokemonById);
+        if(keys[key]){ duplicates++; return; }
+        keys[key] = true;
+        copy.id = newId();
+        added.push(copy);
+      });
+      // 3) 保存。パーティの保存に失敗したら、ポケモンの追加も取り消す。
+      if(merged.added > 0 && !savePokemonListToStorage(merged.list)){ window.alert(IMPORT_SAVE_FAILED_MESSAGE); return; }
+      if(added.length > 0 && !savePartyListToStorage(added.concat(existing))){
+        if(merged.added > 0) savePokemonListToStorage(originalPokemon);
+        window.alert(IMPORT_SAVE_FAILED_MESSAGE);
+        return;
+      }
+      renderPartyList();
+      window.alert('インポートが完了しました。\nパーティ　追加: ' + added.length + '件\n　　　　　重複のため追加なし: ' + duplicates + '件'
+        + '\nポケモン　追加: ' + merged.added + '匹\n　　　　　重複のため追加なし: ' + merged.duplicates + '匹');
+    });
+  }
+
+  function bindTransferButton(id, handler){
+    var btn = q(id);
+    if(btn && !btn.getAttribute('data-dameke-init')){
+      btn.setAttribute('data-dameke-init', '1');
+      btn.addEventListener('click', handler);
+    }
   }
 
   function initPartyPanel(){
@@ -2471,9 +3067,13 @@
       newBtn.setAttribute('data-dameke-init', '1');
       newBtn.addEventListener('click', function(){ openPartySelector(null); });
     }
+    bindTransferButton('damekePartyExportBtn', startPartyExport);
+    bindTransferButton('damekePartyImportBtn', importParties);
   }
 
   window.__damekeRenderPokemonList = renderPokemonList;
+  // 画面を切り替えたときに、エクスポートの選択モードを解除するためのもの(showPanelから呼ぶ)。
+  window.__damekeResetPokemonTransfer = resetTransferSelect;
   // For the 攻撃・防御調整 tool's 保存 button: opens the edit form pre-filled with a custom
   // entry object (same shape as newBlankEntry()/openCopySelector's picks), rather than the
   // calculator's own currently-selected side (which is what __damekeSavePokemonFromSide saves).

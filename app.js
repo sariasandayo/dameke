@@ -1034,6 +1034,9 @@ window.__damekeFmtFaintPct = fmtFaintPct;
   // 外れている場合は「なし」に戻す(ポケモンが条件から外れた場合は、選択肢自体が消えるため
   // fillStateSelectが自動的に「なし」に戻す)。
   function fillAttackerStateSelect(sel,atk,m){
+    // 技データ上のタイプが「タイプなし」の技(わるあがきのみ)は、Z・ダイマ欄を「なし」だけにする
+    // (選ばれていた値も fillStateSelect が「なし」に戻す)。
+    if(m&&m.type==='タイプなし'){ fillStateSelect(sel,[{id:'none',name:'なし'}]); return; }
     fillStateSelect(sel,buildAttackerSpecialStateOpts(atk,m));
     if(sel&&sel.value==='special_z'&&!specialZRule(atk,m)) sel.value='none';
   }
@@ -1092,10 +1095,72 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     if(stateSel.value!=='special_z'&&specialZRule(atk,target)) stateSel.value='special_z';
     if(window.__damekeCalculate) window.__damekeCalculate();
   }
+  // ---- Zワザ/専用Z: 技①・技②の排他と、Zクリスタルの持ち物連動 ----
+  function isZState(v){ return v==='zmove'||v==='special_z'; }
+  function fireChange(elm){
+    try{ elm.dispatchEvent(new Event('change',{bubbles:true})); }
+    catch(err){ const ev=document.createEvent('Event'); ev.initEvent('change',true,true); elm.dispatchEvent(ev); }
+  }
+  // 片方の技にZワザ/専用Zが入力されたとき、もう片方がZワザ/専用Zなら「なし」に戻す
+  // (Zワザは1回しか使えないため)。slot は今入力された側。
+  function enforceSingleZ(slot){
+    const s1=q('attackerSpecialState'), s2=q('move2AttackerSpecialState');
+    if(!s1||!s2) return;
+    const mine=slot===2?s2:s1, other=slot===2?s1:s2;
+    if(isZState(mine.value)&&isZState(other.value)){ other.value='none'; fireChange(other); }
+  }
+  // タイプ別のZクリスタル(技データ上のタイプ -> 持ち物名)と、専用Zのクリスタル(専用Zの技名 -> 持ち物名)。
+  const Z_CRYSTAL_BY_TYPE={'ノーマル':'ノーマルZ','ほのお':'ホノオZ','みず':'ミズZ','でんき':'デンキZ','くさ':'クサZ','こおり':'コオリZ','かくとう':'カクトウZ','どく':'ドクZ','じめん':'ジメンZ','ひこう':'ヒコウZ','エスパー':'エスパーZ','むし':'ムシZ','いわ':'イワZ','ゴースト':'ゴーストZ','ドラゴン':'ドラゴンZ','あく':'アクZ','はがね':'ハガネZ','フェアリー':'フェアリーZ'};
+  const Z_CRYSTAL_BY_SIGNATURE={'ひっさつのピカチュート':'ピカチュウZ','シャドーアローズストライク':'ジュナイパーZ','ハイパーダーククラッシャー':'ガオガエンZ','わだつみのシンフォニア':'アシレーヌZ','ガーディアン・デ・アローラ':'カプZ','しちせいだっこんたい':'マーシャドーZ','ライトニングサーフライド':'アロライZ','ほんきをだすこうげき':'カビゴンZ','ナインエボルブースト':'イーブイZ','オリジンズスーパーノヴァ':'ミュウZ','1000まんボルト':'サトピカZ','サンシャインスマッシャー':'ソルガレオZ','ムーンライトブラスター':'ルナアーラZ','てんこがすめつぼうのひかり':'ウルトラネクロZ','ぽかぼかフレンドタイム':'ミミッキュZ','ラジアルエッジストーム':'ルガルガンZ','ブレイジングソウルビート':'ジャラランガZ'};
+  // その技でZワザ/専用Zを使うのに必要なクリスタルの名前。タイプは、特性などによるタイプ判定後
+  // ではなく、技データ上のタイプで決める。対応するものがなければ null。
+  function zCrystalNameFor(state,atk,m){
+    if(!m||!m.name) return null;
+    if(state==='special_z'){ const rule=specialZRule(atk,m); return rule?(Z_CRYSTAL_BY_SIGNATURE[rule.name]||null):null; }
+    if(state==='zmove') return Z_CRYSTAL_BY_TYPE[m.type]||null;
+    return null;
+  }
+  function readZStates(){ const s1=q('attackerSpecialState'), s2=q('move2AttackerSpecialState'); return [s1?s1.value:'none', s2?s2.value:'none']; }
+  // Zワザ/専用Zが選ばれている技に対応するクリスタルを、攻撃側の持ち物欄へ入力する(持ち物簡易入力と
+  // 同じく、値を入れて change を発火するだけ)。Zの選択を外しただけのとき(手動・技やポケモンの変更に
+  // よる自動解除とも)は、持ち物欄には触らない(クリスタルは残す)。
+  function syncZCrystalItem(){
+    const cur=readZStates();
+    const slot=isZState(cur[0])?1:(isZState(cur[1])?2:0);
+    if(!slot) return;
+    const itemSel=q('attackerItemSelect'); if(!itemSel) return;
+    const D=window.DAMEKE_DATA, items=(D&&D.items)||[];
+    const name=zCrystalNameFor(cur[slot-1],current('attacker'),slot===2?move2():move());
+    const it=name?items.find(x=>x.name===name):null;
+    if(it&&itemSel.value!==it.id){ itemSel.value=it.id; fireChange(itemSel); }
+  }
+  // Zワザ/専用Zを選んでいる技について、攻撃側の持ち物欄が対応するクリスタルでなくなっていたら、
+  // その技のZ・ダイマ欄を「なし」に戻す(持ち物欄の変更時に呼ぶ。手入力・簡易入力・フォルム連動
+  // などの自動入力のどれでも同じ)。syncZCrystalItem が入力したクリスタルは必ず対応するものなので、
+  // ここで戻されることはない。Zを戻しても持ち物欄には触らないので、いま入力された持ち物はそのまま残る。
+  function checkZAgainstItem(){
+    const itemSel=q('attackerItemSelect'); if(!itemSel) return;
+    const D=window.DAMEKE_DATA, items=(D&&D.items)||[];
+    const sels=[q('attackerSpecialState'),q('move2AttackerSpecialState')];
+    const changed=[];
+    sels.forEach((sel,i)=>{
+      if(!sel||!isZState(sel.value)) return;
+      const name=zCrystalNameFor(sel.value,current('attacker'),i===1?move2():move());
+      const it=name?items.find(x=>x.name===name):null;
+      if(!it||it.id===itemSel.value) return;
+      sel.value='none'; changed.push(sel);
+    });
+    changed.forEach(fireChange);
+  }
+  window.__damekeCheckZItem = checkZAgainstItem;
   function initV021(){['attackerSelect','defenderSelect','moveSelect','move2Select'].forEach(id=>{const e=q(id);if(e)e.addEventListener('change',updateSpecialStateOptions);});
     const s1=q('attackerSpecialState'), s2=q('move2AttackerSpecialState');
-    if(s1) s1.addEventListener('change',()=>applySpecialZMove(1));
-    if(s2) s2.addEventListener('change',()=>applySpecialZMove(2));
+    if(s1) s1.addEventListener('change',()=>{ applySpecialZMove(1); enforceSingleZ(1); syncZCrystalItem(); });
+    if(s2) s2.addEventListener('change',()=>{ applySpecialZMove(2); enforceSingleZ(2); syncZCrystalItem(); });
+    // 技・攻撃側ポケモンの変更: 上の updateSpecialStateOptions(選択肢の作り直し)の後に走るよう、
+    // ここで後から登録する。
+    ['attackerSelect','moveSelect','move2Select'].forEach(id=>{const e=q(id);if(e)e.addEventListener('change',syncZCrystalItem);});
+    const itemSel=q('attackerItemSelect'); if(itemSel) itemSel.addEventListener('change',checkZAgainstItem);
     setTimeout(updateSpecialStateOptions,0);}
   window.__damekeInitV021 = initV021;
   window.__damekeUpdateSpecialStateOptions = updateSpecialStateOptions;
@@ -1179,6 +1244,23 @@ window.__damekeFmtFaintPct = fmtFaintPct;
       list.innerHTML = '';
       activeIndex = -1;
       if(!matches.length){ closeList(); return; }
+      // 採用率上位(select._damekeTopProvider があるときだけ): 何も打っていない状態の一覧の先頭に、
+      // 背景色を変えて並べる。その下は区切り線をはさんで従来どおりの全候補(上位のものも元の位置に残す)。
+      var tops = (!nq && select._damekeTopProvider) ? (select._damekeTopProvider() || []) : [];
+      var topCount = 0;
+      tops.forEach(function(t){
+        var o = null;
+        for(var i = 0; i < options.length; i++){ if(options[i].text === t.text){ o = options[i]; break; } }
+        if(!o) return;
+        var li = document.createElement('li');
+        li.className = 'v082h-search-item dameke-usage-top';
+        li.appendChild(make('span', 'dameke-usage-top-name', o.text));
+        if(t.rate) li.appendChild(make('span', 'dameke-usage-rate', t.rate));
+        li.addEventListener('mousedown', function(e){ e.preventDefault(); choose(o); });
+        list.appendChild(li);
+        topCount++;
+      });
+      if(topCount){ var sep = document.createElement('li'); sep.className = 'dameke-usage-sep'; sep.setAttribute('aria-hidden', 'true'); list.appendChild(sep); }
       matches.forEach(function(o){
         var li = document.createElement('li');
         li.textContent = o.text; li.className = 'v082h-search-item';
@@ -1253,6 +1335,172 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     ensureSearchComboSync();
   }
   window.__damekeAttachSearchCombo = attachSearchCombo;
+
+  // ---- 採用率上位の提案 ----
+  // 採用率データ(common.js が data/data.usage.json を読み込む)があるポケモンについて、特性ボタンの
+  // 採用率、性格の上位3つ(ボタン)、努力値簡易入力の上位3つ、技・持ち物の候補一覧の先頭(上位10)を
+  // 出す。データが取得できない・未登録のポケモンでは何も出さず、従来の画面と同じになる。計算には
+  // 関与せず、選んだときに通常の入力と同じ形で値を入れるだけ。
+  // 表示は常に「現在のシングル/ダブル・攻撃側/防御側のポケモン」から作る(攻防交代・履歴の呼び出し
+  // などで欄が直接書き換えられても置いていかれないよう、定期的にも照合する)。
+  function usageFormat(){ var c=q('attackerDoubleDamage'); return c && c.checked ? 'doubles' : 'singles'; }
+  function usageEntryFor(side){
+    var C=window.DAMEKE_COMMON;
+    if(!C || !C.usageEntryForPokemon) return null;
+    var id=valueOf(side+'Select');
+    var list=(window.DAMEKE_DATA||{}).pokemons||[];
+    var p=null;
+    for(var i=0;i<list.length;i++){ if(list[i].id===id){ p=list[i]; break; } }
+    return p ? C.usageEntryForPokemon(usageFormat(), p) : null;
+  }
+  function usageTop(side, key, n){
+    var e=usageEntryFor(side);
+    var arr=(e && Array.isArray(e[key])) ? e[key] : [];
+    return arr.filter(function(x){ return x && (x.id || x.label); }).slice(0, n);
+  }
+  function usageRateText(rate){
+    if(typeof rate!=='number' || !isFinite(rate)) return '';
+    if(rate>0 && rate<0.5) return '<1%';
+    return Math.round(rate)+'%';
+  }
+  // 努力値の採用率データ("H32/A0/B20/C14/D0/S0")。簡易入力の選択肢の値は 'usage:'+この文字列。
+  function parseUsageSpread(value){
+    var m=/^(?:usage:)?H(\d+)\/A(\d+)\/B(\d+)\/C(\d+)\/D(\d+)\/S(\d+)$/.exec(String(value||''));
+    if(!m) return null;
+    return { H:+m[1], A:+m[2], B:+m[3], C:+m[4], D:+m[5], S:+m[6] };
+  }
+  function renderUsageNatures(side){
+    var host=q('damekeUsageNatures_'+side), sel=q(side+'_nature');
+    if(!host || !sel) return;
+    host.textContent='';
+    var count=0;
+    usageTop(side,'natures',3).forEach(function(x){
+      var has=Array.prototype.some.call(sel.options, function(o){ return o.value===x.id; });
+      if(!has) return;
+      var b=make('button','v082h-ability-chip',x.id); b.type='button';
+      var rate=usageRateText(x.rate);
+      if(rate) b.appendChild(make('span','dameke-usage-rate',rate));
+      b.addEventListener('click', function(){ if(sel.value!==x.id){ sel.value=x.id; dispatchChange(sel); } });
+      host.appendChild(b);
+      count++;
+    });
+    host.hidden = !count;
+  }
+  function renderUsageEvOptions(side){
+    var sel=q('v082hEvPreset_'+side);
+    if(!sel) return;
+    var prev=sel.selectedIndex>=0 ? sel.value : '';
+    Array.prototype.slice.call(sel.querySelectorAll('option[data-usage]')).forEach(function(o){ o.remove(); });
+    var anchor=sel.options[1] || null; // 先頭の「選択なし」の次に入れる
+    var rank=0;
+    usageTop(side,'evSpreads',3).forEach(function(x){
+      var sp=parseUsageSpread(x.label);
+      if(!sp) return;
+      rank++;
+      var parts=['H','A','B','C','D','S'].filter(function(k){ return sp[k]>0; }).map(function(k){ return k+sp[k]; });
+      var rate=usageRateText(x.rate);
+      var op=document.createElement('option');
+      op.value='usage:'+x.label; op.setAttribute('data-usage','1');
+      op.textContent=rank+'位 '+(parts.join(' ')||'無振り')+(rate?' ('+rate+')':'');
+      sel.insertBefore(op, anchor);
+    });
+    // 選択肢を作り直しただけで努力値には触らない。選ばれていた採用率の選択肢がなくなった場合は
+    // 表示だけ「選択なし」に戻す。
+    var still=Array.prototype.some.call(sel.options, function(o){ return o.value===prev; });
+    sel.value = still ? prev : '選択なし';
+  }
+  var usageUiKey=null;
+  function refreshUsageUi(force){
+    // 攻防交代・履歴の呼び出しで、相手側/別のポケモン用の採用率の選択肢の値が書き込まれると
+    // 該当する選択肢がなく空欄になるので、「選択なし」に戻す。
+    ['attacker','defender'].forEach(function(side){ var s=q('v082hEvPreset_'+side); if(s && s.selectedIndex<0) s.value='選択なし'; });
+    var key=[usageFormat(), valueOf('attackerSelect'), valueOf('defenderSelect')].join('|');
+    if(!force && key===usageUiKey) return;
+    usageUiKey=key;
+    ['attacker','defender'].forEach(function(side){
+      updateAbilityButtons(side);
+      renderUsageNatures(side);
+      renderUsageEvOptions(side);
+    });
+  }
+  window.__damekeRefreshUsageUi = function(){ refreshUsageUi(false); };
+  function initUsageSuggestions(){
+    // 候補一覧(技・持ち物)は横幅に余裕があるので、採用率を小数第1位まで出す(ボタン・努力値は整数)。
+    function listRateText(rate){ return (typeof rate==='number' && isFinite(rate)) ? rate.toFixed(1)+'%' : ''; }
+    function rated(side, key){ return function(){ return usageTop(side,key,10).map(function(x){ return { text:x.id, rate:listRateText(x.rate) }; }); }; }
+    [['attackerItemSelect','attacker','items'],['defenderItemSelect','defender','items'],['moveSelect','attacker','moves'],['move2Select','attacker','moves']].forEach(function(t){
+      var sel=q(t[0]); if(sel) sel._damekeTopProvider=rated(t[1],t[2]);
+    });
+    // シングル/ダブルの切り替え(「入力」見出しの右)。実体はチェックボックス(ダブル=オン)で、
+    // 文字を押したときはその側に切り替える。
+    var sw=q('attackerDoubleDamage');
+    if(sw){
+      var box=sw.closest('.dameke-format-switch');
+      var single=box && box.querySelector('.dameke-format-single'), dbl=box && box.querySelector('.dameke-format-double');
+      var setFormat=function(v){ if(sw.checked!==v){ sw.checked=v; dispatchChange(sw); } };
+      if(single) single.addEventListener('click', function(){ setFormat(false); });
+      if(dbl) dbl.addEventListener('click', function(e){ e.preventDefault(); setFormat(true); });
+      sw.addEventListener('change', function(){ refreshUsageUi(false); });
+    }
+    ['attackerSelect','defenderSelect'].forEach(function(id){ var e=q(id); if(e) e.addEventListener('change', function(){ setTimeout(function(){ refreshUsageUi(false); }, 0); }); });
+    setInterval(function(){ refreshUsageUi(false); }, 400);
+    refreshUsageUi(true);
+    var C=window.DAMEKE_COMMON;
+    if(C && C.loadUsageData) C.loadUsageData().then(function(){ refreshUsageUi(true); });
+  }
+
+  // ---- 持ち物簡易入力 ----
+  // 持ち物欄の下の折り畳み。種類(半減実・タイプ強化系・プレート・ジュエル)ごとにタイプを選ぶと、
+  // 対応する持ち物を通常の持ち物欄へ入力する(検索コンボで選んだときと同じ: 値を入れて change を
+  // 発火するだけ)。簡易入力の選択欄自体は状態を持たず、常に持ち物欄の現在値から表示を決める
+  // (持ち物欄がその種類の持ち物ならそのタイプ、それ以外なら「—」)。履歴・保存の対象に
+  // ならないよう、選択欄には id を付けない。
+  function bindItemQuickInput(side){
+    var itemSelect = q(side + 'ItemSelect');
+    var box = document.querySelector('.dameke-item-quick[data-side="' + side + '"]');
+    if(!itemSelect || !box) return;
+    var data = window.DAMEKE_DATA || {};
+    var typeOrder = (data.typeOptions || []).map(function(t){ return t.id; }).filter(function(t){ return t !== 'なし'; });
+    var quickSelects = Array.prototype.slice.call(box.querySelectorAll('select[data-item-quick]'));
+    quickSelects.forEach(function(sel){
+      var kind = sel.getAttribute('data-item-quick');
+      var byType = {};
+      (data.items || []).forEach(function(it){
+        if(it.kind !== kind || !it.type) return;
+        // タイプ強化系は同じタイプに「おこう」もあるので、おこう以外(もくたん等)を対応させる。
+        if(kind === 'TypeBoost' && /おこう$/.test(it.name)) return;
+        if(!byType[it.type]) byType[it.type] = it;
+      });
+      sel.textContent = '';
+      var none = document.createElement('option'); none.value = ''; none.textContent = '—'; sel.appendChild(none);
+      typeOrder.forEach(function(t){
+        var it = byType[t]; if(!it) return;
+        var op = document.createElement('option'); op.value = it.id; op.textContent = t; sel.appendChild(op);
+      });
+      sel.addEventListener('change', function(){
+        // 「—」を選んだ場合は、この種類の持ち物が入っていたときだけ持ち物欄を「なし」に戻す。
+        var id = sel.value || 'none';
+        if(itemSelect.value !== id){ itemSelect.value = id; dispatchChange(itemSelect); }
+        sync();
+      });
+    });
+    function sync(){
+      var cur = itemSelect.value;
+      quickSelects.forEach(function(sel){
+        if(document.activeElement === sel) return;
+        var has = false;
+        for(var i = 0; i < sel.options.length; i++){ if(sel.options[i].value === cur){ has = true; break; } }
+        var v = has ? cur : '';
+        if(sel.value !== v) sel.value = v;
+      });
+    }
+    itemSelect.addEventListener('change', sync);
+    box.addEventListener('toggle', sync);
+    // 履歴の呼び出し・攻防交代などは change を発火せずに持ち物欄を書き換えるため、検索コンボの
+    // 表示文字と同じく定期的にも合わせる。
+    setInterval(sync, 400);
+    sync();
+  }
   function selectByText(selectId, label){ var s=q(selectId); if(!s) return false; for(var i=0;i<s.options.length;i++){ if(s.options[i].textContent===label || s.options[i].value===label){ s.value=s.options[i].value; dispatchChange(s); return true; } } return false; }
 
   function setActiveSide(side){
@@ -1273,11 +1521,14 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     });
     attachSearchCombo('attackerSelect');
     attachSearchCombo('attackerItemSelect');
+    bindItemQuickInput('attacker');
     bindStatsPanel('attacker');
     attachSearchCombo('moveSelect');
     attachSearchCombo('move2Select');
     attachSearchCombo('defenderSelect');
     attachSearchCombo('defenderItemSelect');
+    bindItemQuickInput('defender');
+    initUsageSuggestions();
     bindStatsPanel('defender');
   }
 
@@ -1292,9 +1543,12 @@ window.__damekeFmtFaintPct = fmtFaintPct;
       if(Array.isArray(pokemon.abilities)) names=pokemon.abilities.slice(0,3);
       if(!names.length){ ['ability1','ability2','hiddenAbility','ability'].forEach(function(k){ if(pokemon[k]) names.push(pokemon[k]); }); }
     }
+    var abilityRates={};
+    usageTop(side,'abilities',99).forEach(function(x){ abilityRates[x.id]=usageRateText(x.rate); });
     names.forEach(function(name){
       if(!name || name==='なし') return;
       var b=make('button','v082h-ability-chip',name); b.type='button';
+      if(abilityRates[name]) b.appendChild(make('span','dameke-usage-rate',abilityRates[name]));
       b.addEventListener('click',function(){ selectByText(side+'AbilitySelect', name); });
       host.appendChild(b);
     });
@@ -1443,7 +1697,9 @@ window.__damekeFmtFaintPct = fmtFaintPct;
   }
   function applyEvPreset(side, preset){
     ['H','A','B','C','D','S'].forEach(function(k){ var e=q(side+'_'+k+'_ev'); if(e) e.value='0'; });
-    if(preset && preset!=='選択なし') preset.split('').forEach(function(k){ var e=q(side+'_'+k+'_ev'); if(e) e.value='32'; });
+    var usageSpread = parseUsageSpread(preset);
+    if(usageSpread) ['H','A','B','C','D','S'].forEach(function(k){ var e=q(side+'_'+k+'_ev'); if(e) e.value=String(usageSpread[k]); });
+    else if(preset && preset!=='選択なし') preset.split('').forEach(function(k){ var e=q(side+'_'+k+'_ev'); if(e) e.value='32'; });
     // Each EV input has its own companion number-picker <select> (the one actually visible on
     // mobile, since the raw <input> is hidden there) that only re-syncs its displayed value on
     // that specific input's own 'change' event -- dispatching it for just one field (as before)
@@ -1569,7 +1825,7 @@ window.__damekeFmtFaintPct = fmtFaintPct;
   // visible fields always reflect "this role's own history", not whichever pokemon is unrelated.
   const ATTACKER_ROLE_ONLY_IDS = ['moveSelect','moveShowAll','critical','attackerCriticalForce',
     'move2Select','move2ShowAll','move2CriticalForce','move2RolloutHit','move2DefenseCurl','move2EchoedVoiceCount','move2MoveOrder','move2TargetSwitching','move2FaintedAllies','move2SupremeOverlordFaintedAllies','move2Friendship','move2RemainingPP','move2LastMoveFailed','move2UserDamagedThisTurn','move2TargetDamagedThisTurn','move2StockpileCount','move2PresentPower','move2RageFistHitCount','move2MagnitudePower','move2RoundAllyUsed','move2FuryCutterCount','move2StatDroppedThisTurn','move2AllyFaintedLastTurn','move2BeatUpAlly1','move2BeatUpAlly2','move2BeatUpAlly3','move2BeatUpAlly4','move2BeatUpAlly5',
-    'attackerFocusEnergy','attackerGMaxRapidStrike','attackerLockOn','attackerMicleBerry','attackerVictoryStar','attackerStellarMoveCount','charge','pledgeCombination','meFirst','helpingHandCount','batterySupport','powerSpotSupport','flowerGiftSupport','plusMinusSupport','flashFireActivated','stakeoutSwitchIn','attackerDoubleDamage','metronomeUseCount','focusLensMoveOrder','steelSpiritCount','analyzeMovedLast','supremeOverlordFaintedAllies','beatUpAlly1','beatUpAlly2','beatUpAlly3','beatUpAlly4','beatUpAlly5','allyFaintedLastTurn','defenseCurl','echoedVoiceCount','moveOrder','targetSwitching','faintedAllies','friendship','remainingPP','lastMoveFailed','userDamagedThisTurn','targetDamagedThisTurn','stockpileCount','presentPower','rageFistHitCount','magnitudePower','roundAllyUsed','furyCutterCount','psywaveMultiplier','kimagureLaserDouble','fixedDamageTaken','statDroppedThisTurn','electrify','orderUpForm','move2OrderUpForm','attackerRainbow'];
+    'attackerFocusEnergy','attackerGMaxRapidStrike','attackerLockOn','attackerMicleBerry','attackerVictoryStar','attackerStellarMoveCount','charge','pledgeCombination','meFirst','helpingHandCount','batterySupport','powerSpotSupport','flowerGiftSupport','plusMinusSupport','flashFireActivated','stakeoutSwitchIn','metronomeUseCount','focusLensMoveOrder','steelSpiritCount','analyzeMovedLast','supremeOverlordFaintedAllies','beatUpAlly1','beatUpAlly2','beatUpAlly3','beatUpAlly4','beatUpAlly5','allyFaintedLastTurn','defenseCurl','echoedVoiceCount','moveOrder','targetSwitching','faintedAllies','friendship','remainingPP','lastMoveFailed','userDamagedThisTurn','targetDamagedThisTurn','stockpileCount','presentPower','rageFistHitCount','magnitudePower','roundAllyUsed','furyCutterCount','psywaveMultiplier','kimagureLaserDouble','fixedDamageTaken','statDroppedThisTurn','electrify','orderUpForm','move2OrderUpForm','attackerRainbow'];
   const DEFENDER_ROLE_ONLY_IDS = ['defenderConfusion','defenderForesight','defenderMiracleEye','defenderTarShot','defenderScreen','defenderFriendGuard','defenderMinimized','defenderProtectState','defenderSemiInvulnerable','defenderGlaiveRush','defenderFlowerGiftSupport','defenderSubstitute','defenderLuckyChant','defenderSeaOfFire','defenderRage'];
   var attackerRoleShadow = {};
   var defenderRoleShadow = {};
@@ -2246,7 +2502,7 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     };
     setTimeout(renderResult,0);
   }
-  function refreshAll(){ updateAbilityButtons('attacker'); updateAbilityButtons('defender'); updateConditional(); updateConditional2(); updateMoveOrderSwapButton(); renderResult(); updateNatureStatColors('attacker'); updateNatureStatColors('defender'); updateReadOnlyStatRows('attacker'); updateReadOnlyStatRows('defender'); updateRemainingEvDisplay('attacker'); updateRemainingEvDisplay('defender'); if(window.__damekeUpdateMoveTypeColor) window.__damekeUpdateMoveTypeColor(); if(window.__damekeUpdateMove2TypeColor) window.__damekeUpdateMove2TypeColor(); }
+  function refreshAll(){ if(window.__damekeRefreshUsageUi) window.__damekeRefreshUsageUi(); updateAbilityButtons('attacker'); updateAbilityButtons('defender'); updateConditional(); updateConditional2(); updateMoveOrderSwapButton(); renderResult(); updateNatureStatColors('attacker'); updateNatureStatColors('defender'); updateReadOnlyStatRows('attacker'); updateReadOnlyStatRows('defender'); updateRemainingEvDisplay('attacker'); updateRemainingEvDisplay('defender'); if(window.__damekeUpdateMoveTypeColor) window.__damekeUpdateMoveTypeColor(); if(window.__damekeUpdateMove2TypeColor) window.__damekeUpdateMove2TypeColor(); }
   window.__damekeRefreshAll = refreshAll;
   function bind(){ ['attackerSelect','defenderSelect'].forEach(function(id){ var e=q(id); if(e) e.addEventListener('change',function(){ setTimeout(refreshAll,0); }); }); ['moveSelect','attackerAbilitySelect','defenderAbilitySelect','attackerItemSelect','attackerTeraType','move2AttackerTeraType'].forEach(function(id){ var e=q(id); if(e) e.addEventListener('change',function(){ setTimeout(updateConditional,0); }); }); ['move2Select'].forEach(function(id){ var e=q(id); if(e) e.addEventListener('change',function(){ setTimeout(function(){ updateConditional2(); updateMoveOrderSwapButton(); },0); }); }); ['attackerAbilitySelect','defenderAbilitySelect'].forEach(function(id){ var e=q(id); if(e) e.addEventListener('change',function(){ if(window.__damekeApplyAbilityFieldAuto) window.__damekeApplyAbilityFieldAuto(e.value); }); }); var swapMoveBtn=q('moveOrderSwapButton'); if(swapMoveBtn) swapMoveBtn.addEventListener('click', swapMoveOrder); }
 
