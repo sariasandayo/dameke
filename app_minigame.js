@@ -1,6 +1,6 @@
 // v2.2.0 ミニゲーム
 // ハンバーガーメニュー最下部の「ミニゲーム」パネル。内部にゲーム切り替えの枠組みを持ち、
-// 現時点では「ポケモンWordle」のみを収録するが、今後別のミニゲームを追加できるよう、
+// ゲームを追加・変更しやすいよう、
 // スイッチャー(GAMES配列に追加するだけ)+ホスト(現在選択中のゲームのUIを描画する領域)
 // という構成にしてある。
 (function(){
@@ -24,9 +24,68 @@
     return result;
   }
 
+  // ---- 世代による範囲指定(各ゲーム共通) ----
+  // 各ポケモンの世代は data.js の generation(1〜9)。フォルム違い・メガシンカ・リージョンフォーム等も
+  // 元のポケモンと同じ世代になっている。
+  var GENERATIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+  function newGenSelection(){
+    var sel = Object.create(null);
+    GENERATIONS.forEach(function(g){ sel[g] = true; });
+    return sel;
+  }
+
+  // 「ルール」と同じ見た目の折り畳みを作る。中身は返り値の body に追加する。
+  function buildMinigameFold(summaryText){
+    var fold = document.createElement('details');
+    fold.className = 'dameke-pokemon-edit-levelfold dameke-minigame-rules-fold';
+    var summary = document.createElement('summary');
+    summary.textContent = summaryText;
+    fold.appendChild(summary);
+    var body = document.createElement('div');
+    body.className = 'dameke-minigame-range-body';
+    fold.appendChild(body);
+    return { fold: fold, body: body };
+  }
+
+  // 世代のチェックボックス(+全選択/全解除)の行を作る。selection を直接書き換え、変更のたびに
+  // onChange を呼ぶ。
+  function buildGenRangeRow(selection, onChange){
+    var row = document.createElement('div');
+    row.className = 'dameke-stathl-mode-row dameke-minigame-range-row';
+    var checks = [];
+    GENERATIONS.forEach(function(g){
+      var label = document.createElement('label');
+      label.className = 'dameke-stathl-mode-option';
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = !!selection[g];
+      cb.addEventListener('change', function(){
+        selection[g] = cb.checked;
+        onChange();
+      });
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode('第' + g + '世代'));
+      row.appendChild(label);
+      checks.push({ gen: g, cb: cb });
+    });
+    [['全選択', true], ['全解除', false]].forEach(function(def){
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'dameke-search-add-btn dameke-minigame-range-btn';
+      btn.textContent = def[0];
+      btn.addEventListener('click', function(){
+        checks.forEach(function(c){ selection[c.gen] = def[1]; c.cb.checked = def[1]; });
+        onChange();
+      });
+      row.appendChild(btn);
+    });
+    return row;
+  }
+
   // ==================== ゲーム切り替えの枠組み ====================
   var GAMES = [
-    { id: 'wordle', label: 'ポケモンWordle', render: renderWordleGame },
+    { id: 'nameguess', label: 'ポケモン名推理', render: renderNameGuessGame },
+    { id: 'dexfill', label: 'ポケモン図鑑埋め', render: renderDexFillGame },
     { id: 'stathl', label: '種族値High&Low', render: renderStatHLGame },
     { id: 'statchart', label: '種族値チャートクイズ', render: renderStatChartGame },
     { id: 'randomgen', label: 'ランダムポケモン出力', render: renderRandomGenGame }
@@ -69,18 +128,20 @@
     }
   };
 
-  // ==================== ポケモンWordle ====================
+  // ==================== ポケモン名推理 ====================
   var WORD_LENGTH = 5;
   var MAX_TRIES = 10;
 
+  // 出題範囲(世代)。変更するとゲームをリセットする。
+  var nameGuessGens = newGenSelection();
+
   // ---- 候補リスト(括弧書きを除いて重複をなくした、ちょうど5文字のポケモン名)を
-  //      1度だけ計算してキャッシュする ----
-  var candidatesCache = null;
-  function getCandidates(){
-    if(candidatesCache) return candidatesCache;
+  //      1度だけ計算してキャッシュする。inRangeOnly なら出題範囲の世代のものだけ ----
+  function buildCandidates(inRangeOnly){
     var seen = Object.create(null);
     var out = [];
     (DATA.pokemons || []).forEach(function(p){
+      if(inRangeOnly && !nameGuessGens[p.generation]) return;
       var stripped = stripParens(p.name);
       if(Array.from(stripped).length !== WORD_LENGTH) return;
       if(seen[stripped]) return;
@@ -88,8 +149,23 @@
       out.push(stripped);
     });
     out.sort(function(a,b){ return a.localeCompare(b, 'ja'); });
-    candidatesCache = out;
     return out;
+  }
+  var candidatesCache = null;
+  function getCandidates(){
+    if(!candidatesCache) candidatesCache = buildCandidates(true);
+    return candidatesCache;
+  }
+  // 入力として受け付ける名前(全世代の候補)。範囲は「正解がどの世代から選ばれるか」だけを決め、
+  // 範囲外のポケモンも解答として入力できる。
+  var allCandidatesCache = null;
+  function getAllCandidates(){
+    if(!allCandidatesCache) allCandidatesCache = buildCandidates(false);
+    return allCandidatesCache;
+  }
+  // 出題範囲を変えたときに、範囲に依存するキャッシュを捨てる。
+  function resetNameGuessRangeCaches(){
+    candidatesCache = null;
   }
 
   // ---- 候補全体で実際に使われている文字だけを対象にした五十音表(+濁音/半濁音/
@@ -118,7 +194,7 @@
   function getCandidateCharSet(){
     if(candidateCharsCache) return candidateCharsCache;
     var set = Object.create(null);
-    getCandidates().forEach(function(n){ Array.from(n).forEach(function(c){ set[c] = true; }); });
+    getAllCandidates().forEach(function(n){ Array.from(n).forEach(function(c){ set[c] = true; }); });
     candidateCharsCache = set;
     return set;
   }
@@ -133,7 +209,7 @@
     return null;
   }
 
-  // ---- 判定ロジック(標準的なWordleのアルゴリズム) ----
+  // ---- 判定ロジック(1文字ごとの3段階判定) ----
   // 1巡目: 位置が完全一致する文字を緑にし、正解側の「残りプール」からその分を消費する。
   // 2巡目: 緑にならなかった解答側の文字を先頭から順に見て、残りプールにまだあれば黄色に
   //        して1つ消費、なければ灰色。これにより、正解・解答どちらに同じ文字が複数あっても、
@@ -155,7 +231,7 @@
   }
 
   // 候補数表示のON/OFF(既定はOFF)。リトライしても引き継ぐ。
-  var wordleShowCount = false;
+  var nameGuessShowCount = false;
 
   // これまでの解答(guessesの先頭からuptoCount件)の判定結果(緑・黄・灰すべて)と矛盾しない
   // 候補の数を数える。候補cが矛盾しない ⇔ 各解答gについて、cを正解と仮定したときの
@@ -174,65 +250,79 @@
     return n;
   }
 
-  var wordleState = null;
-  function newWordleGame(){
+  var nameGuessState = null;
+  function newNameGuessGame(){
     var cands = getCandidates();
-    var answer = cands[Math.floor(Math.random() * cands.length)];
-    wordleState = { answer: answer, guesses: [], finished: false, won: false, charStatus: Object.create(null) };
+    // 範囲内に候補が1つもないとき(世代を1つも選んでいない等)は answer が null のまま終了扱いにする。
+    var answer = cands.length ? cands[Math.floor(Math.random() * cands.length)] : null;
+    nameGuessState = { answer: answer, guesses: [], finished: !answer, won: false, charStatus: Object.create(null) };
   }
 
   function updateCharStatus(word, colors){
     var rank = { gray: 0, yellow: 1, green: 2 };
     Array.from(word).forEach(function(c, i){
-      var cur = wordleState.charStatus[c];
+      var cur = nameGuessState.charStatus[c];
       var next = colors[i];
-      if(!cur || rank[next] > rank[cur]) wordleState.charStatus[c] = next;
+      if(!cur || rank[next] > rank[cur]) nameGuessState.charStatus[c] = next;
     });
   }
 
-  function renderWordleGame(host){
-    if(!wordleState) newWordleGame();
+  function renderNameGuessGame(host){
+    if(!nameGuessState) newNameGuessGame();
 
     var wrap = document.createElement('div');
-    wrap.className = 'dameke-wordle-wrap';
+    wrap.className = 'dameke-nameguess-wrap';
 
     var title = document.createElement('h3');
-    title.className = 'dameke-wordle-title';
-    title.textContent = 'ポケモンWordle';
+    title.className = 'dameke-minigame-title';
+    title.textContent = 'ポケモン名推理';
     wrap.appendChild(title);
 
     var rulesFold = document.createElement('details');
-    rulesFold.className = 'dameke-pokemon-edit-levelfold dameke-wordle-rules-fold';
+    rulesFold.className = 'dameke-pokemon-edit-levelfold dameke-minigame-rules-fold';
     var rulesSummary = document.createElement('summary');
     rulesSummary.textContent = 'ルール';
     rulesFold.appendChild(rulesSummary);
     var rulesBody = document.createElement('div');
-    rulesBody.className = 'dameke-wordle-rules-body';
+    rulesBody.className = 'dameke-minigame-rules-body';
     rulesBody.innerHTML =
       '<p>括弧書きのフォルム名等を除いた、ちょうど5文字のポケモン名が答えです。</p>' +
       '<p>ひらがな・カタカナ、半角・全角のどれで入力しても構いません。' + MAX_TRIES + '回以内に当ててください。</p>' +
       '<p>決定すると、1文字ごとに背景色が変わります。<br>' +
       '緑：位置・文字とも正解と一致　黄：文字は正解に含まれるが位置が違う　灰：正解に含まれない</p>' +
       '<p>正解・入力どちらかに同じ文字が複数ある場合は、緑判定を優先したうえで、位置が先頭に近い方から黄色が付きます。</p>' +
+      '<p>「範囲」で、正解が選ばれる世代を選べます。変更するとリセットされます。範囲外のポケモンも入力できます。</p>' +
       '<p>「初手をランダムで選ぶ」を押すと、正解以外の候補からランダムに選んだポケモンで1手目を決定します。</p>' +
       '<p>「候補数表示」にチェックを入れると、各解答欄の右に、その欄に解答する時点での確定情報(緑・黄・灰すべて)と矛盾しない、正解となりうるポケモンの数を表示します。</p>';
     rulesFold.appendChild(rulesBody);
     wrap.appendChild(rulesFold);
 
+    var rangeFold = buildMinigameFold('範囲');
+    rangeFold.body.appendChild(buildGenRangeRow(nameGuessGens, function(){
+      resetNameGuessRangeCaches();
+      newNameGuessGame();
+      guessError = null;
+      giveUpBtn.hidden = nameGuessState.finished;
+      renderRows();
+      renderHintTable();
+      renderMessage();
+    }));
+    wrap.appendChild(rangeFold.fold);
+
     var actionsRow = document.createElement('div');
-    actionsRow.className = 'dameke-wordle-actions';
+    actionsRow.className = 'dameke-nameguess-actions';
     var giveUpBtn = document.createElement('button');
     giveUpBtn.type = 'button';
-    giveUpBtn.className = 'dameke-search-add-btn dameke-wordle-giveup-btn';
+    giveUpBtn.className = 'dameke-search-add-btn dameke-minigame-giveup-btn';
     giveUpBtn.textContent = 'ギブアップ';
     actionsRow.appendChild(giveUpBtn);
     var countToggleLabel = document.createElement('label');
-    countToggleLabel.className = 'dameke-stathl-mode-option dameke-wordle-count-toggle';
+    countToggleLabel.className = 'dameke-stathl-mode-option dameke-nameguess-count-toggle';
     var countToggle = document.createElement('input');
     countToggle.type = 'checkbox';
-    countToggle.checked = wordleShowCount;
+    countToggle.checked = nameGuessShowCount;
     countToggle.addEventListener('change', function(){
-      wordleShowCount = countToggle.checked;
+      nameGuessShowCount = countToggle.checked;
       renderRows();
     });
     countToggleLabel.appendChild(countToggle);
@@ -241,25 +331,25 @@
     wrap.appendChild(actionsRow);
 
     var messageHost = document.createElement('div');
-    messageHost.className = 'dameke-wordle-message';
+    messageHost.className = 'dameke-minigame-message';
     wrap.appendChild(messageHost);
 
     var boardRow = document.createElement('div');
-    boardRow.className = 'dameke-wordle-board-row';
+    boardRow.className = 'dameke-nameguess-board-row';
     wrap.appendChild(boardRow);
 
     var rowsHost = document.createElement('div');
-    rowsHost.className = 'dameke-wordle-rows';
+    rowsHost.className = 'dameke-nameguess-rows';
     boardRow.appendChild(rowsHost);
 
     var hintSection = document.createElement('div');
-    hintSection.className = 'dameke-wordle-hint-section';
+    hintSection.className = 'dameke-nameguess-hint-section';
     var hintTitle = document.createElement('div');
     hintTitle.className = 'dameke-adjust-nature-title';
     hintTitle.textContent = '使った文字';
     hintSection.appendChild(hintTitle);
     var hintHost = document.createElement('div');
-    hintHost.className = 'dameke-wordle-hint-table';
+    hintHost.className = 'dameke-nameguess-hint-table';
     hintSection.appendChild(hintHost);
     boardRow.appendChild(hintSection);
 
@@ -273,13 +363,13 @@
         var anyUsed = row.some(function(c){ return c && usedChars[c]; });
         if(!anyUsed) return;
         var rowEl = document.createElement('div');
-        rowEl.className = 'dameke-wordle-hint-row';
+        rowEl.className = 'dameke-nameguess-hint-row';
         row.forEach(function(c){
           var cell = document.createElement('span');
-          cell.className = 'dameke-wordle-hint-cell';
-          if(!c || !usedChars[c]){ cell.classList.add('dameke-wordle-hint-cell-empty'); rowEl.appendChild(cell); return; }
-          var status = wordleState.charStatus[c];
-          if(status) cell.classList.add('dameke-wordle-cell-' + status);
+          cell.className = 'dameke-nameguess-hint-cell';
+          if(!c || !usedChars[c]){ cell.classList.add('dameke-nameguess-hint-cell-empty'); rowEl.appendChild(cell); return; }
+          var status = nameGuessState.charStatus[c];
+          if(status) cell.classList.add('dameke-nameguess-cell-' + status);
           cell.textContent = c;
           rowEl.appendChild(cell);
         });
@@ -290,11 +380,11 @@
     function appendRetryButton(){
       var retryBtn = document.createElement('button');
       retryBtn.type = 'button';
-      retryBtn.className = 'dameke-search-add-btn dameke-wordle-retry-btn';
+      retryBtn.className = 'dameke-search-add-btn dameke-minigame-retry-btn';
       retryBtn.textContent = 'リトライ';
       retryBtn.addEventListener('click', function(){
-        newWordleGame();
-        giveUpBtn.hidden = false;
+        newNameGuessGame();
+        giveUpBtn.hidden = nameGuessState.finished;
         renderRows();
         renderHintTable();
         renderMessage();
@@ -304,12 +394,12 @@
 
     function renderMessage(){
       messageHost.innerHTML = '';
-      if(wordleState.won){
+      if(nameGuessState.won){
         appendRetryButton();
-      } else if(wordleState.finished){
+      } else if(nameGuessState.finished && nameGuessState.answer){
         var lose = document.createElement('div');
-        lose.className = 'dameke-wordle-lose-banner';
-        lose.textContent = '正解は「' + wordleState.answer + '」でした。';
+        lose.className = 'dameke-nameguess-lose-banner';
+        lose.textContent = '正解は「' + nameGuessState.answer + '」でした。';
         messageHost.appendChild(lose);
         appendRetryButton();
       }
@@ -318,29 +408,29 @@
     // index番目(0始まり)の解答欄に、その欄に解答する時点(=それより前の解答の結果をすべて
     // 反映した時点)での候補数を表示する要素を作る。候補数表示がOFFならnull。
     function buildCountLabel(index){
-      if(!wordleShowCount) return null;
+      if(!nameGuessShowCount) return null;
       var el = document.createElement('span');
-      el.className = 'dameke-wordle-count';
-      el.textContent = '候補' + countConsistentCandidates(wordleState.guesses, index);
+      el.className = 'dameke-nameguess-count';
+      el.textContent = '候補' + countConsistentCandidates(nameGuessState.guesses, index);
       return el;
     }
 
     function buildResultRow(word, colors, index){
       var row = document.createElement('div');
-      row.className = 'dameke-wordle-row dameke-wordle-row-result';
+      row.className = 'dameke-nameguess-row dameke-nameguess-row-result';
       var imgWrap = document.createElement('span');
-      imgWrap.className = 'dameke-wordle-row-thumb';
+      imgWrap.className = 'dameke-nameguess-row-thumb';
       var pokemon = findPokemonForWord(word);
       var img = (pokemon && window.__damekeBuildPokemonImage)
-        ? window.__damekeBuildPokemonImage(pokemon.name, function(){ imgWrap.classList.add('dameke-wordle-row-thumb-missing'); imgWrap.innerHTML = ''; })
+        ? window.__damekeBuildPokemonImage(pokemon.name, function(){ imgWrap.classList.add('dameke-nameguess-row-thumb-missing'); imgWrap.innerHTML = ''; })
         : null;
-      if(img) imgWrap.appendChild(img); else imgWrap.classList.add('dameke-wordle-row-thumb-missing');
+      if(img) imgWrap.appendChild(img); else imgWrap.classList.add('dameke-nameguess-row-thumb-missing');
       row.appendChild(imgWrap);
       var lettersWrap = document.createElement('div');
-      lettersWrap.className = 'dameke-wordle-letters';
+      lettersWrap.className = 'dameke-nameguess-letters';
       Array.from(word).forEach(function(ch, i){
         var box = document.createElement('span');
-        box.className = 'dameke-wordle-letter-box dameke-wordle-cell-' + colors[i];
+        box.className = 'dameke-nameguess-letter-box dameke-nameguess-cell-' + colors[i];
         box.textContent = ch;
         lettersWrap.appendChild(box);
       });
@@ -351,7 +441,7 @@
       // (決定ボタンと同程度の大きさ。以前あった大きなメッセージ枠の代わり)。
       if(colors.every(function(c){ return c === 'green'; })){
         var correctLabel = document.createElement('span');
-        correctLabel.className = 'dameke-search-add-btn dameke-wordle-correct-label';
+        correctLabel.className = 'dameke-search-add-btn dameke-nameguess-correct-label';
         correctLabel.textContent = '正解！';
         row.appendChild(correctLabel);
       }
@@ -362,16 +452,16 @@
 
     function buildInputRow(active, index){
       var row = document.createElement('div');
-      row.className = 'dameke-wordle-row dameke-wordle-row-input' + (active ? '' : ' dameke-wordle-row-input-inactive');
+      row.className = 'dameke-nameguess-row dameke-nameguess-row-input' + (active ? '' : ' dameke-nameguess-row-input-inactive');
       var input = document.createElement('input');
       input.type = 'text';
-      input.className = 'dameke-wordle-text-input';
+      input.className = 'dameke-nameguess-text-input';
       input.placeholder = 'ポケモン名';
       input.disabled = !active;
       row.appendChild(input);
       var btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'dameke-search-add-btn dameke-wordle-submit-btn';
+      btn.className = 'dameke-search-add-btn dameke-nameguess-submit-btn';
       btn.textContent = '決定';
       btn.disabled = !active;
       if(active){
@@ -386,7 +476,7 @@
       }
       if(active && guessError){
         var err = document.createElement('span');
-        err.className = 'dameke-wordle-input-error';
+        err.className = 'dameke-nameguess-input-error';
         err.textContent = guessError;
         row.appendChild(err);
       }
@@ -402,9 +492,9 @@
     }
 
     function submitGuess(rawInput){
-      if(wordleState.finished) return;
+      if(nameGuessState.finished) return;
       var normalized = normalizeForMatch(rawInput);
-      var match = getCandidates().indexOf(normalized) >= 0 ? normalized : null;
+      var match = getAllCandidates().indexOf(normalized) >= 0 ? normalized : null;
       if(!match){
         guessError = '入力に誤りがあります';
         renderRows();
@@ -414,61 +504,68 @@
     }
 
     function applyGuess(word){
-      if(wordleState.finished) return;
+      if(nameGuessState.finished) return;
       guessError = null;
-      var colors = computeColors(word, wordleState.answer);
-      wordleState.guesses.push({ word: word, colors: colors });
+      var colors = computeColors(word, nameGuessState.answer);
+      nameGuessState.guesses.push({ word: word, colors: colors });
       updateCharStatus(word, colors);
-      if(colors.every(function(c){ return c === 'green'; })) wordleState.won = true;
-      if(wordleState.won || wordleState.guesses.length >= MAX_TRIES) wordleState.finished = true;
+      if(colors.every(function(c){ return c === 'green'; })) nameGuessState.won = true;
+      if(nameGuessState.won || nameGuessState.guesses.length >= MAX_TRIES) nameGuessState.finished = true;
       renderRows();
       renderHintTable();
       renderMessage();
-      if(wordleState.finished) giveUpBtn.hidden = true;
+      if(nameGuessState.finished) giveUpBtn.hidden = true;
     }
 
     // 初手をランダムに選ぶ。候補のうち正解そのものを除いたものから1つ選び、そのまま1手目として
     // 決定する(初手でいきなり正解してしまうことはない)。
     function pickRandomFirstGuess(){
-      if(wordleState.finished || wordleState.guesses.length) return;
-      var pool = getCandidates().filter(function(c){ return c !== wordleState.answer; });
+      if(nameGuessState.finished || nameGuessState.guesses.length) return;
+      var pool = getCandidates().filter(function(c){ return c !== nameGuessState.answer; });
       if(!pool.length) return;
       applyGuess(pool[Math.floor(Math.random() * pool.length)]);
     }
 
     function renderRows(){
       rowsHost.innerHTML = '';
+      if(!nameGuessState.answer){
+        var empty = document.createElement('div');
+        empty.className = 'dameke-minigame-empty';
+        empty.textContent = '範囲に当てはまるポケモンがいません。「範囲」で世代を選んでください。';
+        rowsHost.appendChild(empty);
+        return;
+      }
       // 1手目の前(まだ1つも解答しておらず、ゲームも終わっていない間)だけ、1枠目の上に
       // 初手ランダム選出ボタンを出す。
-      if(!wordleState.finished && !wordleState.guesses.length){
+      if(!nameGuessState.finished && !nameGuessState.guesses.length){
         var randomRow = document.createElement('div');
-        randomRow.className = 'dameke-wordle-random-row';
+        randomRow.className = 'dameke-nameguess-random-row';
         var randomBtn = document.createElement('button');
         randomBtn.type = 'button';
-        randomBtn.className = 'dameke-search-add-btn dameke-wordle-random-btn';
+        randomBtn.className = 'dameke-search-add-btn dameke-nameguess-random-btn';
         randomBtn.textContent = '初手をランダムで選ぶ';
         randomBtn.addEventListener('click', pickRandomFirstGuess);
         randomRow.appendChild(randomBtn);
         rowsHost.appendChild(randomRow);
       }
       for(var i = 0; i < MAX_TRIES; i++){
-        var g = wordleState.guesses[i];
+        var g = nameGuessState.guesses[i];
         if(g){ rowsHost.appendChild(buildResultRow(g.word, g.colors, i)); continue; }
-        var isActive = !wordleState.finished && i === wordleState.guesses.length;
+        var isActive = !nameGuessState.finished && i === nameGuessState.guesses.length;
         rowsHost.appendChild(buildInputRow(isActive, i));
       }
     }
 
 
     giveUpBtn.addEventListener('click', function(){
-      if(wordleState.finished) return;
-      wordleState.finished = true;
+      if(nameGuessState.finished) return;
+      nameGuessState.finished = true;
       renderRows();
       renderMessage();
       giveUpBtn.hidden = true;
     });
 
-    giveUpBtn.hidden = wordleState.finished;
+    giveUpBtn.hidden = nameGuessState.finished;
     renderRows();
     renderHintTable();
     renderMessage();
@@ -553,17 +650,17 @@
     wrap.className = 'dameke-stathl-wrap';
 
     var title = document.createElement('h3');
-    title.className = 'dameke-wordle-title';
+    title.className = 'dameke-minigame-title';
     title.textContent = '種族値High&Low';
     wrap.appendChild(title);
 
     var rulesFold = document.createElement('details');
-    rulesFold.className = 'dameke-pokemon-edit-levelfold dameke-wordle-rules-fold';
+    rulesFold.className = 'dameke-pokemon-edit-levelfold dameke-minigame-rules-fold';
     var rulesSummary = document.createElement('summary');
     rulesSummary.textContent = 'ルール';
     rulesFold.appendChild(rulesSummary);
     var rulesBody = document.createElement('div');
-    rulesBody.className = 'dameke-wordle-rules-body';
+    rulesBody.className = 'dameke-minigame-rules-body';
     rulesBody.innerHTML =
       '<p>最終進化のポケモンから2体をランダムに表示します。左側が基準、右側が予想対象です。</p>' +
       '<p>対象の種族値(H・A・B・C・D・Sから選択。「ミックス」の場合は毎回ランダムな1つ)について、' +
@@ -640,7 +737,7 @@
     wrap.appendChild(guessRow);
 
     var messageHost = document.createElement('div');
-    messageHost.className = 'dameke-wordle-message dameke-stathl-message';
+    messageHost.className = 'dameke-minigame-message dameke-stathl-message';
     wrap.appendChild(messageHost);
 
     host.appendChild(wrap);
@@ -822,7 +919,7 @@
         messageHost.appendChild(over);
         var retryBtn = document.createElement('button');
         retryBtn.type = 'button';
-        retryBtn.className = 'dameke-search-add-btn dameke-wordle-retry-btn';
+        retryBtn.className = 'dameke-search-add-btn dameke-minigame-retry-btn';
         retryBtn.textContent = 'リトライ';
         retryBtn.addEventListener('click', function(){
           newStatHLGame();
@@ -834,7 +931,7 @@
       if(statHLState.answered){
         var nextBtn = document.createElement('button');
         nextBtn.type = 'button';
-        nextBtn.className = 'dameke-search-add-btn dameke-wordle-retry-btn';
+        nextBtn.className = 'dameke-search-add-btn dameke-minigame-retry-btn';
         nextBtn.textContent = '次の問題へ';
         nextBtn.addEventListener('click', function(){
           newStatHLRound(false);
@@ -876,7 +973,7 @@
   // ---- 種族値・(現在公開済みの)タイプ/特性ヒントすべてに一致するポケモンを探す ----
   // 未公開のヒント(まだ押していない分)は判定に含めない。種族値が完全一致するポケモンが
   // 複数いる場合、その全員が正解候補になる。
-  function findStatChartMatches(target, revealedTypeCount, revealedAbilityCount){
+  function findStatChartMatches(target, revealedTypeCount, revealedAbilityCount, revealedGeneration){
     return (DATA.pokemons || []).filter(function(p){
       if(!p.baseStats) return false;
       return STAT_KEYS.every(function(k){ return p.baseStats[k] === target.baseStats[k]; });
@@ -890,6 +987,8 @@
         if((p.abilities || [])[i] !== (target.abilities || [])[i]) return false;
       }
       return true;
+    }).filter(function(p){
+      return !revealedGeneration || p.generation === target.generation;
     });
   }
 
@@ -903,6 +1002,7 @@
     statChartState.target = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
     statChartState.revealedTypeCount = 0;
     statChartState.revealedAbilityCount = 0;
+    statChartState.revealedGeneration = false;
     statChartState.answered = false;
     statChartState.correct = null;
     statChartState.gaveUp = false;
@@ -996,21 +1096,22 @@
     wrap.className = 'dameke-statchart-wrap';
 
     var title = document.createElement('h3');
-    title.className = 'dameke-wordle-title';
+    title.className = 'dameke-minigame-title';
     title.textContent = '種族値チャートクイズ';
     wrap.appendChild(title);
 
     var rulesFold = document.createElement('details');
-    rulesFold.className = 'dameke-pokemon-edit-levelfold dameke-wordle-rules-fold';
+    rulesFold.className = 'dameke-pokemon-edit-levelfold dameke-minigame-rules-fold';
     var rulesSummary = document.createElement('summary');
     rulesSummary.textContent = 'ルール';
     rulesFold.appendChild(rulesSummary);
     var rulesBody = document.createElement('div');
-    rulesBody.className = 'dameke-wordle-rules-body';
+    rulesBody.className = 'dameke-minigame-rules-body';
     rulesBody.innerHTML =
       '<p>ランダムに抽出されたポケモン1体の種族値(H・A・B・C・D・S)がレーダーチャートで表示されるので、' +
       'ポケモンを当てるゲームです。</p>' +
-      '<p>「タイプ」「特性」の各ヒントボタンで、そのポケモンのタイプ・特性を1つずつ確認できます。</p>' +
+      '<p>「タイプ」「特性」の各ヒントボタンで、そのポケモンのタイプ・特性を1つずつ確認できます。' +
+      '「世代」のヒントボタンでは、そのポケモンの世代を確認できます。</p>' +
       '<p>入力欄にポケモン名を入力すると正誤判定します。</p>' +
       '<p>なお、種族値と、その時点で公開済みのヒントすべてに一致するポケモンが他にもいる場合は、' +
       'そのポケモンで答えても正解として扱われます。</p>';
@@ -1068,12 +1169,12 @@
 
     var giveUpBtn = document.createElement('button');
     giveUpBtn.type = 'button';
-    giveUpBtn.className = 'dameke-search-add-btn dameke-statchart-answer-btn dameke-wordle-giveup-btn';
+    giveUpBtn.className = 'dameke-search-add-btn dameke-statchart-answer-btn dameke-minigame-giveup-btn';
     giveUpBtn.textContent = 'ギブアップ';
 
     var nextBtn = document.createElement('button');
     nextBtn.type = 'button';
-    nextBtn.className = 'dameke-search-add-btn dameke-statchart-answer-btn dameke-wordle-retry-btn';
+    nextBtn.className = 'dameke-search-add-btn dameke-statchart-answer-btn dameke-minigame-retry-btn';
     nextBtn.textContent = '次の問題へ';
     nextBtn.addEventListener('click', function(){
       newStatChartQuestion();
@@ -1081,7 +1182,7 @@
     });
 
     var messageHost = document.createElement('div');
-    messageHost.className = 'dameke-wordle-message dameke-stathl-message';
+    messageHost.className = 'dameke-minigame-message dameke-stathl-message';
     wrap.appendChild(messageHost);
 
     host.appendChild(wrap);
@@ -1152,6 +1253,26 @@
       abilityValues.textContent = (target.abilities || []).slice(0, statChartState.revealedAbilityCount).join('、');
       abilityRow.appendChild(abilityValues);
       hintsHost.appendChild(abilityRow);
+
+      var genRow = document.createElement('div');
+      genRow.className = 'dameke-statchart-hint-row';
+      var genBtn = document.createElement('button');
+      genBtn.type = 'button';
+      genBtn.className = 'dameke-search-add-btn dameke-statchart-hint-btn';
+      genBtn.textContent = '世代';
+      var genExhausted = !!statChartState.revealedGeneration;
+      genBtn.disabled = statChartState.answered || genExhausted;
+      if(genExhausted) genBtn.classList.add('dameke-statchart-hint-btn-exhausted');
+      genBtn.addEventListener('click', function(){
+        statChartState.revealedGeneration = true;
+        renderHints();
+      });
+      genRow.appendChild(genBtn);
+      var genValues = document.createElement('span');
+      genValues.className = 'dameke-statchart-hint-values';
+      genValues.textContent = statChartState.revealedGeneration ? '第' + target.generation + '世代' : '';
+      genRow.appendChild(genValues);
+      hintsHost.appendChild(genRow);
     }
 
     function renderAnswerRow(){
@@ -1194,15 +1315,16 @@
       var target = statChartState.target;
       var guessed = (DATA.pokemons || []).find(function(p){ return p.id === pokemonId; });
       if(!guessed || statChartState.answered) return;
-      var matches = findStatChartMatches(target, statChartState.revealedTypeCount, statChartState.revealedAbilityCount);
+      var matches = findStatChartMatches(target, statChartState.revealedTypeCount, statChartState.revealedAbilityCount, statChartState.revealedGeneration);
       var correct = matches.some(function(p){ return p.id === guessed.id; });
       statChartState.answered = true;
       statChartState.correct = correct;
       statChartState.gaveUp = false;
       statChartState.guessName = guessed.name;
-      // 決定後は、その回のタイプ・特性ヒントをすべて公開する。
+      // 決定後は、その回のタイプ・特性・世代ヒントをすべて公開する。
       statChartState.revealedTypeCount = (target.types || []).length;
       statChartState.revealedAbilityCount = (target.abilities || []).length;
+      statChartState.revealedGeneration = true;
       renderAll();
     }
 
@@ -1215,6 +1337,7 @@
       statChartState.guessName = null;
       statChartState.revealedTypeCount = (target.types || []).length;
       statChartState.revealedAbilityCount = (target.abilities || []).length;
+      statChartState.revealedGeneration = true;
       renderAll();
     }
 
@@ -1287,9 +1410,10 @@
     return p.formGroup || p.baseSpecies || p.speciesKey || p.name;
   }
 
-  function getRandomGenPool(finalOnly, championsOnly, megaOnly, megaExclude, regulations){
+  function getRandomGenPool(finalOnly, championsOnly, megaOnly, megaExclude, regulations, gens){
     return (DATA.pokemons || []).filter(function(p){
       if(!p.baseStats) return false;
+      if(gens && !gens[p.generation]) return false;
       if(finalOnly && p.canEvolve) return false;
       if(championsOnly && !statChartHasChampionsEntry(p)) return false;
       var mega = isMegaPokemon(p);
@@ -1344,11 +1468,12 @@
   var randomGenMegaOnly = false;
   var randomGenMegaExclude = false;
   var randomGenRegulations = [];
+  var randomGenGens = newGenSelection();
   var randomGenCount = 6;
   var randomGenState = null;
 
   function newRandomGenSet(){
-    var pool = getRandomGenPool(randomGenFinalOnly, randomGenChampionsOnly, randomGenMegaOnly, randomGenMegaExclude, randomGenRegulations);
+    var pool = getRandomGenPool(randomGenFinalOnly, randomGenChampionsOnly, randomGenMegaOnly, randomGenMegaExclude, randomGenRegulations, randomGenGens);
     randomGenState = { pool: pool, results: drawRandomGenSet(pool, randomGenCount) };
   }
 
@@ -1379,17 +1504,17 @@
     wrap.className = 'dameke-randomgen-wrap';
 
     var title = document.createElement('h3');
-    title.className = 'dameke-wordle-title';
+    title.className = 'dameke-minigame-title';
     title.textContent = 'ランダムポケモン出力';
     wrap.appendChild(title);
 
     var rulesFold = document.createElement('details');
-    rulesFold.className = 'dameke-pokemon-edit-levelfold dameke-wordle-rules-fold';
+    rulesFold.className = 'dameke-pokemon-edit-levelfold dameke-minigame-rules-fold';
     var rulesSummary = document.createElement('summary');
     rulesSummary.textContent = 'このツールについて';
     rulesFold.appendChild(rulesSummary);
     var rulesBody = document.createElement('div');
-    rulesBody.className = 'dameke-wordle-rules-body';
+    rulesBody.className = 'dameke-minigame-rules-body';
     rulesBody.innerHTML =
       '<p>ポケモンをランダムに抽選・表示するツールです。同時に出力されるポケモンは重複しません。' +
       'フォルム違いなども重ならないようにしています。</p>' +
@@ -1397,8 +1522,16 @@
     rulesFold.appendChild(rulesBody);
     wrap.appendChild(rulesFold);
 
+    // 範囲の折り畳み: 世代・絞り込みのチェックボックス・レギュレーション(折り畳み)をまとめる。
+    var rangeFold = buildMinigameFold('範囲');
+    rangeFold.body.appendChild(buildGenRangeRow(randomGenGens, function(){
+      newRandomGenSet();
+      renderGrid();
+    }));
+    wrap.appendChild(rangeFold.fold);
+
     var filterRow = document.createElement('div');
-    filterRow.className = 'dameke-stathl-mode-row dameke-search-section-gap';
+    filterRow.className = 'dameke-stathl-mode-row';
 
     var finalLabel = document.createElement('label');
     finalLabel.className = 'dameke-stathl-mode-option';
@@ -1436,11 +1569,11 @@
     megaExcludeLabel.appendChild(document.createTextNode('メガシンカ除外'));
     filterRow.appendChild(megaExcludeLabel);
 
-    wrap.appendChild(filterRow);
+    rangeFold.body.appendChild(filterRow);
 
     // レギュレーション絞り込み(複数選択可。何もチェックしなければ絞り込みなし)。
     var regFold = document.createElement('details');
-    regFold.className = 'dameke-pokemon-edit-levelfold';
+    regFold.className = 'dameke-pokemon-edit-levelfold dameke-minigame-range-subfold';
     var regSummary = document.createElement('summary');
     regSummary.textContent = 'レギュレーション';
     regFold.appendChild(regSummary);
@@ -1463,10 +1596,10 @@
       });
     }
     regFold.appendChild(regRow);
-    wrap.appendChild(regFold);
+    rangeFold.body.appendChild(regFold);
 
     var countRow = document.createElement('div');
-    countRow.className = 'dameke-stathl-mode-row dameke-search-section-gap';
+    countRow.className = 'dameke-stathl-mode-row';
     var countLabel = document.createElement('label');
     countLabel.className = 'dameke-randomgen-count-label';
     countLabel.appendChild(document.createTextNode('同時出力数：'));
@@ -1600,5 +1733,395 @@
     });
 
     renderGrid();
+  }
+
+  // ==================== ポケモン図鑑埋め ====================
+  // ポケモン名を入力して、図鑑番号順に並んだ空欄の枠を埋めていくゲーム。
+  // ・枠はデータ(DATA.pokemons)の1件ごとに1つ。並び順はデータの順(図鑑番号順)のまま。
+  // ・フォルム違い・メガシンカ・ゲンシカイキ・リージョンフォーム等は「同じ種」としてまとめ、
+  //   1回の解答ですべて開く。まとめる単位は speciesKey から括弧書きを除いた名前
+  //   (例: 「ロコン」と「ロコン(アローラ)」、「フシギバナ」と「メガフシギバナ」)。
+  // ・範囲は世代(各ポケモンの generation。data.js で設定)ごとに切り替えられる。
+  // ・解答済みの記録は世代の切り替えでは消えない(リトライ・リセットで消える)。端末に保存され、
+  //   再読み込み後も続きから遊べる。
+  // 記号が入っていて入力しづらい名前の別表記(正規化後の文字列 → 種の名前)。
+  var DEXFILL_ALIASES = { 'ニドランメス': 'ニドラン♀', 'ニドランオス': 'ニドラン♂' };
+
+  // 入力と候補名の両方にかける正規化。半角/全角・ひらがな/カタカナの違いに加えて、
+  // 空白・中黒・コロン・括弧の有無も無視する(例: 「かぷこけこ」「タイプヌル」「ろこんあろーら」)。
+  function dexFillNormalize(s){
+    return String(s || '').normalize('NFKC')
+      .replace(/[ぁ-ゖ]/g, function(c){ return String.fromCharCode(c.charCodeAt(0) + 0x60); })
+      .replace(/[\s・:()]/g, '')
+      .toUpperCase();
+  }
+
+  // 種ごとのまとまりと、解答文字列から種を引く表を1度だけ作る。
+  var dexFillIndexCache = null;
+  function getDexFillIndex(){
+    if(dexFillIndexCache) return dexFillIndexCache;
+    var groups = [];                      // データ順。{ root, generation, members:[pokemon] }
+    var byRoot = Object.create(null);
+    var byKey = Object.create(null);      // 正規化した解答文字列 → group
+    (DATA.pokemons || []).forEach(function(p){
+      var root = stripParens(p.speciesKey || p.name);
+      var group = byRoot[root];
+      if(!group){
+        group = byRoot[root] = { root: root, generation: p.generation, members: [] };
+        groups.push(group);
+      }
+      group.members.push(p);
+      // 種の名前そのもの/データの登録名(括弧書きあり・なし)のどれで解答しても、その種が開く。
+      [root, p.speciesKey, p.name, stripParens(p.name)].forEach(function(n){
+        var key = dexFillNormalize(n);
+        if(key && !byKey[key]) byKey[key] = group;
+      });
+    });
+    Object.keys(DEXFILL_ALIASES).forEach(function(alias){
+      var g = byRoot[DEXFILL_ALIASES[alias]];
+      if(g && !byKey[alias]) byKey[alias] = g;
+    });
+    dexFillIndexCache = { groups: groups, byKey: byKey };
+    return dexFillIndexCache;
+  }
+
+  // ゲームの状態(ミニゲームを切り替えても保持する)。
+  var dexFillGens = newGenSelection();       // 世代 → 範囲に含めるか
+  var dexFillOpened = Object.create(null);   // 種の名前 → 解答済みか
+  var dexFillGaveUp = false;
+  var dexFillLastRoots = [];                 // 直前の解答で開いた種(枠を強調表示する)
+  var dexFillMessage = null;                 // { text, kind:'ok'|'bad'|'info' }
+
+  // ---- 進行状況の保存(端末のlocalStorage) ----
+  // 解答済みの種の名前・選択中の世代・ギブアップ済みかどうかを保存し、再読み込み後も続きから遊べる
+  // ようにする。種は名前で持つので、あとからポケモンが追加されても記録はずれない。保存できない環境
+  // (プライベートブラウズ等)では何もせず、保存なしでそのまま遊べる。
+  var DEXFILL_SAVE_KEY = 'dameke_dexfill_progress_v1';
+  function saveDexFillProgress(){
+    try {
+      localStorage.setItem(DEXFILL_SAVE_KEY, JSON.stringify({
+        v: 1,
+        opened: Object.keys(dexFillOpened),
+        gens: GENERATIONS.filter(function(g){ return !!dexFillGens[g]; }),
+        gaveUp: dexFillGaveUp
+      }));
+    } catch(e){}
+  }
+  var dexFillProgressLoaded = false;
+  function loadDexFillProgress(index){
+    if(dexFillProgressLoaded) return;
+    dexFillProgressLoaded = true;
+    try {
+      var saved = JSON.parse(localStorage.getItem(DEXFILL_SAVE_KEY) || 'null');
+      if(!saved || typeof saved !== 'object') return;
+      // 現在のデータに存在する種だけを復元する(名前が変わった・消えたものは捨てる)。
+      var known = Object.create(null);
+      index.groups.forEach(function(g){ known[g.root] = true; });
+      if(Array.isArray(saved.opened)){
+        saved.opened.forEach(function(root){ if(known[root]) dexFillOpened[root] = true; });
+      }
+      if(Array.isArray(saved.gens)){
+        GENERATIONS.forEach(function(g){ dexFillGens[g] = saved.gens.indexOf(g) >= 0; });
+      }
+      dexFillGaveUp = saved.gaveUp === true;
+    } catch(e){}
+  }
+
+  function renderDexFillGame(host){
+    var index = getDexFillIndex();
+    loadDexFillProgress(index);
+
+    var wrap = document.createElement('div');
+    wrap.className = 'dameke-dexfill-wrap';
+
+    var title = document.createElement('h3');
+    title.className = 'dameke-minigame-title';
+    title.textContent = 'ポケモン図鑑埋め';
+    wrap.appendChild(title);
+
+    var rulesFold = document.createElement('details');
+    rulesFold.className = 'dameke-pokemon-edit-levelfold dameke-minigame-rules-fold';
+    var rulesSummary = document.createElement('summary');
+    rulesSummary.textContent = 'ルール';
+    rulesFold.appendChild(rulesSummary);
+    var rulesBody = document.createElement('div');
+    rulesBody.className = 'dameke-minigame-rules-body';
+    rulesBody.innerHTML =
+      '<p>ポケモンの名前を入力して、図鑑番号順に並んだ枠を埋めていきます。順番は問いません。</p>' +
+      '<p>ひらがな・カタカナ、半角・全角のどれで入力しても構いません。</p>' +
+      '<p>フォルム違い・メガシンカ・ゲンシカイキ・リージョンフォームなどは、1回の解答でまとめて開きます。' +
+      'ポケモン名だけ(例：ロコン)でも、フォルム名を含む名前(例：メガフシギバナ、ロコン(アローラ))でも解答できます。' +
+      '解答数は種類の数で数えます。</p>' +
+      '<p>「範囲」で、出題する世代を選べます。</p>' +
+      '<p>「ギブアップ」を押すと、残りの枠をすべて表示します。</p>';
+    rulesFold.appendChild(rulesBody);
+    wrap.appendChild(rulesFold);
+
+    // ---- 範囲(世代) ----
+    var rangeFold = buildMinigameFold('範囲');
+    rangeFold.body.appendChild(buildGenRangeRow(dexFillGens, function(){ onRangeChanged(); }));
+    wrap.appendChild(rangeFold.fold);
+
+    // ---- 解答の入力 ----
+    var inputRow = document.createElement('div');
+    inputRow.className = 'dameke-dexfill-input-row';
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'dameke-dexfill-text-input';
+    input.placeholder = 'ポケモン名';
+    input.autocomplete = 'off';
+    input.setAttribute('autocapitalize', 'off');
+    input.setAttribute('autocorrect', 'off');
+    input.spellcheck = false;
+    inputRow.appendChild(input);
+    var submitBtn = document.createElement('button');
+    submitBtn.type = 'button';
+    submitBtn.className = 'dameke-search-add-btn dameke-dexfill-submit-btn';
+    submitBtn.textContent = '決定';
+    inputRow.appendChild(submitBtn);
+    var messageEl = document.createElement('span');
+    messageEl.className = 'dameke-dexfill-message';
+    inputRow.appendChild(messageEl);
+    wrap.appendChild(inputRow);
+
+    // ---- 進み具合とギブアップ/リトライ ----
+    var statusRow = document.createElement('div');
+    statusRow.className = 'dameke-dexfill-status-row';
+    var progressEl = document.createElement('span');
+    progressEl.className = 'dameke-dexfill-progress';
+    statusRow.appendChild(progressEl);
+    var completeEl = document.createElement('span');
+    completeEl.className = 'dameke-dexfill-complete';
+    completeEl.textContent = 'コンプリート！';
+    statusRow.appendChild(completeEl);
+    var giveUpBtn = document.createElement('button');
+    giveUpBtn.type = 'button';
+    giveUpBtn.className = 'dameke-search-add-btn dameke-minigame-giveup-btn';
+    giveUpBtn.textContent = 'ギブアップ';
+    statusRow.appendChild(giveUpBtn);
+    // リセット: ゲーム中に、解答済みの枠をすべて消して最初からやり直す(範囲はそのまま)。
+    var resetBtn = document.createElement('button');
+    resetBtn.type = 'button';
+    resetBtn.className = 'dameke-search-add-btn dameke-dexfill-reset-btn';
+    resetBtn.textContent = 'リセット';
+    statusRow.appendChild(resetBtn);
+    var retryBtn = document.createElement('button');
+    retryBtn.type = 'button';
+    retryBtn.className = 'dameke-search-add-btn dameke-minigame-retry-btn';
+    retryBtn.textContent = 'リトライ';
+    statusRow.appendChild(retryBtn);
+    wrap.appendChild(statusRow);
+
+    var boardHost = document.createElement('div');
+    boardHost.className = 'dameke-dexfill-board';
+    wrap.appendChild(boardHost);
+
+    host.appendChild(wrap);
+
+    // 描画中の枠と世代見出しへの参照(解答のたびに全体を作り直さず、該当する枠だけ書き換える)。
+    var cellsByRoot = Object.create(null);   // 種の名前 → [{ cell, pokemon }]
+    var genCountEls = Object.create(null);   // 世代 → 件数表示の要素
+
+    function groupsInRange(){
+      return index.groups.filter(function(g){ return !!dexFillGens[g.generation]; });
+    }
+
+    // 枠の中身を入れる。画像を出し、取得できなければ名前を出す。
+    function fillCell(cell, pokemon, missed){
+      cell.innerHTML = '';
+      cell.classList.remove('dameke-dexfill-cell-name');
+      cell.classList.add(missed ? 'dameke-dexfill-cell-missed' : 'dameke-dexfill-cell-open');
+      cell.title = pokemon.name;
+      function showName(){
+        cell.innerHTML = '';
+        cell.classList.add('dameke-dexfill-cell-name');
+        cell.textContent = pokemon.name;
+      }
+      var img = window.__damekeBuildPokemonImage ? window.__damekeBuildPokemonImage(pokemon.name, showName) : null;
+      if(img) cell.appendChild(img); else showName();
+    }
+
+    function renderBoard(){
+      boardHost.innerHTML = '';
+      cellsByRoot = Object.create(null);
+      genCountEls = Object.create(null);
+      var selected = GENERATIONS.filter(function(g){ return !!dexFillGens[g]; });
+      if(!selected.length){
+        var empty = document.createElement('div');
+        empty.className = 'dameke-dexfill-empty';
+        empty.textContent = '「範囲」で世代を1つ以上選んでください。';
+        boardHost.appendChild(empty);
+        return;
+      }
+      var gridByGen = Object.create(null);
+      selected.forEach(function(g){
+        var section = document.createElement('div');
+        section.className = 'dameke-dexfill-gen';
+        var head = document.createElement('div');
+        head.className = 'dameke-dexfill-gen-title';
+        head.appendChild(document.createTextNode('第' + g + '世代'));
+        var count = document.createElement('span');
+        count.className = 'dameke-dexfill-gen-count';
+        head.appendChild(count);
+        genCountEls[g] = count;
+        section.appendChild(head);
+        var grid = document.createElement('div');
+        grid.className = 'dameke-dexfill-grid';
+        section.appendChild(grid);
+        gridByGen[g] = grid;
+        boardHost.appendChild(section);
+      });
+      index.groups.forEach(function(group){
+        var grid = gridByGen[group.generation];
+        if(!grid) return;
+        var opened = !!dexFillOpened[group.root];
+        var list = cellsByRoot[group.root] = [];
+        group.members.forEach(function(p){
+          var cell = document.createElement('div');
+          cell.className = 'dameke-dexfill-cell';
+          if(opened) fillCell(cell, p, false);
+          else if(dexFillGaveUp) fillCell(cell, p, true);
+          if(opened && dexFillLastRoots.indexOf(group.root) >= 0) cell.classList.add('dameke-dexfill-cell-new');
+          grid.appendChild(cell);
+          list.push({ cell: cell, pokemon: p });
+        });
+      });
+    }
+
+    function renderStatus(){
+      var inRange = groupsInRange();
+      var done = 0;
+      var perGen = Object.create(null);
+      inRange.forEach(function(g){
+        var s = perGen[g.generation] || (perGen[g.generation] = { total: 0, done: 0 });
+        s.total++;
+        if(dexFillOpened[g.root]){ s.done++; done++; }
+      });
+      Object.keys(genCountEls).forEach(function(g){
+        var s = perGen[g] || { total: 0, done: 0 };
+        genCountEls[g].textContent = s.done + ' / ' + s.total;
+      });
+      progressEl.textContent = '解答済み ' + done + ' / ' + inRange.length + '種';
+      var complete = inRange.length > 0 && done === inRange.length;
+      completeEl.hidden = !complete || dexFillGaveUp;
+      giveUpBtn.hidden = dexFillGaveUp || complete || !inRange.length;
+      resetBtn.hidden = giveUpBtn.hidden;
+      retryBtn.hidden = !(dexFillGaveUp || complete);
+      var canAnswer = !dexFillGaveUp && inRange.length > 0;
+      input.disabled = !canAnswer;
+      submitBtn.disabled = !canAnswer;
+      messageEl.className = 'dameke-dexfill-message' + (dexFillMessage ? ' dameke-dexfill-message-' + dexFillMessage.kind : '');
+      messageEl.textContent = dexFillMessage ? dexFillMessage.text : '';
+    }
+
+    function clearNewMarks(){
+      dexFillLastRoots.forEach(function(root){
+        (cellsByRoot[root] || []).forEach(function(c){ c.cell.classList.remove('dameke-dexfill-cell-new'); });
+      });
+      dexFillLastRoots = [];
+    }
+
+    function onRangeChanged(){
+      dexFillMessage = null;
+      saveDexFillProgress();
+      renderBoard();
+      renderStatus();
+    }
+
+    // 枠の一覧(boardHost)だけを動かして、開いた枠が見える位置までスクロールする。ページ全体は
+    // 動かさない(入力欄が画面外へ行かないようにするため)。すでに全部見えていれば何もしない。
+    function scrollBoardToCells(list){
+      if(!list || !list.length) return;
+      var board = boardHost.getBoundingClientRect();
+      var first = list[0].cell.getBoundingClientRect();
+      var last = list[list.length - 1].cell.getBoundingClientRect();
+      if(first.top >= board.top && last.bottom <= board.bottom) return;
+      var middle = (first.top + last.bottom) / 2 - board.top + boardHost.scrollTop;
+      var top = Math.max(0, Math.round(middle - boardHost.clientHeight / 2));
+      if(boardHost.scrollTo) boardHost.scrollTo({ top: top, behavior: 'smooth' });
+      else boardHost.scrollTop = top;
+    }
+
+    function submitAnswer(){
+      if(dexFillGaveUp) return;
+      var raw = input.value;
+      var key = dexFillNormalize(raw);
+      if(!key) return;
+      var group = index.byKey[key];
+      if(!group){
+        dexFillMessage = { text: '「' + raw.trim() + '」に当てはまるポケモンがいません', kind: 'bad' };
+        renderStatus();
+        input.select();
+        return;
+      }
+      if(!dexFillGens[group.generation]){
+        dexFillMessage = { text: '「' + group.root + '」は範囲外です', kind: 'info' };
+        renderStatus();
+        input.select();
+        return;
+      }
+      if(dexFillOpened[group.root]){
+        dexFillMessage = { text: '「' + group.root + '」は解答済みです', kind: 'info' };
+        renderStatus();
+        input.select();
+        return;
+      }
+      clearNewMarks();
+      dexFillOpened[group.root] = true;
+      dexFillLastRoots = [group.root];
+      (cellsByRoot[group.root] || []).forEach(function(c){
+        fillCell(c.cell, c.pokemon, false);
+        c.cell.classList.add('dameke-dexfill-cell-new');
+      });
+      dexFillMessage = {
+        text: '正解！ ' + group.root + (group.members.length > 1 ? '(' + group.members.length + '体)' : ''),
+        kind: 'ok'
+      };
+      input.value = '';
+      saveDexFillProgress();
+      renderStatus();
+      input.focus();
+      scrollBoardToCells(cellsByRoot[group.root]);
+    }
+
+    submitBtn.addEventListener('click', submitAnswer);
+    input.addEventListener('keydown', function(e){
+      // 日本語入力の変換確定のEnterでは決定しない(確定後のEnterで決定する)。
+      if(e.key !== 'Enter' || e.isComposing || e.keyCode === 229) return;
+      e.preventDefault();
+      submitAnswer();
+    });
+
+    giveUpBtn.addEventListener('click', function(){
+      if(dexFillGaveUp) return;
+      if(!window.confirm('ギブアップして、残りの枠をすべて表示しますか？')) return;
+      dexFillGaveUp = true;
+      dexFillMessage = null;
+      saveDexFillProgress();
+      renderBoard();
+      renderStatus();
+      boardHost.scrollTop = 0;
+    });
+
+    // 解答済みの記録をすべて消して最初からやり直す(リトライ・リセット共通。範囲はそのまま)。
+    function restartDexFill(){
+      dexFillOpened = Object.create(null);
+      dexFillGaveUp = false;
+      dexFillLastRoots = [];
+      dexFillMessage = null;
+      input.value = '';
+      saveDexFillProgress();
+      renderBoard();
+      renderStatus();
+    }
+    retryBtn.addEventListener('click', restartDexFill);
+    resetBtn.addEventListener('click', function(){
+      // 1つも解答していなければ確認なしでよい(消えるものがないため)。
+      if(Object.keys(dexFillOpened).length && !window.confirm('解答済みの枠をすべて消して、最初からやり直しますか？')) return;
+      restartDexFill();
+    });
+
+    renderBoard();
+    renderStatus();
   }
 })();
