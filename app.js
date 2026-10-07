@@ -726,6 +726,8 @@ window.__damekeFmtFaintPct = fmtFaintPct;
   // 有無に関わらず)常に「無効」とする。
   function formatKoInfo(result) {
     if (!result) return '計算対象外';
+    // 変化技: ダメージがないので確定数は出さない(変化技として無効になる場合だけ「無効」)。
+    if (result.effectiveCategory === '変化' && result.statusMove) return result.isInvalid ? '無効' : '-';
     var isInvalidMove = result.typeRate4096 === 0 || result.effectiveCategory === '変化';
     if (result.substituteActive) {
       if (isInvalidMove) return '無効';
@@ -1358,11 +1360,7 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     var arr=(e && Array.isArray(e[key])) ? e[key] : [];
     return arr.filter(function(x){ return x && (x.id || x.label); }).slice(0, n);
   }
-  function usageRateText(rate){
-    if(typeof rate!=='number' || !isFinite(rate)) return '';
-    if(rate>0 && rate<0.5) return '<1%';
-    return Math.round(rate)+'%';
-  }
+  function usageRateText(rate){ return window.DAMEKE_COMMON.usageRateText(rate); }
   // 努力値の採用率データ("H32/A0/B20/C14/D0/S0")。簡易入力の選択肢の値は 'usage:'+この文字列。
   function parseUsageSpread(value){
     var m=/^(?:usage:)?H(\d+)\/A(\d+)\/B(\d+)\/C(\d+)\/D(\d+)\/S(\d+)$/.exec(String(value||''));
@@ -1426,7 +1424,7 @@ window.__damekeFmtFaintPct = fmtFaintPct;
   window.__damekeRefreshUsageUi = function(){ refreshUsageUi(false); };
   function initUsageSuggestions(){
     // 候補一覧(技・持ち物)は横幅に余裕があるので、採用率を小数第1位まで出す(ボタン・努力値は整数)。
-    function listRateText(rate){ return (typeof rate==='number' && isFinite(rate)) ? rate.toFixed(1)+'%' : ''; }
+    function listRateText(rate){ return window.DAMEKE_COMMON.usageListRateText(rate); }
     function rated(side, key){ return function(){ return usageTop(side,key,10).map(function(x){ return { text:x.id, rate:listRateText(x.rate) }; }); }; }
     [['attackerItemSelect','attacker','items'],['defenderItemSelect','defender','items'],['moveSelect','attacker','moves'],['move2Select','attacker','moves']].forEach(function(t){
       var sel=q(t[0]); if(sel) sel._damekeTopProvider=rated(t[1],t[2]);
@@ -1749,7 +1747,7 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     show('pledgeCombination', ['くさのちかい','ほのおのちかい','みずのちかい','クロスサンダー','クロスフレイム'].indexOf(move)>=0);
     show('psywaveMultiplier', move==='サイコウェーブ'); show('kimagureLaserDouble', move==='きまぐレーザー'); show('fixedDamageTaken', ['カウンター','ミラーコート','がまん','メタルバースト','ほうふく'].indexOf(move)>=0);
     show('statDroppedThisTurn', move==='うっぷんばらし'); show('allyFaintedLastTurn', move==='かたきうち'); var beat=move==='ふくろだたき'||kind==='BeatUp'; for(var i=1;i<=5;i++) show('beatUpAlly'+i, beat);
-    show('rolloutHit', kind==='Rollout'); show('defenseCurl', kind==='Rollout'); show('echoedVoiceCount', kind==='EchoedVoice'); show('moveOrder', kind==='DoubleIfFirst'||kind==='DoubleIfMovedSecond'||move==='コアパニッシャー'); show('targetSwitching', kind==='Pursuit'); show('faintedAllies', kind==='LastRespects'); show('friendship', kind==='Friendship'||kind==='Frustration'); show('remainingPP', kind==='TrumpCard'); show('lastMoveFailed', kind==='DoubleIfLastMoveFailed'); show('userDamagedThisTurn', kind==='DoubleIfUserDamaged'); show('targetDamagedThisTurn', kind==='DoubleIfTargetDamaged'); show('stockpileCount', kind==='SpitUp'); show('presentPower', kind==='Present'); show('rageFistHitCount', kind==='RageFist'); show('magnitudePower', kind==='Magnitude'); show('roundAllyUsed', kind==='Round'); show('furyCutterCount', kind==='FuryCutter'); show('orderUpForm', move==='いっちょうあがり');
+    show('rolloutHit', kind==='Rollout'); show('defenseCurl', kind==='Rollout'); show('echoedVoiceCount', kind==='EchoedVoice'); show('moveOrder', kind==='DoubleIfFirst'||kind==='DoubleIfMovedSecond'||move==='コアパニッシャー'); show('targetSwitching', kind==='Pursuit'); show('faintedAllies', kind==='LastRespects'); show('friendship', kind==='Friendship'||kind==='Frustration'); show('remainingPP', kind==='TrumpCard'); show('lastMoveFailed', kind==='DoubleIfLastMoveFailed'); show('userDamagedThisTurn', kind==='DoubleIfUserDamaged'); show('targetDamagedThisTurn', kind==='DoubleIfTargetDamaged'); show('stockpileCount', kind==='SpitUp'||move==='のみこむ'); show('presentPower', kind==='Present'); show('rageFistHitCount', kind==='RageFist'); show('magnitudePower', kind==='Magnitude'); show('roundAllyUsed', kind==='Round'); show('furyCutterCount', kind==='FuryCutter'); show('orderUpForm', move==='いっちょうあがり');
     ['v082hAbilityDetails','v082hDefenderAbilityDetails','v082hItemDetails','v082hDefenderItemDetails','v082hTeraDetails','v082hMoveDetails'].forEach(detailVisible);
   }
 

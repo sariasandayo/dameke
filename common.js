@@ -120,6 +120,19 @@
     return same.length === 1 ? table[same[0].name] : null;
   }
 
+  // 採用率の表示用の文字列。データがある(0より大きい)ものは、四捨五入で0になっても最小の単位で出す
+  // (「<1%」や「0.0%」とは書かない)。ちょうど0のときだけ 0% / 0.0%。
+  function usageRateText(rate){        // 整数(ボタン・選択肢用)
+    if(typeof rate !== 'number' || !isFinite(rate)) return '';
+    if(rate > 0 && rate < 1) return '1%';
+    return Math.round(rate) + '%';
+  }
+  function usageListRateText(rate){    // 小数第1位(候補一覧用)
+    if(typeof rate !== 'number' || !isFinite(rate)) return '';
+    if(rate > 0 && rate < 0.1) return '0.1%';
+    return rate.toFixed(1) + '%';
+  }
+
   window.DAMEKE_COMMON = {
     TYPE_COLOR_MAP: TYPE_COLOR_MAP,
     typeColorClass: typeColorClass,
@@ -132,6 +145,8 @@
     kanaNormalize: kanaNormalize,
     formatDateTime: formatDateTime,
     loadUsageData: loadUsageData,
-    usageEntryForPokemon: usageEntryForPokemon
+    usageEntryForPokemon: usageEntryForPokemon,
+    usageRateText: usageRateText,
+    usageListRateText: usageListRateText
   };
 })();

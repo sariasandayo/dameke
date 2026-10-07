@@ -1885,10 +1885,35 @@
     headingRow.appendChild(copyBtn);
     form.appendChild(headingRow);
 
+    // 採用率の表示(シングル/ダブルの切り替え)。切り替えはダメージ計算の「シングル/ダブル」と同じ設定を使う。
+    // 採用率データを取得できなかったときは行ごと出さない。
+    var usageBar = document.createElement('div');
+    usageBar.className = 'dameke-pokeedit-usage-bar'; usageBar.hidden = true;
+    var usageBarLabel = document.createElement('span'); usageBarLabel.className = 'dameke-pokeedit-usage-bar-label'; usageBarLabel.textContent = '採用率の表示';
+    var usageSwitch = document.createElement('div'); usageSwitch.className = 'dameke-format-switch';
+    var usageSingle = document.createElement('span'); usageSingle.className = 'dameke-format-single'; usageSingle.textContent = 'シングル';
+    var usageDoubleCb = document.createElement('input'); usageDoubleCb.type = 'checkbox'; usageDoubleCb.id = 'damekePokeEdit_usageDouble'; usageDoubleCb.setAttribute('aria-label', '採用率の表示をダブルにする');
+    var usageDouble = document.createElement('label'); usageDouble.className = 'dameke-format-double'; usageDouble.setAttribute('for', 'damekePokeEdit_usageDouble'); usageDouble.textContent = 'ダブル';
+    usageSwitch.appendChild(usageSingle); usageSwitch.appendChild(usageDoubleCb); usageSwitch.appendChild(usageDouble);
+    var usageNote = document.createElement('span'); usageNote.className = 'dameke-pokeedit-usage-note';
+    usageBar.appendChild(usageBarLabel); usageBar.appendChild(usageSwitch); usageBar.appendChild(usageNote);
+    form.appendChild(usageBar);
+
     var grid = document.createElement('div');
     grid.className = 'dameke-pokemon-edit-grid';
 
     var d = D();
+
+    // 採用率のボタン(下の「採用率上位の提案」で中身を作る)。欄(label)の中、入力部品の下に置き場を用意する。
+    // label の中なので、ボタンのすき間を押しても入力欄が開かないよう、既定の動作を止めておく。
+    var usageReady = false, usageDataLoaded = false, refreshEditUsageImpl = null;
+    function refreshEditUsage(){ if(usageReady && refreshEditUsageImpl) refreshEditUsageImpl(); }
+    function makeUsageChipHost(controlEl){
+      var label = controlEl.closest('label'); if(!label) return null;
+      var host = label.querySelector('.dameke-usage-chips');
+      if(!host){ host = document.createElement('div'); host.className = 'dameke-usage-chips'; host.hidden = true; host.addEventListener('click', function(e){ e.preventDefault(); }); label.appendChild(host); }
+      return host;
+    }
 
     // 1. Pokemon select (search combo)
     var pokemonSel = document.createElement('select'); pokemonSel.id = 'damekePokeEdit_pokemon';
@@ -1929,6 +1954,12 @@
     })();
     itemSel.value = entry.itemId || initialLinkedItem || 'none';
     grid.appendChild(makeField('持ち物', itemSel));
+    // 採用率の高い持ち物(名前が長く数も多いので、欄の下に全幅で並べる)
+    var usageItemRow = document.createElement('div'); usageItemRow.className = 'dameke-pokeedit-usage-row dameke-pokemon-edit-fullwidth'; usageItemRow.hidden = true;
+    var usageItemCap = document.createElement('span'); usageItemCap.className = 'dameke-pokemon-detail-label'; usageItemCap.textContent = '採用率の高い持ち物';
+    var usageItemChips = document.createElement('div'); usageItemChips.className = 'dameke-usage-chips';
+    usageItemRow.appendChild(usageItemCap); usageItemRow.appendChild(usageItemChips);
+    grid.appendChild(usageItemRow);
 
     // 3. Ability -- normally a single field limited to this Pokemon's own possible abilities.
     // When the selected Pokemon+持ち物 combination matches a Mega Evolution, this expands to a
@@ -2005,9 +2036,11 @@
         }
       }
       if(abilitySel._v082hRefreshOptions) abilitySel._v082hRefreshOptions();
+      // 特性欄は作り直されるので、採用率のボタンもそのたびに付け直す。
+      abilitySel.addEventListener('change', function(){ refreshEditUsage(); });
+      refreshEditUsage();
     }
     rebuildAbilityField();
-
 
 
     // 5. Tera type
@@ -2079,6 +2112,12 @@
     var evResetBtn = document.createElement('button'); evResetBtn.type='button'; evResetBtn.className='dameke-pokemon-ev-reset'; evResetBtn.textContent='リセット';
     evPresetWrap.appendChild(evPresetLabel); evPresetWrap.appendChild(evPresetSelect); evPresetWrap.appendChild(evResetBtn);
     form.appendChild(evPresetWrap);
+    // 採用率の高い努力値(押すとその配分を入力する)
+    var usageEvRow = document.createElement('div'); usageEvRow.className = 'dameke-pokeedit-usage-row'; usageEvRow.hidden = true;
+    var usageEvCap = document.createElement('span'); usageEvCap.className = 'dameke-pokemon-detail-label'; usageEvCap.textContent = '採用率の高い努力値';
+    var usageEvChips = document.createElement('div'); usageEvChips.className = 'dameke-usage-chips';
+    usageEvRow.appendChild(usageEvCap); usageEvRow.appendChild(usageEvChips);
+    form.appendChild(usageEvRow);
 
     function applyEvPreset(preset){
       STAT_KEYS_ALL.forEach(function(k){ var e=q('damekePokeEdit_ev_'+k); if(e) e.value='0'; });
@@ -2142,6 +2181,12 @@
       moveGrid.appendChild(makeField('技'+i, moveSel));
     }
     form.appendChild(moveGrid);
+    // 採用率の高い技(押すと空いている枠に入る。入っている技を押すと外す)
+    var usageMoveRow = document.createElement('div'); usageMoveRow.className = 'dameke-pokeedit-usage-row'; usageMoveRow.hidden = true;
+    var usageMoveCap = document.createElement('span'); usageMoveCap.className = 'dameke-pokemon-detail-label'; usageMoveCap.textContent = '採用率の高い技';
+    var usageMoveChips = document.createElement('div'); usageMoveChips.className = 'dameke-usage-chips';
+    usageMoveRow.appendChild(usageMoveCap); usageMoveRow.appendChild(usageMoveChips);
+    form.appendChild(usageMoveRow);
 
     var showAllLabel = document.createElement('label'); showAllLabel.className='dameke-pokemon-showall-label';
     var showAllCb = document.createElement('input'); showAllCb.type='checkbox'; showAllCb.id='damekePokeEdit_moveShowAll';
@@ -2346,6 +2391,109 @@
     });
     updateStatsPreview();
     updateEvRemaining();
+
+    // ---- 採用率上位の提案(ダメージ計算と同じデータ。計算・保存内容には関与せず、押したときに通常の入力と同じ形で値を入れるだけ) ----
+    // 特性・性格は欄のすぐ下、持ち物・努力値・技はそれぞれの欄の下に全幅で、採用率つきのボタンを並べる(いま入っている値は色を付ける)。
+    // 持ち物・技の候補一覧の先頭にも上位10件を出す(ダメージ計算と同じ)。データがないポケモンでは何も出さない。
+    usageReady = true;
+    var usageNatureChips = makeUsageChipHost(natureSel);
+    var globalFormatCb = q('attackerDoubleDamage');
+    function editUsageFormat(){ return usageDoubleCb.checked ? 'doubles' : 'singles'; }
+    function editUsageEntry(format){
+      var C = window.DAMEKE_COMMON, p = findPokemonById(pokemonSel.value);
+      return (C && C.usageEntryForPokemon && p) ? C.usageEntryForPokemon(format || editUsageFormat(), p) : null;
+    }
+    function editUsageTop(key, n){
+      var e = editUsageEntry(), arr = (e && Array.isArray(e[key])) ? e[key] : [];
+      return arr.filter(function(x){ return x && (x.id || x.label); }).slice(0, n);
+    }
+    function optionByText(sel, text){ return Array.prototype.filter.call(sel.options, function(o){ return o.textContent === text; })[0] || null; }
+    function setSelectValue(sel, value){
+      if(sel.value === value) return;
+      sel.value = value;
+      if(sel._v082hRefreshOptions) sel._v082hRefreshOptions();
+      sel.dispatchEvent(new Event('change', {bubbles:true}));
+    }
+    function rateOf(x){ return window.DAMEKE_COMMON.usageRateText(x.rate); }
+    function renderChips(host, chips){
+      host.textContent = '';
+      chips.forEach(function(c){
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'dameke-usage-chip';
+        var nm = document.createElement('span'); nm.className = 'dameke-usage-chip-name'; nm.textContent = c.text; b.appendChild(nm);
+        if(c.rate){ var r = document.createElement('span'); r.className = 'dameke-usage-rate'; r.textContent = c.rate; b.appendChild(r); }
+        b.setAttribute('aria-pressed', c.selected ? 'true' : 'false');
+        if(c.disabled){ b.disabled = true; if(c.title) b.title = c.title; }
+        b.addEventListener('click', c.onClick);
+        host.appendChild(b);
+      });
+      host.hidden = !chips.length;
+    }
+    function selectChips(sel, key, n){
+      var chips = [];
+      editUsageTop(key, n).forEach(function(x){
+        var o = optionByText(sel, x.id); if(!o) return;
+        chips.push({ text: x.id, rate: rateOf(x), selected: sel.value === o.value, onClick: function(){ setSelectValue(sel, o.value); refreshEditUsage(); } });
+      });
+      return chips;
+    }
+    function currentEvLabel(){ return STAT_KEYS_ALL.map(function(k){ return k + (parseInt(q('damekePokeEdit_ev_'+k).value, 10) || 0); }).join('/'); }
+    function refreshEditUsageNow(){
+      var C = window.DAMEKE_COMMON;
+      var any = !!(editUsageEntry('singles') || editUsageEntry('doubles'));
+      var loaded = !!(C && C.usageEntryForPokemon && window.DAMEKE_DATA && (any || usageDataLoaded));
+      usageBar.hidden = !loaded;
+      var here = editUsageEntry();
+      usageNote.textContent = !loaded ? '' : (!any ? 'このポケモンの採用率データはありません' : (!here ? (usageDoubleCb.checked ? 'ダブル' : 'シングル') + 'の採用率データはありません' : ''));
+      // 特性(欄は作り直されるので、ボタンの置き場もその都度用意する)
+      var abHost = abilitySel.parentNode ? makeUsageChipHost(abilitySel) : null;
+      if(abHost) renderChips(abHost, selectChips(abilitySel, 'abilities', 4));
+      renderChips(usageItemChips, selectChips(itemSel, 'items', 6)); usageItemRow.hidden = usageItemChips.hidden;
+      renderChips(usageNatureChips, selectChips(natureSel, 'natures', 5));
+      // 努力値
+      var evNow = currentEvLabel(), evChips = [];
+      editUsageTop('evSpreads', 5).forEach(function(x){
+        var m = /^H(\d+)\/A(\d+)\/B(\d+)\/C(\d+)\/D(\d+)\/S(\d+)$/.exec(String(x.label || '')); if(!m) return;
+        var sp = {}; STAT_KEYS_ALL.forEach(function(k, i){ sp[k] = +m[i+1]; });
+        var parts = STAT_KEYS_ALL.filter(function(k){ return sp[k] > 0; }).map(function(k){ return k + sp[k]; });
+        evChips.push({ text: parts.join(' ') || '無振り', rate: rateOf(x), selected: evNow === x.label, onClick: function(){
+          evPresetSelect.value = '選択なし';
+          STAT_KEYS_ALL.forEach(function(k){ var e = q('damekePokeEdit_ev_'+k); e.value = String(sp[k]); e.dispatchEvent(new Event('change', {bubbles:true})); });
+          updateEvRemaining(); updateStatsPreview(); refreshEditUsage();
+        } });
+      });
+      renderChips(usageEvChips, evChips); usageEvRow.hidden = !evChips.length;
+      // 技(押すと空いている枠へ。入っている技を押すと外す。4枠とも埋まっていれば、入っていない技は押せない)
+      var vals = currentEditMoveValues(), free = -1, mvChips = [];
+      for(var fi = 0; fi < 4; fi++){ if(!vals[fi] || vals[fi] === 'none'){ free = fi; break; } }
+      editUsageTop('moves', 10).forEach(function(x){
+        var o = optionByText(q('damekePokeEdit_move1'), x.id); if(!o) return;
+        var at = vals.indexOf(o.value);
+        mvChips.push({ text: x.id, rate: rateOf(x), selected: at >= 0, disabled: at < 0 && free < 0, title: '技が4つとも入っています',
+          onClick: function(){ var cur = currentEditMoveValues(), pos = cur.indexOf(o.value), slot = -1;
+            if(pos >= 0) slot = pos; else { for(var i = 0; i < 4; i++){ if(!cur[i] || cur[i] === 'none'){ slot = i; break; } } }
+            if(slot < 0) return;
+            setSelectValue(q('damekePokeEdit_move'+(slot+1)), pos >= 0 ? 'none' : o.value); refreshEditUsage(); } });
+      });
+      renderChips(usageMoveChips, mvChips); usageMoveRow.hidden = !mvChips.length;
+    }
+    refreshEditUsageImpl = refreshEditUsageNow;
+    // 候補一覧(持ち物・技)の先頭に上位10件
+    function listProvider(key){ return function(){ return editUsageTop(key, 10).map(function(x){ return { text: x.id, rate: window.DAMEKE_COMMON.usageListRateText(x.rate) }; }); }; }
+    itemSel._damekeTopProvider = listProvider('items');
+    for(var ui = 1; ui <= 4; ui++) q('damekePokeEdit_move'+ui)._damekeTopProvider = listProvider('moves');
+    // シングル/ダブル: ダメージ計算の切り替えと同じ設定。ここで切り替えたら計算側にも反映する。
+    usageDoubleCb.checked = !!(globalFormatCb && globalFormatCb.checked);
+    usageSingle.addEventListener('click', function(){ if(usageDoubleCb.checked){ usageDoubleCb.checked = false; usageDoubleCb.dispatchEvent(new Event('change', {bubbles:true})); } });
+    usageDoubleCb.addEventListener('change', function(){
+      if(globalFormatCb && globalFormatCb.checked !== usageDoubleCb.checked){ globalFormatCb.checked = usageDoubleCb.checked; globalFormatCb.dispatchEvent(new Event('change', {bubbles:true})); }
+      refreshEditUsage();
+    });
+    [pokemonSel, itemSel, natureSel, showAllCb].forEach(function(el){ el.addEventListener('change', function(){ refreshEditUsage(); }); });
+    for(var uj = 1; uj <= 4; uj++) q('damekePokeEdit_move'+uj).addEventListener('change', function(){ refreshEditUsage(); });
+    STAT_KEYS_ALL.forEach(function(k){ var e = q('damekePokeEdit_ev_'+k); e.addEventListener('change', function(){ refreshEditUsage(); }); e.addEventListener('input', function(){ refreshEditUsage(); }); });
+    evPresetSelect.addEventListener('change', function(){ refreshEditUsage(); }); evResetBtn.addEventListener('click', function(){ refreshEditUsage(); });
+    refreshEditUsage();
+    if(window.DAMEKE_COMMON && window.DAMEKE_COMMON.loadUsageData) window.DAMEKE_COMMON.loadUsageData().then(function(data){ usageDataLoaded = !!data; if(form.isConnected) refreshEditUsage(); });
 
     cancelBtn.addEventListener('click', closePokemonEditor);
     saveBtn.addEventListener('click', function(){ commitEditForm(entry); });

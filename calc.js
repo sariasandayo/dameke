@@ -685,6 +685,8 @@ window.DAMEKE_GEM_ELIGIBLE = function(move, name){
   function hasMold(aState, m, o) {
     if (o.moldBreaker) return true;
     if (aState.active && window.DAMEKE_DATA_HELPERS.abilityTag(aState.ability, 'moldBreakerEffect')) return true;
+    // きんしのちから: 変化技を使うとき、かたやぶりと同じ効果(相手の特性を無視する)。
+    if (aState.active && aState.ability && aState.ability.name === 'きんしのちから' && m.category === '変化') return true;
     if (m.ignoresAbilities) return true;
     return MOLD.has(m.name);
   }
@@ -1406,14 +1408,19 @@ window.DAMEKE_GEM_ELIGIBLE = function(move, name){
       aIt = itemActive('A', aItem, aState, dState, o),
       dIt = itemActive('D', dItem, dState, aState, o);
     var weatherResolution = resolveEffectiveWeather(o, aState, dState, aAb, dAb, aIt, dIt, aItem, dItem);
+    // へんしん(技①)の後: 実数値は元のポケモン(trA.orig)で計算し、ABCDSだけ変身時にコピーした値にする
+    // (実数値操作の後の値をコピーしているので、操作の後に上書きする)。フォルム・おもさ・特性・タイプは変身先。
+    const trA = o.__attackerTransform || null,
+      statAtk = (trA && trA.orig) || atk;
     const aCalc = resolveCalcTypes('A', atk, aState, aItem, o, dState),
       dCalc = resolveCalcTypes('D', def, dState, dItem, o, aState),
-      baseAs = getActualStats(atk, al, o.attackerStats),
+      baseAs = getActualStats(statAtk, al, o.attackerStats),
       baseDs = getActualStats(def, dl, o.defenderStats),
       transformed = applyTransformOps(baseAs, baseDs, o.transformOps || [], ignoreWonderRawSwap(aState, m)),
       as = transformed.attacker,
       ds = transformed.defender;
-    const aHp = hpBlock('A', atk, as, aItem, aIt, aState, !!input.attackerDynamax, o),
+    if (trA && trA.stats) for (const k of ['A', 'B', 'C', 'D', 'S']) as[k] = trA.stats[k];
+    const aHp = hpBlock('A', statAtk, as, aItem, aIt, aState, !!input.attackerDynamax, o),
       dHp = hpBlock('D', def, ds, dItem, dIt, dState, defDyn, o),
       crit = criticalState(dState, o, m, aState, aAb, aItem, aIt, atk),
       er = effectiveRanks(as.input.ranks, ds.input.ranks, aState, dState, m, o, crit),
@@ -1518,6 +1525,8 @@ window.DAMEKE_GEM_ELIGIBLE = function(move, name){
         rankedD: rkD,
         baseStatsA: baseAs,
         baseStatsD: baseDs,
+        statsA: as,
+        statsD: ds,
         hpBaseA: aHp.baseMax,
         hpBaseD: dHp.baseMax,
         hpDoubledA: aHp.doubled,
@@ -1527,7 +1536,7 @@ window.DAMEKE_GEM_ELIGIBLE = function(move, name){
         powerTrace: window.DAMEKE_CALC_SHARED.makePowerTrace(null, m.power ?? '特殊')
       },
       {
-        attackerName: atk.name,
+        attackerName: statAtk.name,
         defenderName: def.name,
         moveName: m.name,
         effectiveCategory: cat.category,
@@ -1878,8 +1887,12 @@ window.DAMEKE_GEM_ELIGIBLE = function(move, name){
     if (result && result.__coreState) o.__coreState = result.__coreState;
     var as = window.DAMEKE_CALC_SHARED.baseStats(result, 'A'),
       ds = window.DAMEKE_CALC_SHARED.baseStats(result, 'D');
-    var aSp = calcSpeed('A', input.attacker, as.S, (as.input.ranks || {}).S || 0, o.attackerStatus || 'なし', o);
-    var dSp = calcSpeed('D', input.defender, ds.S, (ds.input.ranks || {}).S || 0, o.defenderStatus || 'なし', o);
+    // すばやさの実数値は、実数値操作(スピードスワップ)・へんしんを反映した後の値を使う。
+    var csS = window.DAMEKE_CALC_SHARED.calcState(result);
+    var aRawS = csS && csS.statsA ? csS.statsA.S : as.S,
+      dRawS = csS && csS.statsD ? csS.statsD.S : ds.S;
+    var aSp = calcSpeed('A', input.attacker, aRawS, (as.input.ranks || {}).S || 0, o.attackerStatus || 'なし', o);
+    var dSp = calcSpeed('D', input.defender, dRawS, (ds.input.ranks || {}).S || 0, o.defenderStatus || 'なし', o);
     function upsertLine(label, sp) {
       var line = (result.trace || []).find(function (x) {
         return String(x.label) === label;
@@ -2020,8 +2033,10 @@ window.DAMEKE_GEM_ELIGIBLE = function(move, name){
     } else if (move.powerKind === 'TripleKick') {
       for (var j = 1; j <= 3; j++) plan.push({ hitIndex: j, basePower: 10 * j, note: 'トリプルキック ' + j + '回目' });
     } else if (move.powerKind === 'WaterShuriken') {
-      var count = window.DAMEKE_DATA_HELPERS.pokemonMatches(attacker, ['ゲッコウガ(サトシ)', 'greninja_ash']) ? 3 : 5;
-      var power = window.DAMEKE_DATA_HELPERS.pokemonMatches(attacker, ['ゲッコウガ(サトシ)', 'greninja_ash']) ? 20 : 15;
+      // へんしん(技①)でゲッコウガ(サトシ)になった場合は、みずしゅりけんは変化しない。
+      var ashGreninja = !(o && o.__attackerTransform) && window.DAMEKE_DATA_HELPERS.pokemonMatches(attacker, ['ゲッコウガ(サトシ)', 'greninja_ash']);
+      var count = ashGreninja ? 3 : 5;
+      var power = ashGreninja ? 20 : 15;
       for (var k = 1; k <= count; k++) plan.push({ hitIndex: k, basePower: power, note: 'みずしゅりけん' });
     } else if (move.powerKind === 'BeatUp') {
       var party = partyForBeatUp(attacker, o);
@@ -2188,9 +2203,19 @@ window.DAMEKE_GEM_ELIGIBLE = function(move, name){
     if (state === 'zmove') {
       var zType = enhancedType(attacker, move, o, true);
       var name = ((D.zMax && D.zMax.zByType) || {})[zType];
-      if (!name || move.category === '変化') {
+      if (move.category === '変化') {
+        // Z変化技: 技そのものは元の技のまま(名前・タイプ・命中・優先度も元の技)。Zパワー効果だけが加わる
+        // (連続計算で反映。技が無効・外れでも発動する)。
+        var zs = clone(move);
+        zs.isZStatus = true;
+        info.status = '有効';
+        info.reason = 'Z変化技(Zパワー)';
+        info.enhancedEffectNote = 'Zパワー効果';
+        return { move: zs, info: info, active: true };
+      }
+      if (!name) {
         info.status = '無効';
-        info.reason = move.category === '変化' ? '変化技のタイプ別Zは現段階では未実装' : 'Z技名未定義';
+        info.reason = 'Z技名未定義';
         return { move: move, info: info, active: false };
       }
       var z = clearMulti(clone(move));
@@ -2324,7 +2349,13 @@ window.DAMEKE_GEM_ELIGIBLE = function(move, name){
       );
       replaceTrace(result, '技名変換', t.info.originalMoveName, t.info.transformedMoveName, '');
       result.moveName = t.info.transformedMoveName || result.moveName;
-      result.effectiveType = t.move.type || result.effectiveType;
+      // Z変化技は技そのものが元のままなので、タイプは計算本体が求めたもの(スキン系などの変更後)を使う。
+      if (!t.move.isZStatus) result.effectiveType = t.move.type || result.effectiveType;
+      // ダイウォールは、元の技や特性(スキン系)・場の状態によらずノーマルタイプ(計算過程の表示も合わせる)。
+      if (t.move.isMaxMove && t.move.category === '変化') {
+        var tl = (result.trace || []).find(function (x) { return /^\d+ 技タイプ$/.test(String(x.label)); });
+        if (tl && tl.value !== 'ノーマル') { tl.value = 'ノーマル'; tl.note = 'ダイウォールは常にノーマルタイプ'; }
+      }
       result.effectiveMove = t.move;
       result.originalMoveName = t.info.originalMoveName;
     }
@@ -3394,13 +3425,17 @@ function abilityImmunity(result, o, moveType) {
     var aOk=activeAbility('A',aAb,o,result), dOk=activeAbility('D',dAb,o,result);
     var invisible = o.defenderSemiInvulnerable||'なし';
     var special = o.attackerSpecialState||'none';
+    // 変化技: 相手を対象にしない技(自分・味方・場が対象)は命中判定がない。Z変化技は元の技の命中のまま。
+    var isStatus = (result.effectiveCategory||input.move.category)==='変化';
+    if(isStatus && statusMoveClass(result,input,o)!=='opp') return {result:'必中', reason:'相手を対象にしない変化技', invalidated:false};
+    if(isStatus) special = 'none';
 
     if((aOk&&aAb.name==='ノーガード')||(dOk&&dAb.name==='ノーガード')) return {result:'必中', reason:'ノーガード', invalidated:false};
 
     if(o.attackerLockOn) return {result:'必中', reason:'ロックオン', invalidated:false};
 
     var tera=o.attackerTeraType||'なし';
-    var toxicTeraMatch = (tera==='どく') || (tera==='なし' && attackerCalcTypes(result).indexOf('どく')>=0);
+    var toxicTeraMatch = (tera==='どく') || ((tera==='なし'||tera==='ステラ') && attackerCalcTypes(result).indexOf('どく')>=0);
     if(toxicTeraMatch && n==='どくどく') return {result:'必中', reason:'テラスタイプどく+どくどく', invalidated:false};
 
     if(invisible==='そらをとぶ' && ['かぜおこし','たつまき','かみなり','スカイアッパー','うちおとす','ぼうふう','サウザンアロー'].indexOf(n)<0) return {result:'当たらない', reason:'相手はそらをとぶ中', invalidated:true};
@@ -3486,7 +3521,8 @@ function abilityImmunity(result, o, moveType) {
     var total = base;
     var notes = ['基礎='+base];
 
-    if(aOk && aAb.name==='いたずらごころ' && cat==='変化'){ total+=1; notes.push('いたずらごころ+1'); }
+    // しぜんのちからで出た技は、しぜんのちから(変化技)として選ぶので、いたずらごころの対象。
+    if(aOk && aAb.name==='いたずらごころ' && (cat==='変化' || effMove.naturePower)){ total+=1; notes.push('いたずらごころ+1'); }
 
     var galeWingsExcluded = ['めざめるパワー','しぜんのめぐみ','さばきのつぶて','マルチアタック','めざめるダンス','テラバースト'];
     if(aOk && aAb.name==='はやてのつばさ' && type==='ひこう' && galeWingsExcluded.indexOf(n)<0){ total+=1; notes.push('はやてのつばさ+1'); }
@@ -3514,6 +3550,17 @@ function abilityImmunity(result, o, moveType) {
     var attackerLevel=num(input.attackerLevel,50), defenderLevel=num(input.defenderLevel,50);
     var priority=priorityInfo(result,input,o).value;
     var invisible=o.defenderSemiInvulnerable||'なし';
+    // 変化技のうち、相手を対象にしない技(自分・味方・場が対象)は、先制技無効・音技無効などの対象外。
+    var oppTargeted=(result.effectiveCategory||input.move.category)!=='変化' || statusMoveClass(result,input,o)==='opp';
+
+    // しぜんのちから: 変化技として選ぶので、とつげきチョッキでは使えず、いたずらごころで優先度が上がるとあくタイプに無効。
+    var npMove=(result.effectiveMove||input.move).naturePower;
+    if(npMove){
+      if(aItemOk && aItem.name==='とつげきチョッキ') return {invalid:true,reason:'とつげきチョッキにより変化技(しぜんのちから)は使用不可'};
+      var npAb=by(D.abilities,o.attackerAbilityId||'なし');
+      if(activeAbility('A',npAb,o,result) && npAb.name==='いたずらごころ' && statusDefenderTypes(result,o).indexOf('あく')>=0)
+        return {invalid:true,reason:'あくタイプ(いたずらごころで優先度が上がった技)により無効'};
+    }
 
     if(o.gravity && ['はねる','とびげり','とびひざげり','でんじふゆう','そらをとぶ','とびはねる','フリーフォール','テレキネシス','フライングプレス'].indexOf(n)>=0)
       return {invalid:true,reason:'じゅうりょく中は'+n+'不可'};
@@ -3570,15 +3617,15 @@ function abilityImmunity(result, o, moveType) {
     if(['じばく','だいばくはつ','ビックリヘッド','ミストバースト'].indexOf(n)>=0 && dOk && dAb.name==='しめりけ')
       return {invalid:true,reason:'しめりけにより爆発技無効'};
 
-    if(priority>=1 && dOk && ['ビビッドボディ','じょおうのいげん','テイルアーマー'].indexOf(dAb.name)>=0)
+    if(oppTargeted && priority>=1 && dOk && ['ビビッドボディ','じょおうのいげん','テイルアーマー'].indexOf(dAb.name)>=0)
       return {invalid:true,reason:dAb.name+'により先制技無効'};
 
-    if((o.field||'なし')==='サイコフィールド' && isGrounded(result,'D') && invisible==='なし' && priority>=1)
+    if(oppTargeted && (o.field||'なし')==='サイコフィールド' && isGrounded(result,'D') && invisible==='なし' && priority>=1)
       return {invalid:true,reason:'サイコフィールドにより先制技無効'};
 
-    if(window.DAMEKE_DATA_HELPERS.moveTagByName(n,'sound') && dOk && dAb.name==='ぼうおん') return {invalid:true,reason:'ぼうおんにより音技無効'};
+    if(oppTargeted && window.DAMEKE_DATA_HELPERS.moveTagByName(n,'sound') && dOk && dAb.name==='ぼうおん') return {invalid:true,reason:'ぼうおんにより音技無効'};
     if((window.DAMEKE_DATA_HELPERS.moveTagByName(n,'ball') || window.DAMEKE_DATA_HELPERS.moveTagByName(n,'bullet')) && dOk && dAb.name==='ぼうだん') return {invalid:true,reason:'ぼうだんにより弾技無効'};
-    if(window.DAMEKE_DATA_HELPERS.moveTagByName(n,'wind') && dOk && dAb.name==='かぜのり') return {invalid:true,reason:'かぜのりにより風技無効'};
+    if(oppTargeted && window.DAMEKE_DATA_HELPERS.moveTagByName(n,'wind') && dOk && dAb.name==='かぜのり') return {invalid:true,reason:'かぜのりにより風技無効'};
 
     if(n==='がむしゃら' && attackerCurrentHp(result)>=result.defenderCurrentHp) return {invalid:true,reason:'がむしゃらは自分の残りHPが相手以上だと無効'};
     // シンクロノイズ: 攻撃側と防御側で同じタイプを1つも持っていなければ無効。
@@ -3597,6 +3644,120 @@ function abilityImmunity(result, o, moveType) {
     }
 
     return {invalid:false,reason:''};
+  }
+  // ==== 変化技 ====
+  // 対象の区分: 'opp'=相手 / 'self'=自分・味方・場 / 'all'=全員(相手への分だけが防がれる) / 'none'=対象外(処理しない)。
+  // 表(DAMEKE_STATUS_MOVES)に指定があればそれを、なければ技データの対象から決める。
+  function statusMoveClass(result,input,o){
+    var eff=result.effectiveMove||input.move, n=moveName(result,input);
+    if(eff && eff.isMaxMove) return 'self';      // ダイウォール
+    var meta=(window.DAMEKE_STATUS_MOVES||{})[n]||{};
+    if(meta.cls==='curse'){
+      // のろい: 使用者がゴーストタイプ(テラスタル中はテラスタイプ)なら相手が対象、それ以外は自分が対象。
+      var tera=o.attackerTeraType||'なし';
+      var ty=(tera!=='なし'&&tera!=='ステラ')?[tera]:attackerCalcTypes(result);
+      return ty.indexOf('ゴースト')>=0 ? 'opp' : 'self';
+    }
+    if(meta.cls) return meta.cls;
+    if(eff && eff.isZMove) return 'self';        // 変化技の専用Z(ナインエボルブースト)
+    var t=window.DAMEKE_DATA_HELPERS.moveTarget(input.move);
+    if(t==='1体選択'||t==='相手全体'||t==='自分以外') return 'opp';
+    if(t==='全体'||t==='自分を含む全員') return 'all';
+    if(t==='不定') return 'none';
+    return 'self';
+  }
+  // 防御側のタイプ(テラスタル中(ステラ以外)はテラスタイプ、それ以外は計算上タイプ)。
+  function statusDefenderTypes(result,o){
+    var t=o.defenderTeraType||'なし';
+    return (t!=='なし'&&t!=='ステラ') ? [t] : window.DAMEKE_CALC_SHARED.defenderCalcTypes(result);
+  }
+  // ダイウォールでも防げない変化技(まもるでは防げる技を含む)。
+  var MAX_GUARD_STATUS_BYPASS=['アロマセラピー','アロマミスト','いかりのこな','いのちのしずく','いやしのすず','くろいまなざし','コーチング','このゆびとまれ',
+    'ジャングルヒール','つぼをつく','デコレーション','とおぼえ','ないしょばなし','なかよくする','なみだめ','なりきり','のろい','ほろびのうた','ほえる'];
+  var STATUS_ABSORB={'ちょすい':'みず','かんそうはだ':'みず','よびみず':'みず','ちくでん':'でんき','でんきエンジン':'でんき','ひらいしん':'でんき',
+    'どしょく':'じめん','そうしょく':'くさ','もらいび':'ほのお','こんがりボディ':'ほのお'};
+  var TRANSFORM_FAIL_TARGETS=['オーガポン(みどり(テラスタル))','オーガポン(いど(テラスタル))','オーガポン(かまど(テラスタル))','オーガポン(いしずえ(テラスタル))','テラパゴス(ステラ)'];
+  // 変化技が無効になるか(「無効要素」)の判定。戻り値:
+  //  { name, cls, invalid, reason, reflect(マジックミラーで跳ね返される), oppBlocked(全員が対象の技で相手への分だけ防がれる),
+  //    zPower(Z変化技), skip(対象外の技) }
+  // 判定の順: とつげきチョッキ → じゅうりょく・先制技無効など → まもる → 姿を隠している → マジックミラー →
+  //           おうごんのからだ → いたずらごころ対あく → 粉技・やどりぎのタネ・でんじは → みがわり → 技ごとの条件。
+  // 相手の特性(マジックミラー・おうごんのからだ等)は、かたやぶり・きんしのちからで無視されていれば判定しない。
+  function statusMoveCheck(result,input,o,accuracy,additional){
+    var H=window.DAMEKE_DATA_HELPERS;
+    var n=moveName(result,input), eff=result.effectiveMove||input.move;
+    var meta=(window.DAMEKE_STATUS_MOVES||{})[n]||{};
+    var cls=statusMoveClass(result,input,o);
+    var out={ name:n, cls:cls, invalid:false, reason:'', reflect:false, oppBlocked:false, oppBlockReason:'', zPower:!!(eff&&eff.isZStatus) };
+    if(cls==='none'){ out.skip=true; return out; }
+    var aAb=by(D.abilities,o.attackerAbilityId||'なし'), dAb=by(D.abilities,o.defenderAbilityId||'なし');
+    var aOk=activeAbility('A',aAb,o,result), dOk=activeAbility('D',dAb,o,result);
+    var aItem=by(D.items,o.attackerItemId||'none'), dItem=by(D.items,o.defenderItemId||'none');
+    var aItemOk=activeItem('A',aItem,o,result), dItemOk=activeItem('D',dItem,o,result);
+    function fail(reason, extra){ out.invalid=true; out.reason=reason; if(extra) Object.assign(out,extra); return out; }
+    // とつげきチョッキは「技を選べない」効果なので、跳ね返した技・おどりこでコピーした技(__called)には関係しない。
+    if(!o.__called && aItemOk && aItem.name==='とつげきチョッキ') return fail('とつげきチョッキにより変化技は使用不可');
+    if(additional && additional.invalid) return fail(additional.reason, /かぜのり/.test(additional.reason) ? { absorb:true } : null);
+    var opp=cls==='opp', all=cls==='all';
+    var dTypes=statusDefenderTypes(result,o);
+    var invisible=o.defenderSemiInvulnerable||'なし';
+    var block=null;
+    if(opp||all){
+      var ps=o.defenderProtectState||'none';
+      if(ps==='maxGuard'){ if(!H.moveTagByName(n,'maxGuardBypass') && MAX_GUARD_STATUS_BYPASS.indexOf(n)<0) block='ダイウォール'; }
+      else if(ps!=='none'){ if(!H.moveTagByName(n,'protectBypass')) block='まもる'; }
+      if(opp && block) return fail(block+'により無効');
+      if(opp && accuracy && accuracy.invalidated) return fail(accuracy.reason);
+    }
+    // マジックミラー: マジックコートで跳ね返せる技を跳ね返す(跳ね返された技は、防御側が攻撃側へ使う。再度の反射はない)。
+    if(meta.mc && !o.__noReflect && dOk && dAb.name==='マジックミラー' && invisible==='なし')
+      return fail('マジックミラーにより跳ね返される', { reflect:true });
+    // 技を吸収する特性(ちょすい等): 相手を対象にする変化技も、タイプが合えば無効にして効果を発揮する(自分・場が対象の技は除く)。
+    // 全員が対象の技は、相手への分だけが無効になり、相手の特性の効果が出る。
+    if((opp||all) && !block && dOk && invisible==='なし' && STATUS_ABSORB[dAb.name] && STATUS_ABSORB[dAb.name]===result.effectiveType){
+      if(opp) return fail(dAb.name+'により無効', { absorb:true });
+      block=dAb.name; out.absorb=true;
+    }
+    if(opp||all){
+      if(!block && dOk && dAb.name==='おうごんのからだ') block='おうごんのからだ';
+      if(!block && aOk && aAb.name==='いたずらごころ' && dTypes.indexOf('あく')>=0) block='あくタイプ(いたずらごころで優先度が上がった技)';
+      if(!block && all && H.moveTagByName(n,'sound') && dOk && dAb.name==='ぼうおん') block='ぼうおん';
+      if(opp && block) return fail(block+'により無効');
+      if(all && block){ out.oppBlocked=true; out.oppBlockReason=block; }
+    }
+    if(opp){
+      if(meta.pw){
+        if(dTypes.indexOf('くさ')>=0) return fail('くさタイプには粉技が無効');
+        if(dOk && dAb.name==='ぼうじん') return fail('ぼうじんにより粉技無効');
+        if(dItemOk && dItem.name==='ぼうじんゴーグル') return fail('ぼうじんゴーグルにより粉技無効');
+      }
+      if(n==='やどりぎのタネ' && dTypes.indexOf('くさ')>=0) return fail('くさタイプにはやどりぎのタネが無効');
+      if(n==='でんじは' && result.effectiveType==='でんき' && dTypes.indexOf('じめん')>=0) return fail('じめんタイプにはでんじはが無効');
+      var cs=window.DAMEKE_CALC_SHARED.calcState(result);
+      var dDyn=!!(cs && cs.defenderDynamax);
+      // みがわり: 音技・すりぬけ・防御側ダイマックス中は対象外(ダメージ計算のみがわりと同じ条件)。
+      if(meta.sub===1 && o.defenderSubstitute && !H.moveTagByName(n,'sound') && !(aOk && aAb.name==='すりぬけ') && !dDyn)
+        return fail('みがわりにより無効');
+      if(dDyn && ['アンコール','いちゃもん','スキルスワップ','なかまづくり'].indexOf(n)>=0) return fail('防御側ダイマックス中は'+n+'無効');
+      // ほえる: ダイウォールでは防がれないが、ダイマックス中の相手には無効。
+      if((n==='ほえる' || n==='ふきとばし') && (dDyn || (o.defenderProtectState||'none')==='maxGuard')) return fail('ダイマックス中の相手には'+n+'無効');
+      if(n==='あくむ' && !(o.defenderStatus==='ねむり' || (dOk && dAb.name==='ぜったいねむり'))) return fail('あくむは相手がねむり状態でないと無効');
+      if(n==='ゆうわく' && !((o.attackerGender==='male'&&o.defenderGender==='female')||(o.attackerGender==='female'&&o.defenderGender==='male'))) return fail('ゆうわくは異性でないと無効');
+      if(n==='サイコシフト'){
+        if((o.attackerStatus||'なし')==='なし') return fail('サイコシフトは自分が状態異常でないと無効');
+        if((o.defenderStatus||'なし')!=='なし') return fail('サイコシフトは相手が既に状態異常だと無効');
+      }
+      if(n==='テレキネシス' && H.isTelekinesisImmune(input.defender)) return fail('テレキネシスが無効なポケモン');
+      if(n==='ミラータイプ'){
+        var dTera=o.defenderTeraType||'なし';
+        if((dTera==='なし'||dTera==='ステラ') && !dTypes.some(function(t){ return t && t!=='なし' && t!=='タイプなし'; })) return fail('ミラータイプは相手がタイプなしだと無効');
+      }
+      if(n==='へんしん'){
+        if(input.defender && TRANSFORM_FAIL_TARGETS.indexOf(input.defender.name)>=0) return fail('へんしんは'+input.defender.name+'には無効');
+        if((o.attackerTeraType||'なし')==='ステラ') return fail('へんしんはテラスタイプがステラだと無効');
+      }
+    }
+    return out;
   }
   function moveType(result,input){return result.effectiveType||input.move.type;}
   function moveCat(result,input){return result.effectiveCategory||input.move.category;}
@@ -3889,6 +4050,14 @@ function abilityImmunity(result, o, moveType) {
     var extraInvalidReason = accuracy.invalidated ? accuracy.reason : additional.invalid ? additional.reason : null;
     zero = zero || accuracy.invalidated || additional.invalid;
     result.isInvalid = zero;
+    // 変化技: ダメージは常に0。「無効要素」(isInvalid)は、変化技として無効になる場合だけ「あり」。
+    var statusInfo = null;
+    if (moveCat(result, input) === '変化') {
+      statusInfo = statusMoveCheck(result, input, o, accuracy, additional);
+      result.statusMove = statusInfo;
+      result.isInvalid = !!statusInfo.invalid;
+      if (statusInfo.invalid) result.invalidReason = statusInfo.reason;
+    }
     if (zero) {
       result.rolls = [0];
       result.rawRolls = [0];
@@ -3907,6 +4076,7 @@ function abilityImmunity(result, o, moveType) {
           : typeRateForZero === 0
             ? 'タイプ相性により無効'
             : extraInvalidReason || '変化技または無効';
+      if (statusInfo) zeroReason = statusInfo.invalid ? statusInfo.reason : '変化技(ダメージなし)';
       setTrace(
         result,
         'N66 ダメージ補正値',
@@ -4297,6 +4467,299 @@ function abilityImmunity(result, o, moveType) {
 })();
 
 
+
+/* 変化技のデータ(技①→技②連続計算で使用)。元データ: 「変化技一覧」(ユーザー確認済みのExcel)。
+   技ごとの項目:
+     sub : 1=相手がみがわり状態だと失敗する / 'part'=一部の効果だけがみがわりに防がれる(きりばらい)
+     mc  : 1=マジックコート・マジックミラーで跳ね返される      pw : 1=粉技
+     cls : 対象の区分。'opp'=相手 / 'self'=自分・味方・場 / 'all'=全員 / 'none'=対象外(処理しない) / 'curse'=のろい。
+           省略時は技データの対象から決める(1体選択・相手全体・自分以外=相手、全体・自分を含む全員=全員、それ以外=自分・味方・場)。
+     z   : Zパワー効果。r=自分のランク上昇 / crit=急所ランク / heal=HP全回復 / reset=下がった能力を元に戻す /
+           note=表示のみ / none=効果なし / curse=のろい(ゴースト:HP全回復、それ以外:こうげき+1)。項目なし=Zワザにできない技。
+     fx  : 効果の一覧。t は 'U'=使用者 / 'T'=対象(マジックミラーで跳ね返された技は、使用者と対象が入れ替わる)。
+       rank(t, s, cond, sun, opp, subPart) ランク変動   status(st) 状態異常   confuse こんらん   note(t, text) 表示のみ
+       mental(text) メンタル系(表示のみ)   weather(w) / field(f) / gravity   heal(t, r=割合/4096 または by=条件で決まる割合)
+       costRank(den, s) HP消費+ランク上昇   bellyDrum / subSelf / cureU(only) / selfKO
+       opt(key, v | inc | toggle) 入力欄に対応する状態(U:/T: は使用者側/対象側)   flag(f, on) ターン終了時などに働く状態
+       abil(mode) 特性の変更   itemSwap / bestow / itemRemove / teatime / stuffCheeks 持ち物
+       tops(op) 実数値操作   rankSwap(keys) / rankCopy / rankInvert / rankResetAll / crit(n)
+       painSplit / purify / psychoShift / strengthSap / rest / swallow / curse / transform / reflectType / camouflage /
+       courtChange / clearSub / screenClear / fieldClear / healBlock / tailwind / acupressure */
+(function(){
+  window.DAMEKE_STATUS_MOVES = {
+    'アクアリング': { z: { r: { B: 1 } }, fx: [{ k: 'flag', f: 'aquaRing', on: 'U' }] },
+    'あくび': { sub: 1, mc: 1, z: { r: { S: 1 } }, fx: [{ k: 'note', t: 'T', text: 'ねむけ' }] },
+    'あくまのキッス': { sub: 1, mc: 1, z: { r: { S: 1 } }, fx: [{ k: 'status', st: 'ねむり' }] },
+    'あくむ': { sub: 1, z: { r: { C: 1 } }, fx: [{ k: 'flag', f: 'nightmare', on: 'T' }] },
+    'あさのひざし': { z: { reset: 1 }, fx: [{ k: 'heal', t: 'U', by: 'sun' }] },
+    'アシストギア': { z: { r: { C: 1 } }, fx: [{ k: 'rank', t: 'U', s: { A: 1, C: 1 }, cond: 'plusMinus' }] },
+    'あまいかおり': { sub: 1, mc: 1, z: { r: { acc: 1 } }, fx: [{ k: 'rank', t: 'T', s: { eva: -2 } }] },
+    'あまえる': { sub: 1, mc: 1, z: { r: { B: 1 } }, fx: [{ k: 'rank', t: 'T', s: { A: -2 } }] },
+    'あまごい': { z: { r: { S: 1 } }, fx: [{ k: 'weather', w: 'あめ' }] },
+    'あやしいひかり': { sub: 1, mc: 1, z: { r: { C: 1 } }, fx: [{ k: 'confuse' }] },
+    'あられ': { z: { r: { S: 1 } }, fx: [{ k: 'weather', w: 'ゆき' }] },
+    'アロマセラピー': { z: { heal: 1 }, fx: [{ k: 'cureU' }] },
+    'アロマミスト': { z: { r: { D: 2 } }, fx: [] },
+    'アンコール': { mc: 1, z: { r: { S: 1 } }, fx: [{ k: 'mental', text: 'アンコール' }] },
+    'いえき': { sub: 1, mc: 1, z: { r: { S: 1 } }, fx: [{ k: 'abil', mode: 'suppress' }] },
+    'いかりのこな': { pw: 1, z: { reset: 1 }, fx: [{ k: 'note', t: 'U', text: 'ちゅうもくのまと' }] },
+    'いたみわけ': { sub: 1, z: { r: { B: 1 } }, fx: [{ k: 'painSplit' }] },
+    'いちゃもん': { mc: 1, z: { r: { B: 1 } }, fx: [{ k: 'mental', text: 'いちゃもん' }] },
+    'いとをはく': { sub: 1, mc: 1, z: { r: { S: 1 } }, fx: [{ k: 'rank', t: 'T', s: { S: -2 } }] },
+    'いのちのしずく': { fx: [{ k: 'heal', t: 'U', r: 1024 }] },
+    'いばる': { sub: 1, mc: 1, z: { reset: 1 }, fx: [{ k: 'rank', t: 'T', s: { A: 2 } }, { k: 'confuse' }] },
+    'いやしのすず': { z: { heal: 1 }, fx: [{ k: 'cureU' }] },
+    'いやしのねがい': { z: { none: 1 }, fx: [{ k: 'selfKO' }] },
+    'いやしのはどう': { sub: 1, mc: 1, z: { reset: 1 }, fx: [{ k: 'heal', t: 'T', by: 'pulse' }] },
+    'いやなおと': { mc: 1, z: { r: { A: 1 } }, fx: [{ k: 'rank', t: 'T', s: { B: -2 } }] },
+    'うそなき': { sub: 1, mc: 1, z: { r: { C: 1 } }, fx: [{ k: 'rank', t: 'T', s: { D: -2 } }] },
+    'うたう': { mc: 1, z: { r: { S: 1 } }, fx: [{ k: 'status', st: 'ねむり' }] },
+    'うつしえ': { cls: 'opp', fx: [{ k: 'abil', mode: 'copyToU' }] },
+    'うらみ': { mc: 1, z: { heal: 1 }, fx: [{ k: 'note', t: 'T', text: 'PP減少' }] },
+    'エレキフィールド': { z: { r: { S: 1 } }, fx: [{ k: 'field', f: 'エレキフィールド' }] },
+    'えんまく': { sub: 1, mc: 1, z: { r: { eva: 1 } }, fx: [{ k: 'rank', t: 'T', s: { acc: -1 } }] },
+    'おいかぜ': { z: { crit: 2 }, fx: [{ k: 'tailwind' }] },
+    'おいわい': { z: { r: { A: 1, B: 1, C: 1, D: 1, S: 1 } }, fx: [] },
+    'オウムがえし': { cls: 'none', z: { r: { A: 2 } }, fx: [] },
+    'オーロラベール': { z: { r: { S: 1 } }, fx: [{ k: 'note', t: 'U', text: 'オーロラベール', cond: 'snow' }] },
+    'おかたづけ': { fx: [{ k: 'rank', t: 'U', s: { A: 1, S: 1 } }, { k: 'clearSub' }] },
+    'おきみやげ': { sub: 1, z: { note: '交代先のHP全回復' }, fx: [{ k: 'rank', t: 'T', s: { A: -2, C: -2 } }, { k: 'selfKO' }] },
+    'おさきにどうぞ': { z: { r: { S: 1 } }, fx: [{ k: 'note', t: 'T', text: 'すぐに行動' }] },
+    'おたけび': { mc: 1, z: { r: { B: 1 } }, fx: [{ k: 'rank', t: 'T', s: { A: -1 } }] },
+    'おだてる': { sub: 1, mc: 1, z: { r: { D: 1 } }, fx: [{ k: 'rank', t: 'T', s: { C: 1 } }, { k: 'confuse' }] },
+    'おちゃかい': { fx: [{ k: 'teatime' }] },
+    'おにび': { sub: 1, mc: 1, z: { r: { A: 1 } }, fx: [{ k: 'status', st: 'やけど' }] },
+    'おまじない': { z: { r: { eva: 1 } }, fx: [{ k: 'note', t: 'U', text: 'おまじない' }] },
+    'おんねん': { z: { note: 'ちゅうもくのまと' }, fx: [{ k: 'note', t: 'U', text: 'おんねん' }] },
+    'ガードシェア': { sub: 1, z: { r: { S: 1 } }, fx: [{ k: 'tops', op: 'guardShare' }] },
+    'ガードスワップ': { z: { r: { S: 1 } }, fx: [{ k: 'rankSwap', keys: ['B', 'D'] }] },
+    'かいでんぱ': { sub: 1, mc: 1, z: { r: { D: 1 } }, fx: [{ k: 'rank', t: 'T', s: { C: -2 } }] },
+    'かいふくしれい': { z: { reset: 1 }, fx: [{ k: 'heal', t: 'U', r: 2048 }] },
+    'かいふくふうじ': { sub: 1, mc: 1, z: { r: { C: 2 } }, fx: [{ k: 'healBlock' }] },
+    'かえんのまもり': { fx: [{ k: 'note', t: 'U', text: 'まもる状態' }] },
+    'かぎわける': { mc: 1, z: { r: { A: 1 } }, fx: [{ k: 'opt', key: 'T:Foresight', v: true }] },
+    'かくばる': { z: { r: { A: 1 } }, fx: [{ k: 'rank', t: 'U', s: { A: 1 } }] },
+    'かげぶんしん': { z: { reset: 1 }, fx: [{ k: 'rank', t: 'U', s: { eva: 1 } }] },
+    'かたくなる': { z: { r: { B: 1 } }, fx: [{ k: 'rank', t: 'U', s: { B: 1 } }] },
+    'かなしばり': { mc: 1, z: { reset: 1 }, fx: [{ k: 'mental', text: 'かなしばり' }] },
+    'からにこもる': { z: { r: { B: 1 } }, fx: [{ k: 'rank', t: 'U', s: { B: 1 } }] },
+    'からをやぶる': { z: { reset: 1 }, fx: [{ k: 'rank', t: 'U', s: { A: 2, C: 2, S: 2, B: -1, D: -1 } }] },
+    'きあいだめ': { z: { r: { acc: 1 } }, fx: [{ k: 'crit', n: 2 }] },
+    'ギアチェンジ': { z: { reset: 1 }, fx: [{ k: 'rank', t: 'U', s: { A: 1, S: 2 } }] },
+    'キノコのほうし': { sub: 1, mc: 1, pw: 1, z: { reset: 1 }, fx: [{ k: 'status', st: 'ねむり' }] },
+    'ギフトパス': { z: { r: { S: 2 } }, fx: [{ k: 'bestow' }] },
+    'きりばらい': { sub: 'part', mc: 1, z: { r: { acc: 1 } }, fx: [{ k: 'rank', t: 'T', s: { eva: -1 }, subPart: 1 }, { k: 'screenClear' }, { k: 'fieldClear' }] },
+    'キングシールド': { z: { reset: 1 }, fx: [{ k: 'note', t: 'U', text: 'まもる状態' }] },
+    'きんぞくおん': { mc: 1, z: { r: { C: 1 } }, fx: [{ k: 'rank', t: 'T', s: { D: -2 } }] },
+    'くさぶえ': { mc: 1, z: { r: { S: 1 } }, fx: [{ k: 'status', st: 'ねむり' }] },
+    'くすぐる': { sub: 1, mc: 1, z: { r: { B: 1 } }, fx: [{ k: 'rank', t: 'T', s: { A: -1, B: -1 } }] },
+    'クモのす': { sub: 1, mc: 1, z: { r: { B: 1 } }, fx: [{ k: 'note', t: 'T', text: 'にげられない' }] },
+    'グラスフィールド': { z: { r: { B: 1 } }, fx: [{ k: 'field', f: 'グラスフィールド' }] },
+    'くろいきり': { z: { heal: 1 }, fx: [{ k: 'rankResetAll' }] },
+    'くろいまなざし': { sub: 1, mc: 1, z: { r: { D: 1 } }, fx: [{ k: 'note', t: 'T', text: 'にげられない' }] },
+    'こうごうせい': { z: { reset: 1 }, fx: [{ k: 'heal', t: 'U', by: 'sun' }] },
+    'こうそくいどう': { z: { reset: 1 }, fx: [{ k: 'rank', t: 'U', s: { S: 2 } }] },
+    'コーチング': { fx: [{ k: 'note', t: 'U', text: '味方のこうげき・ぼうぎょ+1' }] },
+    'コートチェンジ': { fx: [{ k: 'courtChange' }] },
+    'こころのめ': { sub: 1, z: { r: { C: 1 } }, fx: [{ k: 'opt', key: 'U:LockOn', v: true }] },
+    'コスモパワー': { z: { r: { D: 1 } }, fx: [{ k: 'rank', t: 'U', s: { B: 1, D: 1 } }] },
+    'コットンガード': { z: { reset: 1 }, fx: [{ k: 'rank', t: 'U', s: { B: 3 } }] },
+    'このゆびとまれ': { z: { reset: 1 }, fx: [{ k: 'note', t: 'U', text: 'ちゅうもくのまと' }] },
+    'こらえる': { z: { reset: 1 }, fx: [{ k: 'note', t: 'U', text: 'こらえる' }] },
+    'こわいかお': { sub: 1, mc: 1, z: { r: { S: 1 } }, fx: [{ k: 'rank', t: 'T', s: { S: -2 } }] },
+    'さいきのいのり': { cls: 'self', fx: [{ k: 'note', t: 'U', text: '控えを復活' }] },
+    'サイコシフト': { sub: 1, z: { r: { C: 2 } }, fx: [{ k: 'psychoShift' }] },
+    'サイコフィールド': { z: { r: { C: 1 } }, fx: [{ k: 'field', f: 'サイコフィールド' }] },
+    'サイドチェンジ': { z: { r: { S: 2 } }, fx: [{ k: 'note', t: 'U', text: '位置を入れ替える' }] },
+    'さいはい': { z: { r: { C: 1 } }, fx: [{ k: 'note', t: 'T', text: 'さいはい' }] },
+    'さいみんじゅつ': { sub: 1, mc: 1, z: { r: { S: 1 } }, fx: [{ k: 'status', st: 'ねむり' }] },
+    'さきおくり': { sub: 1, z: { r: { S: 1 } }, fx: [{ k: 'note', t: 'T', text: 'さきおくり' }] },
+    'さきどり': { cls: 'none', z: { r: { S: 2 } }, fx: [] },
+    'さしおさえ': { sub: 1, mc: 1, z: { r: { C: 1 } }, fx: [{ k: 'opt', key: 'T:Embargo', v: true }] },
+    'さむいギャグ': { fx: [{ k: 'weather', w: 'ゆき' }] },
+    'ジオコントロール': { z: { r: { A: 1, B: 1, C: 1, D: 1, S: 1 } }, fx: [{ k: 'rank', t: 'U', s: { C: 2, D: 2, S: 2 } }] },
+    'じこあんじ': { z: { heal: 1 }, fx: [{ k: 'rankCopy' }] },
+    'じこさいせい': { z: { reset: 1 }, fx: [{ k: 'heal', t: 'U', r: 2048 }] },
+    'しぜんのちから': { cls: 'none', z: { none: 1 }, fx: [] },
+    'しっぽきり': { cls: 'none', fx: [] },
+    'しっぽをふる': { sub: 1, mc: 1, z: { r: { A: 1 } }, fx: [{ k: 'rank', t: 'T', s: { B: -1 } }] },
+    'じばそうさ': { z: { r: { D: 1 } }, fx: [{ k: 'rank', t: 'U', s: { B: 1, D: 1 }, cond: 'plusMinus' }] },
+    'しびれごな': { sub: 1, mc: 1, pw: 1, z: { r: { D: 1 } }, fx: [{ k: 'status', st: 'まひ' }] },
+    'ジャングルヒール': { fx: [{ k: 'heal', t: 'U', r: 1024 }, { k: 'cureU' }] },
+    'じゅうでん': { z: { r: { D: 1 } }, fx: [{ k: 'rank', t: 'U', s: { D: 1 } }, { k: 'opt', key: 'U:charge', v: true }] },
+    'じゅうりょく': { z: { r: { C: 1 } }, fx: [{ k: 'gravity' }] },
+    'じょうか': { sub: 1, z: { r: { A: 1, B: 1, C: 1, D: 1, S: 1 } }, fx: [{ k: 'purify' }] },
+    'しょうりのまい': { fx: [{ k: 'rank', t: 'U', s: { A: 1, B: 1, S: 1 } }] },
+    'しろいきり': { z: { heal: 1 }, fx: [{ k: 'flag', f: 'mist', on: 'U' }] },
+    'しんぴのまもり': { z: { r: { S: 1 } }, fx: [{ k: 'flag', f: 'safeguard', on: 'U' }] },
+    'シンプルビーム': { sub: 1, mc: 1, z: { r: { C: 1 } }, fx: [{ k: 'abil', mode: 'set', name: 'たんじゅん' }] },
+    'スキルスワップ': { z: { r: { S: 1 } }, fx: [{ k: 'abil', mode: 'swap' }] },
+    'スケッチ': { z: { r: { A: 1, B: 1, C: 1, D: 1, S: 1 } }, fx: [{ k: 'note', t: 'U', text: 'スケッチ' }] },
+    'すてゼリフ': { mc: 1, z: { note: '交代先のHP全回復' }, fx: [{ k: 'rank', t: 'T', s: { A: -1, C: -1 } }, { k: 'note', t: 'U', text: '交代' }] },
+    'ステルスロック': { mc: 1, z: { r: { B: 1 } }, fx: [{ k: 'note', t: 'T', text: 'ステルスロック' }] },
+    'すなあつめ': { z: { reset: 1 }, fx: [{ k: 'heal', t: 'U', by: 'sand' }] },
+    'すなあらし': { z: { r: { S: 1 } }, fx: [{ k: 'weather', w: 'すなあらし' }] },
+    'すなかけ': { sub: 1, mc: 1, z: { r: { eva: 1 } }, fx: [{ k: 'rank', t: 'T', s: { acc: -1 } }] },
+    'スピードスワップ': { z: { r: { S: 1 } }, fx: [{ k: 'tops', op: 'speedSwap' }] },
+    'スプーンまげ': { sub: 1, mc: 1, z: { r: { eva: 1 } }, fx: [{ k: 'rank', t: 'T', s: { acc: -1 } }] },
+    'スポットライト': { mc: 1, z: { r: { D: 1 } }, fx: [{ k: 'note', t: 'T', text: 'ちゅうもくのまと' }] },
+    'すりかえ': { sub: 1, z: { r: { S: 2 } }, fx: [{ k: 'itemSwap' }] },
+    'スレッドトラップ': { fx: [{ k: 'note', t: 'U', text: 'まもる状態' }] },
+    'せいちょう': { z: { r: { C: 1 } }, fx: [{ k: 'rank', t: 'U', s: { A: 1, C: 1 }, sun: { A: 2, C: 2 } }] },
+    'そうでん': { sub: 1, z: { r: { C: 1 } }, fx: [{ k: 'note', t: 'T', text: 'そうでん' }] },
+    'ソウルビート': { fx: [{ k: 'costRank', den: 3, s: { A: 1, B: 1, C: 1, D: 1, S: 1 } }] },
+    'ダークホール': { sub: 1, mc: 1, z: { reset: 1 }, fx: [{ k: 'status', st: 'ねむり' }] },
+    'タールショット': { sub: 1, mc: 1, fx: [{ k: 'rank', t: 'T', s: { S: -1 } }, { k: 'opt', key: 'T:TarShot', v: true }] },
+    'たがやす': { z: { r: { A: 1 } }, fx: [{ k: 'rank', t: 'U', s: { A: 1, C: 1 }, cond: 'grassGrounded' }, { k: 'rank', t: 'T', s: { A: 1, C: 1 }, cond: 'grassGrounded', opp: 1 }] },
+    'たくわえる': { z: { heal: 1 }, fx: [{ k: 'rank', t: 'U', s: { B: 1, D: 1 } }] },
+    'たこがため': { sub: 1, fx: [{ k: 'flag', f: 'octolock', on: 'T' }, { k: 'note', t: 'T', text: 'にげられない' }] },
+    'たたみがえし': { z: { r: { B: 1 } }, fx: [{ k: 'note', t: 'U', text: 'まもる状態' }] },
+    'たてこもる': { fx: [{ k: 'rank', t: 'U', s: { B: 2 } }] },
+    'タマゴうみ': { z: { reset: 1 }, fx: [{ k: 'heal', t: 'U', r: 2048 }] },
+    'ちいさくなる': { z: { reset: 1 }, fx: [{ k: 'rank', t: 'U', s: { eva: 2 } }, { k: 'note', t: 'U', text: 'ちいさくなる状態' }] },
+    'ちからをすいとる': { sub: 1, mc: 1, z: { r: { A: 1 } }, fx: [{ k: 'strengthSap' }] },
+    'ちょうおんぱ': { mc: 1, z: { r: { S: 1 } }, fx: [{ k: 'confuse' }] },
+    'ちょうのまい': { z: { reset: 1 }, fx: [{ k: 'rank', t: 'U', s: { C: 1, D: 1, S: 1 } }] },
+    'ちょうはつ': { mc: 1, z: { r: { A: 1 } }, fx: [{ k: 'mental', text: 'ちょうはつ' }] },
+    'つきのひかり': { z: { reset: 1 }, fx: [{ k: 'heal', t: 'U', by: 'sun' }] },
+    'つぶらなひとみ': { sub: 1, mc: 1, z: { r: { B: 1 } }, fx: [{ k: 'rank', t: 'T', s: { A: -1 } }] },
+    'つぼをつく': { z: { crit: 2 }, fx: [{ k: 'acupressure' }] },
+    'つめとぎ': { z: { r: { A: 1 } }, fx: [{ k: 'rank', t: 'U', s: { A: 1, acc: 1 } }] },
+    'つるぎのまい': { z: { reset: 1 }, fx: [{ k: 'rank', t: 'U', s: { A: 2 } }] },
+    'テクスチャー': { z: { r: { A: 1, B: 1, C: 1, D: 1, S: 1 } }, fx: [{ k: 'note', t: 'U', text: 'タイプ変更' }] },
+    'テクスチャー2': { z: { heal: 1 }, fx: [{ k: 'note', t: 'U', text: 'タイプ変更' }] },
+    'デコレーション': { cls: 'self', fx: [{ k: 'note', t: 'U', text: '味方のこうげき・とくこう+2' }] },
+    'てだすけ': { z: { reset: 1 }, fx: [{ k: 'note', t: 'U', text: 'てだすけ' }] },
+    'てっぺき': { z: { reset: 1 }, fx: [{ k: 'rank', t: 'U', s: { B: 2 } }] },
+    'テレキネシス': { sub: 1, mc: 1, z: { r: { C: 1 } }, fx: [{ k: 'opt', key: 'T:Telekinesis', v: true }] },
+    'テレポート': { z: { heal: 1 }, fx: [{ k: 'note', t: 'U', text: '交代' }] },
+    'てをつなぐ': { z: { r: { A: 1, B: 1, C: 1, D: 1, S: 1 } }, fx: [] },
+    'てんしのキッス': { sub: 1, mc: 1, z: { r: { C: 1 } }, fx: [{ k: 'confuse' }] },
+    'でんじは': { sub: 1, mc: 1, z: { r: { D: 1 } }, fx: [{ k: 'status', st: 'まひ' }] },
+    'でんじふゆう': { z: { r: { eva: 1 } }, fx: [{ k: 'opt', key: 'U:MagnetRise', v: true }] },
+    'とおせんぼう': { sub: 1, mc: 1, z: { r: { B: 1 } }, fx: [{ k: 'note', t: 'T', text: 'にげられない' }] },
+    'トーチカ': { z: { r: { B: 1 } }, fx: [{ k: 'note', t: 'U', text: 'まもる状態' }] },
+    'とおぼえ': { z: { r: { A: 1 } }, fx: [{ k: 'rank', t: 'U', s: { A: 1 } }] },
+    'とぎすます': { z: { r: { A: 1 } }, fx: [{ k: 'opt', key: 'U:FocusEnergy', v: true }] },
+    'どくガス': { sub: 1, mc: 1, z: { r: { B: 1 } }, fx: [{ k: 'status', st: 'どく' }] },
+    'どくどく': { sub: 1, mc: 1, z: { r: { B: 1 } }, fx: [{ k: 'status', st: 'もうどく' }] },
+    'どくのいと': { sub: 1, mc: 1, z: { r: { S: 1 } }, fx: [{ k: 'status', st: 'どく' }, { k: 'rank', t: 'T', s: { S: -2 } }] },
+    'どくのこな': { sub: 1, mc: 1, pw: 1, z: { r: { B: 1 } }, fx: [{ k: 'status', st: 'どく' }] },
+    'どくびし': { mc: 1, z: { r: { B: 1 } }, fx: [{ k: 'note', t: 'T', text: 'どくびし' }] },
+    'とぐろをまく': { z: { reset: 1 }, fx: [{ k: 'rank', t: 'U', s: { A: 1, B: 1, acc: 1 } }] },
+    'とける': { z: { reset: 1 }, fx: [{ k: 'rank', t: 'U', s: { B: 2 } }] },
+    'ドラゴンエール': { fx: [{ k: 'note', t: 'U', text: '味方の急所ランク上昇' }] },
+    'トリック': { sub: 1, z: { r: { S: 2 } }, fx: [{ k: 'itemSwap' }] },
+    'トリックガード': { z: { r: { D: 1 } }, fx: [{ k: 'note', t: 'U', text: 'まもる状態' }] },
+    'トリックルーム': { z: { r: { acc: 1 } }, fx: [{ k: 'note', t: 'U', text: 'トリックルーム' }] },
+    'どろあそび': { z: { r: { D: 1 } }, fx: [{ k: 'opt', key: 'mudSport', v: true }] },
+    'ドわすれ': { z: { reset: 1 }, fx: [{ k: 'rank', t: 'U', s: { D: 2 } }] },
+    'ないしょばなし': { mc: 1, z: { r: { D: 1 } }, fx: [{ k: 'rank', t: 'T', s: { C: -1 } }] },
+    'なかまづくり': { sub: 1, mc: 1, z: { r: { D: 1 } }, fx: [{ k: 'abil', mode: 'entrain' }] },
+    'なかよくする': { z: { r: { B: 1 } }, fx: [{ k: 'rank', t: 'T', s: { A: -1 } }] },
+    'なきごえ': { mc: 1, z: { r: { B: 1 } }, fx: [{ k: 'rank', t: 'T', s: { A: -1 } }] },
+    'なまける': { z: { reset: 1 }, fx: [{ k: 'heal', t: 'U', r: 2048 }] },
+    'なみだめ': { sub: 1, mc: 1, z: { r: { B: 1 } }, fx: [{ k: 'rank', t: 'T', s: { A: -1, C: -1 } }] },
+    'なやみのタネ': { sub: 1, mc: 1, z: { r: { S: 1 } }, fx: [{ k: 'abil', mode: 'set', name: 'ふみん' }] },
+    'なりきり': { z: { r: { S: 1 } }, fx: [{ k: 'abil', mode: 'copyToU' }] },
+    'ニードルガード': { z: { r: { B: 1 } }, fx: [{ k: 'note', t: 'U', text: 'まもる状態' }] },
+    'にほんばれ': { z: { r: { S: 1 } }, fx: [{ k: 'weather', w: 'にほんばれ' }] },
+    'にらみつける': { sub: 1, mc: 1, z: { r: { A: 1 } }, fx: [{ k: 'rank', t: 'T', s: { B: -1 } }] },
+    'ねがいごと': { z: { r: { D: 1 } }, fx: [{ k: 'note', t: 'U', text: 'ねがいごと' }] },
+    'ねごと': { cls: 'none', z: { crit: 2 }, fx: [] },
+    'ねこのて': { cls: 'none', z: { none: 1 }, fx: [] },
+    'ねばねばネット': { mc: 1, z: { r: { S: 1 } }, fx: [{ k: 'note', t: 'T', text: 'ねばねばネット' }] },
+    'ねむりごな': { sub: 1, mc: 1, pw: 1, z: { r: { S: 1 } }, fx: [{ k: 'status', st: 'ねむり' }] },
+    'ねむる': { z: { reset: 1 }, fx: [{ k: 'rest' }] },
+    'ねをはる': { z: { r: { D: 1 } }, fx: [{ k: 'opt', key: 'U:Ingrain', v: true }] },
+    'のみこむ': { z: { reset: 1 }, fx: [{ k: 'swallow' }] },
+    'のろい': { cls: 'curse', z: { curse: 1 }, fx: [{ k: 'curse' }] },
+    'ハートスワップ': { z: { crit: 2 }, fx: [{ k: 'rankSwap', keys: ['A', 'B', 'C', 'D', 'S', 'acc', 'eva'] }] },
+    'はいすいのじん': { fx: [{ k: 'rank', t: 'U', s: { A: 1, B: 1, C: 1, D: 1, S: 1 } }, { k: 'note', t: 'U', text: 'にげられない' }] },
+    'ハッピータイム': { z: { r: { A: 1, B: 1, C: 1, D: 1, S: 1 } }, fx: [] },
+    'バトンタッチ': { z: { reset: 1 }, fx: [{ k: 'note', t: 'U', text: '交代' }] },
+    'はねやすめ': { z: { reset: 1 }, fx: [{ k: 'heal', t: 'U', r: 2048 }, { k: 'flag', f: 'roost', on: 'U' }] },
+    'はねる': { z: { r: { A: 3 } }, fx: [] },
+    'ハバネロエキス': { sub: 1, mc: 1, fx: [{ k: 'rank', t: 'T', s: { A: 2, B: -2 } }] },
+    'はらだいこ': { z: { heal: 1 }, fx: [{ k: 'bellyDrum' }] },
+    'バリアー': { z: { reset: 1 }, fx: [{ k: 'rank', t: 'U', s: { B: 2 } }] },
+    'ハロウィン': { sub: 1, mc: 1, z: { r: { A: 1, B: 1, C: 1, D: 1, S: 1 } }, fx: [{ k: 'opt', key: 'T:AddType', v: 'halloween' }] },
+    'パワーシェア': { sub: 1, z: { r: { S: 1 } }, fx: [{ k: 'tops', op: 'powerShare' }] },
+    'パワーシフト': { fx: [{ k: 'tops', op: 'powerTrick' }] },
+    'パワースワップ': { z: { r: { S: 1 } }, fx: [{ k: 'rankSwap', keys: ['A', 'C'] }] },
+    'パワートリック': { z: { r: { A: 1 } }, fx: [{ k: 'tops', op: 'powerTrick' }] },
+    'ひかりのかべ': { z: { r: { D: 1 } }, fx: [{ k: 'note', t: 'U', text: 'ひかりのかべ' }] },
+    'ひっくりかえす': { sub: 1, z: { r: { A: 1 } }, fx: [{ k: 'rankInvert' }] },
+    'ビルドアップ': { z: { r: { A: 1 } }, fx: [{ k: 'rank', t: 'U', s: { A: 1, B: 1 } }] },
+    'ファストガード': { z: { r: { B: 1 } }, fx: [{ k: 'note', t: 'U', text: 'まもる状態' }] },
+    'ふういん': { z: { r: { D: 2 } }, fx: [{ k: 'note', t: 'U', text: 'ふういん' }] },
+    'フェアリーロック': { z: { r: { B: 1 } }, fx: [{ k: 'note', t: 'U', text: 'フェアリーロック' }] },
+    'フェザーダンス': { sub: 1, mc: 1, z: { r: { B: 1 } }, fx: [{ k: 'rank', t: 'T', s: { A: -2 } }] },
+    'ふきとばし': { mc: 1, z: { r: { D: 1 } }, fx: [{ k: 'note', t: 'T', text: '強制交代' }] },
+    'ふしょくガス': { sub: 1, mc: 1, fx: [{ k: 'itemRemove' }] },
+    'プラズマシャワー': { z: { r: { C: 1 } }, fx: [{ k: 'note', t: 'U', text: 'プラズマシャワー' }] },
+    'フラッシュ': { sub: 1, mc: 1, z: { r: { eva: 1 } }, fx: [{ k: 'rank', t: 'T', s: { acc: -1 } }] },
+    'フラフラダンス': { sub: 1, z: { r: { C: 1 } }, fx: [{ k: 'confuse' }] },
+    'フラワーガード': { z: { r: { B: 1 } }, fx: [{ k: 'rank', t: 'U', s: { B: 1 }, cond: 'grass' }, { k: 'rank', t: 'T', s: { B: 1 }, cond: 'grass', opp: 1 }] },
+    'フラワーヒール': { sub: 1, mc: 1, z: { reset: 1 }, fx: [{ k: 'heal', t: 'T', by: 'grassy' }] },
+    'ふるいたてる': { z: { r: { A: 1 } }, fx: [{ k: 'rank', t: 'U', s: { A: 1, C: 1 } }] },
+    'ブレイブチャージ': { fx: [{ k: 'rank', t: 'U', s: { C: 1, D: 1 } }, { k: 'cureU' }] },
+    'ブロッキング': { fx: [{ k: 'note', t: 'U', text: 'まもる状態' }] },
+    'ふんじん': { mc: 1, pw: 1, z: { r: { D: 2 } }, fx: [{ k: 'note', t: 'T', text: 'ふんじん' }] },
+    'ベノムトラップ': { sub: 1, mc: 1, z: { r: { B: 1 } }, fx: [{ k: 'rank', t: 'T', s: { A: -1, C: -1, S: -1 }, cond: 'poisoned' }] },
+    'へびにらみ': { sub: 1, mc: 1, z: { r: { D: 1 } }, fx: [{ k: 'status', st: 'まひ' }] },
+    'へんしん': { sub: 1, cls: 'opp', z: { heal: 1 }, fx: [{ k: 'transform' }] },
+    'ぼうぎょしれい': { z: { r: { B: 1 } }, fx: [{ k: 'rank', t: 'U', s: { B: 1, D: 1 } }] },
+    'ほえる': { mc: 1, z: { r: { B: 1 } }, fx: [{ k: 'note', t: 'T', text: '強制交代' }] },
+    'ほおばる': { fx: [{ k: 'stuffCheeks' }] },
+    'ほごしょく': { z: { r: { eva: 1 } }, fx: [{ k: 'camouflage' }] },
+    'ほたるび': { z: { reset: 1 }, fx: [{ k: 'rank', t: 'U', s: { C: 3 } }] },
+    'ボディパージ': { z: { reset: 1 }, fx: [{ k: 'rank', t: 'U', s: { S: 2 } }, { k: 'opt', key: 'U:BodyPurge', inc: 1 }] },
+    'ほろびのうた': { z: { reset: 1 }, fx: [{ k: 'note', t: 'U', text: 'ほろびのうた' }, { k: 'note', t: 'T', text: 'ほろびのうた', opp: 1 }] },
+    'まきびし': { mc: 1, z: { r: { B: 1 } }, fx: [{ k: 'note', t: 'T', text: 'まきびし' }] },
+    'マジックコート': { z: { r: { D: 2 } }, fx: [{ k: 'note', t: 'U', text: 'マジックコート' }] },
+    'マジックルーム': { z: { r: { D: 1 } }, fx: [{ k: 'opt', key: 'magicRoom', toggle: 1 }] },
+    'まねっこ': { cls: 'none', z: { r: { acc: 1 } }, fx: [] },
+    'まほうのこな': { sub: 1, mc: 1, pw: 1, fx: [{ k: 'opt', key: 'T:TypeOverride', v: 'magicPowder' }] },
+    'まもる': { z: { reset: 1 }, fx: [{ k: 'note', t: 'U', text: 'まもる状態' }] },
+    'まるくなる': { z: { r: { acc: 1 } }, fx: [{ k: 'rank', t: 'U', s: { B: 1 } }, { k: 'opt', key: 'U:defenseCurl', v: true }] },
+    'みかづきのいのり': { fx: [{ k: 'heal', t: 'U', r: 1024 }, { k: 'cureU' }] },
+    'みかづきのまい': { z: { none: 1 }, fx: [{ k: 'selfKO' }] },
+    'みがわり': { z: { reset: 1 }, fx: [{ k: 'subSelf' }] },
+    'みきり': { z: { r: { eva: 1 } }, fx: [{ k: 'note', t: 'U', text: 'まもる状態' }] },
+    'みずあそび': { z: { r: { D: 1 } }, fx: [{ k: 'opt', key: 'waterSport', v: true }] },
+    'ミストフィールド': { z: { r: { D: 1 } }, fx: [{ k: 'field', f: 'ミストフィールド' }] },
+    'みずびたし': { sub: 1, mc: 1, z: { r: { C: 1 } }, fx: [{ k: 'opt', key: 'T:TypeOverride', v: 'soak' }] },
+    'みちづれ': { z: { note: 'ちゅうもくのまと' }, fx: [{ k: 'note', t: 'U', text: 'みちづれ' }] },
+    'みやぶる': { mc: 1, z: { crit: 2 }, fx: [{ k: 'opt', key: 'T:Foresight', v: true }] },
+    'ミラータイプ': { z: { r: { C: 1 } }, fx: [{ k: 'reflectType' }] },
+    'ミラクルアイ': { mc: 1, z: { r: { C: 1 } }, fx: [{ k: 'opt', key: 'T:MiracleEye', v: true }] },
+    'ミルクのみ': { z: { reset: 1 }, fx: [{ k: 'heal', t: 'U', r: 2048 }] },
+    'みをけずる': { fx: [{ k: 'costRank', den: 2, s: { A: 2, C: 2, S: 2 } }] },
+    'めいそう': { z: { reset: 1 }, fx: [{ k: 'rank', t: 'U', s: { C: 1, D: 1 } }] },
+    'メロメロ': { mc: 1, z: { reset: 1 }, fx: [{ k: 'mental', text: 'メロメロ' }] },
+    'ものまね': { z: { r: { acc: 1 } }, fx: [{ k: 'note', t: 'U', text: 'ものまね' }] },
+    'もりののろい': { sub: 1, mc: 1, z: { r: { A: 1, B: 1, C: 1, D: 1, S: 1 } }, fx: [{ k: 'opt', key: 'T:AddType', v: 'forestCurse' }] },
+    'やどりぎのタネ': { sub: 1, mc: 1, z: { reset: 1 }, fx: [{ k: 'flag', f: 'leech', on: 'T' }] },
+    'ゆうわく': { sub: 1, mc: 1, z: { r: { D: 2 } }, fx: [{ k: 'rank', t: 'T', s: { C: -2 } }] },
+    'ゆきげしき': { fx: [{ k: 'weather', w: 'ゆき' }] },
+    'ゆびをふる': { cls: 'none', z: { none: 1 }, fx: [] },
+    'ヨガのポーズ': { z: { r: { A: 1 } }, fx: [{ k: 'rank', t: 'U', s: { A: 1 } }] },
+    'よこどり': { cls: 'none', z: { r: { S: 2 } }, fx: [] },
+    'リサイクル': { cls: 'none', z: { r: { S: 2 } }, fx: [] },
+    'リフレクター': { z: { r: { B: 1 } }, fx: [{ k: 'note', t: 'U', text: 'リフレクター' }] },
+    'リフレッシュ': { z: { heal: 1 }, fx: [{ k: 'cureU', only: ['どく', 'もうどく', 'まひ', 'やけど'] }] },
+    'りゅうのまい': { z: { reset: 1 }, fx: [{ k: 'rank', t: 'U', s: { A: 1, S: 1 } }] },
+    'ロックオン': { sub: 1, z: { r: { S: 1 } }, fx: [{ k: 'opt', key: 'U:LockOn', v: true }] },
+    'ロックカット': { z: { reset: 1 }, fx: [{ k: 'rank', t: 'U', s: { S: 2 } }] },
+    'ワイドガード': { z: { r: { B: 1 } }, fx: [{ k: 'note', t: 'U', text: 'まもる状態' }] },
+    'わたほうし': { sub: 1, mc: 1, pw: 1, z: { reset: 1 }, fx: [{ k: 'rank', t: 'T', s: { S: -2 } }] },
+    'わるだくみ': { z: { reset: 1 }, fx: [{ k: 'rank', t: 'U', s: { C: 2 } }] },
+    'ワンダールーム': { z: { r: { D: 1 } }, fx: [{ k: 'tops', op: 'wonderRoom' }] },
+    'ナインエボルブースト': { fx: [{ k: 'rank', t: 'U', s: { A: 2, B: 2, C: 2, D: 2, S: 2 } }] },
+    'ダイウォール': { fx: [{ k: 'note', t: 'U', text: 'まもる状態' }] }
+  };
+})();
 
 /* 段 hitRollsOverride: ヒットごとの乱数の差し替え(内部用: options.__hitRollsOverride = [{rolls, raw}, ...])。
    技の途中で100%発生する効果(くだけるよろい・溜めターンの上昇など)を反映したヒットごとのダメージを、
@@ -5006,7 +5469,7 @@ function abilityImmunity(result, o, moveType) {
     }
     if(n==='トリプルキック'||n==='トリプルアクセル') return {type:'perHitAcc', max:3};
     if(n==='ネズミざん') return {type:'perHitAcc', max:10};
-    if(n==='みずしゅりけん' && window.DAMEKE_DATA_HELPERS.pokemonMatches(input.attacker,['ゲッコウガ(サトシ)','greninja_ash'])) return {type:'fixed', count:3};
+    if(n==='みずしゅりけん' && !o.__attackerTransform && window.DAMEKE_DATA_HELPERS.pokemonMatches(input.attacker,['ゲッコウガ(サトシ)','greninja_ash'])) return {type:'fixed', count:3};
     var aAb = result.__coreState && result.__coreState.attackerAbility;
     var aAbState = result.__coreState && result.__coreState.attackerAbilityState;
     var parentalActive = aAbState && aAbState.active && aAb && aAb.name==='おやこあい' && !getHitSpec(effMove);
@@ -5087,7 +5550,7 @@ function abilityImmunity(result, o, moveType) {
   var STATUS_BLOCK_ABILITY = {
     'まひ': ['じゅうなん'],
     'やけど': ['すいほう','ねつこうかん','みずのベール'],
-    'ねむり': ['やるき','ふみん'],
+    'ねむり': ['やるき','ふみん','スイートベール'],
     'こおり': ['マグマのよろい'],
     'どく': ['めんえき','パステルベール'],
     'もうどく': ['めんえき','パステルベール']
@@ -5257,6 +5720,8 @@ function abilityImmunity(result, o, moveType) {
         var v = md[k];
         if(v < 0){
           var ab = ability(tSide);
+          // しろいきり(変化技): 相手からのランク低下を受けない(相手がすりぬけなら無効)。
+          if(state.extra.mist && state.extra.mist[tSide] && ability(sSide)!=='すりぬけ'){ blocked.push(RANK_LABEL[k]+'(しろいきり)'); return; }
           if(allowReflect && ab==='ミラーアーマー'){ reflected[k] = d[k]; return; }
           if(ab && (RANK_DROP_BLOCK_ALL.indexOf(ab)>=0 || (ab==='フラワーベール' && ctx[tSide].grass) || (RANK_DROP_BLOCK_STAT[k]||[]).indexOf(ab)>=0 || (!allowReflect && ab==='ミラーアーマー'))){ blocked.push(RANK_LABEL[k]+'('+ab+')'); return; }
           if(item(tSide)==='クリアチャーム'){ blocked.push(RANK_LABEL[k]+'(クリアチャーム)'); return; }
@@ -5268,9 +5733,12 @@ function abilityImmunity(result, o, moveType) {
       var txt = fmtDelta(actual);
       if(txt) lg(state, tSide, txt);
       else if(Object.keys(apply).length) lg(state, tSide, 'ランク変化なし(上限/下限)');
-      var lowered = Object.keys(actual).some(function(k){ return actual[k] < 0; });
-      if(lowered && ability(tSide)==='まけんき'){ var a1 = applyRaw(tSide, modify(tSide,{A:2})); lg(state, tSide, 'まけんき: '+(fmtDelta(a1)||'変化なし')); }
-      if(lowered && ability(tSide)==='かちき'){ var a2 = applyRaw(tSide, modify(tSide,{C:2})); lg(state, tSide, 'かちき: '+(fmtDelta(a2)||'変化なし')); }
+      // まけんき・かちき: 下がった能力1つごとに発動する(2つの能力を下げる技なら2回)。
+      var loweredN = Object.keys(actual).filter(function(k){ return actual[k] < 0; }).length;
+      for(var li2=0; li2<loweredN; li2++){
+        if(ability(tSide)==='まけんき'){ var a1 = applyRaw(tSide, modify(tSide,{A:2})); lg(state, tSide, 'まけんき: '+(fmtDelta(a1)||'変化なし')); }
+        if(ability(tSide)==='かちき'){ var a2 = applyRaw(tSide, modify(tSide,{C:2})); lg(state, tSide, 'かちき: '+(fmtDelta(a2)||'変化なし')); }
+      }
       if(Object.keys(reflected).length){
         lg(state, tSide, 'ミラーアーマーで'+ctx[sSide].label+'へ跳ね返す');
         opponentCaused(sSide, reflected, tSide, false);
@@ -5368,6 +5836,8 @@ function abilityImmunity(result, o, moveType) {
     else if(ab==='うるおいボディ' && isRainy(c.weather)) reason = 'うるおいボディ';
     else if(ab==='フラワーベール' && c.grass) reason = 'フラワーベール';
     else if(ab==='リミットシールド' && c.pokemon && c.pokemon.name==='メテノ(りゅうせい)') reason = 'リミットシールド';
+    // しんぴのまもり(変化技): 相手からの状態異常を受けない(相手がすりぬけなら無効)。
+    if(!reason && side!==sourceSide && state.extra.safeguard && state.extra.safeguard[side] && ctx[sourceSide].ability!=='すりぬけ') reason = 'しんぴのまもり';
     if(!reason){
       var immTypes = STATUS_IMMUNE_TYPES[st] || [];
       var corrosion = (st==='どく'||st==='もうどく') && ctx[sourceSide].ability==='ふしょく' && sourceSide!==side;
@@ -5708,6 +6178,7 @@ function abilityImmunity(result, o, moveType) {
           state.hp.finale = true; lg(state, 'A', 'HP回復(ダイマックス中の最大HPの1/6)');
           break;
         case 'seaOfFire':
+          if(state.extra.opts && state.extra.opts.defenderSeaOfFire === false) break;
           var sfd = Math.max(1, Math.floor(dMax/8));
           state.hp.dSea += sfd; lg(state, 'D', 'ターン終了時 ひのうみ '+sfd+'ダメージ');
           break;
@@ -5746,6 +6217,20 @@ function abilityImmunity(result, o, moveType) {
     if(mods.status){ options2.attackerStatus = calcStatus(mods.status.A); options2.defenderStatus = calcStatus(mods.status.D); }
     if(mods.confusion) options2.defenderConfusion = true;
     var x = mods.extra || {};
+    // 変化技(技①)による変化: 入力欄に対応する状態・実数値操作・へんしん・攻撃側のタイプ。
+    if(x.opts) Object.keys(x.opts).forEach(function(k){ options2[k] = x.opts[k]; });
+    if(x.tops) options2.transformOps = (options2.transformOps || []).concat(x.tops);
+    var newTypesA = x.transform ? x.transform.types : x.typesA;
+    if(newTypesA){
+      options2.attackerType1 = newTypesA[0] || 'なし'; options2.attackerType2 = newTypesA[1] || 'なし';
+      options2.attackerTypeOverride = 'none';
+      options2.attackerAddType = newTypesA[2]==='ゴースト' ? 'halloween' : (newTypesA[2]==='くさ' ? 'forestCurse' : 'none');
+    }
+    if(x.transform){
+      options2.__attackerTransform = { stats: x.transform.stats };
+      options2.attackerRoost = false; options2.attackerBurnUp = false; options2.attackerDoubleShock = false;
+      options2.critical = 0; options2.attackerFocusEnergy = false; options2.attackerGMaxRapidStrike = 0;
+    }
     if(x.field) options2.field = x.field;
     if(x.defenderScreen) options2.defenderScreen = x.defenderScreen;
     if(x.attackerBurnUp) options2.attackerBurnUp = true;
@@ -5985,17 +6470,51 @@ function abilityImmunity(result, o, moveType) {
         v.item = (v.ability==='ぶきよう' || o.magicRoom || o[pre+'Embargo']) ? null : held;
       } else v.item = base.item;
       if(sd==='D' && x.typesD) v.types = x.typesD.slice();
+      // 変化技(技①)による変化: タイプ(ミラータイプ・みずびたし等・はねやすめ)、接地、持ち物の有効/無効。
+      var pre2 = sd==='A' ? 'attacker' : 'defender', so = x.opts, envChanged = false;
+      var tera2 = o[pre2+'TeraType'] || 'なし', teraOn = tera2 !== 'なし' && tera2 !== 'ステラ';
+      if(sd==='A' && x.typesA && !teraOn){ v.types = x.typesA.slice(); envChanged = true; }
+      if(so){
+        var tov = so[pre2+'TypeOverride'], tad = so[pre2+'AddType'];
+        if(tov && tov !== 'none' && !teraOn){ v.types = [tov==='soak' ? 'みず' : 'エスパー']; envChanged = true; }
+        if(tad && tad !== 'none' && !teraOn){ var addT = tad==='halloween' ? 'ゴースト' : 'くさ'; if(v.types.indexOf(addT) < 0) v.types = v.types.concat([addT]); envChanged = true; }
+        if(so[pre2+'Ingrain'] !== undefined || so[pre2+'MagnetRise'] !== undefined || so[pre2+'Telekinesis'] !== undefined) envChanged = true;
+        if(so.magicRoom !== undefined || so[pre2+'Embargo'] !== undefined){
+          var roomNow = so.magicRoom !== undefined ? so.magicRoom : o.magicRoom, embNow = so[pre2+'Embargo'] !== undefined ? so[pre2+'Embargo'] : o[pre2+'Embargo'];
+          if(roomNow || embNow) v.item = null;
+          else if(!v.item && held && (o.magicRoom || o[pre2+'Embargo'])) v.item = v.ability==='ぶきよう' ? null : held;
+        }
+      }
+      if(x.roost && x.roost[sd] && !teraOn){ v.types = v.types.filter(function(t){ return t !== 'ひこう'; }); if(!v.types.length) v.types = ['ノーマル']; envChanged = true; }
+      if(P.status && x.gravity) envChanged = true;
       v.grass = v.types.indexOf('くさ') >= 0;
       if(x.weather) v.weather = x.weather;
       if(sd==='D'){
         if(base.item==='ふうせん' && v.item!=='ふうせん') v.grounded = v.types.indexOf('ひこう') < 0 && v.ability!=='ふゆう' && !o.defenderMagnetRise && !o.defenderTelekinesis;
         if(x.defenderRootedSmacked) v.grounded = true;
       }
+      if(envChanged) v.grounded = statusGrounded(P, m, sd, v);
       v.hpMax = sd==='A' ? P.aMax : P.dMax;
       v.hpBase = sd==='A' ? P.aBase : P.dBase;
       return v;
     }
     return { A: side('A'), D: side('D'), field: x.field || b.field, __opts: o };
+  }
+
+  // 変化技(技①)でタイプ・接地に関わる状態が変わった後の、接地判定(計算本体の接地判定と同じ順)。
+  function statusGrounded(P, m, sd, v){
+    var pre = sd==='A' ? 'attacker' : 'defender';
+    function g(k){ return optNow(P, m, k); }
+    if(g(pre+'Ingrain')) return true;
+    if(g(pre+'RootedSmacked') || (sd==='D' && m.extra.defenderRootedSmacked)) return true;
+    if(g('gravity') || m.extra.gravity) return true;
+    if(v.item==='くろいてっきゅう') return true;
+    if(v.types.indexOf('ひこう') >= 0) return false;
+    if(v.ability==='ふゆう' || v.ability==='うなぎのぼり') return false;
+    if(v.item==='ふうせん') return false;
+    if(g(pre+'MagnetRise')) return false;
+    if(g(pre+'Telekinesis') && !window.DAMEKE_DATA_HELPERS.isTelekinesisImmune(v.pokemon)) return false;
+    return true;
   }
 
   // ---- きのみ ----
@@ -6155,7 +6674,7 @@ function abilityImmunity(result, o, moveType) {
     magician:'特性', colorChange:'特性', halfHpAbility:'特性', defItem3:'持ち物', attItem20:'持ち物', emergencyExit:'特性', pickpocket:'特性',
     throatSpray:'持ち物', naturalGift:'技', blunderPolicy:'持ち物', afterMove:'特性', afterMoveItems:'持ち物', steadfast:'特性', dancer:'特性', berryA:'持ち物', berryD:'持ち物',
     absorb:'特性', 'eot:sand':'フィールド', 'eot:weatherAbility':'特性', 'eot:grassy':'フィールド', 'eot:shedSkin':'特性', 'eot:leftovers':'持ち物',
-    'eot:ingrain':'技', 'eot:poison':'状態異常', 'eot:burn':'状態異常', 'eot:speedBoost':'特性', 'eot:orbs':'持ち物', 'eot:whiteHerb':'持ち物',
+    'eot:ingrain':'技', 'eot:aquaRing':'技', 'eot:leech':'技', 'eot:nightmare':'技', 'eot:curse':'技', 'eot:octolock':'技', 'eot:poison':'状態異常', 'eot:burn':'状態異常', 'eot:speedBoost':'特性', 'eot:orbs':'持ち物', 'eot:whiteHerb':'持ち物',
     'eot:ひのうみ':'フィールド', 'eot:キョダイマックスわざ':'技', 'eot:バインド':'技', 'eot:しおづけ':'技', 'eot:harvest':'特性' };
   function catOf(ev){
     if(ev.cat) return ev.cat;
@@ -6533,7 +7052,7 @@ function abilityImmunity(result, o, moveType) {
       branches: function(s, info, cx){ var nm = cx.A.heldItem.name; return one(function(m, s2, inf, c2){ lg(m, 'A', 'しぜんのめぐみ: '+nm+'を消費'); consumeItem(m, c2, 'A', false); }); } });
     // ---- 手順26: のどスプレー・からぶりほけん ----
     add({ name:'throatSpray', stage:'post', at:2600, actor:'A',
-      when: function(s, info, cx){ return cx.A.item==='のどスプレー' && mv.sound && s.dealt > 0; },
+      when: function(s, info, cx){ return cx.A.item==='のどスプレー' && mv.sound && (s.dealt > 0 || !!(P.status && !P.status.invalid)); },
       branches: function(s, info, cx){ return one(function(m, s2, inf, c2){ rankApply(m, c2, 'A', {C:1}, 'A', 'のどスプレー'); consumeItem(m, c2, 'A', false); }); } });
     add({ name:'blunderPolicy', stage:'post', at:2601, actor:'A', onHit:false, onMiss:true,
       when: function(s, info, cx){ return cx.A.item==='からぶりほけん' && !P.model.none && !mv.ohko; },
@@ -6699,23 +7218,27 @@ function abilityImmunity(result, o, moveType) {
   }
 
   // 特性による無効化(成功判定38)で発動する効果(命中判定より優先)。技が無効化された分岐でのみ発生。
+  // 吸収した側(side)に起きる効果。該当しなければ null。
+  var ABSORB_HEAL = { 'ちょすい':'みず', 'ちくでん':'でんき', 'どしょく':'じめん', 'かんそうはだ':'みず' };
+  var ABSORB_BOOST = { 'よびみず':['みず',{C:1}], 'そうしょく':['くさ',{A:1}], 'でんきエンジン':['でんき',{S:1}], 'ひらいしん':['でんき',{C:1}], 'こんがりボディ':['ほのお',{B:2}] };
+  function absorbApply(P, ab, type, wind, side){
+    if(ABSORB_HEAL[ab] === type){
+      var h = Math.floor((side==='A' ? P.aBase : P.dBase)/4);
+      return function(m){ if(side==='A') m.hp.aHeal += h; else m.hp.dHeal += h; lg(m, side, ab+': HP'+h+'回復'); };
+    }
+    if(ABSORB_BOOST[ab] && ABSORB_BOOST[ab][0] === type) return function(m, s2, inf, c2){ rankApply(m, c2, side, ABSORB_BOOST[ab][1], side, ab); };
+    if(ab==='かぜのり' && wind) return function(m, s2, inf, c2){ rankApply(m, c2, side, {A:1}, side, ab); };
+    if(ab==='もらいび' && type==='ほのお') return function(m){ noteLog(m, side, 'もらいび: ほのお技の威力上昇（表示のみ）'); };
+    return null;
+  }
   function buildAbsorbTriggers(P){
     var mv = P.mv, T = [];
-    var HEAL = { 'ちょすい':'みず', 'ちくでん':'でんき', 'どしょく':'じめん', 'かんそうはだ':'みず' };
-    var BOOST = { 'そうしょく':['くさ',{A:1}], 'でんきエンジン':['でんき',{S:1}], 'ひらいしん':['でんき',{C:1}], 'こんがりボディ':['ほのお',{B:2}] };
     T.push({ name:'absorb', stage:'pre', at:38, actor:'-', onHit:false, onMiss:true, subBlockable:false,
-      when: function(s, info, cx){ return P.model.none && !!cx.D.ability && mv.cat !== '変化'; },
+      // 変化技は、吸収する特性で無効になったとき(P.status.absorb)だけ。
+      when: function(s, info, cx){ return P.model.none && !!cx.D.ability && (mv.cat !== '変化' || !!(P.status && P.status.absorb)); },
       branches: function(s, info, cx){
-        var ab = cx.D.ability;
-        if(HEAL[ab] === mv.type){
-          var h = Math.floor(P.dBase/4);
-          return one(function(m){ m.hp.dHeal += h; lg(m, 'D', ab+': HP'+h+'回復'); });
-        }
-        if(BOOST[ab] && BOOST[ab][0] === mv.type) return one(function(m, s2, inf, c2){ rankApply(m, c2, 'D', BOOST[ab][1], 'D', ab); });
-        if(ab==='かぜのり' && mv.wind) return one(function(m, s2, inf, c2){ rankApply(m, c2, 'D', {A:1}, 'D', ab); });
-        if(ab==='よびみず' && mv.type==='みず') return one(function(m){ noteLog(m, 'D', 'よびみず: とくこう+1（表示のみ）'); });
-        if(ab==='もらいび' && mv.type==='ほのお') return one(function(m){ noteLog(m, 'D', 'もらいび: ほのお技の威力上昇（表示のみ）'); });
-        return null;
+        var f = absorbApply(P, cx.D.ability, mv.type, mv.wind, 'D');
+        return f ? one(f) : null;
       } });
     return T;
   }
@@ -6729,7 +7252,8 @@ function abilityImmunity(result, o, moveType) {
     function alive(s, sd){ return sd==='A' ? (s.aHp != null && s.aHp > 0) : !s.fn; }
     function dmg(m, sd, amt){ if(sd==='A') m.hp.aLoss += amt; else m.hp.dLoss += amt; }
     function heal(m, sd, amt){ if(amt <= 0) return; if(sd==='A') m.hp.aHeal += amt; else m.hp.dHeal += amt; }
-    function healBlocked(s, sd){ return sd==='D' && !!s.m.extra.healBlockD; }
+    function healBlocked(s, sd){ return sd==='D' ? !!s.m.extra.healBlockD : !!s.m.extra.healBlockA; }
+    function flagOn(s, f, sd){ return !!(s.m.extra[f] && s.m.extra[f][sd]); }
     function frac(sd, den){ return Math.max(1, Math.floor(maxOf(sd)/den)); }
     function ev(sd, at, name, fn){
       T.push({ name: 'eot:'+name+':'+sd, stage: 'eot', at: at + (sd==='A' ? 0 : 0.5), actor: sd==='A' ? 'A' : '-', onHit: true, onMiss: true, subBlockable: false,
@@ -6777,10 +7301,25 @@ function abilityImmunity(result, o, moveType) {
         }
         return null;
       });
-      // 9 ねをはる
+      // 8 アクアリング(変化技。ねをはるの直前) / 9 ねをはる / 10 やどりぎのタネ(変化技。ねをはるの直後)
+      // 回復量は、おおきなねっこで1.3倍(5324/4096、五捨五超入)。
+      ev(sd, 5089, 'aquaRing', function(s, cx, v){
+        if(!flagOn(s, 'aquaRing', sd) || healBlocked(s, sd)) return null;
+        return one(function(m, s2, inf, c2){ var a = bigRootAmount(c2, sd, Math.floor(maxOf(sd)/16)); heal(m, sd, a); lg(m, sd, 'アクアリング HP'+a+'回復'); });
+      });
       ev(sd, 5090, 'ingrain', function(s, cx, v){
-        if(!o[pre+'Ingrain'] || healBlocked(s, sd)) return null;
-        return one(function(m){ var a = Math.floor(maxOf(sd)/16); heal(m, sd, a); lg(m, sd, 'ねをはる HP'+a+'回復'); });
+        if(!optNow(P, s.m, pre+'Ingrain') || healBlocked(s, sd)) return null;
+        return one(function(m, s2, inf, c2){ var a = bigRootAmount(c2, sd, Math.floor(maxOf(sd)/16)); heal(m, sd, a); lg(m, sd, 'ねをはる HP'+a+'回復'); });
+      });
+      ev(sd, 5091, 'leech', function(s, cx, v, opp){
+        if(!flagOn(s, 'leech', sd) || !alive(s, opp) || v.ability==='マジックガード') return null;
+        var cur = sd==='A' ? s.aHp : s.hp, d = Math.min(frac(sd, 8), cur);
+        return one(function(m, s2, inf, c2){
+          dmg(m, sd, d); lg(m, sd, 'やどりぎのタネ '+d+'ダメージ');
+          var h = bigRootAmount(c2, opp, d);
+          if(c2[sd].ability==='ヘドロえき'){ if(c2[opp].ability!=='マジックガード'){ dmg(m, opp, h); lg(m, opp, 'ヘドロえき '+h+'ダメージ'); } }
+          else if(!healBlocked(s, opp)){ heal(m, opp, h); lg(m, opp, 'やどりぎのタネ HP'+h+'回復'); }
+        });
       });
       // 11 どく・もうどく・ポイズンヒール / 12 やけど
       ev(sd, 5110, 'poison', function(s, cx, v){
@@ -6794,6 +7333,21 @@ function abilityImmunity(result, o, moveType) {
       ev(sd, 5120, 'burn', function(s, cx, v){
         if(s.m.status[sd] !== 'やけど' || v.ability==='マジックガード') return null;
         return one(function(m){ var a = frac(sd, v.ability==='たいねつ' ? 32 : 16); dmg(m, sd, a); lg(m, sd, 'やけど '+a+'ダメージ'); });
+      });
+      // 12の直後 あくむ(変化技): ねむり状態(ぜったいねむりを含む)の間、最大HPの1/4
+      ev(sd, 5121, 'nightmare', function(s, cx, v){
+        if(!flagOn(s, 'nightmare', sd) || v.ability==='マジックガード') return null;
+        if(s.m.status[sd] !== 'ねむり' && v.ability !== 'ぜったいねむり') return null;
+        return one(function(m){ var a = frac(sd, 4); dmg(m, sd, a); lg(m, sd, 'あくむ '+a+'ダメージ'); });
+      });
+      // 15の直前 のろい(変化技): 最大HPの1/4 / 15の直後 たこがため(変化技): ぼうぎょ・とくぼう-1
+      ev(sd, 5149, 'curse', function(s, cx, v){
+        if(!flagOn(s, 'curse', sd) || v.ability==='マジックガード') return null;
+        return one(function(m){ var a = frac(sd, 4); dmg(m, sd, a); lg(m, sd, 'のろい '+a+'ダメージ'); });
+      });
+      ev(sd, 5151, 'octolock', function(s, cx, v, opp){
+        if(!flagOn(s, 'octolock', sd) || !alive(s, opp)) return null;
+        return one(function(m, s2, inf, c2){ rankApply(m, c2, sd, {B:-1, D:-1}, opp, 'たこがため'); });
       });
       // 32c かそく・ムラっけ・ナイトメア
       ev(sd, 5323, 'speedBoost', function(s, cx, v, opp){
@@ -6857,8 +7411,504 @@ function abilityImmunity(result, o, moveType) {
              } });
     T.push(Object.assign(berryEvent('D', 'eot', 5325.6), { when: function(s){ return !!s.m.extra.harvested; } }));
     T.push({ name: 'eot:cleanup', stage: 'eot', at: 5999, actor: '-', onHit: true, onMiss: true, subBlockable: false,
-             when: function(s){ return !!(s.m.extra.harvested || s.m.extra.eaten || s.m.extra.drops); },
-             branches: function(){ return one(function(m){ delete m.extra.harvested; delete m.extra.eaten; delete m.extra.drops; }); } });
+             when: function(s){ return !!(s.m.extra.harvested || s.m.extra.eaten || s.m.extra.drops || s.m.extra.roost); },
+             // はねやすめ(変化技)で失ったひこうタイプは、ターン終了時に元に戻る。
+             branches: function(){ return one(function(m){ delete m.extra.harvested; delete m.extra.eaten; delete m.extra.drops; delete m.extra.roost; }); } });
+    return T;
+  }
+
+  // ==== 変化技(技①)の効果 ====
+  // 表 DAMEKE_STATUS_MOVES の fx(効果の一覧)を、使用者(U)と対象(T)を指定して適用する。通常は U=攻撃側・T=防御側、
+  // マジックミラーで跳ね返された技は U=防御側・T=攻撃側。効果の種類(k)は表の定義ブロック冒頭のコメントを参照。
+  // 技②に引き継ぐ値のうち、入力欄(options)にそのまま対応するものは m.extra.opts に入れる(applyEffectModsが上書き)。
+  function pfx(sd){ return sd==='A' ? 'attacker' : 'defender'; }
+  function optNow(P, m, key){ var x = m.extra.opts; return (x && Object.prototype.hasOwnProperty.call(x, key)) ? x[key] : (P.input.options||{})[key]; }
+  function setOpt(m, key, v){ (m.extra.opts || (m.extra.opts = {}))[key] = v; }
+  function hpOfSide(s2, sd){ return sd==='A' ? s2.aHp : s2.hp; }
+  function maxOfSide(P, sd){ return sd==='A' ? P.aMax : P.dMax; }
+  function addHp(m, sd, amt){ if(amt > 0){ if(sd==='A') m.hp.aHeal += amt; else m.hp.dHeal += amt; } else if(amt < 0){ if(sd==='A') m.hp.aLoss += -amt; else m.hp.dLoss += -amt; } }
+  function healBlockedSide(m, sd){ return sd==='D' ? !!m.extra.healBlockD : !!m.extra.healBlockA; }
+  function bigRootAmount(cx, sd, amt){ return cx[sd].item==='おおきなねっこ' ? window.DAMEKE_ROUNDING.roundFiveDown(amt*5324/4096) : amt; }
+  // 最大HP(ダイマックス前)に対する割合(rate/4096)の回復量。小数点以下は五捨五超入。
+  function healAmount(cx, sd, rate){ return window.DAMEKE_ROUNDING.roundFiveDown(cx[sd].hpBase*rate/4096); }
+  // その時点のランク補正込み実数値(ちからをすいとる用)。
+  function rankedStatNow(P, m, sd, key){
+    var inp = P.input;
+    var r = C.calculateDamage({ attacker: inp.attacker, defender: inp.defender, move: inp.move, attackerLevel: inp.attackerLevel, defenderLevel: inp.defenderLevel, options: applyEffectMods(freshOpts(inp.options), m) });
+    var rk = window.DAMEKE_CALC_SHARED.rankedStats(r, sd);
+    return rk ? rk[key] : 0;
+  }
+  // 入力欄に対応する項目(U:/T: は使用者側/対象側の項目。対応する入力欄がない側では表示のみ)。
+  var STATUS_OPT_KEYS = { attackerEmbargo:1, defenderEmbargo:1, attackerTelekinesis:1, defenderTelekinesis:1, attackerMagnetRise:1, defenderMagnetRise:1,
+    attackerIngrain:1, defenderIngrain:1, attackerTailwind:1, defenderTailwind:1, attackerBodyPurge:1, defenderBodyPurge:1,
+    attackerTypeOverride:1, defenderTypeOverride:1, attackerAddType:1, defenderAddType:1, defenderForesight:1, defenderMiracleEye:1, defenderTarShot:1,
+    attackerFocusEnergy:1, attackerLockOn:1, charge:1, defenseCurl:1, mudSport:1, waterSport:1, magicRoom:1 };
+  var STATUS_OPT_LABEL = { Embargo:'さしおさえ', Telekinesis:'テレキネシス', MagnetRise:'でんじふゆう', Ingrain:'ねをはる', Tailwind:'おいかぜ', BodyPurge:'ボディパージ',
+    Foresight:'みやぶる', MiracleEye:'ミラクルアイ', TarShot:'タールショット', FocusEnergy:'とぎすます', LockOn:'ロックオン', charge:'じゅうでん', defenseCurl:'まるくなる',
+    mudSport:'どろあそび', waterSport:'みずあそび', magicRoom:'マジックルーム' };
+  function statusOptKey(key, U, T){
+    var m = /^([UT]):(.+)$/.exec(key);
+    if(!m) return { key: key, side: null, base: key };
+    var sd = m[1]==='U' ? U : T, base = m[2];
+    // 攻撃側にしか入力欄がない項目
+    if(base==='charge' || base==='defenseCurl') return { key: sd==='A' ? base : null, side: sd, base: base };
+    return { key: pfx(sd)+base, side: sd, base: base };
+  }
+  var STATUS_MENTAL_BLOCK = ['アンコール','ちょうはつ','いちゃもん','かなしばり'];
+  // メンタル系の状態(表示のみ): アロマベールで無効、メンタルハーブで回復(持ち物は消費)。ちょうはつはどんかんでも無効。
+  function statusMental(m, cx, side, kind){
+    if(kind==='メロメロ'){ mentalEffect(m, cx, side, 'メロメロ', true); return; }
+    var v = cx[side];
+    if(v.ability==='アロマベール'){ lg(m, side, kind+'：アロマベールで無効'); return; }
+    if(kind==='ちょうはつ' && v.ability==='どんかん'){ lg(m, side, kind+'：どんかんで無効'); return; }
+    if(v.item==='メンタルハーブ' && !m.itemGone[side]){ noteLog(m, side, kind+'（メンタルハーブで回復）'); consumeItem(m, cx, side, false); return; }
+    noteLog(m, side, kind+'（表示のみ）');
+  }
+  // こんらん(防御側は状態として扱う。攻撃側は入力欄がないため表示のみ)。
+  function statusConfuse(m, cx, side){
+    if(side==='D'){ tryConfuse(m, cx); return; }
+    var c = cx.A, it = m.itemGone.A ? null : c.item;
+    if(c.ability==='マイペース'){ lg(m, 'A', 'こんらん：マイペースで無効'); return; }
+    if(m.extra.safeguard && m.extra.safeguard.A && cx.D.ability!=='すりぬけ'){ lg(m, 'A', 'こんらん：しんぴのまもりで無効'); return; }
+    if(c.grounded && cx.field==='ミストフィールド'){ lg(m, 'A', 'こんらん：ミストフィールドで無効'); return; }
+    if(it==='キーのみ' || it==='ラムのみ'){ lg(m, 'A', 'こんらん → '+it+'で回復(持ち物消費)'); consumeItem(m, cx, 'A', true); return; }
+    noteLog(m, 'A', 'こんらん（表示のみ）');
+  }
+  function statusHeal(X, m, s2, cx, side, rate, label){
+    var cur = hpOfSide(s2, side), max = maxOfSide(X.P, side);
+    if(cur == null || cur <= 0) return false;
+    if(healBlockedSide(m, side)){ lg(m, side, 'かいふくふうじで回復できない'); return false; }
+    if(cur >= max){ lg(m, side, 'HPが満タンのため回復しない'); return false; }
+    var amt = rate >= 4096 ? max : healAmount(cx, side, rate);
+    if(amt <= 0) return false;
+    addHp(m, side, amt);
+    noteLog(m, side, label || 'HP回復');
+    return true;
+  }
+  // きのみを食べる(おちゃかい・ほおばる)。HPの条件があるきのみも、その場で効果が出る。
+  function statusEatBerry(m, s2, cx, side){
+    var v = cx[side], name = v.item, it = v.heldItem;
+    if(!name || !it || !it.isBerry) return false;
+    lg(m, side, name+'を食べる');
+    applyBerryEffect(m, cx, side, name, v.hpBase);
+    consumeItem(m, cx, side, true);
+    if(side==='D') s2.bf = 1;
+    return true;
+  }
+  function statusSetAbility(m, sd, name){ (m.extra.abil || (m.extra.abil = {}))[sd] = name; }
+  function statusGiveItem(m, cx, sd, name){ if(name) setHeldItem(m, sd, name); else consumeItem(m, cx, sd, false); }
+  // 1つの効果を適用する。X: { P, name, U, T, oppBlocked }。
+  function statusFxApply(X, fx, m, s2, cx){
+    var P = X.P, U = X.U, T = X.T, o = P.input.options || {}, name = X.name;
+    var side = fx.t==='U' ? U : T;
+    function failLog(sd, why){ lg(m, sd, name+'：'+why); }
+    switch(fx.k){
+      case 'rank':
+        if(fx.opp && X.oppBlocked) return;
+        if(fx.subPart && T==='D' && s2.sub != null){ lg(m, T, 'みがわりで無効'); return; }
+        if(fx.cond==='plusMinus' && cx[side].ability!=='プラス' && cx[side].ability!=='マイナス') return;
+        if(fx.cond==='poisoned' && m.status[side]!=='どく' && m.status[side]!=='もうどく'){ failLog(side, 'どく状態でないため無効'); return; }
+        if(fx.cond==='grass' && cx[side].types.indexOf('くさ') < 0) return;
+        if(fx.cond==='grassGrounded' && (cx[side].types.indexOf('くさ') < 0 || !cx[side].grounded)) return;
+        if(name==='ゆうわく' && cx[side].ability==='どんかん'){ failLog(side, 'どんかんで無効'); return; }
+        lg(m, null, '['+name+']');
+        applyRankEvent(m, cx, side, (fx.sun && isSunny(cx[U].weather)) ? fx.sun : fx.s, U);
+        return;
+      case 'status': tryInflictStatus(m, cx, T, fx.st, U, true); return;
+      case 'confuse': statusConfuse(m, cx, T); return;
+      case 'note':
+        if(fx.opp && X.oppBlocked) return;
+        if(fx.cond==='snow' && cx[U].weather!=='ゆき'){ failLog(U, 'ゆきでないため失敗'); return; }
+        dispNote(m, cx, side, fx.text);
+        return;
+      case 'mental': statusMental(m, cx, T, fx.text); return;
+      case 'weather':
+        var wNow = m.extra.weather || o.weather || 'なし';
+        if(['おおひでり','おおあめ','らんきりゅう'].indexOf(wNow) >= 0){ failLog(null, '天候を変えられない'); return; }
+        if(wNow === fx.w) return;
+        m.extra.weather = fx.w; lg(m, null, '天候を'+fx.w+'にする');
+        return;
+      case 'field':
+        if((m.extra.field || cx.field) === fx.f) return;
+        m.extra.field = fx.f; lg(m, null, 'フィールドを'+fx.f+'にする');
+        return;
+      case 'gravity':
+        if(!o.gravity && !m.extra.gravity){ m.extra.gravity = true; lg(m, null, 'じゅうりょく状態にする'); noteLog(m, null, 'じゅうりょく'); }
+        return;
+      case 'heal':
+        var rate = fx.r;
+        if(fx.by==='sun'){ var w = cx[U].weather || 'なし'; rate = isSunny(w) ? 2732 : ((w==='なし' || w==='らんきりゅう') ? 2048 : 1024); }
+        else if(fx.by==='sand') rate = cx[U].weather==='すなあらし' ? 2732 : 2048;
+        else if(fx.by==='grassy') rate = cx.field==='グラスフィールド' ? 2732 : 2048;
+        else if(fx.by==='pulse') rate = cx[U].ability==='メガランチャー' ? 3072 : 2048;
+        statusHeal(X, m, s2, cx, side, rate);
+        return;
+      case 'costRank': case 'bellyDrum': case 'subSelf':
+        var den = fx.k==='costRank' ? fx.den : (fx.k==='bellyDrum' ? 2 : 4);
+        var cost = Math.floor(cx[U].hpBase/den), hpU = hpOfSide(s2, U);
+        if(hpU == null || hpU <= cost){ failLog(U, 'HPが足りないため失敗'); return; }
+        if(fx.k==='bellyDrum'){
+          var contrary = cx[U].ability==='あまのじゃく';
+          if(m.ranks[U].A === (contrary ? -6 : 6)){ failLog(U, 'こうげきがこれ以上変わらないため失敗'); return; }
+        }
+        addHp(m, U, -cost); lg(m, U, name+': HP'+cost+'消費');
+        if(fx.k==='subSelf'){ noteLog(m, U, 'みがわり'); return; }
+        lg(m, null, '['+name+']');
+        applyRankEvent(m, cx, U, fx.k==='bellyDrum' ? {A:12} : fx.s, U);
+        return;
+      case 'cureU':
+        var stU = m.status[U];
+        if(stU !== 'なし' && (!fx.only || fx.only.indexOf(stU) >= 0)){ lg(m, U, stU+'回復'); m.status[U] = 'なし'; }
+        return;
+      case 'selfKO':
+        if(U==='A'){ m.hp.aFaint = true; lg(m, 'A', 'ひんし（技②は発生しない）'); }
+        else noteLog(m, U, name+'（表示のみ）');
+        return;
+      case 'opt':
+        var ok = statusOptKey(fx.key, U, T), label = STATUS_OPT_LABEL[ok.base] || name;
+        if(!ok.key || !STATUS_OPT_KEYS[ok.key]){ noteLog(m, ok.side, label+'（表示のみ）'); return; }
+        var tSide = ok.side;
+        if(ok.base==='TypeOverride' || ok.base==='AddType'){
+          var tera = o[pfx(tSide)+'TeraType'] || 'なし', ty = cx[tSide].types, tab = cx[tSide].abilityRaw;
+          var newType = ok.base==='TypeOverride' ? (fx.v==='soak' ? 'みず' : 'エスパー') : (fx.v==='halloween' ? 'ゴースト' : 'くさ');
+          if(tera !== 'なし'){ failLog(tSide, 'テラスタル中のため無効'); return; }
+          if(ok.base==='TypeOverride' && (tab==='マルチタイプ' || tab==='ARシステム')){ failLog(tSide, tab+'のため無効'); return; }
+          if(ok.base==='TypeOverride' ? (ty.length===1 && ty[0]===newType) : ty.indexOf(newType) >= 0){ failLog(tSide, '既に'+newType+'タイプのため無効'); return; }
+          setOpt(m, ok.key, fx.v);
+          lg(m, tSide, ok.base==='TypeOverride' ? newType+'タイプになる' : newType+'タイプが追加される');
+          if(tSide==='A') noteLog(m, 'A', ok.base==='TypeOverride' ? newType+'タイプになる' : newType+'タイプ追加');
+          return;
+        }
+        if(ok.base==='Telekinesis' && window.DAMEKE_DATA_HELPERS.isTelekinesisImmune(cx[tSide].pokemon)){ failLog(tSide, '無効なポケモン'); return; }
+        var val = fx.v;
+        if(fx.inc) val = String(Math.min(6, (parseInt(optNow(P, m, ok.key), 10) || 0) + fx.inc));
+        if(fx.toggle) val = !optNow(P, m, ok.key);
+        else if(!fx.inc && optNow(P, m, ok.key) === val){ lg(m, tSide, label+'：既にその状態'); return; }
+        setOpt(m, ok.key, val);
+        noteLog(m, tSide, fx.toggle && !val ? label+'解除' : label);
+        return;
+      case 'flag':
+        var fSide = fx.on==='U' ? U : T;
+        if(fx.f==='leech' && cx[fSide].types.indexOf('くさ') >= 0){ failLog(fSide, 'くさタイプには無効'); return; }
+        (m.extra[fx.f] || (m.extra[fx.f] = {}))[fSide] = 1;
+        var flLabel = { aquaRing:'アクアリング', nightmare:'あくむ', leech:'やどりぎのタネ', octolock:'たこがため', mist:'しろいきり', safeguard:'しんぴのまもり' }[fx.f];
+        if(flLabel) noteLog(m, fSide, flLabel);
+        return;
+      case 'abil':
+        var rawU = cx[U].abilityRaw, rawT = cx[T].abilityRaw;
+        var guardU = cx[U].item==='とくせいガード', guardT = cx[T].item==='とくせいガード';
+        if(fx.mode==='suppress'){
+          if(!rawT || pokemonAbilityLocked(rawT)){ failLog(T, '特性を消せない'); return; }
+          if(guardT){ failLog(T, 'とくせいガードで無効'); return; }
+          statusSetAbility(m, T, null); lg(m, T, '特性がなくなる');
+        } else if(fx.mode==='set'){
+          if(!rawT || rawT===fx.name || rawT==='なまけ' || pokemonAbilityLocked(rawT)){ failLog(T, '特性を変えられない'); return; }
+          if(guardT){ failLog(T, 'とくせいガードで無効'); return; }
+          statusSetAbility(m, T, fx.name); lg(m, T, '特性が'+fx.name+'になる');
+        } else if(fx.mode==='copyToU'){
+          if(!rawT || !rawU || rawT===rawU || pokemonAbilityLocked(rawT) || pokemonAbilityLocked(rawU) || WANDERING_EXTRA_LOCK.indexOf(rawT) >= 0){ failLog(U, '特性をコピーできない'); return; }
+          if(guardU){ failLog(U, 'とくせいガードで無効'); return; }
+          statusSetAbility(m, U, rawT); lg(m, U, '特性が'+rawT+'になる');
+        } else if(fx.mode==='entrain'){
+          if(!rawT || !rawU || rawT===rawU || rawT==='なまけ' || pokemonAbilityLocked(rawT) || pokemonAbilityLocked(rawU) || WANDERING_EXTRA_LOCK.indexOf(rawU) >= 0){ failLog(T, '特性を変えられない'); return; }
+          if(guardT){ failLog(T, 'とくせいガードで無効'); return; }
+          statusSetAbility(m, T, rawU); lg(m, T, '特性が'+rawU+'になる');
+        } else if(fx.mode==='swap'){
+          if(!rawT || !rawU || pokemonAbilityLocked(rawT) || pokemonAbilityLocked(rawU) || WANDERING_EXTRA_LOCK.indexOf(rawT) >= 0 || WANDERING_EXTRA_LOCK.indexOf(rawU) >= 0){ failLog(T, '特性を入れ替えられない'); return; }
+          if(guardU || guardT){ failLog(T, 'とくせいガードで無効'); return; }
+          statusSetAbility(m, U, rawT); statusSetAbility(m, T, rawU); lg(m, null, '特性を入れ替える('+rawU+'⇔'+rawT+')');
+        }
+        return;
+      case 'itemSwap':
+        var hu = cx[U].heldName, ht = cx[T].heldName;
+        if(!hu && !ht){ failLog(U, '持ち物がないため失敗'); return; }
+        if(cx[T].ability==='ねんちゃく'){ failLog(T, 'ねんちゃくで無効'); return; }
+        if((hu && !removableFrom(cx, U)) || (ht && !removableFrom(cx, T))){ failLog(U, '入れ替えできない持ち物'); return; }
+        lg(m, null, '持ち物を入れ替える('+(hu||'なし')+'⇔'+(ht||'なし')+')');
+        statusGiveItem(m, cx, U, ht || null); statusGiveItem(m, cx, T, hu || null);
+        return;
+      case 'bestow':
+        var bu = cx[U].heldName;
+        if(!bu || cx[T].heldName || !removableFrom(cx, U)){ failLog(U, '渡せない'); return; }
+        lg(m, U, bu+'を渡す'); consumeItem(m, cx, U, false); setHeldItem(m, T, bu);
+        return;
+      case 'itemRemove':
+        var rt = cx[T].heldName;
+        if(!rt){ failLog(T, '持ち物がない'); return; }
+        if(cx[T].ability==='ねんちゃく'){ failLog(T, 'ねんちゃくで無効'); return; }
+        if(!removableFrom(cx, T)){ failLog(T, '失わない持ち物'); return; }
+        lg(m, T, name+': '+rt+'を失う'); consumeItem(m, cx, T, false);
+        return;
+      case 'teatime':
+        var ate = statusEatBerry(m, s2, cx, U);
+        if(!X.oppBlocked) ate = statusEatBerry(m, s2, cx, T) || ate;
+        if(!ate) failLog(null, 'きのみを持っていないため失敗');
+        return;
+      case 'stuffCheeks':
+        if(!statusEatBerry(m, s2, cx, U)){ failLog(U, 'きのみを持っていないため失敗'); return; }
+        lg(m, null, '['+name+']'); applyRankEvent(m, cx, U, {B:2}, U);
+        return;
+      case 'tops':
+        var op = fx.op==='powerTrick' ? (U==='A' ? 'attackerPowerTrick' : 'defenderPowerTrick') : fx.op;
+        (m.extra.tops || (m.extra.tops = [])).push(op);
+        noteLog(m, fx.op==='powerTrick' ? U : null, name);
+        return;
+      case 'rankSwap':
+        fx.keys.forEach(function(k){ var a = m.ranks[U][k]; m.ranks[U][k] = m.ranks[T][k]; m.ranks[T][k] = a; });
+        lg(m, null, 'ランク補正を入れ替える('+fx.keys.map(function(k){ return RANK_LABEL[k]; }).join('・')+')');
+        return;
+      case 'rankCopy':
+        RANK_KEYS.forEach(function(k){ m.ranks[U][k] = m.ranks[T][k]; }); lg(m, U, '相手のランク補正をコピー');
+        return;
+      case 'rankInvert':
+        if(!RANK_KEYS.some(function(k){ return m.ranks[T][k] !== 0; })){ failLog(T, 'ランク補正がないため失敗'); return; }
+        RANK_KEYS.forEach(function(k){ m.ranks[T][k] = -m.ranks[T][k]; }); lg(m, T, 'ランク補正を逆にする');
+        return;
+      case 'rankResetAll':
+        ['A','D'].forEach(function(sd){ RANK_KEYS.forEach(function(k){ m.ranks[sd][k] = 0; }); }); lg(m, null, '全員のランク補正を0に');
+        return;
+      case 'crit':
+        if(U==='A'){ m.extra.critPlus = (m.extra.critPlus||0) + fx.n; noteLog(m, 'A', '急所ランク+'+fx.n); }
+        else noteLog(m, U, '急所ランク+'+fx.n+'（表示のみ）');
+        return;
+      case 'painSplit':
+        var aCur = s2.aHp, dCur = s2.hp;
+        if(aCur == null || aCur <= 0 || s2.fn) return;
+        // 防御側がダイマックス中は、現在HPの半分(切り捨て)を防御側のHPとして増減量を求める。
+        var csP = window.DAMEKE_CALC_SHARED.calcState(P.result);
+        var dEff = (csP && csP.hpDoubledD) ? Math.floor(dCur/2) : dCur;
+        var avg = Math.floor((aCur + dEff)/2);
+        addHp(m, 'A', avg - aCur); addHp(m, 'D', avg - dEff);
+        lg(m, null, 'いたみわけ: HPを'+avg+'ずつに分ける(攻撃側'+(avg-aCur >= 0 ? '+' : '')+(avg-aCur)+'、防御側'+(avg-dEff >= 0 ? '+' : '')+(avg-dEff)+')');
+        noteLog(m, null, 'いたみわけ');
+        return;
+      case 'purify':
+        var stT = m.status[T];
+        if(stT === 'なし'){ failLog(T, '状態異常でないため失敗'); return; }
+        m.status[T] = 'なし'; lg(m, T, stT+'回復');
+        statusHeal(X, m, s2, cx, U, 2048);
+        return;
+      case 'psychoShift':
+        var stS = m.status[U];
+        if(stS === 'なし' || m.status[T] !== 'なし'){ failLog(U, '失敗'); return; }
+        if(tryInflictStatus(m, cx, T, stS, U, false)){ m.status[U] = 'なし'; lg(m, U, stS+'回復'); }
+        return;
+      case 'strengthSap':
+        var contraryT = cx[T].ability==='あまのじゃく';
+        if(m.ranks[T].A === (contraryT ? 6 : -6)){ failLog(T, 'こうげきがこれ以上下がらないため失敗'); return; }
+        var sap = bigRootAmount(cx, U, rankedStatNow(P, m, T, 'A'));
+        if(cx[T].ability==='ヘドロえき'){
+          if(cx[U].ability!=='マジックガード'){ addHp(m, U, -sap); lg(m, U, 'ヘドロえき: '+sap+'ダメージ'); }
+        } else if(!healBlockedSide(m, U) && hpOfSide(s2, U) != null && hpOfSide(s2, U) < maxOfSide(P, U)){ addHp(m, U, sap); noteLog(m, U, 'HP回復'); }
+        lg(m, null, '['+name+']');
+        applyRankEvent(m, cx, T, {A:-1}, U);
+        return;
+      case 'rest':
+        var abR = cx[U].ability, hpR = hpOfSide(s2, U);
+        if(m.status[U]==='ねむり'){ failLog(U, '既にねむり状態のため失敗'); return; }
+        if(hpR == null || hpR >= maxOfSide(P, U)){ failLog(U, 'HPが満タンのため失敗'); return; }
+        if(['ふみん','やるき','スイートベール','ぜったいねむり'].indexOf(abR) >= 0){ failLog(U, abR+'のため失敗'); return; }
+        if(cx[U].grounded && (cx.field==='エレキフィールド' || cx.field==='ミストフィールド')){ failLog(U, cx.field+'のため失敗'); return; }
+        addHp(m, U, maxOfSide(P, U)); m.status[U] = 'ねむり'; lg(m, U, 'ねむる: HP全回復・ねむり');
+        noteLog(m, U, 'HP全回復');
+        var itR = m.itemGone[U] ? null : cx[U].item;
+        if(itR==='カゴのみ' || itR==='ラムのみ'){ m.status[U] = 'なし'; lg(m, U, 'ねむり → '+itR+'で回復(持ち物消費)'); consumeItem(m, cx, U, true); }
+        return;
+      case 'swallow':
+        var nS = Math.max(1, Math.min(3, parseInt(o.stockpileCount, 10) || 1));
+        statusHeal(X, m, s2, cx, U, nS===1 ? 1024 : (nS===2 ? 2048 : 4096));
+        return;
+      case 'curse':
+        if(cx[U].types.indexOf('ゴースト') < 0){ lg(m, null, '['+name+']'); applyRankEvent(m, cx, U, {S:-1, A:1, B:1}, U); return; }
+        var cc = Math.floor(cx[U].hpBase/2);
+        addHp(m, U, -cc); lg(m, U, 'のろい: HP'+cc+'消費');
+        (m.extra.curse || (m.extra.curse = {}))[T] = 1; noteLog(m, T, 'のろい');
+        return;
+      case 'reflectType': case 'camouflage':
+        var nt;
+        if(fx.k==='reflectType'){
+          if((o[pfx(U)+'TeraType'] || 'なし') !== 'なし'){ failLog(U, 'テラスタル中のため失敗'); return; }
+          nt = cx[T].types.filter(function(t){ return t && t!=='なし' && t!=='タイプなし'; });
+          if(!nt.length){ failLog(U, '相手がタイプなしのため失敗'); return; }
+        } else {
+          nt = [{ 'グラスフィールド':'くさ', 'エレキフィールド':'でんき', 'ミストフィールド':'フェアリー', 'サイコフィールド':'エスパー' }[cx.field] || 'ノーマル'];
+          if(cx[U].types.length===1 && cx[U].types[0]===nt[0]){ failLog(U, '既に'+nt[0]+'タイプのため失敗'); return; }
+        }
+        if(U==='A') m.extra.typesA = nt.slice(); else m.extra.typesD = nt.slice();
+        lg(m, U, nt.join('/')+'タイプになる');
+        if(U==='A') noteLog(m, 'A', nt.join('/')+'タイプになる');
+        return;
+      case 'courtChange':
+        var at = !!optNow(P, m, 'attackerTailwind'), dt = !!optNow(P, m, 'defenderTailwind'), as = !!optNow(P, m, 'attackerSwamp'), ds = !!optNow(P, m, 'defenderSwamp');
+        setOpt(m, 'attackerTailwind', dt); setOpt(m, 'defenderTailwind', at); setOpt(m, 'attackerSwamp', ds); setOpt(m, 'defenderSwamp', as);
+        // 入れ替え先に項目がないもの(防御側の壁・ひのうみ・おまじない、攻撃側のにじ)は消える。設置技は入れ替えない。
+        if((optNow(P, m, 'defenderScreen') || 'none') !== 'none' && m.extra.defenderScreen !== 'none'){ m.extra.defenderScreen = 'none'; lg(m, 'D', '壁をなしにする'); }
+        setOpt(m, 'defenderSeaOfFire', false); setOpt(m, 'attackerRainbow', false); setOpt(m, 'defenderLuckyChant', false);
+        delete m.extra.mist; delete m.extra.safeguard;
+        noteLog(m, null, 'コートチェンジ');
+        return;
+      case 'clearSub':
+        if(s2.sub != null){ s2.sub = null; noteLog(m, 'D', 'みがわりが消える'); }
+        return;
+      case 'screenClear':
+        if(T==='D' && ((o.defenderScreen||'none') !== 'none') && m.extra.defenderScreen !== 'none'){ m.extra.defenderScreen = 'none'; lg(m, 'D', '壁をなしにする'); noteLog(m, 'D', '壁が消える'); }
+        return;
+      case 'fieldClear':
+        if((m.extra.field || cx.field || 'なし') !== 'なし'){ m.extra.field = 'なし'; lg(m, null, 'フィールドをなしにする'); }
+        return;
+      case 'healBlock':
+        if(cx[T].ability==='アロマベール'){ lg(m, T, 'かいふくふうじ：アロマベールで無効'); return; }
+        if(cx[T].item==='メンタルハーブ' && !m.itemGone[T]){ lg(m, T, 'かいふくふうじ → メンタルハーブで回復'); consumeItem(m, cx, T, false); return; }
+        if(T==='D') m.extra.healBlockD = true; else m.extra.healBlockA = true;
+        noteLog(m, T, 'かいふくふうじ');
+        return;
+      case 'tailwind':
+        var tk = pfx(U)+'Tailwind';
+        if(optNow(P, m, tk)){ failLog(U, '既においかぜ状態のため失敗'); return; }
+        setOpt(m, tk, true); noteLog(m, U, 'おいかぜ');
+        // 技でおいかぜにしたときは、かぜのり(こうげき+1)・ふうりょくでんき(じゅうでん状態)が発動する。
+        if(cx[U].ability==='かぜのり'){ lg(m, U, '[かぜのり]'); applyRankEvent(m, cx, U, {A:1}, U); }
+        if(cx[U].ability==='ふうりょくでんき'){ if(U==='A') setOpt(m, 'charge', true); noteLog(m, U, 'ふうりょくでんき: じゅうでん'); }
+        return;
+      case 'transform':
+        if(U!=='A') return;
+        statusTransform(P, m, cx);
+        return;
+    }
+  }
+  // へんしん: 相手のABCDSの実数値(実数値操作後)・ランク・タイプ(計算上タイプ)・特性・おもさ(フォルム)をコピーする。
+  var TRANSFORM_NO_ABILITY = ['かがくへんかガス','しれいとう','こだいかっせい','クォークチャージ'];
+  function statusTransform(P, m, cx){
+    var cs = window.DAMEKE_CALC_SHARED.calcState(P.result) || {};
+    var sd = cs.statsD;
+    if(!sd) return;
+    var types = (m.extra.typesD ? m.extra.typesD : (cs.defenderCalcTypes || [])).filter(function(t){ return t && t!=='なし' && t!=='タイプなし'; });
+    if(!types.length) types = ['ノーマル'];
+    var ab = cx.D.abilityRaw;
+    m.extra.transform = { pokemon: P.input.defender.id, stats: { A: sd.A, B: sd.B, C: sd.C, D: sd.D, S: sd.S }, types: types.slice(0, 3) };
+    RANK_KEYS.forEach(function(k){ m.ranks.A[k] = m.ranks.D[k]; });
+    statusSetAbility(m, 'A', (ab && TRANSFORM_NO_ABILITY.indexOf(ab) < 0) ? ab : null);
+    // 急所ランク(持ち物による上昇以外)は相手のものになる(相手側の入力欄はないため0)。
+    delete m.extra.critPlus;
+    lg(m, 'A', 'へんしん: '+P.input.defender.name+'に変身');
+    noteLog(m, 'A', 'へんしん('+P.input.defender.name+')');
+  }
+  // Zパワー効果(Z変化技。技が無効・外れでも発動する)。
+  function statusZPower(P, m, s2, cx, z, U){
+    function healFull(){ if(hpOfSide(s2, U) != null && hpOfSide(s2, U) < maxOfSide(P, U)){ addHp(m, U, maxOfSide(P, U)); noteLog(m, U, 'Zパワー: HP全回復'); } }
+    if(z.curse){ if(cx[U].types.indexOf('ゴースト') >= 0) healFull(); else { lg(m, null, '[Zパワー]'); applyRankEvent(m, cx, U, {A:1}, U); } return; }
+    if(z.r){ lg(m, null, '[Zパワー]'); applyRankEvent(m, cx, U, z.r, U); }
+    if(z.crit){ if(U==='A') m.extra.critPlus = (m.extra.critPlus||0) + z.crit; noteLog(m, U, 'Zパワー: 急所ランク+'+z.crit); }
+    if(z.heal) healFull();
+    if(z.reset){
+      var neg = RANK_KEYS.filter(function(k){ return m.ranks[U][k] < 0; });
+      if(neg.length){ neg.forEach(function(k){ m.ranks[U][k] = 0; }); lg(m, U, 'Zパワー: 下がった能力を元に戻す('+neg.map(function(k){ return RANK_LABEL[k]; }).join('、')+')'); }
+    }
+    if(z.note) noteLog(m, U, 'Zパワー: '+z.note+'（表示のみ）');
+  }
+  // 技の効果の分岐。つぼをつく(ランダムな能力1つが+2)だけは確率の分岐になる(瀕死率のみに反映)。
+  function statusBranches(P, name, fx, U, T, oppBlocked, s){
+    function applyAll(extraKey){
+      return function(m, s2, inf, c2){
+        var X = { P: P, name: name, U: U, T: T, oppBlocked: oppBlocked };
+        fx.forEach(function(f){
+          if(f.k==='acupressure'){ if(extraKey){ var d = {}; d[extraKey] = 2; lg(m, null, '['+name+']'); applyRankEvent(m, c2, U, d, U); } return; }
+          statusFxApply(X, f, m, s2, c2);
+        });
+      };
+    }
+    if(fx.some(function(f){ return f.k==='acupressure'; })){
+      var cand = RANK_KEYS.filter(function(k){ return s.m.ranks[U][k] < 6; });
+      if(!cand.length) return null;
+      return cand.map(function(k){ return { p: 1/cand.length, apply: applyAll(k) }; });
+    }
+    return one(applyAll(null));
+  }
+  // マジックミラー: 跳ね返した技を、防御側が攻撃側へ使う(再度の反射はない)。
+  // 範囲(おどりこと同じ): 入力ステータス・持ち物・特性・テラスタル・状態異常と、場の条件のみ考慮し、
+  // その他の攻撃側条件・防御側条件はすべて既定値。跳ね返した技の命中判定・無効判定は、防御側が使ったものとして行う。
+  // label: 'マジックミラー'(跳ね返す) / 'おどりこ'(踊りの変化技をコピーして使う。Zパワーはコピーしない)。
+  function statusReflectBranches(P, name, fx, s, label){
+    label = label || 'マジックミラー';
+    var dancer = label === 'おどりこ', verb = dancer ? 'をコピー' : 'を跳ね返す';
+    var memo = dancer ? (P.dancerStatusMemo || (P.dancerStatusMemo = Object.create(null))) : (P.reflectMemo || (P.reflectMemo = Object.create(null)));
+    var key = s.mk + '#' + s.hp + '#' + s.aHp;
+    var rm = memo[key];
+    if(!rm){
+      var i = P.input;
+      var o = applyEffectMods(freshOpts(i.options), s.m);
+      var x = { weather: o.weather, field: o.field, gravity: o.gravity, magicRoom: o.magicRoom, neutralizingGasField: o.neutralizingGasField,
+                fairyAuraField: o.fairyAuraField, darkAuraField: o.darkAuraField, critical: 0, transformOps: [], defenderScreen: 'none', defenderProtectState: 'none',
+                __noReflect: !dancer, __called: true };
+      ['ItemId','NoItem','AbilityId','NoAbility','TeraType','Type1','Type2','TypeOverride','AddType','Stats','Status','Gender','Unburden','ParadoxBoostStat','Embargo'].forEach(function(k){
+        x['attacker'+k] = o['defender'+k]; x['defender'+k] = o['attacker'+k];
+      });
+      x.attackerSpecialState = 'none'; x.defenderSpecialState = 'none';
+      x.__attackerCurrentHpFinal = Math.max(1, s.hp); if(s.aHp != null && s.aHp > 0) x.__defenderCurrentHpFinal = s.aHp;
+      var mvObj = (window.DAMEKE_DATA.moves||[]).find(function(mm){ return mm.name === name; }) || i.move;
+      var base = C.calculateDamage({ attacker: i.defender, defender: i.attacker, move: mvObj, attackerLevel: i.defenderLevel, defenderLevel: i.attackerLevel, options: x });
+      var rsm = base.statusMove || { invalid: true, reason: '' };
+      rm = memo[key] = { sm: rsm, acc: base.accuracyResult==='必中' ? 1 : Math.max(0, Math.min(1, (base.accuracyPercent||0)/100)),
+                         type: base.effectiveType, wind: !!window.DAMEKE_DATA_HELPERS.moveTagByName(name, 'wind') };
+    }
+    // おどりこでコピーした技が、攻撃側のマジックミラーで跳ね返されたとき: 攻撃側が防御側へ使ったものとして処理する。
+    if(dancer && rm.sm.reflect){
+      var back = statusBranches(P, name, fx, 'A', 'D', false, s);
+      var pBack = P.mode === 'display' ? 1 : (P.model.accProb == null ? 1 : P.model.accProb);
+      var outB = (back || []).map(function(b){
+        return { p: b.p * pBack, apply: function(m, s2, inf, c2){ lg(m, 'D', 'おどりこ: '+name+'をコピー → マジックミラーで跳ね返される'); noteLog(m, 'D', 'おどりこ'); noteLog(m, 'A', 'マジックミラー'); b.apply(m, s2, inf, c2); } };
+      });
+      if(!back || pBack < 1) outB.push({ p: back ? 1 - pBack : 1, apply: function(m){ lg(m, 'D', 'おどりこ: '+name+'をコピー → マジックミラーで跳ね返される'); noteLog(m, 'D', 'おどりこ'); noteLog(m, 'A', 'マジックミラー'); } });
+      return outB;
+    }
+    if(rm.sm.invalid || rm.sm.skip){
+      // 跳ね返した技・コピーした技が、攻撃側の「技を吸収する特性」で無効になったときは、その効果が出る。
+      var abF = rm.sm.absorb ? absorbApply(P, buildView(P, s.m).A.ability, rm.type, rm.wind, 'A') : null;
+      return one(function(m, s2, inf, c2){
+        lg(m, 'D', label+': '+name+verb+' → '+(rm.sm.reason || '無効')); noteLog(m, 'D', label+(dancer ? '（コピーした技は無効）' : '（跳ね返した技は無効）'));
+        if(abF) abF(m, s2, inf, c2);
+      });
+    }
+    var sub = statusBranches(P, name, fx, 'D', 'A', !!rm.sm.oppBlocked, s);
+    if(!sub) return null;
+    var pHit = P.mode === 'display' ? 1 : rm.acc;
+    var out = sub.map(function(b){
+      return { p: b.p * pHit, apply: function(m, s2, inf, c2){ lg(m, 'D', label+': '+name+verb); noteLog(m, 'D', label); b.apply(m, s2, inf, c2); } };
+    });
+    if(pHit < 1) out.push({ p: 1 - pHit, apply: function(m){ lg(m, 'D', label+': '+name+verb+' → 外れ'); noteLog(m, 'D', label); } });
+    return out;
+  }
+  // 変化技(技①)の効果を、パイプラインの共通形式(効果の列)にする。
+  //  ・Zパワー: 命中判定より前(技が無効・外れでも発動)
+  //  ・マジックミラーの反射: 技が無効になった直後
+  //  ・技の効果: 技が成功したとき(ダメージがないので、全ヒット後の効果より前にまとめて処理する)
+  function buildStatusEvents(P){
+    var sm = P.status, name = sm.name, meta = (window.DAMEKE_STATUS_MOVES||{})[name] || {}, fx = meta.fx || [], T = [];
+    if(sm.zPower && meta.z && !meta.z.none){
+      T.push({ name: 'status:zpower', cat: '技', stage: 'pre', at: 1, actor: 'A', onHit: true, onMiss: true, subBlockable: false,
+               branches: function(){ return one(function(m, s2, inf, c2){ statusZPower(P, m, s2, c2, meta.z, 'A'); }); } });
+    }
+    if(sm.reflect && fx.length){
+      T.push({ name: 'status:reflect', cat: '特性', stage: 'pre', at: 39, actor: '-', onHit: false, onMiss: true, subBlockable: false,
+               when: function(s){ return !s.fn; },
+               branches: function(s){ return statusReflectBranches(P, name, fx, s); } });
+    }
+    if(!sm.invalid && fx.length){
+      T.push({ name: 'status:fx', cat: '技', stage: 'post', at: 900, actor: 'A', onHit: true, onMiss: false, subBlockable: false,
+               branches: function(s){ return statusBranches(P, name, fx, 'A', 'D', !!sm.oppBlocked, s); } });
+    }
+    // 全員が対象の技が、相手の「技を吸収する特性」で相手への分だけ無効になったとき(技そのものは成功)。
+    if(!sm.invalid && sm.absorb && sm.oppBlocked){
+      T.push({ name: 'status:absorb', cat: '特性', stage: 'pre', at: 38, actor: '-', onHit: true, onMiss: false, subBlockable: false,
+               when: function(s, info, cx){ return !s.fn && !!cx.D.ability; },
+               branches: function(s, info, cx){ var f = absorbApply(P, cx.D.ability, P.mv.type, P.mv.wind, 'D'); return f ? one(f) : null; } });
+    }
+    // おどりこ: 踊りの変化技が成功したとき、防御側が同じ技を使う(攻撃技のおどりこと同じ位置)。
+    if(!sm.invalid && fx.length && P.mv.dance){
+      T.push({ name: 'status:dancer', cat: '特性', stage: 'post', at: 3000, actor: '-', onHit: true, onMiss: false, subBlockable: false,
+               when: function(s, info, cx){ return !s.fn && !aFainted(s) && cx.D.ability==='おどりこ'; },
+               branches: function(s){ return statusReflectBranches(P, name, fx, s, 'おどりこ'); } });
+    }
     return T;
   }
 
@@ -6906,6 +7956,14 @@ function abilityImmunity(result, o, moveType) {
         fixedDamage: !!(input.move && input.move.fixedDamageKind && input.move.fixedDamageKind!=='none')
       }
     };
+    // 変化技(技①): ダメージのない技として、命中判定と効果だけを処理する(無効なら、Zパワーと跳ね返しだけ)。
+    var smInfo = result.statusMove;
+    if(role === 1 && result.effectiveCategory === '変化' && smInfo && !smInfo.skip){
+      P.status = smInfo;
+      P.model = smInfo.invalid ? { none: true, mode: mode }
+        : { none: false, mode: mode, maxHits: 0, sequential: false, stopAfter: [], hitsFor: function(){ return []; },
+            accProb: result.accuracyResult==='必中' ? 1 : Math.max(0, Math.min(1, (result.accuracyPercent||0)/100)) };
+    }
     P.view = function(s){ return P.viewCache[s.mk] || (P.viewCache[s.mk] = buildView(P, s.m)); };
     P.touch = Object.create(null); P.dispAcc = Object.create(null);
     P.shieldDust = function(cx){ return cx.D.ability==='りんぷん' || cx.D.item==='おんみつマント'; };
@@ -6924,6 +7982,7 @@ function abilityImmunity(result, o, moveType) {
     P.hpDep = !!flags.futureSight;
     var evs = plan.map(function(pev){ return planToEvent(pev, eff); });
     evs = evs.concat(buildTriggers(P, eff));
+    if(P.status) evs = evs.concat(buildStatusEvents(P));
     if(role === 1) evs = evs.concat(buildAbsorbTriggers(P)).concat(buildEndOfTurnEvents(P));
     if(role === 2) evs = evs.filter(function(e){ return e.stage === 'hit' || e.stage === 'pre'; });
     if(role === 3) evs = evs.filter(function(e){ return e.stage === 'hit' || e.stage === 'pre'; });
@@ -7112,7 +8171,9 @@ function abilityImmunity(result, o, moveType) {
         var itName = e.text.replace(/#LOST$/, ''), other = e.side==='A' ? 'D' : 'A';
         var stolen = !!acc[other+'|'+other+'.item|持ち物→'+itName];
         // 相手に移った → 奪われる / 防御側が相手の技で失った → 失う / それ以外(自分で使った) → 消費
-        e.text = itName + (stolen ? 'を奪われる' : ((e.side==='D' && cat==='技') ? 'を失う' : '消費'));
+        // 跳ね返されたふしょくガスで攻撃側が失った場合も「失う」。
+        var lostByMove = (e.side==='D' && cat==='技') || (e.side==='A' && P.status && P.status.reflect && P.status.name==='ふしょくガス');
+        e.text = itName + (stolen ? 'を奪われる' : (lostByMove ? 'を失う' : '消費'));
       }
       (out[e.side][cat] || (out[e.side][cat] = [])).push(e);
     });
@@ -7308,6 +8369,10 @@ function abilityImmunity(result, o, moveType) {
         if(x.attackerForm){
           var fp = (window.DAMEKE_DATA.pokemons||[]).find(function(p){ return p.id === x.attackerForm; });
           if(fp){ attacker2 = fp; options2.attackerType1 = (fp.types && fp.types[0]) || 'なし'; options2.attackerType2 = (fp.types && fp.types[1]) || 'なし'; }
+        }
+        if(x.transform){
+          var tp = (window.DAMEKE_DATA.pokemons||[]).find(function(p){ return p.id === x.transform.pokemon; });
+          if(tp){ options2.__attackerTransform.orig = input2.attacker; attacker2 = tp; }
         }
         if(aHpNow != null && aHpNow !== aStartHp) options2.__attackerCurrentHpFinal = aHpForMove2(aHpNow);
         return { attacker: attacker2, defender: defender2, move: input2.move, attackerLevel: input2.attackerLevel, defenderLevel: input2.defenderLevel, options: options2 };
@@ -7976,6 +9041,8 @@ function abilityImmunity(result, o, moveType) {
     var changes = {};
     [['A','attacker'],['D','defender']].forEach(function(x){
       var side = x[0], pre = x[1];
+      // へんしん(技①)の後の攻撃側は、コピーしたフォルムのまま(条件を満たしてもフォルムチェンジしない)。
+      if(side==='A' && o.__attackerTransform) return;
       var p = input[pre];
       var t = targetForm(p, abilityOn(core, side), hpOf(r, side), Math.min(Math.max(parseInt(input[pre+'Level'],10)||50, 1), 100));
       if(t && t.to && t.to.id !== p.id) changes[side] = t;
@@ -8072,4 +9139,45 @@ function abilityImmunity(result, o, moveType) {
   C.calculateDamage = function(input){
     return S.gemRules(input, S.formChange(input, calculateBeforeFormChange));
   };
+
+  // ---- しぜんのちから ----
+  // フィールドに応じた技が入力されているものとして計算する(技①・技②とも)。
+  //   グラスフィールド=エナジーボール / エレキフィールド=10まんボルト / ミストフィールド=ムーンフォース /
+  //   サイコフィールド=サイコキネシス / それ以外=トライアタック
+  // Zワザは、出る技をZワザにしたもの。ダイマックス中は、出る技に関係なくダイウォール(元の変化技のまま変換する)。
+  // 連続計算の途中でフィールドが変わったときは、変わった後のフィールドで選び直す。
+  var NATURE_POWER = { 'グラスフィールド':'エナジーボール', 'エレキフィールド':'10まんボルト', 'ミストフィールド':'ムーンフォース', 'サイコフィールド':'サイコキネシス' };
+  function naturePowerInput(input){
+    var mv = input && input.move;
+    if(!mv || !(mv.name === 'しぜんのちから' || mv.naturePower)) return input;
+    var H = window.DAMEKE_DATA_HELPERS, o = input.options || {};
+    var orig = mv.naturePower ? mv.naturePowerOrig : mv;
+    var st = o.attackerSpecialState;
+    var want;
+    if((st === 'dynamax' || st === 'gmax') && H.canDynamaxPokemon(input.attacker)) want = orig;
+    else {
+      var nm = NATURE_POWER[o.field] || 'トライアタック';
+      if(mv.naturePower && mv.name === nm) return input;
+      var called = H.byMoveName(nm);
+      if(!called) return input;
+      want = Object.assign({}, called, { naturePower: true, naturePowerOrig: orig });
+    }
+    if(want === mv) return input;
+    return Object.assign({}, input, { move: want });
+  }
+  function isCalcInput(a){ return !!(a && typeof a === 'object' && a.move && a.attacker && a.defender); }
+  ['calculateDamage','calculateDamageWithEffects','describeMoveEffects','computeFaintProbability','computeMoveRecovery','calculateCombinedSequence'].forEach(function(fn){
+    var orig = C[fn];
+    if(typeof orig !== 'function') return;
+    C[fn] = function(){
+      var args = Array.prototype.slice.call(arguments).map(function(a){ return isCalcInput(a) ? naturePowerInput(a) : a; });
+      var r = orig.apply(this, args);
+      if(fn === 'calculateDamage' && r && args[0] && args[0].move && args[0].move.naturePower){
+        r.naturePower = { from: 'しぜんのちから', to: args[0].move.name };
+        var line = (r.trace || []).find(function(x){ return String(x.label).indexOf('技名変換') >= 0; });
+        if(line){ line.name = 'しぜんのちから'; if(line.value === 'しぜんのちから') line.value = args[0].move.name; }
+      }
+      return r;
+    };
+  });
 })();

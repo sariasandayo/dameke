@@ -271,6 +271,7 @@ window.DAMEKE_ITEM_IMAGE_SLUGS = {
   "ほのおのいし":"fire-stone",
   "ほのおのジュエル":"fire-gem",
   "ぼうごパット":"protective-pads",
+  "ぼうじんゴーグル":"safety-goggles",
   "まがったスプーン":"twisted-spoon",
   "まじめミント":"serious-mint",
   "まっさらもち":"fresh-start-mochi",
