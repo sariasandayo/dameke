@@ -1249,7 +1249,7 @@ window.__damekeFmtFaintPct = fmtFaintPct;
       // 採用率上位(select._damekeTopProvider があるときだけ): 何も打っていない状態の一覧の先頭に、
       // 背景色を変えて並べる。その下は区切り線をはさんで従来どおりの全候補(上位のものも元の位置に残す)。
       var tops = (!nq && select._damekeTopProvider) ? (select._damekeTopProvider() || []) : [];
-      var topCount = 0;
+      var topCount = 0, topTexts = {};
       tops.forEach(function(t){
         var o = null;
         for(var i = 0; i < options.length; i++){ if(options[i].text === t.text){ o = options[i]; break; } }
@@ -1261,8 +1261,13 @@ window.__damekeFmtFaintPct = fmtFaintPct;
         li.addEventListener('mousedown', function(e){ e.preventDefault(); choose(o); });
         list.appendChild(li);
         topCount++;
+        topTexts[o.text] = true;
       });
-      if(topCount){ var sep = document.createElement('li'); sep.className = 'dameke-usage-sep'; sep.setAttribute('aria-hidden', 'true'); list.appendChild(sep); }
+      // select._damekeTopExclusive のとき(候補の少ない欄。ポケモン管理の特性・性格)は、上位に出したものを
+      // 区切り線の下の候補から外す(同じ名前が2回並ばないように。残りがなければ区切り線も出さない)。
+      // 技・持ち物は従来どおり両方に出す。
+      if(topCount && select._damekeTopExclusive) matches = matches.filter(function(o){ return !topTexts[o.text]; });
+      if(topCount && matches.length){ var sep = document.createElement('li'); sep.className = 'dameke-usage-sep'; sep.setAttribute('aria-hidden', 'true'); list.appendChild(sep); }
       matches.forEach(function(o){
         var li = document.createElement('li');
         li.textContent = o.text; li.className = 'v082h-search-item';

@@ -368,22 +368,12 @@ button:hover:not(:disabled) { filter: var(--dameke-hover-filter); }
 .v082h-search-item.dameke-usage-top{display:flex;justify-content:space-between;align-items:center;gap:8px;}
 .dameke-usage-top-name{min-width:0;overflow:hidden;text-overflow:ellipsis;}
 .dameke-usage-sep{height:0;border-top:1px solid var(--dameke-border-subtle);margin:3px 2px;list-style:none;}
-/* ポケモン管理の編集欄: 採用率つきのボタン(いま入っている値は色を付ける) */
-.dameke-usage-chips{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.15rem;min-width:0;}
-.dameke-usage-chips[hidden]{display:none;}
-.dameke-usage-chip{font:inherit;font-size:.74rem;font-weight:500;line-height:1.25;display:inline-flex;align-items:baseline;gap:.25rem;max-width:100%;min-height:0;margin:0;padding:.22rem .45rem;border-radius:999px;border:1px solid var(--dameke-border-subtle);background:var(--dameke-surface-faint);color:var(--dameke-text-slate);box-shadow:none;cursor:pointer;text-align:left;}
-.dameke-usage-chip:hover{background:var(--dameke-hover-tint);filter:none;}
-.dameke-usage-chip .dameke-usage-chip-name{font-weight:500;min-width:0;overflow-wrap:anywhere;}
-.dameke-usage-chip .dameke-usage-rate{margin-left:0;font-size:.66rem;}
-.dameke-usage-chip[aria-pressed="true"]{background:#2563eb;border-color:#2563eb;color:#fff;}
-.dameke-usage-chip[aria-pressed="true"] .dameke-usage-rate{color:#dbeafe;}
-.dameke-usage-chip:disabled{opacity:.45;cursor:default;}
+/* ポケモン管理の編集欄: 採用率の表示(シングル/ダブルの切り替え) */
 .dameke-pokeedit-usage-bar{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem .6rem;margin:.5rem 0 .65rem;font-size:.76rem;color:var(--dameke-text-muted);}
-.dameke-pokeedit-usage-bar[hidden],.dameke-pokeedit-usage-row[hidden]{display:none;}
+.dameke-pokeedit-usage-bar[hidden]{display:none;}
 .dameke-pokeedit-usage-bar-label{font-weight:600;}
-.dameke-pokeedit-usage-row{display:flex;flex-direction:column;gap:.2rem;margin-top:.5rem;}
-.dameke-pokemon-edit-grid > .dameke-pokeedit-usage-row{margin-top:-.25rem;}
-.dameke-pokeedit-usage-row > .dameke-pokemon-detail-label{font-size:.76rem;}
+.dameke-pokemon-edit-nature-row .v082h-search-combo{max-width:calc(50% - 8px);}
+.dameke-pokemon-edit-nature-row .v082h-search-combo select{max-width:none;}
 /* シングル/ダブルの切り替え(「入力」見出しと同じ行の右寄せ)。 */
 .dameke-format-switch{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dameke-text-muted);}
 .dameke-format-switch span,.dameke-format-switch label{display:inline;cursor:pointer;font-size:12px;color:inherit;width:auto;}
