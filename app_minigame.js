@@ -88,6 +88,7 @@
     { id: 'dexfill', label: 'ポケモン図鑑埋め', render: renderDexFillGame },
     { id: 'stathl', label: '種族値High&Low', render: renderStatHLGame },
     { id: 'statchart', label: '種族値チャートクイズ', render: renderStatChartGame },
+    { id: 'typecard', label: '相性カードバトル', render: renderTypeCardGame },
     { id: 'randomgen', label: 'ランダムポケモン出力', render: renderRandomGenGame }
   ];
   var currentGameId = GAMES[0].id;
@@ -2123,5 +2124,1468 @@
 
     renderBoard();
     renderStatus();
+  }
+
+
+  // ==================== 相性カードバトル ====================
+  // 最終進化のポケモンをカードにして、CPUと1枚ずつ交互に出し合うゲーム。
+  // ・出したカードは、場のカードへの「タイプ相性の倍率」を点数として得る。点数は出したカードの2タイプ
+  //   それぞれの倍率の合計(単タイプは同じタイプで2回分)。倍率には場のカードの特性も反映する
+  //   (計算はダメージ計算・補完ポケモン出力と同じ DAMEKE_CALC.computeTypeEffectiveness)。
+  //   攻撃側の特性が かたやぶり/テラボルテージ/ターボブレイズ/かがくへんかガス のときは、場のカードの
+  //   特性を見ない。
+  // ・カードは姿違い(formGroup)を1枚にまとめたもの。タイプか相性に関わる特性が違う姿があれば、出すときに
+  //   姿を選べる。特性は姿ごとにランダムに1つ付く。
+  // ・18枚を公開し、場札1枚・手札6枚ずつ・山札5枚。始める前に後攻→先攻の順で1回ずつマリガン(手札1枚を山札に
+  //   戻して1枚引く。戻した札・引いた札とも公開)。強化(Zワザ/ダイマックス/テラスタル)は1試合1回どれか。
+  // ・CPUは3段階。つよいは、相手の手札としてありうる組み合わせを複数仮定し、それぞれを最後まで先読みして
+  //   平均の点差が最もよい手を選ぶ。
+  var TCB_HAND = 6, TCB_DECK = 5, TCB_POOL = 1 + TCB_HAND * 2 + TCB_DECK; // 18枚
+  var TCB_MASKMUL = Math.pow(2, TCB_POOL);
+  var TCB_Z_MULT = 2, TCB_D_MULT = 1.5, TCB_D_TAKEN = 0.5, TCB_T_MULT = 1.25;
+  var TCB_BYPASS = { 'かたやぶり': true, 'テラボルテージ': true, 'ターボブレイズ': true, 'かがくへんかガス': true };
+  var TCB_LEVELS = [['weak', 'よわい'], ['normal', 'ふつう'], ['strong', 'つよい']];
+  var TCB_TYPES = ['ノーマル','ほのお','みず','でんき','くさ','こおり','かくとう','どく','じめん','ひこう','エスパー','むし','いわ','ゴースト','ドラゴン','あく','はがね','フェアリー'];
+  // 相性表の見出し用の1文字(重ならない)。
+  var TCB_TYPE_SHORT = { 'ノーマル':'ノ','ほのお':'炎','みず':'水','でんき':'電','くさ':'草','こおり':'氷','かくとう':'闘','どく':'毒','じめん':'地','ひこう':'飛','エスパー':'超','むし':'虫','いわ':'岩','ゴースト':'霊','ドラゴン':'竜','あく':'悪','はがね':'鋼','フェアリー':'妖' };
+
+  function tcbRand(n){ return Math.floor(Math.random() * n); }
+  function tcbShuffle(a){ for(var i = a.length - 1; i > 0; i--){ var j = tcbRand(i + 1); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  // 点数の表示(小数は最大3桁、末尾の0は付けない)。
+  function tcbPts(x){ var v = Math.round(x * 1000) / 1000; return String(v); }
+
+  // ---- 相性の計算 ----
+  function tcbTypeEff(defTypes, atkType, defAbility){
+    var C = window.DAMEKE_CALC;
+    if(C && C.computeTypeEffectiveness) return C.computeTypeEffectiveness(defTypes, atkType, defAbility || null);
+    var chart = DATA.typeChart4096 || {}, r = 4096;
+    defTypes.forEach(function(t){ var x = (chart[atkType] || {})[t]; r = Math.floor(r * (x == null ? 4096 : x) / 4096); });
+    return r / 4096;
+  }
+  // 受けるときの相性に関わる特性か(ダメージ計算側の判定をそのまま使う)。
+  function tcbDefRelevant(ab){ var C = window.DAMEKE_CALC; return !!(ab && C && C.isTypeRelevantAbility && C.isTypeRelevantAbility(ab)); }
+  // このゲーム独自に扱う特性(倍率を点数に掛ける)。
+  var TCB_DEF_FILTER = { 'ハードロック': true, 'フィルター': true, 'プリズムアーマー': true }; // ばつぐんの点×0.75
+  var TCB_DEF_EXTRA = { 'ふしぎなまもり': true, 'テラスシェル': true, 'ハードロック': true, 'フィルター': true, 'プリズムアーマー': true };
+  var TCB_ATK_EXTRA = { 'いろめがね': true, 'きもったま': true, 'しんがん': true, 'ブレインフォース': true };
+  var TCB_SCRAPPY = { 'きもったま': true, 'しんがん': true };
+  var TCB_UNBREAKABLE = { 'プリズムアーマー': true }; // かたやぶり系でも無視できない(かがくへんかガスなら無視できる)
+  var TCB_GAS = 'かがくへんかガス';
+  var TCB_ANTICIPATION = 'きけんよち';
+  function tcbRelevant(ab){ return !!ab && (tcbDefRelevant(ab) || !!TCB_BYPASS[ab] || !!TCB_DEF_EXTRA[ab] || !!TCB_ATK_EXTRA[ab] || ab === TCB_ANTICIPATION); }
+  // 攻撃側の姿 att が、場の姿 def に出したときのタイプごとの倍率。
+  // eff = タイプ相性(場の特性による無効・半減を含む)、mult = 特性の補正を掛けた点数、notes = 内訳に出す特性の説明。
+  function tcbParts(att, def){
+    var atkAb = def.ab === TCB_GAS ? null : att.ab;          // 場がかがくへんかガスなら、出す側の特性は働かない
+    var bypass = !!(atkAb && TCB_BYPASS[atkAb]);
+    var defAb = def.ab && (!bypass || (TCB_UNBREAKABLE[def.ab] && atkAb !== TCB_GAS)) ? def.ab : null;
+    var ts = att.types.length === 1 ? [att.types[0], att.types[0]] : att.types.slice(0, 2);
+    return ts.map(function(t){
+      var notes = [];
+      var dTypes = def.types;
+      if(atkAb && TCB_SCRAPPY[atkAb] && (t === 'ノーマル' || t === 'かくとう') && def.types.indexOf('ゴースト') >= 0){
+        dTypes = def.types.filter(function(x){ return x !== 'ゴースト'; });
+        notes.push(atkAb + 'でゴーストに当たる');
+      }
+      var plain = tcbTypeEff(dTypes, t, null);
+      var e = tcbTypeEff(dTypes, t, defAb && tcbDefRelevant(defAb) ? defAb : null);
+      if(e !== plain) notes.push(defAb);
+      if(bypass && def.ab && !defAb && (TCB_DEF_EXTRA[def.ab] || (tcbDefRelevant(def.ab) && tcbTypeEff(dTypes, t, def.ab) !== plain))) notes.push(atkAb + 'で' + def.ab + 'を無視');
+      var e0 = e;
+      if(defAb === 'テラスシェル' && e > 0){ e = 0.5; notes.push('テラスシェルで今ひとつ'); }
+      var m = e;
+      if(defAb === 'ふしぎなまもり' && e < 2 && e > 0){ m = 0; notes.push('ふしぎなまもり'); }
+      if(m > 0 && e >= 2 && defAb && TCB_DEF_FILTER[defAb]){ m *= 0.75; notes.push(defAb + '×0.75'); }
+      if(m > 0 && e > 0 && e < 1 && atkAb === 'いろめがね'){ m *= 2; notes.push('いろめがね×2'); }
+      if(m > 0 && e >= 2 && atkAb === 'ブレインフォース'){ m *= 1.25; notes.push('ブレインフォース×1.25'); }
+      return { type: t, eff0: e0, eff: e, mult: m, notes: notes };
+    });
+  }
+  function tcbBase(att, def){ return tcbParts(att, def).reduce(function(s, p){ return s + p.mult; }, 0); }
+  function tcbBoostMult(b){ return b === 'Z' ? TCB_Z_MULT : (b === 'D' ? TCB_D_MULT : (b === 'T' ? TCB_T_MULT : 1)); }
+  var TCB_BOOST_NAME = { Z: 'Zワザ', D: 'ダイマックス', T: 'テラスタル' };
+
+  var TCB_TYPE_CHOICE = { 'アルセウス': true, 'シルヴァディ': true };
+  // ---- カードの元(姿違いをまとめたグループ)。最終進化のみ。1回だけ作る ----
+  var tcbGroupsCache = null;
+  function tcbGroups(){
+    if(tcbGroupsCache) return tcbGroupsCache;
+    var map = Object.create(null), order = [];
+    (DATA.pokemons || []).forEach(function(p){
+      if(p.canEvolve || !Array.isArray(p.types) || !p.types.length) return;
+      var key = p.formGroup || ('#' + p.id);
+      if(!map[key]){ map[key] = []; order.push(key); }
+      map[key].push(p);
+    });
+    tcbGroupsCache = order.map(function(k){ return map[k]; });
+    return tcbGroupsCache;
+  }
+  // グループからカードを作る。姿ごとに特性を1つ選び、タイプと「相性に関わる特性」が同じ姿は1つにまとめる。
+  // テラスタイプが決まっているポケモン(オーガポン: お面ごと)。テラスタルした姿はデータの「(〇〇(テラスタル))」を使う。
+  var TCB_OGERPON_TERA = { 'みどり': 'くさ', 'いど': 'みず', 'かまど': 'ほのお', 'いしずえ': 'いわ' };
+  var TCB_NO_TERA = /^テラパゴス/;              // テラスタイプはステラのみ(このゲームではステラなし)なのでテラスタル不可
+  var TCB_NO_DYN = /^(ザシアン|ザマゼンタ|ムゲンダイナ)/; // ダイマックスできない
+  function tcbMakeCard(members){
+    var faces = [], seen = Object.create(null);
+    var noTera = members.some(function(m){ return TCB_NO_TERA.test(m.name); });
+    var noDyn = members.some(function(m){ return TCB_NO_DYN.test(m.name); });
+    members.forEach(function(m){
+      // テラスタル済みの姿(オーガポンのお面のテラスタル)と、テラパゴスのステラは、ふつうの姿には入れない
+      if(/\(テラスタル\)\)$/.test(m.name) || m.name === 'テラパゴス(ステラ)') return;
+      var abs = (m.abilities || []).filter(function(a){ return a && a !== 'なし'; });
+      var ab = abs.length ? abs[tcbRand(abs.length)] : null;
+      // アルセウス・シルヴァディは、出すときにタイプを選べる(18タイプの姿にする)。
+      if(TCB_TYPE_CHOICE[m.name]){
+        TCB_TYPES.forEach(function(t){ faces.push({ name: m.name + '(' + t + ')', img: m.name, types: [t], ab: ab, typeChoice: true }); });
+        return;
+      }
+      var key = m.types.slice(0, 2).slice().sort().join('/') + '|' + (tcbRelevant(ab) ? ab : '');
+      if(seen[key]) return;
+      seen[key] = true;
+      var face = { name: m.name, types: m.types.slice(0, 2), ab: ab };
+      var og = /^オーガポン\((.+)\)$/.exec(m.name);
+      if(og && TCB_OGERPON_TERA[og[1]]){
+        face.teraType = TCB_OGERPON_TERA[og[1]];
+        face.teraName = 'オーガポン(' + og[1] + '(テラスタル))';
+        face.teraAb = 'おもかげやどし';
+      }
+      faces.push(face);
+    });
+    // テラスタイプ: 18タイプからランダムに1つ(ステラは使わない)。カードに表示して両者に公開。
+    return { faces: faces, typeChoice: faces.length > 0 && !!faces[0].typeChoice, tera: noTera ? null : TCB_TYPES[tcbRand(TCB_TYPES.length)], noTera: noTera, noDyn: noDyn };
+  }
+
+  // ---- ゲームの状態 ----
+  var tcbLevel = 'normal';
+  var tcbState = null;
+  var tcbTimer = null;
+
+  function tcbNewGame(force){
+    if(tcbTimer){ clearTimeout(tcbTimer); tcbTimer = null; }
+    var groups = tcbGroups();
+    var picked = Object.create(null), cards = [];
+    // テスト用: 名前を指定したグループを必ず入れる
+    (force || []).forEach(function(name){
+      groups.forEach(function(g, gi){ if(!picked[gi] && cards.length < TCB_POOL && g.some(function(m){ return m.name === name; })){ picked[gi] = true; cards.push(tcbMakeCard(g)); } });
+    });
+    while(cards.length < TCB_POOL){
+      var gi = tcbRand(groups.length);
+      if(picked[gi]) continue;
+      picked[gi] = true;
+      cards.push(tcbMakeCard(groups[gi]));
+    }
+    // 姿を通し番号にする(CPUの先読み用)。faceIds[カード] = その姿の番号の配列。
+    var faces = [], faceIds = [];
+    cards.forEach(function(c, ci){ faceIds.push(c.faces.map(function(f){ f.card = ci; faces.push(f); return faces.length - 1; })); });
+    // テラスタルした姿(テラスタイプの単タイプ。特性はその姿のまま)。teraOf[姿の番号] = テラスタルした姿の番号。
+    // タイプを選ぶカード(アルセウス等)は、どのタイプからでもテラスタルの姿は同じなので1つにまとめる。
+    var teraOf = [];
+    cards.forEach(function(c, ci){
+      var shared = null;
+      faceIds[ci].forEach(function(fid){
+        if(c.noTera) return;
+        if(c.typeChoice && shared != null){ teraOf[fid] = shared; return; }
+        var f = faces[fid], base = f.img || f.name, tt = f.teraType || c.tera;
+        if(f.teraName) faces.push({ name: f.teraName, img: f.teraName, types: [tt], ab: f.teraAb, tera: true, card: ci, from: fid });
+        else faces.push({ name: base + '(テラスタル' + tt + ')', img: base, types: [tt], ab: f.ab, tera: true, card: ci, from: fid });
+        teraOf[fid] = faces.length - 1;
+        if(c.typeChoice) shared = teraOf[fid];
+      });
+    });
+    var S = faces.map(function(a){ return faces.map(function(d){ return tcbBase(a, d); }); });
+    var order = tcbShuffle(cards.map(function(_, i){ return i; }));
+    var first = Math.random() < 0.5 ? 'me' : 'cpu';
+    tcbState = {
+      cards: cards, faces: faces, faceIds: faceIds, teraOf: teraOf, S: S,
+      hands: { me: order.slice(1, 1 + TCB_HAND), cpu: order.slice(1 + TCB_HAND, 1 + TCB_HAND * 2) },
+      deck: order.slice(1 + TCB_HAND * 2),
+      field: { card: order[0], face: faceIds[order[0]][0], by: 'start', dyn: false },
+      used: Object.create(null),       // カード -> 'me' | 'cpu'
+      knownDeck: Object.create(null),  // 交換で山札に戻った(どこにあるか分かっている)カード
+      scores: { me: 0, cpu: 0 },
+      boost: { me: null, cpu: null },  // 使った強化('Z' | 'D' | 'T')
+      first: first, turn: first, plies: 0,
+      // マリガン: 後攻→先攻の順。phase は 'mull'(マリガン中) → 'play'。pubHand = マリガンで引いた(公開の)札
+      phase: 'mull', mullWho: first === 'me' ? 'cpu' : 'me', mullLog: [], pubHand: { me: [], cpu: [] },
+      log: [], finished: false, thinking: false,
+      sel: null, selBoost: null, handFace: Object.create(null), message: null, busy: false
+    };
+  }
+
+  // そのカードで使える強化か(テラスタル不可・ダイマックス不可のポケモンがいる)。
+  function tcbBoostAllowed(st, ci, b){
+    var c = st.cards[ci];
+    return !b || !((b === 'T' && c.noTera) || (b === 'D' && c.noDyn));
+  }
+  // 場のカードへ、姿 faceId を強化 boost で出したときの点数と内訳。
+  function tcbScore(st, faceId, boost){
+    if(boost === 'T' && !st.faces[faceId].tera) faceId = st.teraOf[faceId];
+    var att = st.faces[faceId], def = st.faces[st.field.face];
+    var parts = tcbParts(att, def);
+    var base = parts.reduce(function(s, p){ return s + p.mult; }, 0);
+    var pts = base * tcbBoostMult(boost) * (st.field.dyn ? TCB_D_TAKEN : 1);
+    return { parts: parts, base: base, pts: pts };
+  }
+
+  function tcbPlay(who, cardIdx, faceIdx, boost){
+    var st = tcbState;
+    if(!st || st.finished || st.turn !== who || st.phase !== 'play') return null;
+    var hand = st.hands[who], pos = hand.indexOf(cardIdx);
+    if(pos < 0) return null;
+    if(boost && (st.boost[who] || !tcbBoostAllowed(st, cardIdx, boost))) boost = null;
+    var faceId = st.faceIds[cardIdx][faceIdx] != null ? st.faceIds[cardIdx][faceIdx] : st.faceIds[cardIdx][0];
+    if(boost === 'T') faceId = st.teraOf[faceId];
+    var sc = tcbScore(st, faceId, boost);
+    var entry = { who: who, face: faceId, target: st.field.face, targetDyn: st.field.dyn, boost: boost, parts: sc.parts, base: sc.base, pts: sc.pts, shudder: false };
+    // きけんよち: 出したあと、相手の手札に(どの姿でも)ばつぐんになるカードがあれば みぶるいする。
+    if(st.faces[faceId].ab === TCB_ANTICIPATION){
+      var opp = st.hands[who === 'me' ? 'cpu' : 'me'];
+      entry.shudder = opp.some(function(ci){ return st.faceIds[ci].some(function(f){ return tcbParts(st.faces[f], st.faces[faceId]).some(function(p){ return p.eff >= 2; }); }); });
+    }
+    st.log.push(entry);
+    st.scores[who] += sc.pts;
+    if(boost) st.boost[who] = boost;
+    hand.splice(pos, 1);
+    st.used[cardIdx] = who;
+    if(st.field.by === 'start') st.used[st.field.card] = 'start'; // 最初の場札は出し終わり扱い
+    st.field = { card: cardIdx, face: faceId, by: who, dyn: boost === 'D' };
+    st.plies++;
+    if(who === 'me'){ st.sel = null; st.selBoost = null; }
+    if(!st.hands.me.length && !st.hands.cpu.length) st.finished = true;
+    else st.turn = who === 'me' ? 'cpu' : 'me';
+    return entry;
+  }
+
+  // マリガン: 山札からランダムに1枚引き、選んだ手札1枚を山札に戻す(戻した札・引いた札とも公開)。
+  // ci が null ならマリガンしない。後攻→先攻の順で1回ずつ。先に戻された札を後の人が引くこともある。
+  function tcbMulligan(who, ci){
+    var st = tcbState;
+    if(!st || st.phase !== 'mull' || st.mullWho !== who) return null;
+    var res = { who: who, out: null, drew: null };
+    var hand = st.hands[who], pos = ci == null ? -1 : hand.indexOf(ci);
+    if(pos >= 0 && st.deck.length){
+      var d = st.deck[tcbRand(st.deck.length)];
+      hand[pos] = d;
+      st.deck[st.deck.indexOf(d)] = ci;
+      delete st.knownDeck[d];
+      st.knownDeck[ci] = true;
+      st.pubHand[who].push(d);
+      if(st.handFace){ delete st.handFace[ci]; }
+      res.out = ci; res.drew = d;
+    }
+    st.mullLog.push(res);
+    if(who === 'me'){ st.sel = null; }
+    if(who !== st.first) st.mullWho = st.first;
+    else { st.phase = 'play'; st.mullWho = null; }
+    return res;
+  }
+
+  // ---- CPU ----
+  // 手札が両者に見えている前提で最後まで読む(負けの少ない手=点差が最もよい手)。
+  // 値は「手番の側の、これから先の得点 - 相手のこれから先の得点」。
+  function tcbSolver(st){
+    var S = st.S, faceIds = st.faceIds, teraOf = st.teraOf, memo = new Map(), pruned = new Map();
+    var noDyn = st.cards.map(function(c){ return !!c.noDyn; });
+    // 姿が多いカード(アルセウス等)は、読みの中ではその場の点が高い姿4つだけを考える(速さのため)。
+    function facesFor(ci, top){
+      var fl = faceIds[ci];
+      if(fl.length <= 4) return fl;
+      var key = ci * 256 + top, c = pruned.get(key);
+      if(c) return c;
+      c = fl.slice().sort(function(a, b){ return S[b][top] - S[a][top] || a - b; }).slice(0, 4);
+      pruned.set(key, c);
+      return c;
+    }
+    function val(hM, hO, top, td, bM, bO){
+      if(!hM) return hO ? -val(hO, hM, top, td, bO, bM) : 0;
+      var key = ((((hM * TCB_MASKMUL + hO) * 256 + top) * 2 + td) * 2 + bM) * 2 + bO;
+      var c = memo.get(key);
+      if(c !== undefined) return c;
+      var best = -1e9, k = td ? TCB_D_TAKEN : 1;
+      for(var ci = 0; ci < TCB_POOL; ci++){
+        if(!(hM & (1 << ci))) continue;
+        var rest = hM & ~(1 << ci), fl = facesFor(ci, top);
+        for(var fi = 0; fi < fl.length; fi++){
+          var f = fl[fi], g = S[f][top] * k;
+          var v = g - val(hO, rest, f, 0, bO, bM);
+          if(v > best) best = v;
+          if(bM){
+            v = g * TCB_Z_MULT - val(hO, rest, f, 0, bO, 0); if(v > best) best = v;
+            if(!noDyn[ci]){ v = g * TCB_D_MULT - val(hO, rest, f, 1, bO, 0); if(v > best) best = v; }
+            var tf = teraOf[f];
+            if(tf != null){ v = S[tf][top] * k * TCB_T_MULT - val(hO, rest, tf, 0, bO, 0); if(v > best) best = v; }
+          }
+        }
+      }
+      memo.set(key, best);
+      return best;
+    }
+    return val;
+  }
+  function tcbMask(list){ var m = 0; list.forEach(function(i){ m |= (1 << i); }); return m; }
+  // CPUから見て、どこにあるか分からないカード(人の手札か山札)。
+  function tcbUnknownCards(st){
+    var mine = Object.create(null);
+    st.hands.cpu.forEach(function(i){ mine[i] = true; });
+    return st.cards.map(function(_, i){ return i; }).filter(function(i){
+      return !mine[i] && !st.used[i] && i !== st.field.card && !st.knownDeck[i] && st.pubHand.me.indexOf(i) < 0;
+    });
+  }
+  // 人の手札のうち公開されている札(マリガンで引いた札)は必ず入れ、残りを仮定する。
+  function tcbOppWorlds(st, unknown, max){
+    var known = st.pubHand.me.filter(function(c){ return st.hands.me.indexOf(c) >= 0; });
+    return tcbWorlds(unknown, st.hands.me.length - known.length, max).map(function(w){ return w.concat(known); });
+  }
+  // 人の手札としてありうる組み合わせ(多すぎるときはランダムに選んだもの)。
+  function tcbWorlds(unknown, k, maxWorlds){
+    var combos = [];
+    function count(n, r){ var c = 1; for(var i = 0; i < r; i++) c = c * (n - i) / (i + 1); return c; }
+    if(count(unknown.length, k) <= maxWorlds){
+      (function rec(start, acc){
+        if(acc.length === k){ combos.push(acc.slice()); return; }
+        for(var i = start; i < unknown.length; i++){ acc.push(unknown[i]); rec(i + 1, acc); acc.pop(); }
+      })(0, []);
+      return combos;
+    }
+    var seen = Object.create(null);
+    while(combos.length < maxWorlds){
+      var w = tcbShuffle(unknown.slice()).slice(0, k).sort(function(a, b){ return a - b; });
+      var key = w.join(',');
+      if(seen[key]) continue;
+      seen[key] = true;
+      combos.push(w);
+    }
+    return combos;
+  }
+  // CPUが選べる手の一覧: [カード, 姿の順番, 強化]。
+  function tcbOptions(st, who){
+    var out = [];
+    st.hands[who].forEach(function(ci){
+      st.faceIds[ci].forEach(function(f, fi){
+        out.push([ci, fi, null]);
+        if(!st.boost[who]){
+          out.push([ci, fi, 'Z']);
+          if(tcbBoostAllowed(st, ci, 'D')) out.push([ci, fi, 'D']);
+          if(tcbBoostAllowed(st, ci, 'T')) out.push([ci, fi, 'T']);
+        }
+      });
+    });
+    return out;
+  }
+  // 人が次に出せるカードのうち、姿 faceId に対していちばん点を取れるもの(CPUからは手札が見えないので、
+  // どこにあるか分からないカード全体で考える)。
+  function tcbThreat(st, faceId){
+    var m = 0;
+    tcbUnknownCards(st).forEach(function(ci){ st.faceIds[ci].forEach(function(f){ if(st.S[f][faceId] > m) m = st.S[f][faceId]; }); });
+    return m;
+  }
+  function tcbGreedyPick(st, useBoost){
+    var best = null, bestG = -1;
+    st.hands.cpu.forEach(function(ci){
+      st.faceIds[ci].forEach(function(f, fi){
+        var g = tcbScore(st, f, null).pts - tcbThreat(st, f) * 0.001;
+        if(g > bestG){ bestG = g; best = [ci, fi, null]; }
+      });
+    });
+    if(best && useBoost && !st.boost.cpu){
+      var f = st.faceIds[best[0]][best[1]];
+      var base = tcbScore(st, f, null).base;
+      var lastTurn = st.hands.cpu.length === 1;
+      // テラスタルでいちばん点が取れるカード
+      var tBest = null, tPts = -1;
+      st.hands.cpu.forEach(function(ci){
+        if(!tcbBoostAllowed(st, ci, 'T')) return;
+        st.faceIds[ci].forEach(function(ff, fi){ var x = tcbScore(st, ff, 'T').pts; if(x > tPts){ tPts = x; tBest = [ci, fi, 'T']; } });
+      });
+      var plain = tcbScore(st, f, null).pts;
+      if(base >= 4 || lastTurn) best[2] = 'Z';
+      else if(base >= 3 && tcbThreat(st, f) >= 4 && tcbBoostAllowed(st, best[0], 'D')) best[2] = 'D';
+      if(tBest && ((best[2] === 'Z' && tPts > plain * TCB_Z_MULT) || (!best[2] && tPts >= 5 && tPts >= plain + 2.5))) best = tBest;
+    }
+    return best;
+  }
+  function tcbStrongPick(st){
+    var unknown = tcbUnknownCards(st);
+    var worlds = tcbOppWorlds(st, unknown, 20);
+    var opts = tcbOptions(st, 'cpu');
+    var total = opts.map(function(){ return 0; });
+    var cpuMask = tcbMask(st.hands.cpu), bCpu = st.boost.cpu ? 0 : 1, bMe = st.boost.me ? 0 : 1;
+    var k = st.field.dyn ? TCB_D_TAKEN : 1;
+    var t0 = Date.now();
+    worlds.some(function(w, wi){
+      // 時間がかかりすぎるときは、3通り以上読んだところで打ち切る
+      if(wi >= 3 && Date.now() - t0 > 700) return true;
+      var val = tcbSolver(st), meMask = tcbMask(w);
+      opts.forEach(function(o, i){
+        var f = st.faceIds[o[0]][o[1]];
+        if(o[2] === 'T') f = st.teraOf[f];
+        var g = st.S[f][st.field.face] * k * tcbBoostMult(o[2]);
+        total[i] += g - val(meMask, cpuMask & ~(1 << o[0]), f, o[2] === 'D' ? 1 : 0, bMe, o[2] ? 0 : bCpu);
+      });
+      return false;
+    });
+    var bi = 0;
+    for(var i = 1; i < opts.length; i++){
+      // 同点なら強化を温存する(先に並ぶ「強化なし」を残す)。
+      if(total[i] > total[bi] + 1e-9) bi = i;
+    }
+    return opts[bi];
+  }
+  // CPUのマリガン: 戻すカード(しないなら null)。
+  // つよい: 戻す候補を「点が取りにくい」順に3枚まで絞り、相手の手札を4通り仮定、引く札も最大4枚に絞って先読みで比べる。
+  var TCB_MULL_WORLDS = 4, TCB_MULL_CANDS = 3, TCB_MULL_DRAWS = 4;
+  function tcbCardOffense(st, ci){
+    // そのカード(いちばん良い姿)の、ほかのカード全部への平均点
+    var best = 0;
+    st.faceIds[ci].forEach(function(f){
+      var sum = 0, n = 0;
+      st.faces.forEach(function(g, gi){ if(!g.tera && g.card !== ci){ sum += st.S[f][gi]; n++; } });
+      if(n && sum / n > best) best = sum / n;
+    });
+    return best;
+  }
+  function tcbCpuMulligan(st){
+    if(tcbLevel === 'weak') return Math.random() < 0.5 ? st.hands.cpu[tcbRand(st.hands.cpu.length)] : null;
+    var ranked = st.hands.cpu.slice().sort(function(a, b){ return tcbCardOffense(st, a) - tcbCardOffense(st, b); });
+    if(tcbLevel === 'normal') return tcbCardOffense(st, ranked[0]) < 2 ? ranked[0] : null;
+    var unknown = tcbUnknownCards(st);
+    var worlds = tcbOppWorlds(st, unknown, TCB_MULL_WORLDS);
+    var val = tcbSolver(st), myMask = tcbMask(st.hands.cpu), f = st.field.face;
+    function startVal(m, o){ return st.first === 'cpu' ? val(m, o, f, 0, 1, 1) : -val(o, m, f, 0, 1, 1); }
+    var opts = [null].concat(ranked.slice(0, TCB_MULL_CANDS)), tot = opts.map(function(){ return 0; });
+    var t0 = Date.now();
+    worlds.some(function(w, wi){
+      // 時間がかかるとき(姿の多いカードがあるとき等)は、2通り読んだところで打ち切る
+      if(wi >= 2 && Date.now() - t0 > 600) return true;
+      var oppMask = tcbMask(w);
+      // その世界での山札(人の手札でない、分からない札＋山札にあると分かっている札)から最大4枚
+      var deck = unknown.filter(function(c){ return w.indexOf(c) < 0; }).concat(st.cards.map(function(_, i){ return i; }).filter(function(i){ return st.knownDeck[i]; }));
+      var draws = tcbShuffle(deck.slice()).slice(0, TCB_MULL_DRAWS);
+      opts.forEach(function(c, i){
+        if(c == null){ tot[i] += startVal(myMask, oppMask); return; }
+        var sum = 0;
+        draws.forEach(function(d){ sum += startVal((myMask & ~(1 << c)) | (1 << d), oppMask); });
+        tot[i] += draws.length ? sum / draws.length : -1e9;
+      });
+      return false;
+    });
+    var bi = 0;
+    for(var i = 1; i < opts.length; i++) if(tot[i] > tot[bi] + 1e-9) bi = i;
+    return opts[bi];
+  }
+  function tcbCpuPick(st){
+    if(tcbLevel === 'strong') return tcbStrongPick(st);
+    if(tcbLevel === 'normal') return tcbGreedyPick(st, true);
+    // よわい: ときどき適当なカードを出す。強化はたまに・最後に使う。
+    var pick;
+    if(Math.random() < 0.4){
+      var ci = st.hands.cpu[tcbRand(st.hands.cpu.length)];
+      pick = [ci, tcbRand(st.faceIds[ci].length), null];
+    } else pick = tcbGreedyPick(st, false);
+    if(!st.boost.cpu && (st.hands.cpu.length === 1 || Math.random() < 0.15)) { pick[2] = ['Z', 'D', 'T'][tcbRand(3)]; if(!tcbBoostAllowed(st, pick[0], pick[2])) pick[2] = 'Z'; }
+    return pick;
+  }
+
+  // テスト用(画面からは使わない): CPUどうしを対戦させる・状態を見る。
+  window.__damekeTypeCardDebug = {
+    newGame: function(force){ tcbNewGame(force); return tcbState; },
+    parts: tcbParts,
+    start: function(force){ tcbStartGame(force); },
+    state: function(){ return tcbState; },
+    setLevel: function(l){ tcbLevel = l; },
+    pick: function(){ return tcbCpuPick(tcbState); },
+    cpuMulligan: function(){ return tcbCpuMulligan(tcbState); },
+    play: tcbPlay, mulligan: tcbMulligan, score: tcbScore
+  };
+
+  // ---- 画面 ----
+  function tcbFaceTitle(f){ return f.name + '（' + f.types.join('/') + (f.ab ? '・' + f.ab : '') + '）'; }
+  function tcbCardTitle(card){
+    if(card.typeChoice){ var f = card.faces[0]; return (f.img || f.name) + '（出すときにタイプを選べる' + (f.ab ? '・' + f.ab : '') + '）'; }
+    return card.faces.map(tcbFaceTitle).join(' ／ ');
+  }
+  // カード1枚。opts: size('s'|'m'|'l'), faceIdx か faceId, label, labelCls, cls, onClick, showAlt(姿を選べる印)
+  function tcbBuildCard(st, ci, opts){
+    opts = opts || {};
+    var card = st.cards[ci];
+    var fi = opts.faceId != null ? Math.max(0, st.faceIds[ci].indexOf(opts.faceId)) : (opts.faceIdx || 0);
+    var face = card.faces[fi] || card.faces[0];
+    // テラスタルした姿
+    if(opts.faceId != null && st.faces[opts.faceId] && st.faces[opts.faceId].tera) face = st.faces[opts.faceId];
+    if(face.tera) opts.cls = (opts.cls ? opts.cls + ' ' : '') + 'dameke-tcb-card-tera';
+    var el = document.createElement(opts.onClick ? 'button' : 'div');
+    if(opts.onClick){ el.type = 'button'; el.addEventListener('click', opts.onClick); }
+    el.className = 'dameke-tcb-card dameke-tcb-card-' + (opts.size || 'm') + (opts.cls ? ' ' + opts.cls : '');
+    el.title = tcbCardTitle(card);
+    if(opts.label){
+      var lab = document.createElement('span');
+      lab.className = 'dameke-tcb-card-label' + (opts.labelCls ? ' ' + opts.labelCls : '');
+      lab.textContent = opts.label;
+      el.appendChild(lab);
+    }
+    var imgWrap = document.createElement('span');
+    imgWrap.className = 'dameke-tcb-card-img';
+    var imgName = face.img || face.name;
+    var img = window.__damekeBuildPokemonImage ? window.__damekeBuildPokemonImage(imgName, function(){ imgWrap.classList.add('dameke-tcb-card-img-missing'); imgWrap.innerHTML = ''; }) : null;
+    if(img) imgWrap.appendChild(img); else imgWrap.classList.add('dameke-tcb-card-img-missing');
+    el.appendChild(imgWrap);
+    var name = document.createElement('span');
+    name.className = 'dameke-tcb-card-name';
+    name.textContent = face.img || face.name;
+    el.appendChild(name);
+    el.appendChild(tcbTypeRow(face.types));
+    var ab = document.createElement('span');
+    ab.className = 'dameke-tcb-card-ability' + (tcbRelevant(face.ab) ? ' dameke-tcb-card-ability-key' : '');
+    ab.textContent = face.ab || '特性なし';
+    el.appendChild(ab);
+    // テラスタイプ(テラスタル済みなら「テラスタル」の印)
+    var tr = document.createElement('span');
+    tr.className = 'dameke-tcb-card-teraline';
+    if(face.tera){ tr.textContent = 'テラスタル'; tr.classList.add('dameke-tcb-card-teraline-on'); }
+    else if(card.noTera){ tr.textContent = 'テラスタル不可'; tr.classList.add('dameke-tcb-card-teraline-no'); }
+    else {
+      var tt = face.teraType || card.tera;
+      tr.appendChild(document.createTextNode('テラス'));
+      var tb = document.createElement('span');
+      tb.className = 'dameke-party-type-badge dameke-tcb-type-badge dameke-tcb-tera-badge ' + statChartTypeColorClass(tt);
+      tb.textContent = tt;
+      tr.appendChild(tb);
+    }
+    el.appendChild(tr);
+    if(card.noDyn){
+      var nd = document.createElement('span');
+      nd.className = 'dameke-tcb-card-teraline dameke-tcb-card-teraline-no';
+      nd.textContent = 'ダイマックス不可';
+      el.appendChild(nd);
+    }
+    if(opts.showAlt && card.faces.length > 1){
+      var alt = document.createElement('span');
+      alt.className = 'dameke-tcb-card-alt';
+      alt.textContent = card.typeChoice ? 'タイプ' : '姿' + card.faces.length;
+      el.appendChild(alt);
+    }
+    return el;
+  }
+  function tcbTypeRow(types){
+    var row = document.createElement('span');
+    row.className = 'dameke-tcb-card-types';
+    types.forEach(function(t){
+      var b = document.createElement('span');
+      b.className = 'dameke-party-type-badge dameke-tcb-type-badge ' + statChartTypeColorClass(t);
+      b.textContent = t;
+      row.appendChild(b);
+    });
+    return row;
+  }
+  function tcbBack(){
+    var el = document.createElement('div');
+    el.className = 'dameke-tcb-back';
+    el.textContent = '？';
+    return el;
+  }
+
+  // 相性表(攻撃タイプ=行、受けるタイプ=列)。
+  function tcbBuildChart(){
+    var wrap = document.createElement('div');
+    wrap.className = 'dameke-tcb-chart-wrap';
+    var table = document.createElement('table');
+    table.className = 'dameke-tcb-chart';
+    var head = document.createElement('tr');
+    var corner = document.createElement('th');
+    corner.className = 'dameke-tcb-chart-corner';
+    corner.textContent = '攻＼受';
+    head.appendChild(corner);
+    TCB_TYPES.forEach(function(t){
+      var th = document.createElement('th');
+      th.className = statChartTypeColorClass(t);
+      th.textContent = TCB_TYPE_SHORT[t];
+      th.title = t;
+      head.appendChild(th);
+    });
+    table.appendChild(head);
+    TCB_TYPES.forEach(function(a){
+      var tr = document.createElement('tr');
+      var th = document.createElement('th');
+      th.className = 'dameke-tcb-chart-rowhead ' + statChartTypeColorClass(a);
+      th.textContent = a;
+      tr.appendChild(th);
+      TCB_TYPES.forEach(function(d){
+        var m = tcbTypeEff([d], a, null);
+        var td = document.createElement('td');
+        td.title = a + '→' + d + ' ×' + m;
+        if(m === 2){ td.className = 'dameke-tcb-chart-2'; td.textContent = '2'; }
+        else if(m === 0.5){ td.className = 'dameke-tcb-chart-h'; td.textContent = '½'; }
+        else if(m === 0){ td.className = 'dameke-tcb-chart-0'; td.textContent = '0'; }
+        tr.appendChild(td);
+      });
+      table.appendChild(tr);
+    });
+    wrap.appendChild(table);
+    var note = document.createElement('p');
+    note.className = 'dameke-tcb-note';
+    note.textContent = '行が出すカードのタイプ、列が場のカードのタイプです。複合タイプの相手には2つの倍率を掛け合わせます。';
+    wrap.appendChild(note);
+    return wrap;
+  }
+
+  // 関係する特性の一覧(この試合のカードにあるものを先に、印を付けて出す)。
+  function tcbAbilityRows(st){
+    var present = Object.create(null);
+    if(st) st.faces.forEach(function(f){ if(f.ab) present[f.ab] = true; });
+    var defs = [];
+    var lev = ['ふゆう'];
+    (DATA.abilities || []).forEach(function(a){
+      var tags = a.effectTags || [];
+      if(tags.indexOf('levitate') >= 0 && lev.indexOf(a.name) < 0) lev.push(a.name);
+    });
+    if(lev.indexOf('うなぎのぼり') < 0) lev.push('うなぎのぼり');
+    lev.forEach(function(n){ defs.push([n, 'じめんタイプの点が0']); });
+    [['ちょすい','みず'],['よびみず','みず'],['おわりのだいち','みず'],['ちくでん','でんき'],['でんきエンジン','でんき'],['ひらいしん','でんき'],
+     ['もらいび','ほのお'],['こんがりボディ','ほのお'],['はじまりのうみ','ほのお'],['そうしょく','くさ'],['どしょく','じめん']]
+      .forEach(function(x){ defs.push([x[0], x[1] + 'タイプの点が0']); });
+    defs.push(['あついしぼう', 'ほのお・こおりタイプの点が半分']);
+    defs.push(['すいほう', 'ほのおタイプの点が半分']);
+    defs.push(['たいねつ', 'ほのおタイプの点が半分']);
+    defs.push(['きよめのしお', 'ゴーストタイプの点が半分']);
+    defs.push(['デルタストリーム', 'ひこうタイプの弱点(2倍以上)が等倍に']);
+    defs.push(['ふしぎなまもり', 'ばつぐん以外の点が0']);
+    defs.push(['ハードロック', 'ばつぐんの点が×0.75']);
+    defs.push(['フィルター', 'ばつぐんの点が×0.75']);
+    defs.push(['プリズムアーマー', 'ばつぐんの点が×0.75(かたやぶり・テラボルテージ・ターボブレイズでは無視されない)']);
+    defs.push(['テラスシェル', '受ける相性がすべて今ひとつ(×0.5)になる(無効はそのまま)']);
+    defs.push([TCB_GAS, '出すカードの特性をなくす']);
+    defs.push([TCB_ANTICIPATION, '出したとき、相手の手札にばつぐんを取れるカードがあると みぶるいする(点数は変わらない)']);
+    var atk = Object.keys(TCB_BYPASS).map(function(n){ return [n, n === TCB_GAS ? '場のカードの特性を無視' : '場のカードの特性を無視(プリズムアーマーは除く)']; });
+    atk.push(['いろめがね', '今ひとつの点が×2']);
+    atk.push(['きもったま', 'ノーマル・かくとうの点がゴーストにも入る']);
+    atk.push(['しんがん', 'ノーマル・かくとうの点がゴーストにも入る']);
+    atk.push(['ブレインフォース', 'ばつぐんの点が×1.25']);
+    function sortPresent(list){ return list.filter(function(x){ return present[x[0]]; }).concat(list.filter(function(x){ return !present[x[0]]; })); }
+    return { def: sortPresent(defs), atk: sortPresent(atk), present: present };
+  }
+  function tcbBuildAbilityList(st){
+    var data = tcbAbilityRows(st);
+    var wrap = document.createElement('div');
+    wrap.className = 'dameke-tcb-abil';
+    [['場のカードの特性(受けるとき)', data.def], ['出すカードの特性(場のカードが' + TCB_GAS + 'なら働かない)', data.atk]].forEach(function(sec){
+      var h = document.createElement('div');
+      h.className = 'dameke-tcb-abil-head';
+      h.textContent = sec[0];
+      wrap.appendChild(h);
+      var list = document.createElement('div');
+      list.className = 'dameke-tcb-abil-list';
+      sec[1].forEach(function(x){
+        var row = document.createElement('div');
+        row.className = 'dameke-tcb-abil-row' + (data.present[x[0]] ? ' dameke-tcb-abil-present' : '');
+        var n = document.createElement('span'); n.className = 'dameke-tcb-abil-name'; n.textContent = x[0];
+        var d = document.createElement('span'); d.className = 'dameke-tcb-abil-desc'; d.textContent = x[1];
+        row.appendChild(n); row.appendChild(d);
+        list.appendChild(row);
+      });
+      wrap.appendChild(list);
+    });
+    var note = document.createElement('p');
+    note.className = 'dameke-tcb-note';
+    note.textContent = '色付きは、この試合のカードに付いている特性です。';
+    wrap.appendChild(note);
+    return wrap;
+  }
+
+  // 1手の内訳の文章。
+  function tcbPartText(p){
+    return p.type + '×' + tcbPts(p.eff0) + (p.notes.length ? '(' + p.notes.join('、') + ')' : '') + (p.mult !== p.eff0 ? '→' + tcbPts(p.mult) : '');
+  }
+  function tcbExtraText(e){
+    var t = '';
+    if(e.boost === 'Z') t += '、Zワザ×2';
+    if(e.boost === 'D') t += '、ダイマックス×1.5';
+    if(e.boost === 'T') t += '、テラスタル×1.25';
+    if(e.targetDyn) t += '、相手がダイマックス×0.5';
+    return t;
+  }
+  function tcbShudderText(st, e){ return e.shudder ? st.faces[e.face].name + 'はみぶるいした！' : ''; }
+  function tcbLogText(st, e){
+    var att = st.faces[e.face], def = st.faces[e.target];
+    var t = att.name + ' → ' + def.name + '：' + e.parts.map(tcbPartText).join(' + ') + ' = ' + tcbPts(e.base);
+    var x = tcbExtraText(e);
+    if(x) t += x + ' = ' + tcbPts(e.pts);
+    t += '点';
+    if(e.shudder) t += '　' + tcbShudderText(st, e);
+    return t;
+  }
+
+  // ---- 演出(カットイン・出した札の表示)。画面を見ていないとき(別のゲームを開いている等)はすぐ次へ進む ----
+  var tcbUI = null;          // 最後に描いた画面 { wrap, renderAll }
+  var tcbFxCurrent = null;   // 表示中の演出 { el, finish }
+  var TCB_FX_PLAY_MS = 2200, TCB_FX_SHUDDER_MS = 3000, TCB_FX_SWAP_MS = 1800, TCB_CUTIN_MS = 1000, TCB_CPU_WAIT_MS = 500, TCB_FX_LEAVE_MS = 260;
+  function tcbRenderNow(){ if(tcbUI) tcbUI.renderAll(); }
+  function tcbVisible(){ return !!(tcbUI && tcbUI.wrap.isConnected); }
+  function tcbFxClear(){ if(tcbFxCurrent){ var f = tcbFxCurrent; tcbFxCurrent = null; f.cancel(); } }
+  // el を全画面の重ね表示で ms ミリ秒出す(押すと早送り)。終わったら done。
+  function tcbFxShow(el, ms, done){
+    tcbFxClear();
+    if(!tcbVisible()){ setTimeout(done, 0); return; }
+    var layer = document.createElement('div');
+    layer.className = 'dameke-tcb-fx-layer';
+    layer.appendChild(el);
+    var timer = null, ended = false;
+    function remove(){ if(timer){ clearTimeout(timer); timer = null; } if(layer.parentNode) layer.parentNode.removeChild(layer); }
+    // 終わるときも少しかけて消す(ぱっと消えないように)。動きを減らす設定のときはすぐ消す。
+    function finish(){
+      if(ended) return;
+      ended = true;
+      if(tcbFxCurrent && tcbFxCurrent.el === layer) tcbFxCurrent = null;
+      if(timer){ clearTimeout(timer); timer = null; }
+      var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if(reduce || !layer.isConnected){ remove(); done(); return; }
+      layer.classList.add('dameke-tcb-fx-leaving');
+      setTimeout(function(){ remove(); done(); }, TCB_FX_LEAVE_MS);
+    }
+    layer.addEventListener('click', finish);
+    tcbUI.wrap.appendChild(layer);
+    tcbFxCurrent = { el: layer, cancel: function(){ ended = true; remove(); } };
+    timer = setTimeout(finish, ms);
+  }
+  function tcbCutin(text, who, done){
+    var band = document.createElement('div');
+    band.className = 'dameke-tcb-cutin' + (who ? ' dameke-tcb-cutin-' + who : '');
+    var t = document.createElement('span');
+    t.className = 'dameke-tcb-cutin-text';
+    t.textContent = text;
+    band.appendChild(t);
+    tcbFxShow(band, TCB_CUTIN_MS, done);
+  }
+  function tcbFxHead(text, who){
+    var h = document.createElement('div');
+    h.className = 'dameke-tcb-fx-head dameke-tcb-fx-head-' + who;
+    h.textContent = text;
+    return h;
+  }
+  function tcbFxPair(st, fromCard, fromFace, toCard, toFace, toDyn, arrowText){
+    var row = document.createElement('div');
+    row.className = 'dameke-tcb-fx-cards';
+    var a = tcbBuildCard(st, fromCard, { size: 'm', faceId: fromFace, cls: 'dameke-tcb-fx-attacker' });
+    var arrow = document.createElement('span');
+    arrow.className = 'dameke-tcb-fx-arrow';
+    arrow.textContent = arrowText || '→';
+    var b = tcbBuildCard(st, toCard, { size: 'm', faceId: toFace, cls: 'dameke-tcb-fx-target' + (toDyn ? ' dameke-tcb-card-dyn' : ''), label: toDyn ? 'ダイマックス' : null, labelCls: 'dameke-tcb-label-dyn' });
+    row.appendChild(a); row.appendChild(arrow); row.appendChild(b);
+    return row;
+  }
+  function tcbFxPlay(st, e, done){
+    var panel = document.createElement('div');
+    panel.className = 'dameke-tcb-fx-panel dameke-tcb-fx-panel-' + e.who + (e.boost ? ' dameke-tcb-fx-panel-boost dameke-tcb-fx-panel-boost-' + e.boost : '');
+    var head = (e.who === 'me' ? 'あなた' : 'CPU') + 'のターン！';
+    panel.appendChild(tcbFxHead(head, e.who));
+    if(e.boost){
+      var bt = document.createElement('div');
+      bt.className = 'dameke-tcb-fx-boost dameke-tcb-fx-boost-' + e.boost;
+      bt.textContent = e.boost === 'Z' ? 'Zワザ！ ×2' : e.boost === 'D' ? 'ダイマックス！ ×1.5' : 'テラスタル！ ×1.25';
+      panel.appendChild(bt);
+    }
+    panel.appendChild(tcbFxPair(st, st.faces[e.face].card, e.face, st.faces[e.target].card, e.target, e.targetDyn));
+    var parts = document.createElement('div');
+    parts.className = 'dameke-tcb-fx-parts';
+    e.parts.forEach(function(p){ var d = document.createElement('div'); d.textContent = tcbPartText(p); parts.appendChild(d); });
+    var x = tcbExtraText(e);
+    if(x){ var d2 = document.createElement('div'); d2.textContent = '計' + tcbPts(e.base) + x; parts.appendChild(d2); }
+    panel.appendChild(parts);
+    var pts = document.createElement('div');
+    pts.className = 'dameke-tcb-fx-pts';
+    pts.textContent = '+' + tcbPts(e.pts) + '点';
+    panel.appendChild(pts);
+    if(e.shudder){
+      var sh = document.createElement('div');
+      sh.className = 'dameke-tcb-fx-shudder';
+      sh.textContent = tcbShudderText(st, e);
+      panel.appendChild(sh);
+    }
+    var hint = document.createElement('div');
+    hint.className = 'dameke-tcb-fx-hint';
+    hint.textContent = '押すと先へ進みます';
+    panel.appendChild(hint);
+    tcbFxShow(panel, e.shudder ? TCB_FX_SHUDDER_MS : TCB_FX_PLAY_MS, done);
+  }
+  function tcbFxMull(st, res, done){
+    var who = res.who;
+    var panel = document.createElement('div');
+    panel.className = 'dameke-tcb-fx-panel dameke-tcb-fx-panel-' + who;
+    panel.appendChild(tcbFxHead((who === 'me' ? 'あなた' : 'CPU') + 'がマリガン！', who));
+    panel.appendChild(tcbFxPair(st, res.out, st.faceIds[res.out][0], res.drew, st.faceIds[res.drew][0], false, '⇄'));
+    var note = document.createElement('div');
+    note.className = 'dameke-tcb-fx-parts';
+    note.textContent = '左の札を山札に戻し、右の札を引きました(どちらも公開)。';
+    panel.appendChild(note);
+    tcbFxShow(panel, TCB_FX_SWAP_MS, done);
+  }
+
+  var TCB_CYCLE_ICON = '<svg class="dameke-tcb-cycle-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">' +
+    '<path d="M20 12a8 8 0 0 1-13.7 5.6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>' +
+    '<path d="M4 12a8 8 0 0 1 13.7-5.6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>' +
+    '<path d="M18.5 2.5v4.5H14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<path d="M5.5 21.5V17H10" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  // 姿の詳細(一覧)。onPick があれば、押した姿を選ぶ(自分の手札用)。
+  var tcbFacesModal = null;
+  function tcbCloseFaces(){ if(tcbFacesModal){ var m = tcbFacesModal; tcbFacesModal = null; if(m.parentNode) m.parentNode.removeChild(m); } }
+  function tcbShowFaces(st, ci, onPick){
+    tcbCloseFaces();
+    if(!st || !tcbVisible()) return;
+    var card = st.cards[ci];
+    var rows = tcbAbilityRows(null), desc = Object.create(null);
+    rows.def.concat(rows.atk).forEach(function(x){ desc[x[0]] = desc[x[0]] ? desc[x[0]] + '／' + x[1] : x[1]; });
+    var layer = document.createElement('div');
+    layer.className = 'dameke-tcb-modal-layer';
+    var panel = document.createElement('div');
+    panel.className = 'dameke-tcb-modal';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-modal', 'true');
+    var head = document.createElement('div');
+    head.className = 'dameke-tcb-modal-head';
+    var ttl = document.createElement('span');
+    ttl.className = 'dameke-tcb-modal-title';
+    ttl.textContent = (card.faces[0].img || card.faces[0].name) + (card.typeChoice ? 'のタイプ（' : 'の姿（') + card.faces.length + '）';
+    head.appendChild(ttl);
+    var close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'dameke-search-add-btn dameke-tcb-modal-close';
+    close.textContent = '閉じる';
+    close.addEventListener('click', tcbCloseFaces);
+    head.appendChild(close);
+    panel.appendChild(head);
+    if(onPick){
+      var note = document.createElement('p');
+      note.className = 'dameke-tcb-note';
+      note.textContent = '押すと、その姿にします。';
+      panel.appendChild(note);
+    }
+    var cur = onPick ? (st.handFace[ci] || 0) : -1;
+    var grid = document.createElement('div');
+    grid.className = 'dameke-tcb-modal-grid';
+    card.faces.forEach(function(f, fi){
+      var item = document.createElement('div');
+      item.className = 'dameke-tcb-modal-item';
+      var c = tcbBuildCard(st, ci, { size: 's', faceIdx: fi, cls: fi === cur ? 'dameke-tcb-card-selected' : '', label: fi === cur ? '選択中' : null, labelCls: 'dameke-tcb-label-play',
+        onClick: onPick ? function(){ tcbCloseFaces(); onPick(fi); } : null });
+      // 姿の名前はフルで出す(カードは元の名前だけのことがある)
+      var nm = c.querySelector('.dameke-tcb-card-name');
+      if(nm && !card.typeChoice) nm.textContent = f.name;
+      item.appendChild(c);
+      if(f.ab && desc[f.ab]){
+        var d = document.createElement('div');
+        d.className = 'dameke-tcb-modal-desc';
+        d.textContent = f.ab + '：' + desc[f.ab];
+        item.appendChild(d);
+      }
+      grid.appendChild(item);
+    });
+    panel.appendChild(grid);
+    layer.appendChild(panel);
+    layer.addEventListener('click', function(ev){ if(ev.target === layer) tcbCloseFaces(); });
+    layer.addEventListener('keydown', function(ev){ if(ev.key === 'Escape') tcbCloseFaces(); });
+    tcbUI.wrap.appendChild(layer);
+    tcbFacesModal = layer;
+    close.focus();
+  }
+
+  // ---- 進行 ----
+  function tcbResultText(st){
+    var a = st.scores.me, b = st.scores.cpu;
+    return a > b + 1e-9 ? 'あなたの勝ち！' : (b > a + 1e-9 ? 'CPUの勝ち' : '引き分け');
+  }
+  // 1手(出す)の後: 演出 → 交代のカットイン → 次の手番。
+  function tcbAfterPlay(st, e){
+    st.busy = true;
+    tcbRenderNow();
+    // 強化したときは、先に強化のカットインを出す
+    function showPlay(){ tcbFxPlay(st, e, afterFx); }
+    if(e.boost) tcbCutin((e.who === 'me' ? 'あなたの' : 'CPUの') + TCB_BOOST_NAME[e.boost] + '！', 'boost-' + e.boost, function(){ if(st === tcbState) showPlay(); });
+    else showPlay();
+    function afterFx(){
+      if(st !== tcbState) return;
+      if(st.finished){
+        tcbCutin('試合終了　' + tcbResultText(st), null, function(){ if(st !== tcbState) return; st.busy = false; tcbRenderNow(); });
+        return;
+      }
+      tcbCutin(st.turn === 'me' ? 'あなたの番' : 'CPUの番', st.turn, function(){
+        if(st !== tcbState) return;
+        st.busy = false;
+        tcbRenderNow();
+        if(st.turn === 'cpu') tcbScheduleCpu();
+      });
+    }
+  }
+  function tcbStartGame(force){
+    tcbFxClear();
+    tcbCloseFaces();
+    tcbNewGame(Array.isArray(force) ? force : null);
+    var st = tcbState;
+    st.busy = true;
+    tcbRenderNow();
+    tcbCutin((st.first === 'me' ? 'あなた' : 'CPU') + 'が先攻', st.first, function(){
+      if(st !== tcbState) return;
+      tcbNextMull(st);
+    });
+  }
+  // マリガンの段階を進める(CPUの番なら考えて実行、人の番なら操作を待つ。両方終わったら対戦開始)。
+  function tcbNextMull(st){
+    if(st !== tcbState) return;
+    if(st.phase === 'play'){
+      st.busy = true;
+      tcbCutin(st.turn === 'me' ? 'あなたの番' : 'CPUの番', st.turn, function(){
+        if(st !== tcbState) return;
+        st.busy = false;
+        tcbRenderNow();
+        if(st.turn === 'cpu') tcbScheduleCpu();
+      });
+      return;
+    }
+    st.busy = false;
+    if(st.mullWho === 'me'){ tcbRenderNow(); return; }
+    if(tcbTimer) return;
+    st.thinking = true;
+    tcbRenderNow();
+    tcbTimer = setTimeout(function(){
+      tcbTimer = null;
+      if(st !== tcbState || st.phase !== 'mull' || st.mullWho !== 'cpu') return;
+      var c = tcbCpuMulligan(st);
+      st.thinking = false;
+      tcbAfterMull(st, tcbMulligan('cpu', c));
+    }, TCB_CPU_WAIT_MS);
+  }
+  function tcbAfterMull(st, res){
+    if(!res) return;
+    st.busy = true;
+    tcbRenderNow();
+    function next(){ if(st === tcbState) tcbNextMull(st); }
+    if(res.out != null) tcbFxMull(st, res, next);
+    else tcbCutin((res.who === 'me' ? 'あなた' : 'CPU') + 'はマリガンしない', res.who, next);
+  }
+  function tcbHumanMull(ci){
+    var st = tcbState;
+    if(!st || st.busy || st.phase !== 'mull' || st.mullWho !== 'me') return;
+    tcbAfterMull(st, tcbMulligan('me', ci));
+  }
+  function tcbQuitGame(){
+    tcbFxClear();
+    tcbCloseFaces();
+    if(tcbTimer){ clearTimeout(tcbTimer); tcbTimer = null; }
+    tcbState = null;
+    tcbRenderNow();
+  }
+  function tcbHumanPlay(ci){
+    var st = tcbState;
+    if(!st || st.busy || st.finished || st.turn !== 'me' || st.phase !== 'play') return;
+    var fi = st.handFace[ci] || 0;
+    st.message = null;
+    var e = tcbPlay('me', ci, fi, st.selBoost);
+    if(e) tcbAfterPlay(st, e);
+  }
+  // CPUの番: 少し間を置いて考える → 出す。
+  function tcbScheduleCpu(){
+    var st = tcbState;
+    if(!st || st.finished || st.turn !== 'cpu' || tcbTimer || st.busy || st.phase !== 'play') return;
+    st.thinking = true;
+    tcbRenderNow();
+    tcbTimer = setTimeout(function(){
+      tcbTimer = null;
+      if(tcbState !== st || st.finished || st.turn !== 'cpu') return;
+      function playNow(){
+        if(tcbState !== st) return;
+        var pick = tcbCpuPick(st);
+        st.thinking = false;
+        var e = pick ? tcbPlay('cpu', pick[0], pick[1], pick[2]) : null;
+        if(e) tcbAfterPlay(st, e); else tcbRenderNow();
+      }
+      playNow();
+    }, TCB_CPU_WAIT_MS);
+  }
+
+  function renderTypeCardGame(host){
+    var wrap = document.createElement('div');
+    wrap.className = 'dameke-tcb-wrap';
+    var title = document.createElement('h3');
+    title.className = 'dameke-minigame-title';
+    title.textContent = '相性カードバトル';
+    wrap.appendChild(title);
+
+    var rulesFold = buildMinigameFold('ルール');
+    rulesFold.body.className = 'dameke-minigame-rules-body';
+    rulesFold.body.innerHTML =
+      '<p>18枚のポケモンカードを使い、CPUと1枚ずつ交互に出し合います。カードは「今回のカード」で全部見られます。</p>' +
+      '<p>はじめに場札が1枚置かれ、6枚ずつ手札が配られます。残りの5枚は山札(裏向き)です。</p>' +
+      '<p>始める前に、後攻→先攻の順で1回ずつマリガンができます。手札1枚を山札に戻して、山札から1枚引きます。戻した札も引いた札も相手に公開されます(先に戻された札を引くこともあります)。マリガンしなくても構いません。</p>' +
+      '<p>カードを出すと、そのカードの2つのタイプそれぞれの、場のカードへの相性の倍率を合計した点数が入ります(単タイプは同じタイプで2回分)。出したカードが次の場札になります。</p>' +
+      '<p>カードの特性も点数に影響します(「相性に関わる特性」を参照)。</p>' +
+      '<p>手札のカードを押すと選び、もう一度押すと出します。フォルム違いのあるカード(タイプか相性に関わる特性が違う姿があるとき)と、アルセウス・シルヴァディ(タイプ)は、カードの下で姿を選べます。</p>' +
+      '<p>強化は1試合1回、どれか1つ: Zワザ(その手の点数2倍)／ダイマックス(その手の点数1.5倍、そのカードが次に受ける点数は半分)／テラスタル(そのカードがテラスタイプの単タイプになって出て、その手の点数1.25倍。場に残ったあとも、テラスタイプとして点を受けます)。カードを選ぶ前でも後でも選べます。</p>' +
+      '<p>テラスタイプは、カードごとにランダムに決まっていて、カードに表示されています(相手のカードも見られます)。オーガポンはお面ごとのテラスタイプ(テラスタルするとおもかげやどし)、テラパゴスはテラスタルできません。ザシアン・ザマゼンタ・ムゲンダイナはダイマックスできません。</p>' +
+      '<p>お互い手札を出し切ったら、合計点の多い方の勝ちです。</p>';
+    wrap.appendChild(rulesFold.fold);
+
+    var settingRow = document.createElement('div');
+    settingRow.className = 'dameke-stathl-mode-row dameke-tcb-setting-row';
+    var lvLabel = document.createElement('span');
+    lvLabel.className = 'dameke-adjust-nature-title dameke-stathl-mode-label';
+    lvLabel.textContent = 'CPUの強さ：';
+    settingRow.appendChild(lvLabel);
+    TCB_LEVELS.forEach(function(lv){
+      var l = document.createElement('label');
+      l.className = 'dameke-stathl-mode-option';
+      var r = document.createElement('input');
+      r.type = 'radio'; r.name = 'damekeTcbLevel'; r.value = lv[0]; r.checked = tcbLevel === lv[0];
+      r.addEventListener('change', function(){ if(r.checked) tcbLevel = lv[0]; });
+      l.appendChild(r); l.appendChild(document.createTextNode(lv[1]));
+      settingRow.appendChild(l);
+    });
+    var quitBtn = document.createElement('button');
+    quitBtn.type = 'button';
+    quitBtn.className = 'dameke-search-add-btn dameke-tcb-new-btn';
+    quitBtn.textContent = 'ゲームをやめる';
+    quitBtn.addEventListener('click', function(){
+      var st = tcbState;
+      if(st && !st.finished && st.plies > 0 && !window.confirm('いまのゲームをやめますか？')) return;
+      tcbQuitGame();
+    });
+    settingRow.appendChild(quitBtn);
+    wrap.appendChild(settingRow);
+
+    var chartFold = buildMinigameFold('相性表');
+    chartFold.body.appendChild(tcbBuildChart());
+    wrap.appendChild(chartFold.fold);
+    var abilFold = buildMinigameFold('相性に関わる特性');
+    wrap.appendChild(abilFold.fold);
+
+    var board = document.createElement('div');
+    board.className = 'dameke-tcb-board';
+    wrap.appendChild(board);
+
+    var poolSec = document.createElement('div');
+    poolSec.className = 'dameke-tcb-section';
+    wrap.appendChild(poolSec);
+
+    var logFold = buildMinigameFold('記録');
+    wrap.appendChild(logFold.fold);
+
+    host.appendChild(wrap);
+
+    function scoreSide(who, label){
+      var st = tcbState;
+      var box = document.createElement('div');
+      box.className = 'dameke-tcb-score dameke-tcb-score-' + who + (st.turn === who && !st.finished ? ' dameke-tcb-score-turn' : '');
+      var top = document.createElement('div');
+      top.className = 'dameke-tcb-score-top';
+      var nm = document.createElement('span');
+      nm.className = 'dameke-tcb-score-name';
+      nm.textContent = label + (st.first === who ? '（先攻）' : '（後攻）');
+      var pt = document.createElement('span');
+      pt.className = 'dameke-tcb-score-pts';
+      pt.textContent = tcbPts(st.scores[who]) + '点';
+      top.appendChild(nm); top.appendChild(pt);
+      box.appendChild(top);
+      var sub = document.createElement('div');
+      sub.className = 'dameke-tcb-score-sub';
+      var chip = document.createElement('span');
+      chip.className = 'dameke-tcb-boost-chip' + (st.boost[who] ? ' dameke-tcb-boost-chip-used dameke-tcb-boost-chip-' + st.boost[who] : '');
+      chip.textContent = st.boost[who] ? TCB_BOOST_NAME[st.boost[who]] + ' 使用済み' : '強化 未使用';
+      sub.appendChild(chip);
+      var cnt = document.createElement('span');
+      cnt.className = 'dameke-tcb-score-count';
+      cnt.textContent = '手札' + st.hands[who].length + '枚';
+      sub.appendChild(cnt);
+      box.appendChild(sub);
+      return box;
+    }
+
+    function renderStart(){
+      board.innerHTML = '';
+      var box = document.createElement('div');
+      box.className = 'dameke-tcb-start';
+      var p = document.createElement('p');
+      p.className = 'dameke-tcb-start-text';
+      p.textContent = 'CPUの強さを選んで「ゲームスタート」を押してください。先攻・後攻はランダムに決まります。';
+      box.appendChild(p);
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'dameke-search-add-btn dameke-minigame-retry-btn dameke-tcb-start-btn';
+      btn.textContent = 'ゲームスタート';
+      btn.addEventListener('click', tcbStartGame);
+      box.appendChild(btn);
+      board.appendChild(box);
+    }
+
+    function renderBoard(){
+      var st = tcbState;
+      if(!st){ renderStart(); return; }
+      board.innerHTML = '';
+      var scores = document.createElement('div');
+      scores.className = 'dameke-tcb-scores';
+      scores.appendChild(scoreSide('me', 'あなた'));
+      scores.appendChild(scoreSide('cpu', 'CPU'));
+      board.appendChild(scores);
+
+      // 相手の手札(裏向き)
+      var oppRow = document.createElement('div');
+      oppRow.className = 'dameke-tcb-row';
+      var oppLab = document.createElement('div');
+      oppLab.className = 'dameke-tcb-row-label';
+      oppLab.textContent = 'CPUの手札';
+      oppRow.appendChild(oppLab);
+      var oppHand = document.createElement('div');
+      oppHand.className = 'dameke-tcb-backs';
+      // マリガンで引いた(公開の)札は表向き
+      st.hands.cpu.forEach(function(ci){
+        if(st.pubHand.cpu.indexOf(ci) >= 0) oppHand.appendChild(tcbBuildCard(st, ci, { size: 's', cls: 'dameke-tcb-opp-open', label: '公開', labelCls: 'dameke-tcb-label-open' }));
+        else oppHand.appendChild(tcbBack());
+      });
+      if(!st.hands.cpu.length){ var none = document.createElement('span'); none.className = 'dameke-tcb-empty'; none.textContent = 'なし'; oppHand.appendChild(none); }
+      oppRow.appendChild(oppHand);
+      board.appendChild(oppRow);
+
+      // 場札と山札
+      var mid = document.createElement('div');
+      mid.className = 'dameke-tcb-mid';
+      var fieldBox = document.createElement('div');
+      fieldBox.className = 'dameke-tcb-field';
+      var fLab = document.createElement('div');
+      fLab.className = 'dameke-tcb-row-label';
+      fLab.textContent = st.field.by === 'start' ? '場札(最初の1枚)' : '場札(' + (st.field.by === 'me' ? 'あなた' : 'CPU') + 'が出したカード)';
+      fieldBox.appendChild(fLab);
+      fieldBox.appendChild(tcbBuildCard(st, st.field.card, { size: 'l', faceId: st.field.face, cls: st.field.dyn ? 'dameke-tcb-card-dyn' : '', label: st.field.dyn ? 'ダイマックス中' : (st.faces[st.field.face].tera ? 'テラスタル中' : null), labelCls: st.field.dyn ? 'dameke-tcb-label-dyn' : 'dameke-tcb-label-tera' }));
+      mid.appendChild(fieldBox);
+      var side = document.createElement('div');
+      side.className = 'dameke-tcb-side';
+      var deckBox = document.createElement('div');
+      deckBox.className = 'dameke-tcb-deck';
+      var dLab = document.createElement('div');
+      dLab.className = 'dameke-tcb-row-label';
+      dLab.textContent = '山札 ' + st.deck.length + '枚';
+      deckBox.appendChild(dLab);
+      var dBacks = document.createElement('div');
+      dBacks.className = 'dameke-tcb-backs';
+      st.deck.forEach(function(){ dBacks.appendChild(tcbBack()); });
+      deckBox.appendChild(dBacks);
+      side.appendChild(deckBox);
+      var last = st.log[st.log.length - 1];
+      if(last){
+        var info = document.createElement('div');
+        info.className = 'dameke-tcb-lastplay';
+        var who = document.createElement('div');
+        who.className = 'dameke-tcb-lastplay-head';
+        who.textContent = '直前：' + (last.who === 'me' ? 'あなた' : 'CPU') + 'が ' + tcbPts(last.pts) + '点' + (last.boost ? '(' + TCB_BOOST_NAME[last.boost] + ')' : '');
+        info.appendChild(who);
+        var detail = document.createElement('div');
+        detail.className = 'dameke-tcb-lastplay-detail';
+        detail.textContent = tcbLogText(st, last).replace('　' + tcbShudderText(st, last), '');
+        info.appendChild(detail);
+        if(last.shudder){
+          var sh = document.createElement('div');
+          sh.className = 'dameke-tcb-lastplay-shudder';
+          sh.textContent = tcbShudderText(st, last);
+          info.appendChild(sh);
+        }
+        side.appendChild(info);
+      }
+      mid.appendChild(side);
+      board.appendChild(mid);
+
+      // メッセージ
+      var msg = document.createElement('div');
+      msg.className = 'dameke-tcb-message';
+      var myTurn = st.turn === 'me' && !st.finished && !st.busy && st.phase === 'play';
+      var myMull = st.phase === 'mull' && st.mullWho === 'me' && !st.busy;
+      if(st.phase === 'mull'){
+        if(st.mullWho === 'cpu') msg.textContent = st.thinking ? 'CPUがマリガンを考えています…' : 'CPUのマリガンです';
+        else if(st.sel == null) msg.textContent = 'マリガン：山札に戻すカードを押してください(もう一度押すと戻して1枚引きます)。';
+        else msg.textContent = '「' + st.cards[st.sel].faces[st.handFace[st.sel] || 0].name + '」を山札に戻して1枚引きます。もう一度押すと戻します。';
+      } else if(st.finished){
+        var a = st.scores.me, b = st.scores.cpu;
+        msg.classList.add(a > b + 1e-9 ? 'dameke-tcb-message-win' : (b > a + 1e-9 ? 'dameke-tcb-message-lose' : 'dameke-tcb-message-draw'));
+        msg.textContent = tcbResultText(st) + '　' + tcbPts(a) + ' 対 ' + tcbPts(b);
+      } else if(st.turn === 'cpu'){
+        msg.textContent = st.thinking ? 'CPUが考えています…' : 'CPUの番です';
+      } else if(st.sel == null){
+        msg.textContent = 'あなたの番です。出すカードを押してください。';
+      } else {
+        var f = st.cards[st.sel].faces[st.handFace[st.sel] || 0];
+        msg.textContent = '「' + f.name + '」を' + (st.selBoost === 'Z' ? 'Zワザで' : st.selBoost === 'D' ? 'ダイマックスして' : st.selBoost === 'T' ? 'テラスタルして' : '') + '出します。もう一度押すと出します。';
+      }
+      if(st.message){ var m2 = document.createElement('div'); m2.className = 'dameke-tcb-message-sub'; m2.textContent = st.message; msg.appendChild(m2); }
+      board.appendChild(msg);
+      if(st.finished){
+        var again = document.createElement('button');
+        again.type = 'button';
+        again.className = 'dameke-search-add-btn dameke-minigame-retry-btn dameke-tcb-again';
+        again.textContent = 'もう一度';
+        again.addEventListener('click', tcbStartGame);
+        board.appendChild(again);
+      }
+
+      // 自分の操作(交換・強化)と手札
+      if(!st.finished) board.appendChild(st.phase === 'mull' ? buildMullControls(myMull) : buildControls(myTurn));
+      var myRow = document.createElement('div');
+      myRow.className = 'dameke-tcb-row';
+      var myLab = document.createElement('div');
+      myLab.className = 'dameke-tcb-row-label';
+      myLab.textContent = 'あなたの手札';
+      myRow.appendChild(myLab);
+      var hand = document.createElement('div');
+      hand.className = 'dameke-tcb-hand';
+      st.hands.me.forEach(function(ci){ hand.appendChild(buildHandItem(ci, myTurn, myMull)); });
+      if(!st.hands.me.length){ var none2 = document.createElement('span'); none2.className = 'dameke-tcb-empty'; none2.textContent = 'なし'; hand.appendChild(none2); }
+      myRow.appendChild(hand);
+      board.appendChild(myRow);
+    }
+
+    function buildHandItem(ci, myTurn, myMull){
+      var st = tcbState;
+      var card = st.cards[ci];
+      var item = document.createElement('div');
+      item.className = 'dameke-tcb-handitem';
+      if(myMull) return buildMullHandItem(ci, item);
+      var selected = st.sel === ci && myTurn;
+      var el = tcbBuildCard(st, ci, {
+        size: 'm', faceIdx: st.handFace[ci] || 0, showAlt: true,
+        // テラスタルを選んでいるときは、選んだカードをテラスタルした姿で見せる
+        faceId: selected && st.selBoost === 'T' ? st.teraOf[st.faceIds[ci][st.handFace[ci] || 0]] : null,
+        label: selected ? (st.selBoost === 'Z' ? 'Zワザで出す' : st.selBoost === 'D' ? 'ダイマで出す' : st.selBoost === 'T' ? 'テラスで出す' : '出す') : null,
+        labelCls: 'dameke-tcb-label-play' + (selected && st.selBoost ? ' dameke-tcb-label-boost-' + st.selBoost : ''),
+        cls: (selected ? 'dameke-tcb-card-selected' : '') + (selected && st.selBoost ? ' dameke-tcb-card-boost-' + st.selBoost : '') + (myTurn ? '' : ' dameke-tcb-card-wait'),
+        onClick: function(){
+          var s = tcbState;
+          if(!s || s.busy || s.finished || s.turn !== 'me' || s.phase !== 'play') return;
+          if(s.sel === ci){ tcbHumanPlay(ci); return; }
+          s.sel = ci;
+          s.message = null;
+          if(s.selBoost && !tcbBoostAllowed(s, ci, s.selBoost)){
+            s.message = 'このカードは' + TCB_BOOST_NAME[s.selBoost] + 'できないので、強化を「なし」にしました。';
+            s.selBoost = null;
+          }
+          renderBoard();
+        }
+      });
+      item.appendChild(el);
+      if(card.faces.length > 1){
+        var ctl = document.createElement('div');
+        ctl.className = 'dameke-tcb-face-ctl';
+        if(card.typeChoice){
+          // アルセウス・シルヴァディはタイプを選ぶ(18通りあるので一覧から)
+          var sel = document.createElement('select');
+          sel.className = 'dameke-tcb-face-select';
+          sel.setAttribute('aria-label', 'タイプを選ぶ');
+          card.faces.forEach(function(f, fi){
+            var o = document.createElement('option');
+            o.value = String(fi);
+            o.textContent = f.types[0];
+            sel.appendChild(o);
+          });
+          sel.value = String(st.handFace[ci] || 0);
+          sel.addEventListener('change', function(){ tcbState.handFace[ci] = +sel.value; renderBoard(); renderPool(); });
+          ctl.appendChild(sel);
+        } else {
+          // フォルムチェンジ: 押すたびに次の姿へ(最後の次は最初)
+          var cur = st.handFace[ci] || 0;
+          var fc = document.createElement('button');
+          fc.type = 'button';
+          fc.className = 'dameke-tcb-face-btn dameke-tcb-face-cycle';
+          fc.title = 'フォルムチェンジ';
+          fc.setAttribute('aria-label', 'フォルムチェンジ(' + (cur + 1) + '/' + card.faces.length + ')');
+          fc.innerHTML = TCB_CYCLE_ICON + '<span class="dameke-tcb-face-count">' + (cur + 1) + '/' + card.faces.length + '</span>';
+          fc.addEventListener('click', function(){
+            if(!tcbState) return;
+            tcbState.handFace[ci] = ((tcbState.handFace[ci] || 0) + 1) % card.faces.length;
+            renderBoard(); renderPool();
+          });
+          ctl.appendChild(fc);
+        }
+        var info = document.createElement('button');
+        info.type = 'button';
+        info.className = 'dameke-tcb-face-btn dameke-tcb-face-info';
+        info.textContent = '詳細';
+        info.setAttribute('aria-label', (card.faces[0].img || card.faces[0].name) + 'の姿の詳細');
+        info.addEventListener('click', function(){
+          tcbShowFaces(tcbState, ci, function(fi){
+            if(!tcbState || tcbState.hands.me.indexOf(ci) < 0) return;
+            tcbState.handFace[ci] = fi; renderBoard(); renderPool();
+          });
+        });
+        ctl.appendChild(info);
+        item.appendChild(ctl);
+      }
+      return item;
+    }
+
+    // マリガン中の手札: 押して選び、もう一度押すと戻す(出すときと同じ操作)。姿の切り替えは出す時と同じく下のボタン。
+    function buildMullHandItem(ci, item){
+      var st = tcbState;
+      var selected = st.sel === ci;
+      var el = tcbBuildCard(st, ci, {
+        size: 'm', faceIdx: st.handFace[ci] || 0, showAlt: true,
+        label: selected ? '戻す' : null, labelCls: 'dameke-tcb-label-play dameke-tcb-label-mull',
+        cls: selected ? 'dameke-tcb-card-selected dameke-tcb-card-mull' : '',
+        onClick: function(){
+          var s = tcbState;
+          if(!s || s.busy || s.phase !== 'mull' || s.mullWho !== 'me') return;
+          if(s.sel === ci){ tcbHumanMull(ci); return; }
+          s.sel = ci;
+          renderBoard();
+        }
+      });
+      item.appendChild(el);
+      return item;
+    }
+    function buildMullControls(myMull){
+      var st = tcbState;
+      var box = document.createElement('div');
+      box.className = 'dameke-tcb-actions';
+      var row = document.createElement('div');
+      row.className = 'dameke-tcb-action-row dameke-tcb-mull-row';
+      var lab = document.createElement('span');
+      lab.className = 'dameke-tcb-action-label';
+      lab.textContent = 'マリガン';
+      row.appendChild(lab);
+      if(myMull){
+        var skip = document.createElement('button');
+        skip.type = 'button';
+        skip.className = 'dameke-search-add-btn dameke-tcb-mull-skip';
+        skip.textContent = 'マリガンしない';
+        skip.addEventListener('click', function(){ tcbHumanMull(null); });
+        row.appendChild(skip);
+      }
+      var note = document.createElement('span');
+      note.className = 'dameke-tcb-note-inline';
+      note.textContent = '後攻→先攻の順に1回ずつ。戻した札・引いた札は相手にも公開されます。';
+      row.appendChild(note);
+      box.appendChild(row);
+      return box;
+    }
+
+    function buildControls(myTurn){
+      var st = tcbState;
+      var box = document.createElement('div');
+      box.className = 'dameke-tcb-actions';
+      var boostRow = document.createElement('div');
+      boostRow.className = 'dameke-tcb-action-row';
+      var bl = document.createElement('span');
+      bl.className = 'dameke-tcb-action-label';
+      bl.textContent = '強化';
+      boostRow.appendChild(bl);
+      if(st.boost.me){
+        var used = document.createElement('span');
+        used.className = 'dameke-tcb-note-inline';
+        used.textContent = TCB_BOOST_NAME[st.boost.me] + 'を使ったので、もう使えません';
+        boostRow.appendChild(used);
+      } else {
+        [[null, 'なし'], ['Z', 'Zワザ（×2）'], ['D', 'ダイマックス（×1.5・次に受ける点が半分）'], ['T', 'テラスタル（×1.25・テラスタイプになる）']].forEach(function(x){
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'dameke-tcb-choice' + (st.selBoost === x[0] ? ' dameke-tcb-choice-active' + (x[0] ? ' dameke-tcb-choice-boost-' + x[0] : '') : '');
+          b.textContent = x[1];
+          b.setAttribute('aria-pressed', st.selBoost === x[0] ? 'true' : 'false');
+          // 選んでいるカードが使えない強化(テラスタル不可・ダイマックス不可)は押せない
+          if(st.sel != null && !tcbBoostAllowed(st, st.sel, x[0])){ b.disabled = true; b.title = 'このカードは' + TCB_BOOST_NAME[x[0]] + 'できません'; }
+          b.addEventListener('click', function(){ if(tcbState.busy) return; tcbState.selBoost = x[0]; renderBoard(); });
+          boostRow.appendChild(b);
+        });
+      }
+      box.appendChild(boostRow);
+      return box;
+    }
+
+    function renderPool(){
+      var st = tcbState;
+      poolSec.innerHTML = '';
+      poolSec.hidden = !st;
+      if(!st) return;
+      var head = document.createElement('div');
+      head.className = 'dameke-tcb-section-head';
+      head.textContent = '今回のカード（' + TCB_POOL + '枚）';
+      poolSec.appendChild(head);
+      var legend = document.createElement('div');
+      legend.className = 'dameke-tcb-legend';
+      [['dameke-tcb-st-mine', 'あなたの手札'], ['dameke-tcb-st-field', '場札'], ['dameke-tcb-st-opp', 'CPUの手札(公開)'], ['', '相手の手札か山札'], ['dameke-tcb-st-deck', '山札'], ['dameke-tcb-st-used', '使用済']].forEach(function(x){
+        var s = document.createElement('span'); s.className = 'dameke-tcb-legend-item ' + x[0]; s.textContent = x[1]; legend.appendChild(s);
+      });
+      poolSec.appendChild(legend);
+      var grid = document.createElement('div');
+      grid.className = 'dameke-tcb-pool';
+      var mine = Object.create(null);
+      st.hands.me.forEach(function(i){ mine[i] = true; });
+      var reveal = st.finished;
+      // 出したカード・場札は出したときの姿、自分の手札は選んでいる姿で出す
+      var faceOf = Object.create(null);
+      st.log.forEach(function(e){ faceOf[st.faces[e.face].card] = e.face; });
+      faceOf[st.field.card] = st.field.face;
+      // グループごとに並べる: 手札 → 場 → CPUの手札(公開) → 相手の手札か山札 → 山札 → 使用済(出した順)
+      var playOrder = Object.create(null);
+      st.log.forEach(function(e, i){ playOrder[st.faces[e.face].card] = i + 1; });
+      var items = st.cards.map(function(_, ci){
+        var label = null, cls = '', group = 2, sub = ci;
+        if(ci === st.field.card){ label = '場'; cls = 'dameke-tcb-st-field'; group = 1; }
+        else if(st.used[ci]){
+          // 最初の場札は「使用済」、出したカードは誰が出したか
+          label = st.used[ci] === 'me' ? 'あなた' : (st.used[ci] === 'cpu' ? 'CPU' : '使用済');
+          cls = 'dameke-tcb-st-used dameke-tcb-st-used-' + st.used[ci]; group = 4; sub = playOrder[ci] || 0;
+        }
+        else if(mine[ci]){ label = '手札'; cls = 'dameke-tcb-st-mine'; group = 0; sub = st.hands.me.indexOf(ci); }
+        else if(st.hands.cpu.indexOf(ci) >= 0 && st.pubHand.cpu.indexOf(ci) >= 0){ label = 'CPU'; cls = 'dameke-tcb-st-opp'; group = 1.5; }
+        else if(st.knownDeck[ci] || (reveal && st.deck.indexOf(ci) >= 0)){ label = '山札'; cls = 'dameke-tcb-st-deck'; group = 3; }
+        return { ci: ci, label: label, cls: cls, group: group, sub: sub };
+      }).sort(function(a, b){ return a.group - b.group || a.sub - b.sub; });
+      items.forEach(function(it){
+        var ci = it.ci, label = it.label, cls = it.cls;
+        var opts = { size: 's', label: label, cls: cls, showAlt: true };
+        if(st.cards[ci].faces.length > 1) opts.onClick = function(){ tcbShowFaces(tcbState, ci, null); };
+        if(faceOf[ci] != null) opts.faceId = faceOf[ci];
+        else if(mine[ci]) opts.faceIdx = st.handFace[ci] || 0;
+        grid.appendChild(tcbBuildCard(st, ci, opts));
+      });
+      poolSec.appendChild(grid);
+      var note = document.createElement('p');
+      note.className = 'dameke-tcb-note';
+      note.textContent = '「姿」「タイプ」の付いたカードは、出すときに姿を選べます(押すと、選べる姿の一覧が出ます)。';
+      poolSec.appendChild(note);
+    }
+
+    function renderLog(){
+      var st = tcbState;
+      logFold.fold.hidden = !st;
+      logFold.body.innerHTML = '';
+      if(!st) return;
+      st.mullLog.forEach(function(m){
+        var d = document.createElement('div');
+        d.className = 'dameke-tcb-log-mull';
+        d.textContent = 'マリガン(' + (m.who === 'me' ? 'あなた' : 'CPU') + ')：' + (m.out == null ? 'しない' : st.cards[m.out].faces[0].name + ' を戻して ' + st.cards[m.drew].faces[0].name + ' を引いた');
+        logFold.body.appendChild(d);
+      });
+      if(!st.log.length){ var e = document.createElement('div'); e.className = 'dameke-tcb-empty'; e.textContent = 'まだカードは出ていません。'; logFold.body.appendChild(e); return; }
+      var list = document.createElement('ol');
+      list.className = 'dameke-tcb-log';
+      st.log.forEach(function(e){
+        var li = document.createElement('li');
+        li.className = 'dameke-tcb-log-' + e.who;
+        li.textContent = (e.who === 'me' ? 'あなた　' : 'CPU　') + tcbLogText(st, e);
+        list.appendChild(li);
+      });
+      logFold.body.appendChild(list);
+    }
+
+    function renderAbil(){
+      abilFold.body.innerHTML = '';
+      abilFold.body.appendChild(tcbBuildAbilityList(tcbState));
+    }
+
+    function renderAll(){
+      quitBtn.hidden = !tcbState;
+      renderBoard(); renderPool(); renderLog(); renderAbil();
+    }
+
+    tcbUI = { wrap: wrap, renderAll: renderAll };
+    renderAll();
+    // 別のゲームから戻ったとき: 演出中だったものは飛ばして続きから。
+    var st0 = tcbState;
+    if(st0 && !st0.finished && !st0.busy){
+      if(st0.phase === 'mull'){ if(st0.mullWho === 'cpu') tcbNextMull(st0); }
+      else if(st0.turn === 'cpu') tcbScheduleCpu();
+    }
   }
 })();

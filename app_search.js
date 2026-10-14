@@ -121,7 +121,8 @@
       championsOnly: false,
       megaOnly: false,
       megaExclude: false,
-      regulations: []
+      regulations: [],
+      generations: []
     };
   }
   var filters = defaultFilters();
@@ -199,6 +200,7 @@
     if(!inRange(p.weight, filters.weightRange)) return false;
     if(filters.finalEvoOnly && p.canEvolve) return false;
     if(filters.championsOnly && !hasChampionsEntry(p)) return false;
+    if(filters.generations.length && filters.generations.indexOf(p.generation) === -1) return false;
     if(filters.regulations.length){
       var R = window.DAMEKE_REGULATIONS;
       var regTag = R ? R.regulationOf(p.name) : null;
@@ -463,6 +465,30 @@
     }
     regFold.appendChild(regRow);
     host.appendChild(regFold);
+
+    // 世代絞り込み(複数選択可。何もチェックしなければ絞り込みなし)。フォルム違い・メガシンカ・
+    // リージョンフォームは元のポケモンと同じ世代(data.js の generation)。
+    var genFold = document.createElement('details');
+    genFold.className = 'dameke-pokemon-edit-levelfold dameke-search-regulation-fold dameke-search-generation-fold';
+    var genSummary = document.createElement('summary');
+    genSummary.textContent = '世代';
+    genFold.appendChild(genSummary);
+    var genRow = document.createElement('div'); genRow.className = 'dameke-speed-cond-row';
+    [1,2,3,4,5,6,7,8,9].forEach(function(g){
+      var label = document.createElement('label'); label.className = 'check';
+      var cb = document.createElement('input'); cb.type = 'checkbox';
+      cb.checked = filters.generations.indexOf(g) >= 0;
+      cb.addEventListener('change', function(){
+        var idx = filters.generations.indexOf(g);
+        if(cb.checked && idx === -1) filters.generations.push(g);
+        else if(!cb.checked && idx >= 0) filters.generations.splice(idx, 1);
+        renderResults();
+      });
+      label.appendChild(cb); label.appendChild(document.createTextNode('第' + g + '世代'));
+      genRow.appendChild(label);
+    });
+    genFold.appendChild(genRow);
+    host.appendChild(genFold);
 
     var clearBtn = document.createElement('button');
     clearBtn.type = 'button'; clearBtn.className = 'dameke-search-clear-btn dameke-search-section-gap';
