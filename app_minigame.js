@@ -3117,8 +3117,8 @@
       '<p>カードを出すと、そのカードの2つのタイプそれぞれの、場のカードへの相性の倍率を合計した点数が入ります(単タイプは同じタイプで2回分)。出したカードが次の場札になります。</p>' +
       '<p>カードの特性も点数に影響します(「相性に関わる特性」を参照)。</p>' +
       '<p>手札のカードを押すと選び、もう一度押すと出します。フォルム違いのあるカード(タイプか相性に関わる特性が違う姿があるとき)と、アルセウス・シルヴァディ(タイプ)は、カードの下で姿を選べます。</p>' +
-      '<p>強化は1試合1回、どれか1つ: Zワザ(その手の点数2倍)／ダイマックス(その手の点数1.5倍、そのカードが次に受ける点数は半分)／テラスタル(そのカードがテラスタイプの単タイプになって出て、その手の点数1.25倍。場に残ったあとも、テラスタイプとして点を受けます)。カードを選ぶ前でも後でも選べます。</p>' +
-      '<p>テラスタイプは、カードごとにランダムに決まっていて、カードに表示されています(相手のカードも見られます)。オーガポンはお面ごとのテラスタイプ(テラスタルするとおもかげやどし)、テラパゴスはテラスタルできません。ザシアン・ザマゼンタ・ムゲンダイナはダイマックスできません。</p>' +
+      '<p>強化は1試合1回、どれか1つ: Zワザ(その手の点数2倍)／ダイマックス(その手の点数1.5倍、そのカードが次に受ける点数は半分)／テラスタル(そのカードがテラスタイプの単タイプになって、その手の点数1.25倍。場に残ったあとも、テラスタイプとして点を受けます)。</p>' +
+      '<p>※オーガポンはお面ごとのテラスタイプ(テラスタルするとおもかげやどし)、テラパゴスはテラスタルできません。ザシアン・ザマゼンタ・ムゲンダイナはダイマックスできません。</p>' +
       '<p>お互い手札を出し切ったら、合計点の多い方の勝ちです。</p>';
     wrap.appendChild(rulesFold.fold);
 
@@ -3502,7 +3502,7 @@
       poolSec.appendChild(head);
       var legend = document.createElement('div');
       legend.className = 'dameke-tcb-legend';
-      [['dameke-tcb-st-mine', 'あなたの手札'], ['dameke-tcb-st-field', '場札'], ['dameke-tcb-st-opp', 'CPUの手札(公開)'], ['', '相手の手札か山札'], ['dameke-tcb-st-deck', '山札'], ['dameke-tcb-st-used', '使用済']].forEach(function(x){
+      [['dameke-tcb-st-mine', 'あなたの手札'], ['dameke-tcb-st-field', '場札'], ['dameke-tcb-st-opp', 'CPUの手札(公開)'], ['', '不明'], ['dameke-tcb-st-deck', '山札'], ['dameke-tcb-st-used', '使用済']].forEach(function(x){
         var s = document.createElement('span'); s.className = 'dameke-tcb-legend-item ' + x[0]; s.textContent = x[1]; legend.appendChild(s);
       });
       poolSec.appendChild(legend);
@@ -3515,7 +3515,7 @@
       var faceOf = Object.create(null);
       st.log.forEach(function(e){ faceOf[st.faces[e.face].card] = e.face; });
       faceOf[st.field.card] = st.field.face;
-      // グループごとに並べる: 手札 → 場 → CPUの手札(公開) → 相手の手札か山札 → 山札 → 使用済(出した順)
+      // グループごとに並べる: 手札 → 場 → CPUの手札(公開) → 不明(相手の手札か山札) → 山札 → 使用済(出した順)
       var playOrder = Object.create(null);
       st.log.forEach(function(e, i){ playOrder[st.faces[e.face].card] = i + 1; });
       var items = st.cards.map(function(_, ci){
