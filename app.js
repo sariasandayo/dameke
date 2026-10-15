@@ -1638,6 +1638,7 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     });
 
     renderStatGrid(side);
+    renderIvGrid(side);
   }
 
   // ---- 詳細ステータス: 表示用の表と編集シート(v2.6.2) ----
@@ -1933,14 +1934,156 @@ window.__damekeFmtFaintPct = fmtFaintPct;
       rkBody.appendChild(btn('dameke-stateditor-quick dameke-stateditor-rank-reset', '±0', function(){ setStatSrc(side, key, 'rank', 0); }, { 'data-rank-reset':'1', 'aria-label':'ランクを0に戻す', 'title':'0に戻す' }));
     }
   }
+  // ---- レベル・個体値: 努力値と同じく、表(表示)を押すと下に編集シートを開く(v2.6.2) ----
+  var IV_KEYS = ['lv','H','A','B','C','D','S'];
+  var ivEditorKey = { attacker:null, defender:null };
+  function ivSrc(side, k){ return k === 'lv' ? q(side+'Level') : q(side+'_'+k+'_iv'); }
+  function ivBounds(k){ return k === 'lv' ? { lo:1, hi:100, def:50 } : { lo:0, hi:31, def:31 }; }
+  function ivValue(side, k){ var b = ivBounds(k); return statIntValue(ivSrc(side, k), b.def); }
+  function setIvSrc(side, k, v){
+    var el = ivSrc(side, k), b = ivBounds(k);
+    v = Math.max(b.lo, Math.min(b.hi, v));
+    if(!el || el.value === String(v)) return;
+    el.value = String(v);
+    dispatchChange(el);
+  }
+  function ivColumn(side, k){
+    var b = make('button', 'dameke-statgrid-col'); b.type = 'button'; b.setAttribute('data-key', k);
+    var head = make('span', 'dameke-statgrid-head');
+    var name = make('span', 'dameke-statgrid-headname', k === 'lv' ? 'Lv' : k);
+    if(k !== 'lv') name.setAttribute('data-stat-key', k);
+    head.appendChild(name); head.appendChild(make('span', 'dameke-statgrid-mark', '▾'));
+    b.appendChild(head);
+    b.appendChild(make('span', 'dameke-statgrid-val'));
+    b.addEventListener('click', function(){ toggleIvEditor(side, k); });
+    return b;
+  }
+  function buildIvGrid(side){
+    var lv = q('damekeLvGrid_'+side), iv = q('damekeIvGrid_'+side);
+    if(!lv || !iv || lv.getAttribute('data-built')) return;
+    lv.setAttribute('data-built', '1');
+    [[lv, 'レベル', ['lv']], [iv, '個体値', STAT_MAIN_KEYS]].forEach(function(t){
+      var labels = make('div', 'dameke-statgrid-labels');
+      labels.appendChild(make('span', 'dameke-statgrid-label', ''));
+      labels.appendChild(make('span', 'dameke-statgrid-label', t[1]));
+      t[0].appendChild(labels);
+      t[2].forEach(function(k){ t[0].appendChild(ivColumn(side, k)); });
+    });
+  }
+  function renderIvGrid(side){
+    var lv = q('damekeLvGrid_'+side), iv = q('damekeIvGrid_'+side);
+    if(!lv || !iv) return;
+    buildIvGrid(side);
+    var open = ivEditorKey[side];
+    IV_KEYS.forEach(function(k){
+      var b = (k === 'lv' ? lv : iv).querySelector('.dameke-statgrid-col[data-key="'+k+'"]'); if(!b) return;
+      var v = ivValue(side, k);
+      b.querySelector('.dameke-statgrid-val').textContent = String(v);
+      markOpen(b, open === k);
+      b.setAttribute('aria-label', (k === 'lv' ? 'レベル ' : k + ' 個体値 ') + v + '（押すと編集）');
+    });
+    renderIvEditor(side);
+  }
+  function toggleIvEditor(side, k){
+    ivEditorKey[side] = ivEditorKey[side] === k ? null : k;
+    renderIvGrid(side);
+    var ed = q('damekeIvEditor_'+side);
+    if(ivEditorKey[side] && ed) requestAnimationFrame(function(){ try{ ed.scrollIntoView({ block:'nearest' }); }catch(e){} });
+  }
+  function closeIvEditor(side){
+    if(!ivEditorKey[side]) return;
+    var k = ivEditorKey[side];
+    ivEditorKey[side] = null;
+    renderIvGrid(side);
+    var b = document.querySelector('#damekeLvGrid_'+side+' [data-key="'+k+'"], #damekeIvGrid_'+side+' [data-key="'+k+'"]');
+    if(b && b.focus) try{ b.focus({ preventScroll:true }); }catch(e){}
+  }
+  function renderIvEditor(side){
+    var ed = q('damekeIvEditor_'+side);
+    if(!ed) return;
+    var k = ivEditorKey[side];
+    if(!k){ if(!ed.hidden){ ed.hidden = true; ed.innerHTML = ''; ed.removeAttribute('data-key'); } return; }
+    if(ed.getAttribute('data-key') !== k) buildIvEditor(side, k, ed);
+    ed.hidden = false;
+    var v = ivValue(side, k), b = ivBounds(k);
+    var inp = ed.querySelector('.dameke-stateditor-cell');
+    if(inp && document.activeElement !== inp) inp.value = String(v);
+    var slider = ed.querySelector('.dameke-stateditor-slider');
+    if(slider && document.activeElement !== slider) slider.value = String(v);
+    ed.querySelectorAll('[data-iv-step]').forEach(function(x){ var d = +x.getAttribute('data-iv-step'); x.disabled = d < 0 ? v <= b.lo : v >= b.hi; });
+    ed.querySelectorAll('[data-iv-set]').forEach(function(x){ x.classList.toggle('dameke-stateditor-active', +x.getAttribute('data-iv-set') === v); });
+    var title = ed.querySelector('.dameke-stateditor-title');
+    if(title) title.textContent = k === 'lv' ? 'レベル' : k + ' ' + STAT_NAMES[k];
+  }
+  function buildIvEditor(side, k, ed){
+    ed.innerHTML = '';
+    ed.setAttribute('data-key', k);
+    var b = ivBounds(k);
+    function btn(cls, text, onClick, attrs){
+      var x = make('button', 'dameke-stateditor-btn ' + cls, text); x.type = 'button';
+      Object.keys(attrs || {}).forEach(function(a){ x.setAttribute(a, attrs[a]); });
+      x.addEventListener('click', onClick);
+      return x;
+    }
+    var head = make('div', 'dameke-stateditor-head');
+    var navGroup = make('div', 'dameke-stateditor-navgroup');
+    function move(dir){ var i = IV_KEYS.indexOf(ivEditorKey[side]); ivEditorKey[side] = IV_KEYS[(i + dir + IV_KEYS.length) % IV_KEYS.length]; renderIvGrid(side); }
+    function nav(text, dir, label){ var x = make('button', 'dameke-stateditor-nav', text); x.type = 'button'; x.setAttribute('aria-label', label); x.addEventListener('click', function(){ move(dir); }); return x; }
+    navGroup.appendChild(nav('‹', -1, '前の項目'));
+    navGroup.appendChild(make('span', 'dameke-stateditor-title'));
+    navGroup.appendChild(nav('›', 1, '次の項目'));
+    head.appendChild(navGroup);
+    var close = make('button', 'dameke-stateditor-close', '✕'); close.type = 'button'; close.setAttribute('aria-label', '閉じる');
+    close.addEventListener('click', function(){ closeIvEditor(side); });
+    head.appendChild(close);
+    ed.appendChild(head);
+    // 値: − | 入力欄 | ＋ | (レベルは「50」)
+    var row = make('div', 'dameke-stateditor-row');
+    row.appendChild(make('span', 'dameke-stateditor-label', k === 'lv' ? 'レベル' : '個体値'));
+    var cur = function(){ return ivValue(side, k); };
+    row.appendChild(btn('dameke-stateditor-step', '−', function(){ setIvSrc(side, k, cur() - 1); }, { 'data-iv-step':'-1', 'aria-label':'1下げる' }));
+    var inp = document.createElement('input');
+    inp.type = 'text'; inp.inputMode = 'numeric'; inp.autocomplete = 'off';
+    inp.className = 'dameke-stateditor-cell'; inp.setAttribute('aria-label', k === 'lv' ? 'レベル' : '個体値'); inp.setAttribute('enterkeyhint', 'done');
+    // 数字以外は入らない。上限を超える値は上限に置き換える(下限はEnterか欄を離れたときに寄せる)。
+    inp.addEventListener('input', function(e){
+      e.stopPropagation();
+      var d = inp.value.replace(/[０-９]/g, function(c){ return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); }).replace(/[^0-9]/g, '');
+      if(d !== '' && +d > b.hi) d = String(b.hi);
+      if(inp.value !== d) inp.value = d;
+    });
+    function commit(){ var n = parseInt(inp.value, 10); if(isNaN(n)){ renderIvEditor(side); return; } setIvSrc(side, k, n); renderIvGrid(side); }
+    inp.addEventListener('change', function(e){ e.stopPropagation(); commit(); });
+    inp.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); commit(); inp.blur(); } });
+    inp.addEventListener('focus', function(){ try{ inp.select(); }catch(e){} });
+    row.appendChild(inp);
+    row.appendChild(btn('dameke-stateditor-step', '＋', function(){ setIvSrc(side, k, cur() + 1); }, { 'data-iv-step':'1', 'aria-label':'1上げる' }));
+    if(k === 'lv') row.appendChild(btn('dameke-stateditor-quick dameke-stateditor-rank-reset', '50', function(){ setIvSrc(side, k, 50); }, { 'data-iv-set':'50', 'aria-label':'レベル50にする' }));
+    ed.appendChild(row);
+    // スライダー: 最小 | スライダー | 最大
+    var sRow = make('div', 'dameke-stateditor-row dameke-stateditor-slider-row');
+    sRow.appendChild(make('span', 'dameke-stateditor-label'));
+    sRow.appendChild(btn('dameke-stateditor-quick', String(b.lo), function(){ setIvSrc(side, k, b.lo); }, { 'data-iv-set':String(b.lo) }));
+    var slider = document.createElement('input');
+    slider.type = 'range'; slider.min = String(b.lo); slider.max = String(b.hi); slider.step = '1';
+    slider.className = 'dameke-stateditor-slider'; slider.setAttribute('aria-label', k === 'lv' ? 'レベル' : '個体値');
+    slider.addEventListener('input', function(e){ e.stopPropagation(); if(inp) inp.value = slider.value; });
+    slider.addEventListener('change', function(e){ e.stopPropagation(); setIvSrc(side, k, +slider.value); });
+    sRow.appendChild(slider);
+    sRow.appendChild(btn('dameke-stateditor-quick', String(b.hi), function(){ setIvSrc(side, k, b.hi); }, { 'data-iv-set':String(b.hi) }));
+    ed.appendChild(sRow);
+  }
+
   function initStatEditors(){
-    ['attacker','defender'].forEach(function(side){ buildStatGrid(side); renderStatGrid(side); });
+    ['attacker','defender'].forEach(function(side){ buildStatGrid(side); renderStatGrid(side); buildIvGrid(side); renderIvGrid(side); });
     document.addEventListener('keydown', function(e){
       if(e.key !== 'Escape') return;
       ['attacker','defender'].forEach(function(side){
         var ed = q('damekeStatEditor_'+side);
         var panel = q('v082hStatsPanel_'+side), ae = document.activeElement;
         if(ed && !ed.hidden && (!ae || ae === document.body || (panel && panel.contains(ae)))) closeStatEditor(side);
+        var ived = q('damekeIvEditor_'+side);
+        if(ived && !ived.hidden && (!ae || ae === document.body || (panel && panel.contains(ae)))) closeIvEditor(side);
       });
     });
   }

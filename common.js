@@ -150,3 +150,23 @@
     usageListRateText: usageListRateText
   };
 })();
+
+// ---- 項目名の枠(label)の余白・文字を押したときに、中の欄が選ばれないようにする(v2.6.2) ----
+// <label> は項目名と欄をまとめて横いっぱいに広がっているため、ブラウザの標準動作では、欄の右の余白や
+// 項目名の文字を押しただけで欄が選ばれてしまう(選択欄が開く・入力欄にフォーカスが移る)。欄そのもの
+// 以外を押したときはこの動作を止める。チェックボックス・ラジオボタンは、文字を押しても切り替わる
+// 従来の動作のまま(押せる範囲は style.css で文字の幅までにしてある)。全画面(全ツール)に効く。
+(function(){
+  'use strict';
+  if(typeof document === 'undefined' || typeof document.addEventListener !== 'function') return;   // ブラウザ以外(テストでの読み込みなど)では何もしない
+  var FIELD = 'input,select,textarea,button,a,summary,[contenteditable],.v082h-search-combo,.v082h-search-list';
+  document.addEventListener('click', function(e){
+    var t = e.target;
+    if(!t || !t.closest) return;
+    var lab = t.closest('label');
+    if(!lab || t.closest(FIELD)) return;
+    var c = lab.control;
+    if(!c || c.type === 'checkbox' || c.type === 'radio') return;
+    e.preventDefault();
+  }, true);
+})();

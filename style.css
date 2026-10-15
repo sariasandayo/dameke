@@ -1995,3 +1995,19 @@ button.dameke-tcb-card-wait:hover{border-color:var(--dameke-border);}
   .v082h-type-grid,.dameke-move-special-grid{gap:6px;}
   .v082h-type-grid label,.dameke-move-special-grid label,.v082h-defender .v082h-mini-grid:not(.v082h-hp-row) label{gap:2px;font-size:11px;}
 }
+
+/* ==================== 長押しで文字が選択されないように(v2.6.2) ==================== */
+/* 表・編集シートは押して操作する部品なので、長押しで文字選択やメニューが出ないようにする(スライダーを
+   動かそうとしたときに選択が優先されるのを防ぐ)。入力欄の中だけは文字を選べるままにする。 */
+.dameke-statgrid,.dameke-statgrid-sub,.dameke-stateditor{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;}
+.dameke-stateditor input[type="text"]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default;}
+/* スライダーの上で指を動かしたときは、ページのスクロールより値の変更を優先する。 */
+.dameke-stateditor-slider{touch-action:none;}
+/* レベル・個体値の表(値の行は詳細ステータスの表と同じ書式)。 */
+.dameke-statgrid-val{font-size:.82rem;font-weight:700;color:var(--dameke-text-heading);font-variant-numeric:tabular-nums;}
+.dameke-lvgrid,.dameke-ivgrid{margin-top:6px;}
+.dameke-lvgrid + .dameke-ivgrid{margin-top:2px;}
+@container (max-width:17rem){ .dameke-statgrid-val{font-size:.72rem;letter-spacing:-.02em;} }
+@container (max-width:11rem){ .dameke-statgrid-val{font-size:.58rem;} }
+/* レベル・個体値の折り畳みは閉じているときだけ控えめ(開いたら中の表・編集シートを通常の濃さで)。 */
+.v082h-stats-panel .v082h-type-effects[open]{opacity:1;}
