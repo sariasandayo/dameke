@@ -19,7 +19,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="./icon/apple-touch-icon.png">
   <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjogIuOBoOOCgeOBkeODvCBXZWIiLCAic2hvcnRfbmFtZSI6ICLjgaDjgoHjgZHjg7wiLCAiZGVzY3JpcHRpb24iOiAi5bqD5ZGK44Gq44GX44CB55m76Yyy5LiN6KaB44Gu44Od44Kx44Oi44Oz44OB44Oj44Oz44OU44Kq44Oz44K65a++5b+c44Gu44OA44Oh44O844K46KiI566X5qmf44CC5Yqg566X6KiI566X44KE6Kq/5pW05qmf6IO944Gr44KC5a++5b+c44CCIiwgInN0YXJ0X3VybCI6ICIuLyIsICJzY29wZSI6ICIuLyIsICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLCAiYmFja2dyb3VuZF9jb2xvciI6ICIjZjVmN2ZiIiwgInRoZW1lX2NvbG9yIjogIiMxNzIwMzMiLCAiaWNvbnMiOiBbeyJzcmMiOiAiLi9pY29uL2ljb24tMTkyLnBuZyIsICJzaXplcyI6ICIxOTJ4MTkyIiwgInR5cGUiOiAiaW1hZ2UvcG5nIiwgInB1cnBvc2UiOiAiYW55In0sIHsic3JjIjogIi4vaWNvbi9pY29uLTUxMi5wbmciLCAic2l6ZXMiOiAiNTEyeDUxMiIsICJ0eXBlIjogImltYWdlL3BuZyIsICJwdXJwb3NlIjogImFueSJ9LCB7InNyYyI6ICIuL2ljb24vaWNvbi1tYXNrYWJsZS01MTIucG5nIiwgInNpemVzIjogIjUxMng1MTIiLCAidHlwZSI6ICJpbWFnZS9wbmciLCAicHVycG9zZSI6ICJtYXNrYWJsZSJ9XX0=">
   <meta name="theme-color" content="#172033">
-  <link rel="stylesheet" href="style.css?v=20261014f" />
+  <link rel="stylesheet" href="style.css?v=20261015c" />
 </head>
 <body>
   <header class="app-header">
@@ -37,7 +37,7 @@
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
       </span>
     </div>
-    <h1>だめけー Web v2.6.1</h1>
+    <h1>だめけー Web v2.6.2</h1>
     <p>for Pokémon Champions</p>
     <nav id="damekeMenuNav" class="dameke-menu-nav" hidden>
       <button type="button" class="dameke-menu-item" data-panel="calculator">ダメージ計算</button>
@@ -154,6 +154,11 @@
                 </div>
                 <label class="v082h-nature-field">性格<select id="attacker_nature"><option value="がんばりや">がんばりや 補正なし</option><option value="さみしがり">さみしがり A↑ B↓</option><option value="いじっぱり">いじっぱり A↑ C↓</option><option value="やんちゃ">やんちゃ A↑ D↓</option><option value="ゆうかん">ゆうかん A↑ S↓</option><option value="ずぶとい">ずぶとい B↑ A↓</option><option value="すなお">すなお 補正なし</option><option value="わんぱく">わんぱく B↑ C↓</option><option value="のうてんき">のうてんき B↑ D↓</option><option value="のんき">のんき B↑ S↓</option><option value="ひかえめ">ひかえめ C↑ A↓</option><option value="おっとり">おっとり C↑ B↓</option><option value="てれや">てれや 補正なし</option><option value="うっかりや">うっかりや C↑ D↓</option><option value="れいせい">れいせい C↑ S↓</option><option value="おだやか">おだやか D↑ A↓</option><option value="おとなしい">おとなしい D↑ B↓</option><option value="しんちょう">しんちょう D↑ C↓</option><option value="きまぐれ">きまぐれ 補正なし</option><option value="なまいき">なまいき D↑ S↓</option><option value="おくびょう">おくびょう S↑ A↓</option><option value="せっかち">せっかち S↑ B↓</option><option value="ようき">ようき S↑ C↓</option><option value="むじゃき">むじゃき S↑ D↓</option><option value="まじめ" selected="">まじめ 補正なし</option></select></label>
                 <div class="dameke-usage-natures" id="damekeUsageNatures_attacker" hidden></div>
+                <div class="dameke-statgrid" id="damekeStatGrid_attacker" data-side="attacker"></div>
+                <div class="dameke-statgrid-sub" id="damekeStatGridSub_attacker"></div>
+                <div class="dameke-stateditor" id="damekeStatEditor_attacker" hidden></div>
+                <!-- 努力値・実数値・ランクの元の入力欄。画面には出さず、上の表と編集シートが値を読み書きする(保存・呼び出し・計算はこれまでどおりこの欄を使う)。 -->
+                <div class="dameke-stat-src" inert>
                 <div class="v082h-stat-table">
                   <div class="v082h-stat-row v082h-stat-head">
                     <span>
@@ -216,6 +221,7 @@
                     <span class="v082h-stat-cell"><input id="attacker_eva_rank" type="number" min="-6" max="6" value="0"></span>
                     <span class="v082h-stat-cell"><input id="critical" type="number" min="0" max="3" value="0"></span>
                   </div>
+                </div>
                 </div>
                 <div class="v082h-ev-remaining" id="v082hEvRemaining_attacker">
                   <span id="v082hEvRemainingText_attacker"></span>
@@ -430,6 +436,11 @@
                 </div>
                 <label class="v082h-nature-field">性格<select id="defender_nature"><option value="がんばりや">がんばりや 補正なし</option><option value="さみしがり">さみしがり A↑ B↓</option><option value="いじっぱり">いじっぱり A↑ C↓</option><option value="やんちゃ">やんちゃ A↑ D↓</option><option value="ゆうかん">ゆうかん A↑ S↓</option><option value="ずぶとい">ずぶとい B↑ A↓</option><option value="すなお">すなお 補正なし</option><option value="わんぱく">わんぱく B↑ C↓</option><option value="のうてんき">のうてんき B↑ D↓</option><option value="のんき">のんき B↑ S↓</option><option value="ひかえめ">ひかえめ C↑ A↓</option><option value="おっとり">おっとり C↑ B↓</option><option value="てれや">てれや 補正なし</option><option value="うっかりや">うっかりや C↑ D↓</option><option value="れいせい">れいせい C↑ S↓</option><option value="おだやか">おだやか D↑ A↓</option><option value="おとなしい">おとなしい D↑ B↓</option><option value="しんちょう">しんちょう D↑ C↓</option><option value="きまぐれ">きまぐれ 補正なし</option><option value="なまいき">なまいき D↑ S↓</option><option value="おくびょう">おくびょう S↑ A↓</option><option value="せっかち">せっかち S↑ B↓</option><option value="ようき">ようき S↑ C↓</option><option value="むじゃき">むじゃき S↑ D↓</option><option value="まじめ" selected="">まじめ 補正なし</option></select></label>
                 <div class="dameke-usage-natures" id="damekeUsageNatures_defender" hidden></div>
+                <div class="dameke-statgrid" id="damekeStatGrid_defender" data-side="defender"></div>
+                <div class="dameke-statgrid-sub" id="damekeStatGridSub_defender"></div>
+                <div class="dameke-stateditor" id="damekeStatEditor_defender" hidden></div>
+                <!-- 努力値・実数値・ランクの元の入力欄。画面には出さず、上の表と編集シートが値を読み書きする(保存・呼び出し・計算はこれまでどおりこの欄を使う)。 -->
+                <div class="dameke-stat-src" inert>
                 <div class="v082h-stat-table">
                   <div class="v082h-stat-row v082h-stat-head">
                     <span>
@@ -490,6 +501,7 @@
                     <span class="v082h-stat-cell"><input id="defender_acc_rank" type="number" min="-6" max="6" value="0"></span>
                     <span class="v082h-stat-cell"><input id="defender_eva_rank" type="number" min="-6" max="6" value="0"></span>
                   </div>
+                </div>
                 </div>
                 <div class="v082h-ev-remaining" id="v082hEvRemaining_defender">
                   <span id="v082hEvRemainingText_defender"></span>
@@ -1033,25 +1045,25 @@
       </section>
     </main>
   </div>
-<script src="common.js?v=20261014f"></script>
-<script src="data.js?v=20261014f"></script>
-<script src="data_learnsets.js?v=20261014f"></script>
-<script src="data_regulations.js?v=20261014f"></script>
-<script src="data_pokemon_images.js?v=20261014f"></script>
-<script src="data_item_images.js?v=20261014f"></script>
-<script src="calc.js?v=20261014f"></script>
+<script src="common.js?v=20261015c"></script>
+<script src="data.js?v=20261015c"></script>
+<script src="data_learnsets.js?v=20261015c"></script>
+<script src="data_regulations.js?v=20261015c"></script>
+<script src="data_pokemon_images.js?v=20261015c"></script>
+<script src="data_item_images.js?v=20261015c"></script>
+<script src="calc.js?v=20261015c"></script>
 
-<script src="app.js?v=20261014f"></script>
-<script src="app_tools.js?v=20261014f"></script>
-<script src="app_adjust.js?v=20261014f"></script>
-<script src="app_speed.js?v=20261014f"></script>
-<script src="app_evopt.js?v=20261014f"></script>
-<script src="app_coverage.js?v=20261014f"></script>
-<script src="app_learncompare.js?v=20261014f"></script>
-<script src="app_search.js?v=20261014f"></script>
-<script src="app_complement.js?v=20261014f"></script>
-<script src="app_partytype.js?v=20261014f"></script>
-<script src="app_minigame.js?v=20261014f"></script>
+<script src="app.js?v=20261015c"></script>
+<script src="app_tools.js?v=20261015c"></script>
+<script src="app_adjust.js?v=20261015c"></script>
+<script src="app_speed.js?v=20261015c"></script>
+<script src="app_evopt.js?v=20261015c"></script>
+<script src="app_coverage.js?v=20261015c"></script>
+<script src="app_learncompare.js?v=20261015c"></script>
+<script src="app_search.js?v=20261015c"></script>
+<script src="app_complement.js?v=20261015c"></script>
+<script src="app_partytype.js?v=20261015c"></script>
+<script src="app_minigame.js?v=20261015c"></script>
 <script>
   // オフライン対応(Service Worker登録)。対応していないブラウザでは単に何も起きず、
   // 通常通りオンラインで動作する。

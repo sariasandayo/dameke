@@ -1533,6 +1533,7 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     bindItemQuickInput('defender');
     initUsageSuggestions();
     bindStatsPanel('defender');
+    initStatEditors();
   }
 
   function updateAbilityButtons(side){
@@ -1634,6 +1635,313 @@ window.__damekeFmtFaintPct = fmtFaintPct;
       // (bindActualStatInputs) is what reacts to a value THEY entered; this path only mirrors
       // whatever IV/EV/nature/level currently compute to, for every other field.
       if(document.activeElement !== actualEl) actualEl.value = actual ? actual[k] : '';
+    });
+
+    renderStatGrid(side);
+  }
+
+  // ---- 詳細ステータス: 表示用の表と編集シート(v2.6.2) ----
+  // 努力値・実数値・ランク(命中・回避・急所を含む)は、元の入力欄(.dameke-stat-src、画面外)に値を持つ。
+  // ここでは、その値を見やすい表(各能力の列がボタン)で表示し、列を押すとその能力の編集シートを表の下に開く。
+  // シートでの操作は元の入力欄へ値を入れて change を発火するだけ(手で入力したときと同じ。計算・保存・
+  // 呼び出し・攻防交代は元の入力欄をそのまま使う)。表とシートは updateReadOnlyStatRows のたびに描き直す。
+  var STAT_MAIN_KEYS = ['H','A','B','C','D','S'];
+  var STAT_NAMES = { H:'HP', A:'こうげき', B:'ぼうぎょ', C:'とくこう', D:'とくぼう', S:'すばやさ', acc:'命中', eva:'回避', critical:'急所' };
+  var statEditorKey = { attacker:null, defender:null };
+  function statSubKeys(side){ return side === 'attacker' ? ['acc','eva','critical'] : ['acc','eva']; }
+  function statOrder(side){ return STAT_MAIN_KEYS.concat(statSubKeys(side)); }
+  function statSrcInput(side, key, kind){ return key === 'critical' ? q('critical') : q(side+'_'+key+'_'+kind); }
+  function statIntValue(el, fallback){ var n = el ? parseInt(el.value, 10) : NaN; return isNaN(n) ? fallback : n; }
+  function signedText(n){ return n > 0 ? '+'+n : String(n); }
+  // 元の入力欄に値を入れて、手で入力したときと同じく change を発火する。
+  function setStatSrc(side, key, kind, value){
+    var el = statSrcInput(side, key, kind);
+    if(!el || el.value === String(value)) return;
+    el.value = String(value);
+    dispatchChange(el);
+  }
+  // その能力の、努力値 ev のときの実数値(現在の性格・個体値・レベル・ほかの努力値で計算)。
+  function actualAtEv(side, key, ev){
+    var C = window.DAMEKE_CALC, p = currentPokemon(side);
+    if(!C || !C.getActualStats || !p) return null;
+    var snap = statsSnapshot(side);
+    snap.evs = Object.assign({}, snap.evs); snap.evs[key] = String(ev);
+    var r = C.getActualStats(p, valueOf(side+'Level'), snap);
+    return r ? r[key] : null;
+  }
+  function statRange(side, key){ return { lo: actualAtEv(side, key, 0), hi: actualAtEv(side, key, 32) }; }
+  // 実数値を target にするための努力値(target に届く最小の努力値)。範囲外は端に寄せる。
+  function evForActual(side, key, target){
+    var r = window.__damekeReverseLookupEv ? window.__damekeReverseLookupEv(side, key, target) : null;
+    return r ? r.ev : null;
+  }
+  // 実数値を1段階上げ下げしたときの努力値(実数値が変わる最小の努力値)。変えられなければ null。
+  function evForActualStep(side, key, dir){
+    var cur = statIntValue(statSrcInput(side, key, 'ev'), 0), curActual = actualAtEv(side, key, cur);
+    if(curActual == null) return null;
+    var ev;
+    if(dir > 0){
+      for(ev = cur + 1; ev <= 32; ev++){ var a = actualAtEv(side, key, ev); if(a > curActual) return ev; }
+      return null;
+    }
+    var target = null;
+    for(ev = cur - 1; ev >= 0; ev--){ var b = actualAtEv(side, key, ev); if(b < curActual){ target = b; break; } }
+    return target == null ? null : evForActual(side, key, target);
+  }
+
+  // 表は「表示」(普通の表の見た目)。能力ごとの列(見出し〜ランク)全体が押せる範囲で、見出しの横の ▾ で
+  // 「押すと下に開く」ことを示す(開いている列は ▴ と淡い色)。命中・回避・急所も同じ形の小さな表にする。
+  function statColumn(side, k, rows){
+    var b = make('button', 'dameke-statgrid-col'); b.type = 'button';
+    b.setAttribute('data-key', k);
+    var head = make('span', 'dameke-statgrid-head');
+    var name = make('span', 'dameke-statgrid-headname', k.length === 1 ? k : STAT_NAMES[k]);
+    if(k.length === 1) name.setAttribute('data-stat-key', k);
+    head.appendChild(name);
+    head.appendChild(make('span', 'dameke-statgrid-mark', '▾'));
+    b.appendChild(head);
+    rows.forEach(function(cls){ b.appendChild(make('span', cls)); });
+    b.addEventListener('click', function(){ toggleStatEditor(side, k); });
+    return b;
+  }
+  function buildStatGrid(side){
+    var grid = q('damekeStatGrid_'+side), sub = q('damekeStatGridSub_'+side);
+    if(!grid || grid.getAttribute('data-built')) return;
+    grid.setAttribute('data-built', '1');
+    var labels = make('div', 'dameke-statgrid-labels');
+    ['', '種族値', '努力値', '実数値', 'ランク'].forEach(function(t){ labels.appendChild(make('span', 'dameke-statgrid-label', t)); });
+    grid.appendChild(labels);
+    STAT_MAIN_KEYS.forEach(function(k){
+      grid.appendChild(statColumn(side, k, ['dameke-statgrid-base', 'dameke-statgrid-ev', 'dameke-statgrid-actual', 'dameke-statgrid-rank']));
+    });
+    if(sub){
+      var subLabels = make('div', 'dameke-statgrid-labels');
+      ['', 'ランク'].forEach(function(t){ subLabels.appendChild(make('span', 'dameke-statgrid-label', t)); });
+      sub.appendChild(subLabels);
+      statSubKeys(side).forEach(function(k){ sub.appendChild(statColumn(side, k, ['dameke-statgrid-rank'])); });
+    }
+  }
+  function rankClass(v){ return 'dameke-statgrid-rank' + (v > 0 ? ' dameke-statgrid-rank-up' : (v < 0 ? ' dameke-statgrid-rank-down' : '')); }
+  function markOpen(b, on){
+    b.classList.toggle('dameke-statgrid-open', on);
+    b.setAttribute('aria-expanded', on ? 'true' : 'false');
+    var m = b.querySelector('.dameke-statgrid-mark'); if(m) m.textContent = on ? '▴' : '▾';
+  }
+  function renderStatGrid(side){
+    var grid = q('damekeStatGrid_'+side), sub = q('damekeStatGridSub_'+side);
+    if(!grid) return;
+    buildStatGrid(side);
+    var p = currentPokemon(side);
+    var C = window.DAMEKE_CALC;
+    var actual = (p && C && C.getActualStats) ? C.getActualStats(p, valueOf(side+'Level'), statsSnapshot(side)) : null;
+    var open = statEditorKey[side];
+    STAT_MAIN_KEYS.forEach(function(k){
+      var b = grid.querySelector('.dameke-statgrid-col[data-key="'+k+'"]');
+      if(!b) return;
+      var ev = statIntValue(statSrcInput(side, k, 'ev'), 0);
+      var act = actual ? actual[k] : '-';
+      b.querySelector('.dameke-statgrid-base').textContent = (p && p.baseStats && p.baseStats[k] != null) ? p.baseStats[k] : '-';
+      b.querySelector('.dameke-statgrid-ev').textContent = String(ev);
+      b.querySelector('.dameke-statgrid-actual').textContent = String(act);
+      var rankEl = b.querySelector('.dameke-statgrid-rank');
+      if(k === 'H'){ rankEl.textContent = '-'; rankEl.className = 'dameke-statgrid-rank'; }
+      else { var rk = statIntValue(statSrcInput(side, k, 'rank'), 0); rankEl.textContent = signedText(rk); rankEl.className = rankClass(rk); }
+      markOpen(b, open === k);
+      b.setAttribute('aria-label', STAT_NAMES[k]+' 努力値'+ev+' 実数値'+act+(k==='H'?'':' ランク'+rankEl.textContent)+'（押すと編集）');
+    });
+    if(sub) statSubKeys(side).forEach(function(k){
+      var b = sub.querySelector('.dameke-statgrid-col[data-key="'+k+'"]'); if(!b) return;
+      var v = statIntValue(statSrcInput(side, k, 'rank'), 0);
+      var val = b.querySelector('.dameke-statgrid-rank');
+      val.textContent = k === 'critical' ? (v > 0 ? '+'+v : '0') : signedText(v);
+      val.className = rankClass(v);
+      markOpen(b, open === k);
+      b.setAttribute('aria-label', STAT_NAMES[k]+'ランク '+val.textContent+'（押すと編集）');
+    });
+    renderStatEditor(side);
+  }
+
+  function toggleStatEditor(side, key){
+    statEditorKey[side] = statEditorKey[side] === key ? null : key;
+    renderStatGrid(side);
+    var ed = q('damekeStatEditor_'+side);
+    if(statEditorKey[side] && ed) requestAnimationFrame(function(){ try{ ed.scrollIntoView({ block:'nearest' }); }catch(e){} });
+  }
+  function closeStatEditor(side){
+    if(!statEditorKey[side]) return;
+    var key = statEditorKey[side];
+    statEditorKey[side] = null;
+    renderStatGrid(side);
+    var b = document.querySelector('#damekeStatGrid_'+side+' [data-key="'+key+'"], #damekeStatGridSub_'+side+' [data-key="'+key+'"]');
+    if(b && b.focus) try{ b.focus({ preventScroll:true }); }catch(e){}
+  }
+  window.__damekeCloseStatEditor = closeStatEditor;
+
+  // 編集シートの中身。開いている項目が変わったときだけ作り直し、それ以外は値だけを更新する
+  // (入力中の実数値欄を上書きしないため)。
+  function renderStatEditor(side){
+    var ed = q('damekeStatEditor_'+side);
+    if(!ed) return;
+    var key = statEditorKey[side];
+    if(!key){ if(!ed.hidden){ ed.hidden = true; ed.innerHTML = ''; ed.removeAttribute('data-key'); } return; }
+    if(ed.getAttribute('data-key') !== key) buildStatEditor(side, key, ed);
+    ed.hidden = false;
+    var isMain = STAT_MAIN_KEYS.indexOf(key) >= 0;
+    if(isMain){
+      var ev = statIntValue(statSrcInput(side, key, 'ev'), 0);
+      var evVal = ed.querySelector('.dameke-stateditor-evval');
+      if(evVal && document.activeElement !== evVal) evVal.value = String(ev);
+      var slider = ed.querySelector('.dameke-stateditor-slider');
+      if(slider && document.activeElement !== slider) slider.value = String(ev);
+      var range = statRange(side, key), cur = actualAtEv(side, key, ev);
+      var inp = ed.querySelector('.dameke-stateditor-actual-input');
+      if(inp){
+        if(document.activeElement !== inp) inp.value = cur == null ? '' : String(cur);
+        inp.setAttribute('aria-valuemin', range.lo); inp.setAttribute('aria-valuemax', range.hi);
+      }
+      var guide = ed.querySelector('.dameke-stateditor-guide');
+      if(guide) guide.textContent = (range.lo == null) ? '' : (range.lo === range.hi ? String(range.lo) : range.lo + '〜' + range.hi);
+      ed.querySelectorAll('[data-ev-step]').forEach(function(b){ var d = +b.getAttribute('data-ev-step'); b.disabled = d < 0 ? ev <= 0 : ev >= 32; });
+      ed.querySelectorAll('[data-ev-set]').forEach(function(b){ b.classList.toggle('dameke-stateditor-active', +b.getAttribute('data-ev-set') === ev); });
+      ed.querySelectorAll('[data-actual-step]').forEach(function(b){ var d = +b.getAttribute('data-actual-step'); b.disabled = cur == null || (d < 0 ? cur <= range.lo : cur >= range.hi); });
+    }
+    if(key !== 'H'){
+      var rk = statIntValue(statSrcInput(side, key, 'rank'), 0);
+      var minR = key === 'critical' ? 0 : -6, maxR = key === 'critical' ? 3 : 6;
+      var rv = ed.querySelector('.dameke-stateditor-rankval');
+      if(rv){ rv.textContent = key === 'critical' ? (rk > 0 ? '+'+rk : '0') : signedText(rk); rv.className = 'dameke-stateditor-cell dameke-stateditor-rankval' + (rk > 0 ? ' dameke-statgrid-rank-up' : (rk < 0 ? ' dameke-statgrid-rank-down' : '')); }
+      ed.querySelectorAll('[data-rank-step]').forEach(function(b){ var d = +b.getAttribute('data-rank-step'); b.disabled = d < 0 ? rk <= minR : rk >= maxR; });
+      var rz = ed.querySelector('[data-rank-reset]'); if(rz) rz.disabled = rk === 0;
+    }
+    var title = ed.querySelector('.dameke-stateditor-title');
+    if(title) title.textContent = (isMain ? key + ' ' : '') + STAT_NAMES[key] + (isMain ? '' : 'ランク');
+  }
+  function buildStatEditor(side, key, ed){
+    ed.innerHTML = '';
+    ed.setAttribute('data-key', key);
+    var isMain = STAT_MAIN_KEYS.indexOf(key) >= 0;
+    var head = make('div', 'dameke-stateditor-head');
+    var prev = make('button', 'dameke-stateditor-nav', '‹'); prev.type = 'button'; prev.setAttribute('aria-label', '前の項目');
+    var next = make('button', 'dameke-stateditor-nav', '›'); next.type = 'button'; next.setAttribute('aria-label', '次の項目');
+    var title = make('span', 'dameke-stateditor-title');
+    var close = make('button', 'dameke-stateditor-close', '✕'); close.type = 'button'; close.setAttribute('aria-label', '閉じる');
+    function move(dir){ var o = statOrder(side), i = o.indexOf(statEditorKey[side]); statEditorKey[side] = o[(i + dir + o.length) % o.length]; renderStatGrid(side); }
+    prev.addEventListener('click', function(){ move(-1); });
+    next.addEventListener('click', function(){ move(1); });
+    close.addEventListener('click', function(){ closeStatEditor(side); });
+    var navGroup = make('div', 'dameke-stateditor-navgroup');
+    navGroup.appendChild(prev); navGroup.appendChild(title); navGroup.appendChild(next);
+    head.appendChild(navGroup); head.appendChild(close);
+    ed.appendChild(head);
+    function row(label){
+      var r = make('div', 'dameke-stateditor-row');
+      r.appendChild(make('span', 'dameke-stateditor-label', label));
+      var body = make('div', 'dameke-stateditor-controls'); r.appendChild(body); ed.appendChild(r);
+      return body;
+    }
+    function btn(cls, text, onClick, attrs){
+      var b = make('button', 'dameke-stateditor-btn ' + cls, text); b.type = 'button';
+      Object.keys(attrs || {}).forEach(function(a){ b.setAttribute(a, attrs[a]); });
+      b.addEventListener('click', onClick);
+      return b;
+    }
+    if(isMain){
+      // 努力値: −/＋、0・32、スライダー
+      var evBody = row('努力値');
+      var curEv = function(){ return statIntValue(statSrcInput(side, key, 'ev'), 0); };
+      evBody.appendChild(btn('dameke-stateditor-step', '−', function(){ setStatSrc(side, key, 'ev', Math.max(0, curEv() - 1)); }, { 'data-ev-step':'-1', 'aria-label':'努力値を1下げる' }));
+      var evInp = document.createElement('input');
+      evInp.type = 'text'; evInp.inputMode = 'numeric'; evInp.autocomplete = 'off';
+      evInp.className = 'dameke-stateditor-cell dameke-stateditor-evval';
+      evInp.setAttribute('aria-label', '努力値'); evInp.setAttribute('enterkeyhint', 'done');
+      // 数字以外は入らない。32を超える値は32に置き換える。Enterか欄を離れたときに確定。
+      evInp.addEventListener('input', function(e){
+        e.stopPropagation();
+        var d = evInp.value.replace(/[０-９]/g, function(c){ return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); }).replace(/[^0-9]/g, '');
+        if(d !== '' && +d > 32) d = '32';
+        if(evInp.value !== d) evInp.value = d;
+      });
+      function commitEv(){ var n = parseInt(evInp.value, 10); if(isNaN(n)){ renderStatEditor(side); return; } setStatSrc(side, key, 'ev', Math.max(0, Math.min(32, n))); renderStatGrid(side); }
+      evInp.addEventListener('change', function(e){ e.stopPropagation(); commitEv(); });
+      evInp.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); commitEv(); evInp.blur(); } });
+      evInp.addEventListener('focus', function(){ try{ evInp.select(); }catch(e){} });
+      evBody.appendChild(evInp);
+      evBody.appendChild(btn('dameke-stateditor-step', '＋', function(){ setStatSrc(side, key, 'ev', Math.min(32, curEv() + 1)); }, { 'data-ev-step':'1', 'aria-label':'努力値を1上げる' }));
+      var slider = document.createElement('input');
+      slider.type = 'range'; slider.min = '0'; slider.max = '32'; slider.step = '1';
+      slider.className = 'dameke-stateditor-slider'; slider.setAttribute('aria-label', '努力値');
+      // ドラッグ中は表示だけ追従し、離したときに入力する(1段ごとに再計算しないため)。
+      slider.addEventListener('input', function(e){
+        e.stopPropagation();
+        var v = +slider.value, ev = ed.querySelector('.dameke-stateditor-evval'), inp = ed.querySelector('.dameke-stateditor-actual-input');
+        if(ev) ev.value = String(v);
+        var a = actualAtEv(side, key, v); if(inp && a != null) inp.value = String(a);
+      });
+      slider.addEventListener('change', function(e){ e.stopPropagation(); setStatSrc(side, key, 'ev', +slider.value); });
+      // スライダーの両端に「0」「32」(押すとその値)。
+      var sliderWrap = make('div', 'dameke-stateditor-row dameke-stateditor-slider-row');
+      sliderWrap.appendChild(make('span', 'dameke-stateditor-label'));
+      sliderWrap.appendChild(btn('dameke-stateditor-quick', '0', function(){ setStatSrc(side, key, 'ev', 0); }, { 'data-ev-set':'0', 'aria-label':'努力値を0にする' }));
+      sliderWrap.appendChild(slider);
+      sliderWrap.appendChild(btn('dameke-stateditor-quick', '32', function(){ setStatSrc(side, key, 'ev', 32); }, { 'data-ev-set':'32', 'aria-label':'努力値を32にする' }));
+      ed.appendChild(sliderWrap);
+      // 実数値: −/＋(実数値が変わるところまで)、直接入力(範囲外は入らない)
+      var acBody = row('実数値');
+      acBody.appendChild(btn('dameke-stateditor-step', '−', function(){ var ev = evForActualStep(side, key, -1); if(ev != null) setStatSrc(side, key, 'ev', ev); }, { 'data-actual-step':'-1', 'aria-label':'実数値を下げる' }));
+      var inp = document.createElement('input');
+      inp.type = 'text'; inp.inputMode = 'numeric'; inp.autocomplete = 'off'; inp.className = 'dameke-stateditor-cell dameke-stateditor-actual-input';
+      inp.setAttribute('aria-label', '実数値'); inp.setAttribute('enterkeyhint', 'done');
+      acBody.appendChild(inp);
+      acBody.appendChild(btn('dameke-stateditor-step', '＋', function(){ var ev = evForActualStep(side, key, 1); if(ev != null) setStatSrc(side, key, 'ev', ev); }, { 'data-actual-step':'1', 'aria-label':'実数値を上げる' }));
+      var guideRow = make('div', 'dameke-stateditor-row dameke-stateditor-guide-row');
+      guideRow.appendChild(make('span', 'dameke-stateditor-label'));
+      var guideText = make('span', 'dameke-stateditor-guide-text');
+      guideText.appendChild(make('span', 'dameke-stateditor-guide-label', '範囲：'));
+      guideText.appendChild(make('span', 'dameke-stateditor-guide'));
+      guideRow.appendChild(guideText);
+      ed.appendChild(guideRow);
+      // 数字以外は入らない。上限を超える値は上限に置き換える(下限は入力の途中で下回るので、確定時に寄せる)。
+      inp.addEventListener('input', function(e){
+        e.stopPropagation();
+        var digits = inp.value.replace(/[０-９]/g, function(c){ return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); }).replace(/[^0-9]/g, '');
+        var hi = statRange(side, key).hi;
+        if(digits !== '' && hi != null && +digits > hi) digits = String(hi);
+        if(inp.value !== digits) inp.value = digits;
+      });
+      function commitActual(){
+        var r = statRange(side, key);
+        if(r.lo == null) return;
+        var t = parseInt(inp.value, 10);
+        if(isNaN(t)){ renderStatEditor(side); return; }
+        t = Math.max(r.lo, Math.min(r.hi, t));
+        var ev = evForActual(side, key, t);
+        if(ev != null){ setStatSrc(side, key, 'ev', ev); }
+        inp.value = String(actualAtEv(side, key, statIntValue(statSrcInput(side, key, 'ev'), 0)));
+        renderStatGrid(side);
+      }
+      inp.addEventListener('change', function(e){ e.stopPropagation(); commitActual(); });
+      inp.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); commitActual(); inp.blur(); } });
+      inp.addEventListener('focus', function(){ try{ inp.select(); }catch(e){} });
+    }
+    if(key !== 'H'){
+      var rkBody = row('ランク');
+      var minR = key === 'critical' ? 0 : -6, maxR = key === 'critical' ? 3 : 6;
+      var curR = function(){ return statIntValue(statSrcInput(side, key, 'rank'), 0); };
+      rkBody.appendChild(btn('dameke-stateditor-step', '−', function(){ setStatSrc(side, key, 'rank', Math.max(minR, curR() - 1)); }, { 'data-rank-step':'-1', 'aria-label':'ランクを1下げる' }));
+      rkBody.appendChild(make('span', 'dameke-stateditor-cell dameke-stateditor-rankval'));
+      rkBody.appendChild(btn('dameke-stateditor-step', '＋', function(){ setStatSrc(side, key, 'rank', Math.min(maxR, curR() + 1)); }, { 'data-rank-step':'1', 'aria-label':'ランクを1上げる' }));
+      rkBody.appendChild(btn('dameke-stateditor-quick dameke-stateditor-rank-reset', '±0', function(){ setStatSrc(side, key, 'rank', 0); }, { 'data-rank-reset':'1', 'aria-label':'ランクを0に戻す', 'title':'0に戻す' }));
+    }
+  }
+  function initStatEditors(){
+    ['attacker','defender'].forEach(function(side){ buildStatGrid(side); renderStatGrid(side); });
+    document.addEventListener('keydown', function(e){
+      if(e.key !== 'Escape') return;
+      ['attacker','defender'].forEach(function(side){
+        var ed = q('damekeStatEditor_'+side);
+        var panel = q('v082hStatsPanel_'+side), ae = document.activeElement;
+        if(ed && !ed.hidden && (!ae || ae === document.body || (panel && panel.contains(ae)))) closeStatEditor(side);
+      });
     });
   }
 
@@ -2386,7 +2694,24 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     {
       var atkRef = statRefFor('atkRef', 'attacker', cat==='特殊'?'C':'A', lastResult);
       var defRef = statRefFor('defRef', 'defender', cat==='特殊'?'D':'B', lastResult);
+      // 狭い画面(下部に固定するとき)だけ、性格・努力値/ランク・特性・持ち物を折り畳む(初期は畳む)。
+      // 開閉の状態は、描き直し(計算のたび)でも保つ。広い画面では常に表示し、切り替えは出さない。
+      var sideOpen = !!window.__damekeResultSideOpen;
+      var sideToggle = make('button','dameke-result-side-toggle');
+      sideToggle.type = 'button';
+      sideToggle.setAttribute('aria-expanded', sideOpen ? 'true' : 'false');
+      sideToggle.appendChild(make('span','dameke-result-side-toggle-mark', sideOpen ? '▾' : '▸'));
+      sideToggle.appendChild(make('span','dameke-result-side-toggle-text', '性格・努力値・特性・持ち物'));
+      panel.appendChild(sideToggle);
       var sideGrid = make('div','v082h-result-sidegrid');
+      if(!sideOpen) sideGrid.classList.add('dameke-result-side-collapsed');
+      sideToggle.addEventListener('click', function(){
+        var nowOpen = !window.__damekeResultSideOpen;
+        window.__damekeResultSideOpen = nowOpen;
+        sideToggle.setAttribute('aria-expanded', nowOpen ? 'true' : 'false');
+        sideToggle.querySelector('.dameke-result-side-toggle-mark').textContent = nowOpen ? '▾' : '▸';
+        sideGrid.classList.toggle('dameke-result-side-collapsed', !nowOpen);
+      });
       panel.appendChild(sideGrid);
       var atkCol = make('div','v082h-result-col'), defCol = make('div','v082h-result-col');
       sideGrid.appendChild(atkCol); sideGrid.appendChild(defCol);

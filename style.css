@@ -1861,3 +1861,137 @@ button.dameke-tcb-card-wait:hover{border-color:var(--dameke-border);}
   .dameke-tcb-pool{grid-template-columns:repeat(3,minmax(0,1fr));}
   .dameke-tcb-abil-name{min-width:6em;}
 }
+
+/* ==================== 詳細ステータス: 表示用の表と編集シート(v2.6.2) ==================== */
+/* 元の入力欄(努力値・実数値・ランク)は画面に出さない。値の保存・計算・履歴はこの欄をそのまま使う。
+   display:none にすると「表示されていた欄」の判定(計算履歴の詳細)が変わるため、見えない形で残す。 */
+.dameke-stat-src{visibility:hidden;position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0;}
+.v082h-stats-panel{position:relative;container-type:inline-size;}
+/* 表: ふつうの表の見た目(枠やボタンの影は付けない)。能力ごとの列(見出し〜ランク)全体が押せる範囲で、
+   見出しの横の ▾ が「押すと下に開く」ことを示す。行の高さは rem で決め、左の行名とそろえる。 */
+.dameke-statgrid,.dameke-statgrid-sub{--dameke-sg-r0:1.3rem;--dameke-sg-rb:1.3rem;--dameke-sg-r1:1.3rem;--dameke-sg-r2:1.3rem;--dameke-sg-r3:1.3rem;--dameke-sg-label:2.125rem;display:grid;grid-template-columns:var(--dameke-sg-label) repeat(6,minmax(0,1fr));column-gap:2px;margin:0 0 4px;}
+.dameke-statgrid-sub{margin:0 0 6px;}
+.dameke-statgrid-labels{display:grid;grid-template-rows:var(--dameke-sg-r0) var(--dameke-sg-rb) var(--dameke-sg-r1) var(--dameke-sg-r2) var(--dameke-sg-r3);align-items:center;}
+.dameke-statgrid-sub .dameke-statgrid-labels{grid-template-rows:var(--dameke-sg-r0) var(--dameke-sg-r3);}
+.dameke-statgrid-label{font-size:.66rem;font-weight:700;color:var(--dameke-text-label);white-space:nowrap;}
+.dameke-statgrid-col{display:grid;grid-template-rows:var(--dameke-sg-r0) var(--dameke-sg-rb) var(--dameke-sg-r1) var(--dameke-sg-r2) var(--dameke-sg-r3);align-items:center;min-width:0;padding:0;margin:0;border:0;border-radius:6px;background:transparent;color:var(--dameke-text);font-weight:400;box-shadow:none;cursor:pointer;transition:background-color .12s;}
+.dameke-statgrid-sub .dameke-statgrid-col{grid-template-rows:var(--dameke-sg-r0) var(--dameke-sg-r3);}
+.dameke-statgrid-col:hover:not(:disabled){filter:none;background:var(--dameke-hover-tint);}
+.dameke-statgrid-col:focus-visible{outline:2px solid #2563eb;outline-offset:-2px;}
+.dameke-statgrid-col > span{display:block;min-width:0;text-align:center;line-height:1.15;white-space:nowrap;}
+.dameke-statgrid-head{display:flex !important;align-items:center;justify-content:center;gap:1px;font-size:.72rem;font-weight:700;color:var(--dameke-text-label2);}
+.dameke-statgrid-mark{font-size:.6rem;font-weight:400;color:var(--dameke-text-faint);}
+/* 値の行(種族値・努力値・実数値・ランク)はすべて同じ書式。ランクの＋/−だけ色を付ける。 */
+.dameke-statgrid-base,.dameke-statgrid-ev,.dameke-statgrid-actual,.dameke-statgrid-rank{font-size:.82rem;font-weight:700;color:var(--dameke-text-heading);font-variant-numeric:tabular-nums;}
+.dameke-statgrid-rank-up{color:var(--dameke-up-text) !important;font-weight:700;}
+.dameke-statgrid-rank-down{color:var(--dameke-down-text) !important;font-weight:700;}
+/* 開いている列(攻撃側=赤、防御側=青)。淡い色と ▴ で示す。 */
+.v082h-attacker .dameke-statgrid-open,.v082h-attacker .dameke-statgrid-open:hover:not(:disabled){background:var(--dameke-tint-red-bg);}
+.v082h-defender .dameke-statgrid-open,.v082h-defender .dameke-statgrid-open:hover:not(:disabled){background:var(--dameke-tint-blue-bg);}
+.v082h-attacker .dameke-statgrid-open .dameke-statgrid-mark{color:#dc2626;}
+.v082h-defender .dameke-statgrid-open .dameke-statgrid-mark{color:#2563eb;}
+/* 編集シート(表の下に開く)。 */
+.dameke-stateditor{margin:2px 0 8px;padding:4px 8px 8px;border-radius:10px;background:var(--dameke-surface);border:2px solid var(--dameke-border-subtle);scroll-margin-bottom:calc(var(--v082h-fixed-panel-h,0px) + 12px);scroll-margin-top:12px;}
+.v082h-attacker .dameke-stateditor{border-color:#dc2626;}
+.v082h-defender .dameke-stateditor{border-color:#2563eb;}
+.dameke-stateditor[hidden]{display:none;}
+/* 見出し: 左に「‹ 項目名 ›」(前後の項目へ)、右上の角に閉じる「✕」(枠なし)。 */
+.dameke-stateditor-head{display:flex;align-items:center;gap:4px;margin-bottom:4px;}
+.dameke-stateditor-navgroup{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:2px;}
+.dameke-stateditor-title{flex:0 1 auto;min-width:0;padding:0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.86rem;font-weight:800;color:var(--dameke-text-heading);}
+.dameke-stateditor-nav{flex:0 0 auto;min-width:1.9rem;min-height:2rem;padding:0;margin:0;border:0;border-radius:6px;font-size:1.25rem;line-height:1;font-weight:700;background:transparent;box-shadow:none;color:var(--dameke-text-slate);}
+.dameke-stateditor-nav:hover:not(:disabled){filter:none;background:var(--dameke-surface-alt2);}
+.dameke-stateditor-close{flex:0 0 auto;width:2.25rem;height:2.25rem;margin:-2px -6px 0 auto;padding:0;border:0;border-radius:999px;background:transparent;color:var(--dameke-text-muted);font-size:1.15rem;line-height:1;font-weight:700;box-shadow:none;}
+.dameke-stateditor-close:hover:not(:disabled){filter:none;background:var(--dameke-surface-alt2);color:var(--dameke-text-heading);}
+.dameke-stateditor{--dameke-se-lab:3em;--dameke-se-step:2.25rem;--dameke-se-extra:2.4rem;}
+.dameke-stateditor-row{display:grid;grid-template-columns:var(--dameke-se-lab) var(--dameke-se-step) minmax(0,1fr) var(--dameke-se-step) var(--dameke-se-extra);align-items:center;column-gap:6px;margin-top:6px;}
+.dameke-stateditor-controls{display:contents;}
+.dameke-stateditor-label{white-space:nowrap;font-size:.74rem;font-weight:700;color:var(--dameke-text-label);}
+.dameke-stateditor-btn{margin:0;padding:0 4px;min-width:0;min-height:2.25rem;border-radius:8px;font-size:.86rem;font-weight:700;background:var(--dameke-surface-faint);border:1px solid var(--dameke-border-subtle);color:var(--dameke-text-slate);}
+.dameke-stateditor-btn:disabled{opacity:.4;cursor:default;}
+.dameke-stateditor-step{font-size:1.05rem;}
+/* 値の欄(努力値・実数値・ランク)は同じ幅・同じ高さ。 */
+.dameke-stateditor-cell{box-sizing:border-box;width:100%;min-width:0;height:2.25rem;display:flex;align-items:center;justify-content:center;padding:0 4px;margin:0;border:1px solid var(--dameke-border-strong);border-radius:8px;background:var(--dameke-surface);text-align:center;font-size:1rem;font-weight:800;color:var(--dameke-text-heading);font-variant-numeric:tabular-nums;}
+.dameke-stateditor-rankval{background:var(--dameke-surface-faint);border-color:var(--dameke-border-subtle);}
+/* スライダーの行: 「0」は − の列、スライダーは値の欄から ＋ の列まで、「32」は右端の列(ランクの±0と同じ列)。入力の補助なので小さめ。 */
+.dameke-stateditor-slider-row{margin-top:4px;}
+.dameke-stateditor-slider-row > .dameke-stateditor-slider{grid-column:3 / 5;}
+.dameke-stateditor-slider-row > .dameke-stateditor-quick:last-child{grid-column:5;}
+.dameke-stateditor-quick{min-height:1.5rem;padding:0 3px;font-size:.68rem;font-weight:700;border-radius:6px;}
+.dameke-stateditor-slider{-webkit-appearance:none;appearance:none;width:100%;min-width:0;height:1.5rem;margin:0;padding:0;border:0;background:transparent;cursor:pointer;--dameke-se-accent:#2563eb;}
+.v082h-attacker .dameke-stateditor-slider{--dameke-se-accent:#dc2626;}
+.dameke-stateditor-slider::-webkit-slider-runnable-track{height:3px;border-radius:2px;background:var(--dameke-border-strong);}
+.dameke-stateditor-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;margin-top:-6.5px;border-radius:50%;border:0;background:var(--dameke-se-accent);box-shadow:0 0 0 2px var(--dameke-surface);}
+.dameke-stateditor-slider::-moz-range-track{height:3px;border-radius:2px;background:var(--dameke-border-strong);}
+.dameke-stateditor-slider::-moz-range-progress{height:3px;border-radius:2px;background:var(--dameke-se-accent);}
+.dameke-stateditor-slider::-moz-range-thumb{width:16px;height:16px;border-radius:50%;border:0;background:var(--dameke-se-accent);}
+.dameke-stateditor-rank-reset{min-height:2.25rem;font-size:.74rem;}
+/* 範囲の表示: 値の欄の下、中央。 */
+.dameke-stateditor-guide-row{margin-top:2px;}
+.dameke-stateditor-guide-text{grid-column:2 / 5;text-align:center;font-size:.7rem;color:var(--dameke-text-muted);white-space:nowrap;}
+.dameke-stateditor-guide{font-weight:700;color:var(--dameke-text-secondary);}
+.dameke-stateditor-active,.dameke-stateditor-active:hover:not(:disabled){background:#2563eb;border-color:#2563eb;color:#fff;}
+.v082h-attacker .dameke-stateditor-active,.v082h-attacker .dameke-stateditor-active:hover:not(:disabled){background:#dc2626;border-color:#dc2626;}
+/* 欄が狭いとき(スマホ幅・文字サイズが大きいとき)は、表の文字を小さくして3桁の実数値が欠けないようにする。 */
+@container (max-width:17rem){
+  .dameke-statgrid,.dameke-statgrid-sub{column-gap:1px;--dameke-sg-rb:1.2rem;--dameke-sg-r1:1.2rem;--dameke-sg-r2:1.2rem;--dameke-sg-r3:1.2rem;}
+  .dameke-statgrid-base,.dameke-statgrid-ev,.dameke-statgrid-actual,.dameke-statgrid-rank{font-size:.72rem;letter-spacing:-.02em;}
+  .dameke-statgrid-head{font-size:.66rem;}
+  .dameke-statgrid-sub .dameke-statgrid-head{font-size:.6rem;}
+}
+@container (max-width:15rem){
+  .dameke-stateditor{--dameke-se-lab:2.6em;--dameke-se-step:1.8rem;--dameke-se-extra:1.9rem;}
+  .dameke-stateditor-row{column-gap:4px;}
+  .dameke-stateditor-cell{padding:0 2px;font-size:.9rem;}
+  .dameke-stateditor-rank-reset{font-size:.68rem;}
+}
+/* さらに狭いとき(文字サイズを大きくした狭い画面): 表の行名・文字をもう一段小さくし、編集シートは項目名を上の行に置く。 */
+@container (max-width:11rem){
+  .dameke-statgrid,.dameke-statgrid-sub{--dameke-sg-label:1.7rem;}
+  .dameke-statgrid-label{font-size:.52rem;}
+  .dameke-statgrid-base,.dameke-statgrid-ev,.dameke-statgrid-actual,.dameke-statgrid-rank{font-size:.58rem;letter-spacing:-.03em;}
+  .dameke-statgrid-head{font-size:.54rem;}
+  .dameke-statgrid-sub .dameke-statgrid-head{font-size:.5rem;}
+  .dameke-statgrid-mark{font-size:.45rem;}
+  .dameke-statgrid-sub .dameke-statgrid-mark{display:none;}
+  .dameke-stateditor{padding:4px 5px 6px;--dameke-se-step:1.6rem;--dameke-se-extra:1.7rem;}
+  .dameke-stateditor-cell{font-size:.85rem;}
+  .dameke-stateditor-slider-row > .dameke-stateditor-slider{grid-column:2 / 4;}
+  .dameke-stateditor-slider-row > .dameke-stateditor-quick:last-child{grid-column:4;}
+  .dameke-stateditor-row{grid-template-columns:var(--dameke-se-step) minmax(0,1fr) var(--dameke-se-step) var(--dameke-se-extra);column-gap:3px;}
+  .dameke-stateditor-label{grid-column:1 / -1;}
+  .dameke-stateditor-slider-row > .dameke-stateditor-label,.dameke-stateditor-guide-row > .dameke-stateditor-label{display:none;}
+  .dameke-stateditor-guide-text{grid-column:1 / 4;}
+  .dameke-stateditor-nav{min-width:1.6rem;min-height:1.7rem;font-size:1rem;}
+  .dameke-stateditor-title{font-size:.72rem;}
+}
+  .dameke-stateditor-step{min-width:1.8rem;}
+}
+
+/* ==================== 下部固定枠: 性格・努力値・特性・持ち物の折り畳み(v2.6.2) ==================== */
+.dameke-result-side-toggle{display:none;}
+@media(max-width:78.125em){
+  #v082hResultPanel .dameke-result-side-toggle{display:flex;align-items:center;justify-content:flex-start;gap:4px;width:100%;margin:2px 0 0;padding:3px 0;border:0;border-top:1px dashed var(--dameke-border-strong);border-radius:0;background:transparent;color:var(--dameke-text-muted);font-size:.7rem;font-weight:700;cursor:pointer;}
+  #v082hResultPanel .dameke-result-side-toggle:hover:not(:disabled){filter:none;color:var(--dameke-text-slate);}
+  #v082hResultPanel .dameke-result-side-toggle-mark{font-size:.7rem;line-height:1;}
+  #v082hResultPanel .v082h-result-sidegrid{margin-top:2px;}
+  #v082hResultPanel .v082h-result-sidegrid.dameke-result-side-collapsed{display:none;}
+  #v082hResultPanel .v082h-hpbar-wrap{margin-bottom:4px;}
+}
+
+/* 性格: 欄が狭いとき、「性格」の文字を折り返さず選択欄の方を縮める。 */
+.v082h-nature-field{white-space:nowrap;}
+.v082h-nature-field select{flex:0 1 190px;min-width:0;}
+
+/* ==================== スマホ幅: よく使う部品は大きく、あまり使わない部品は小さく(v2.6.2) ==================== */
+@media(max-width:47.5em){
+  /* よく使う: ポケモン名・特性・持ち物・技①②の入力欄。文字16px(iPhoneで入力時に画面が拡大されないサイズ)。 */
+  .v082h-box .v082h-search-input{font-size:16px;min-height:2.5rem;padding:6px 10px;}
+  .v082h-box .v082h-search-item{padding:9px 10px;font-size:14px;}
+  /* よく使う: 特性ボタン・現HP簡易入力・努力値簡易入力のリセット */
+  .v082h-ability-buttons .v082h-ability-chip,.v082h-hp-buttons button,.v082h-ev-preset .v082h-ability-chip{min-height:2rem;}
+  /* あまり使わない(ポケモンを選ぶと自動で入る・特定の場面だけ): タイプ1/2、Z・ダイマ、テラスタル、防御側のダイマ・テラスタル */
+  .v082h-type-grid select,.dameke-move-special-grid select,.v082h-defender .v082h-mini-grid:not(.v082h-hp-row) select{padding:3px 6px;min-height:0;height:1.75rem;font-size:12px;}
+  .v082h-type-grid,.dameke-move-special-grid{gap:6px;}
+  .v082h-type-grid label,.dameke-move-special-grid label,.v082h-defender .v082h-mini-grid:not(.v082h-hp-row) label{gap:2px;font-size:11px;}
+}
