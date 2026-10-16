@@ -8774,16 +8774,20 @@ function abilityImmunity(result, o, moveType) {
   function computeTypeEffectiveness(defenderTypes, attackerType, abilityName){
     var types = (defenderTypes||[]).filter(function(t){ return t && t !== 'タイプなし'; });
     var rate = 4096;
-    types.forEach(function(t){ rate = Math.floor(rate * typeRateRaw(attackerType, t) / 4096); });
+    // デルタストリーム(らんきりゅう): ひこうタイプ部分へのばつぐん(こおり・でんき・いわ)だけを等倍にする。
+    // ダメージ計算本体(らんきりゅうの処理)と同じく、タイプごとの倍率の段階で ひこう の分だけを抑える。
+    var delta = abilityName === 'デルタストリーム';
+    types.forEach(function(t){
+      var x = typeRateRaw(attackerType, t);
+      if(delta && t === 'ひこう' && x > 4096) x = 4096;
+      rate = Math.floor(rate * x / 4096);
+    });
     if(abilityName){
       if(attackerType === 'じめん' && isLevitateAbility(abilityName)){
         rate = 0;
       } else if(TYPE_IMMUNITY_ABILITIES[abilityName] === attackerType){
         rate = 0;
       } else {
-        // デルタストリーム: removes a ひこう weakness specifically (clamps down to neutral) --
-        // never touches an already-neutral-or-better matchup.
-        if(abilityName === 'デルタストリーム' && attackerType === 'ひこう' && rate > 4096) rate = 4096;
         var halved = HALF_DAMAGE_ABILITIES[abilityName];
         if(halved && halved.indexOf(attackerType) >= 0) rate = Math.floor(rate / 2);
       }

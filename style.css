@@ -1719,6 +1719,13 @@ button.dameke-tcb-card-wait:hover{border-color:var(--dameke-border);}
 .dameke-tcb-st-deck .dameke-tcb-card-label{background:#d97706;color:#fff;}
 /* 相性表・特性 */
 .dameke-tcb-chart-wrap{overflow-x:auto;}
+.dameke-tcb-chart-legend{display:flex;flex-wrap:wrap;gap:4px 12px;margin:0 0 6px;font-size:.72rem;color:var(--dameke-text-mid);}
+.dameke-tcb-chart-legend-item{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;}
+.dameke-tcb-chart-legend-mark{display:inline-flex;align-items:center;justify-content:center;width:1.5em;height:1.5em;border:1px solid var(--dameke-border);background:var(--dameke-surface);font-weight:800;}
+.dameke-tcb-chart-legend-mark.dameke-tcb-chart-2{background:var(--dameke-tint-red-bg);color:var(--dameke-tint-red-text);}
+.dameke-tcb-chart-legend-mark.dameke-tcb-chart-h{background:var(--dameke-tint-blue-bg);color:var(--dameke-link-text);}
+.dameke-tcb-chart-legend-mark.dameke-tcb-chart-0{background:var(--dameke-surface-alt2);color:var(--dameke-text);}
+.dameke-tcb-chart td.dameke-tcb-chart-0,.dameke-tcb-chart-legend-mark.dameke-tcb-chart-0{font-size:1.15em;line-height:1;}
 .dameke-tcb-chart{border-collapse:collapse;font-size:.66rem;line-height:1.2;}
 .dameke-tcb-chart th,.dameke-tcb-chart td{border:1px solid var(--dameke-border);padding:2px 3px;text-align:center;min-width:1.5em;}
 .dameke-tcb-chart th{font-weight:700;}
@@ -1820,6 +1827,7 @@ button.dameke-tcb-card-wait:hover{border-color:var(--dameke-border);}
 .dameke-tcb-tera-badge{font-size:.56rem;padding:0 4px;}
 .dameke-tcb-card-teraline-on{font-weight:800;color:#0e7490;}
 .dameke-tcb-card-teraline-no{color:var(--dameke-text-faint);}
+.dameke-tcb-hand-gas .dameke-tcb-card-ability{text-decoration:line-through;text-decoration-thickness:2px;color:var(--dameke-text-faint);}
 .dameke-tcb-card-tera{border-color:#06b6d4;background:linear-gradient(160deg,rgba(103,232,249,.22),transparent 45%,rgba(167,139,250,.18)),var(--dameke-surface);box-shadow:0 0 0 2px rgba(6,182,212,.3),0 0 12px rgba(34,211,238,.45);}
 .dameke-tcb-card-label.dameke-tcb-label-tera{background:#0891b2;color:#fff;}
 .dameke-tcb-choice-active.dameke-tcb-choice-boost-T{background:#0891b2;border-color:#0891b2;color:#fff;box-shadow:0 0 0 3px rgba(8,145,178,.3);}
@@ -1971,7 +1979,7 @@ button.dameke-tcb-card-wait:hover{border-color:var(--dameke-border);}
 /* ==================== 下部固定枠: 性格・努力値・特性・持ち物の折り畳み(v2.6.2) ==================== */
 .dameke-result-side-toggle{display:none;}
 @media(max-width:78.125em){
-  #v082hResultPanel .dameke-result-side-toggle{display:flex;align-items:center;justify-content:flex-start;gap:4px;width:100%;margin:2px 0 0;padding:3px 0;border:0;border-top:1px dashed var(--dameke-border-strong);border-radius:0;background:transparent;color:var(--dameke-text-muted);font-size:.7rem;font-weight:700;cursor:pointer;}
+  #v082hResultPanel .dameke-result-side-toggle{display:flex;align-items:center;justify-content:flex-start;gap:4px;width:100%;margin:2px 0 0;padding:3px 0 3px .7em;border:0;border-top:1px dashed var(--dameke-border-strong);border-radius:0;background:transparent;color:var(--dameke-text-muted);font-size:.7rem;font-weight:700;cursor:pointer;}
   #v082hResultPanel .dameke-result-side-toggle:hover:not(:disabled){filter:none;color:var(--dameke-text-slate);}
   #v082hResultPanel .dameke-result-side-toggle-mark{font-size:.7rem;line-height:1;}
   #v082hResultPanel .v082h-result-sidegrid{margin-top:2px;}
