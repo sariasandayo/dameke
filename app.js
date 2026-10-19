@@ -373,6 +373,8 @@ window.__damekeFmtFaintPct = fmtFaintPct;
   function itemStatusText(x){ if(!x) return '-'; var status = x.status === '持ち物なし' ? '無効' : x.status; return status === '有効' ? x.name : (x.name + '（' + status + '）'); }
   window.__damekeAbilityStatusText = abilityStatusText;
   window.__damekeCalcTable = function(id){ return calcTables[id] || null; };
+  // 計算機とは別の表(hostId)に計算過程を描いて返す。計算機の表・入力欄には触れない。
+  window.__damekeRenderCalcTable = function(result, hostId, ctx){ renderCalcTable(result, hostId, ctx || {}); return calcTables[hostId] || null; };
   window.__damekeItemStatusText = itemStatusText;
   function pairedRow(label, atkText, defText){
     var tr = document.createElement('tr');
@@ -389,7 +391,9 @@ window.__damekeFmtFaintPct = fmtFaintPct;
   }
   // 計算過程の表(技①: v082hCalcTable、技②: v082hCalcTable2)を作り直す。表の配置は結果枠の描画(renderResult)が行う。
   var calcTables = {};
-  function renderCalcTable(result, hostId){
+  // ctx を渡すと、画面(計算機の入力欄)を読む代わりにその値を使う(ミニゲーム「ダメージ予想」の計算過程用)。
+  // ctx: { defenderTeraType, attackerHpManual, defenderHpManual }。計算機自身の表示では渡さない。
+  function renderCalcTable(result, hostId, ctx){
     hostId = hostId || 'v082hCalcTable';
     var host = calcTables[hostId];
     if(!host){
@@ -420,7 +424,7 @@ window.__damekeFmtFaintPct = fmtFaintPct;
     var teraA = findTraceEntry(trace, '00 テラスタル（攻撃側）'), teraD = findTraceEntry(trace, '00 テラスタル（防御側）');
     var teraAText = teraA ? teraA.value : '-';
     if(teraA && teraA.value === 'ステラ'){
-      var stellarCountEl = document.getElementById('attackerStellarMoveCount');
+      var stellarCountEl = ctx ? null : document.getElementById('attackerStellarMoveCount');
       if(stellarCountEl && stellarCountEl.selectedOptions && stellarCountEl.selectedOptions[0]) teraAText += '（' + stellarCountEl.selectedOptions[0].textContent + '）';
     }
     host.appendChild(pairedRow('テラスタル', teraAText, teraD ? teraD.value : '-'));
@@ -508,8 +512,8 @@ window.__damekeFmtFaintPct = fmtFaintPct;
 
     function formatRankedEntry(entry, side){
       if(!entry) return '-';
-      var hpInput = document.getElementById(side === 'A' ? 'attackerCurrentHp' : 'defenderCurrentHp');
-      var manual = hpInput && hpInput.value !== '';
+      var hpInput = ctx ? null : document.getElementById(side === 'A' ? 'attackerCurrentHp' : 'defenderCurrentHp');
+      var manual = ctx ? !!ctx[side === 'A' ? 'attackerHpManual' : 'defenderHpManual'] : (hpInput && hpInput.value !== '');
       var m = String(entry.value || '').match(/^(\d+)\/(\d+)\s*\/\s*(.+)$/);
       if(!m) return entry.value;
       var cur = m[1], max = m[2], rest = m[3];
@@ -655,8 +659,8 @@ window.__damekeFmtFaintPct = fmtFaintPct;
 
     if(result.typeRate4096 != null){
       var finalMoveType = moveTypeEntry ? moveTypeEntry.value : '-';
-      var teraD = document.getElementById('defenderTeraType');
-      var teraDVal = teraD ? teraD.value : '';
+      var teraD = ctx ? null : document.getElementById('defenderTeraType');
+      var teraDVal = ctx ? (ctx.defenderTeraType || '') : (teraD ? teraD.value : '');
       var calcTypeDEntry = findTraceEntry(trace, '02 計算上タイプ（防御側）');
       var defTypesUsed = (teraDVal && teraDVal !== 'なし' && teraDVal !== 'ステラ') ? teraDVal : (calcTypeDEntry ? calcTypeDEntry.value : '-');
       host.appendChild(spanRow('タイプ相性', String(result.typeRate4096) + '（' + finalMoveType + '→' + defTypesUsed + '）'));

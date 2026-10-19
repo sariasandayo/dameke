@@ -89,6 +89,7 @@
     { id: 'stathl', label: '種族値High&Low', render: renderStatHLGame },
     { id: 'statchart', label: '種族値チャートクイズ', render: renderStatChartGame },
     { id: 'typecard', label: '相性カードバトル', render: renderTypeCardGame },
+    { id: 'dmgguess', label: 'ダメージ予想', render: renderDmgQuizGame },
     { id: 'randomgen', label: 'ランダムポケモン出力', render: renderRandomGenGame }
   ];
   var currentGameId = GAMES[0].id;
@@ -3674,5 +3675,897 @@
       if(st0.phase === 'mull'){ if(st0.mullWho === 'cpu') tcbNextMull(st0); }
       else if(st0.turn === 'cpu') tcbScheduleCpu();
     }
+  }
+
+  // ==================== ダメージ予想 ====================
+  // ダメージ計算機と同じ計算(DAMEKE_CALC.calculateDamageWithEffects)で出題し、ダメージ割合(%)を当てる。
+  // ・出題の入力は、計算機の画面(DOM)を一切読まず、ここで組み立てた入力だけで計算する(計算機の状態に影響しない)。
+  // ・可変の要素: ポケモン・技・性格補正(上昇のみ)・努力値(使う能力値のみ0か32)・性別・特性・持ち物(意味のあるもののみ)・
+  //   特性/技の固有条件・天候/フィールド/壁(意味のあるときのみ)・ランク(使う能力値のみ±1〜2)。それ以外は計算機の初期値。
+  // ・出題できない組み合わせ(無効・最高乱数が100%超・最低乱数が1%未満・ばけのかわ/アイスフェイスが働く など)は、
+  //   原因になった部分だけを引き直す(技 → 防御側の特性 → 防御側 → 攻撃側 の順)。
+  var DQ_LIFE_MAX = 100;        // ライフの最大(=開始時)
+  var DQ_STREAK_HEAL = 10;      // 連続正解の2問目から、正解するたびに回復する量
+  var DQ_CALC_BUDGET = 400;     // 1問の生成で計算してよい回数の上限(超えたらその場の候補で打ち切って作り直す)
+
+  // 計算機の初期入力値(画面を開いた直後の buildOptions() と同じ値。ポケモン・特性・タイプは出題ごとに上書きする)。
+  var DQ_BASE_OPTIONS = {"attackerItemId":"none","defenderItemId":"none","attackerNoItem":false,"defenderNoItem":false,"attackerAbilityId":"なし","defenderAbilityId":"なし","attackerNoAbility":false,"defenderNoAbility":false,"attackerSpecialState":"none","defenderSpecialState":"none","attackerTeraType":"なし","defenderTeraType":"なし","attackerGender":"unknown","defenderGender":"unknown","attackerType1":"なし","attackerType2":"なし","defenderType1":"なし","defenderType2":"なし","attackerTypeOverride":"none","defenderTypeOverride":"none","attackerAddType":"none","defenderAddType":"none","weather":"なし","field":"なし","magicRoom":false,"gravity":false,"plasmaShower":false,"neutralizingGasField":false,"critical":0,"attackerGMaxRapidStrike":0,"attackerRainbow":false,"attackerFocusEnergy":false,"electrify":false,"pledgeCombination":false,"defenderLuckyChant":false,"defenderForesight":false,"defenderMiracleEye":false,"defenderRage":false,"attackerEmbargo":false,"defenderEmbargo":false,"attackerStealthRock":false,"defenderStealthRock":false,"attackerSpikes":"0","defenderSpikes":"0","attackerSteelSurge":false,"defenderSteelSurge":false,"attackerRootedSmacked":false,"defenderRootedSmacked":false,"attackerIngrain":false,"defenderIngrain":false,"defenderSeaOfFire":false,"attackerMagnetRise":false,"defenderMagnetRise":false,"attackerTelekinesis":false,"defenderTelekinesis":false,"attackerRoost":false,"defenderRoost":false,"attackerBurnUp":false,"defenderBurnUp":false,"attackerDoubleShock":false,"defenderDoubleShock":false,"attackerCurrentHpInput":"","defenderCurrentHpInput":"","transformOps":[],"attackerStatus":"なし","defenderStatus":"なし","attackerToxic":false,"defenderToxic":false,"attackerToxicCount":"1","defenderToxicCount":"1","defenderSemiInvulnerable":"なし","rolloutHit":"1","defenseCurl":false,"echoedVoiceCount":"1","moveOrder":"first","targetSwitching":false,"faintedAllies":"0","supremeOverlordFaintedAllies":"0","friendship":"255","remainingPP":"4","lastMoveFailed":false,"userDamagedThisTurn":false,"targetDamagedThisTurn":false,"stockpileCount":"1","presentPower":"40","rageFistHitCount":"0","magnitudePower":"10","roundAllyUsed":false,"furyCutterCount":"1","psywaveMultiplier":"1","kimagureLaserDouble":false,"fixedDamageTaken":"0","defenderScreen":"none","defenderFriendGuard":false,"defenderMinimized":false,"defenderProtectState":"none","metronomeUseCount":"1","defenderTarShot":false,"attackerStellarMoveCount":"first","attackerDoubleDamage":false,"defenderGlaiveRush":false,"beadsOfRuinField":false,"swordOfRuinField":false,"defenderFlowerGiftSupport":false,"vesselOfRuinField":false,"tabletsOfRuinField":false,"flowerGiftSupport":false,"plusMinusSupport":false,"flashFireActivated":false,"stakeoutSwitchIn":false,"batterySupport":false,"powerSpotSupport":false,"steelSpiritCount":"0","helpingHandCount":"0","meFirst":false,"charge":false,"analyzeMovedLast":false,"fairyAuraField":false,"darkAuraField":false,"mudSport":false,"waterSport":false,"weatherSuppressField":false,"statDroppedThisTurn":false,"allyFaintedLastTurn":false,"beatUpAlly1":"none","beatUpAlly2":"none","beatUpAlly3":"none","beatUpAlly4":"none","beatUpAlly5":"none","attackerTailwind":false,"attackerLockOn":false,"attackerMicleBerry":false,"attackerVictoryStar":false,"defenderConfusion":false,"defenderSubstitute":false,"focusLensMoveOrder":"first","defenderTailwind":false,"attackerSwamp":false,"defenderSwamp":false,"attackerSlowStart":false,"defenderSlowStart":false,"attackerUnburden":false,"defenderUnburden":false,"attackerParadoxBoostStat":"none","defenderParadoxBoostStat":"none","attackerBodyPurge":"0","defenderBodyPurge":"0","orderUpForm":"なし","moldBreaker":false,"neutralizingGas":false,"attackerItemSuppressed":false,"defenderItemSuppressed":false};
+
+  // 持ち物の候補(チャンピオンズで持たせられるもののうち、ダメージに関わるもの)。
+  // 攻撃側: 威力・攻撃・ダメージを上げるもの。防御側: 半減きのみ。どちらも、実際に計算結果が変わるときだけ持たせる。
+  var DQ_ATTACKER_ITEMS = ['いのちのたま','たつじんのおび','ちからのハチマキ','ものしりメガネ','ノーマルジュエル','でんきだま',
+    'もくたん','しんぴのしずく','ようせいのハネ','とけないこおり','きせきのタネ','じしゃく','くろいメガネ','のろいのおふだ','くろおび',
+    'シルクのスカーフ','やわらかいすな','メタルコート','するどいくちばし','まがったスプーン','かたいいし','どくバリ','りゅうのキバ','ぎんのこな'];
+  var DQ_DEFENDER_BERRIES = ['ヨプのみ','ナモのみ','シュカのみ','オッカのみ','ロゼルのみ','ハバンのみ','リリバのみ','カシブのみ','リンドのみ',
+    'ヤチェのみ','イトケのみ','ヨロギのみ','ビアーのみ','バコウのみ','ウタンのみ','ソクノのみ','タンガのみ'];
+
+  // 出題しない技。固定ダメージ・一撃必殺(データの fixedDamageKind)と変化技は別に除く。
+  // ・計算機で設定しない条件(ランク合計・すばやさ・残りPP・たくわえる・持ち物の投げつけ・選択値)で威力が決まるもの
+  // ・相手の能力値で計算するもの(イカサマ)
+  var DQ_EXCLUDED_POWER_KINDS = { PositiveRankUser:1, PositiveRankTarget:1, ElectroBall:1, GyroBall:1, Present:1, Magnitude:1,
+    BeatUp:1, Fling:1, Frustration:1, SpitUp:1, TrumpCard:1, NaturalGift:1 };
+  var DQ_EXCLUDED_MOVES = { 'イカサマ':1, 'しぜんのめぐみ':1, 'なげつける':1, 'ゆめくい':1, 'いびき':1 };
+  // 防御側のぼうぎょで計算する特殊技
+  var DQ_DEF_B_SPECIAL = { 'サイコショック':1, 'サイコブレイク':1, 'しんぴのつるぎ':1 };
+  // 能力値で物理・特殊が決まる技。値は分類を決めるのに使う能力値(画面にすべて出す)。
+  // 攻撃側は物理・特殊のどちらの組み立て(A/C)でも候補にし、組み立てどおりの分類になったときだけ出題する。
+  var DQ_SWITCH_CATEGORY = { 'フォトンゲイザー': { atk:['A','C'], def:[] }, 'シェルアームズ': { atk:['A','C'], def:['B','D'] } };
+
+  // 技の固有条件(威力が条件で決まる技)。値は出題ごとに決め、技を選んだ時点で必ず画面に出す。
+  var DQ_MOVE_KNOBS = {
+    Rollout:      { key:'rolloutHit', pick:function(){ return String(dqWeighted([[1,40],[2,20],[3,15],[4,15],[5,10]])); }, label:function(v){ return '連続' + v + '回目'; } },
+    EchoedVoice:  { key:'echoedVoiceCount', pick:function(){ return String(dqWeighted([[1,40],[2,20],[3,15],[4,15],[5,10]])); }, label:function(v){ return '連続' + v + '回目'; } },
+    FuryCutter:   { key:'furyCutterCount', pick:function(){ return String(dqWeighted([[1,50],[2,30],[3,20]])); }, label:function(v){ return '連続' + v + '回目'; } },
+    DoubleIfFirst:      { key:'moveOrder', pick:function(){ return Math.random() < 0.5 ? 'first' : 'second'; }, label:function(v){ return v === 'first' ? '相手より先に行動' : '相手より後に行動'; } },
+    DoubleIfMovedSecond:{ key:'moveOrder', pick:function(){ return Math.random() < 0.5 ? 'first' : 'second'; }, label:function(v){ return v === 'first' ? '相手より先に行動' : '相手より後に行動'; } },
+    Pursuit:      { key:'targetSwitching', pick:function(){ return Math.random() < 0.25; }, label:function(v){ return v ? '相手が交代する' : '相手は交代しない'; } },
+    LastRespects: { key:'faintedAllies', pick:function(){ return String(dqWeighted([[0,40],[1,35],[2,25]])); }, label:function(v){ return '倒れた味方' + v + '匹'; } },
+    RageFist:     { key:'rageFistHitCount', pick:function(){ return String(dqWeighted([[0,30],[1,25],[2,20],[3,12],[4,7],[5,4],[6,2]])); }, label:function(v){ return '攻撃を受けた回数' + v + '回'; } },
+    DoubleIfLastMoveFailed: { key:'lastMoveFailed', pick:function(){ return Math.random() < 0.25; }, label:function(v){ return v ? '前のターンに技が失敗した' : '前のターンに技は失敗していない'; } },
+    DoubleIfTargetDamaged:  { key:'targetDamagedThisTurn', pick:function(){ return Math.random() < 0.25; }, label:function(v){ return v ? 'このターンに相手がダメージを受けた' : 'このターンに相手はダメージを受けていない'; } },
+    DoubleIfUserDamaged:    { key:'userDamagedThisTurn', pick:function(){ return Math.random() < 0.4; }, label:function(v){ return v ? 'このターンに攻撃を受けた' : 'このターンに攻撃を受けていない'; } }
+  };
+  // 天候・フィールドを起こす特性(持っていれば、その天候・フィールドになりやすくする)
+  var DQ_WEATHER_ABILITIES = { 'ひでり':'にほんばれ', 'あめふらし':'あめ', 'すなおこし':'すなあらし', 'ゆきふらし':'ゆき' };
+  var DQ_FIELD_ABILITIES = { 'エレキメイカー':'エレキフィールド', 'グラスメイカー':'グラスフィールド', 'サイコメイカー':'サイコフィールド', 'ミストメイカー':'ミストフィールド' };
+  var DQ_WEATHERS = ['にほんばれ', 'あめ', 'すなあらし', 'ゆき'];
+  var DQ_FIELDS = ['エレキフィールド', 'グラスフィールド', 'ミストフィールド', 'サイコフィールド'];
+  var DQ_SCREEN_LABELS = { reflect:'リフレクター', lightScreen:'ひかりのかべ', auroraVeil:'オーロラベール' };
+  var DQ_WEATHER_LABELS = { 'にほんばれ':'はれ', 'あめ':'あめ', 'すなあらし':'すなあらし', 'ゆき':'ゆき' };
+
+  function dqWeighted(list){
+    var total = 0, i;
+    for(i = 0; i < list.length; i++) total += list[i][1];
+    var r = Math.random() * total;
+    for(i = 0; i < list.length; i++){ r -= list[i][1]; if(r < 0) return list[i][0]; }
+    return list[list.length - 1][0];
+  }
+  function dqPick(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
+  function dqShuffle(arr){
+    var a = arr.slice();
+    for(var i = a.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+  }
+  function dqClone(o){ return JSON.parse(JSON.stringify(o)); }
+
+  // ---- 候補(1度だけ作る) ----
+  var dqCache = null;
+  function dqEligibleMove(m){
+    if(!m || (m.category !== '物理' && m.category !== '特殊')) return false;
+    if(!(Number(m.power) > 0)) return false;
+    if(m.fixedDamageKind || m.fixedDamage || (m.tags || []).indexOf('fixedDamage') >= 0) return false;
+    if(m.powerKind && DQ_EXCLUDED_POWER_KINDS[m.powerKind]) return false;
+    if(DQ_EXCLUDED_MOVES[m.name]) return false;
+    return true;
+  }
+  function dqData(){
+    if(dqCache) return dqCache;
+    var CM = window.DAMEKE_COMMON, LS = window.DAMEKE_LEARNSETS;
+    var moveByName = Object.create(null);
+    DATA.moves.forEach(function(m){ moveByName[m.name] = m; });
+    var itemByName = Object.create(null);
+    DATA.items.forEach(function(it){ itemByName[it.name] = it; });
+    var pool = [];
+    DATA.pokemons.forEach(function(p){
+      if(!CM || !LS || !CM.hasChampionsEntry(p)) return;
+      var moves = [];
+      (LS.getLearnset(CM.learnsetKeyFor(p.name)) || []).forEach(function(n){
+        var m = moveByName[typeof n === 'string' ? n : (n && n.name)];
+        if(dqEligibleMove(m) && moves.indexOf(m) < 0) moves.push(m);
+      });
+      if(moves.length) pool.push({ p: p, moves: moves });
+    });
+    dqCache = {
+      pool: pool,
+      attackerItems: DQ_ATTACKER_ITEMS.map(function(n){ return itemByName[n]; }).filter(Boolean),
+      berries: DQ_DEFENDER_BERRIES.map(function(n){ return itemByName[n]; }).filter(Boolean),
+      abilityByName: (function(){ var o = Object.create(null); DATA.abilities.forEach(function(a){ o[a.name] = a; }); return o; })()
+    };
+    return dqCache;
+  }
+
+  // ---- 努力値・性格補正の付けやすさ(種族値から決める) ----
+  function dqBulk(bs){ return (bs.H + bs.B + bs.D) / 3; }
+  // 攻撃側: 使う能力値(A/C、ボディプレスはB)が、耐久(H・B・Dの平均)と比べて高いほど、32振り・補正ありになりやすい。
+  function dqAttackerInvest(p, stat){
+    var bs = p.baseStats, r = bs[stat] / Math.max(1, dqBulk(bs));
+    if(stat === 'B') return { ev: 0.8, nature: 0.5 };
+    if(r >= 1.15) return { ev: 0.92, nature: 0.6 };
+    if(r >= 0.95) return { ev: 0.75, nature: 0.45 };
+    if(r >= 0.8) return { ev: 0.5, nature: 0.3 };
+    return { ev: 0.3, nature: 0.15 };
+  }
+  // 防御側: 耐久(H・B・Dの平均)が攻撃(A/Cの高い方)と比べて高いほど、H・B/Dに振りやすい。B/Dは高い方を伸ばしやすい。
+  function dqDefenderInvest(p, stat){
+    var bs = p.baseStats, r = dqBulk(bs) / Math.max(1, Math.max(bs.A, bs.C));
+    var other = stat === 'B' ? bs.D : bs.B;
+    var tilt = bs[stat] >= other ? 1.2 : 0.8;
+    var h, s, n;
+    if(r >= 1.1){ h = 0.75; s = 0.55; n = 0.4; }
+    else if(r >= 0.9){ h = 0.55; s = 0.35; n = 0.25; }
+    else { h = 0.3; s = 0.12; n = 0.08; }
+    return { h: h, stat: Math.min(0.85, s * tilt), nature: Math.min(0.6, n * tilt) };
+  }
+  // 上げる能力値に合わせた性格(下げる能力値は計算に使わないもの)
+  function dqNatureFor(stat, p, side, keepAC){
+    var bs = p.baseStats;
+    if(side === 'attacker'){
+      if(keepAC) return stat === 'A' ? 'ゆうかん' : 'れいせい'; // S↓(フォトンゲイザー・シェルアームズ)
+      if(stat === 'A') return 'いじっぱり';
+      if(stat === 'C') return 'ひかえめ';
+      return 'わんぱく'; // ボディプレス: B↑C↓
+    }
+    if(stat === 'B') return bs.A >= bs.C ? 'わんぱく' : 'ずぶとい';
+    return bs.A >= bs.C ? 'しんちょう' : 'おだやか';
+  }
+  function dqGenderOf(p){
+    var g = p.formLinkedSex || p.fixedGender;
+    if(g === '♂') return 'male';
+    if(g === '♀') return 'female';
+    if(g === '不明') return 'unknown';
+    return Math.random() < 0.5 ? 'male' : 'female';
+  }
+
+  // ---- 1体分の組み立て ----
+  // 攻撃側: 使う能力値は A/C(ボディプレスを覚えていればBも)の高い方。差が1割以内ならランダム。
+  function dqAttackerPlan(entry){
+    var p = entry.p, bs = p.baseStats;
+    var cands = [];
+    var phys = entry.moves.filter(function(m){ return (m.category === '物理' || DQ_SWITCH_CATEGORY[m.name]) && m.name !== 'ボディプレス'; });
+    var spec = entry.moves.filter(function(m){ return m.category === '特殊'; });
+    var bp = entry.moves.filter(function(m){ return m.name === 'ボディプレス'; });
+    if(phys.length) cands.push({ stat:'A', v:bs.A, moves:phys });
+    if(spec.length) cands.push({ stat:'C', v:bs.C, moves:spec });
+    if(bp.length) cands.push({ stat:'B', v:bs.B, moves:bp });
+    if(!cands.length) return null;
+    var top = Math.max.apply(null, cands.map(function(c){ return c.v; }));
+    var close = cands.filter(function(c){ return c.v >= top * 0.9; });
+    // ボディプレスは、ほかに候補があれば半分の確率で外す(Bが高いポケモンばかりボディプレスになるのを避ける)
+    if(close.length > 1 && Math.random() < 0.5) close = close.filter(function(c){ return c.stat !== 'B'; });
+    else if(close.length === 1 && close[0].stat === 'B' && cands.length > 1 && Math.random() < 0.5){
+      close = cands.filter(function(c){ return c.stat !== 'B'; });
+      var top2 = Math.max.apply(null, close.map(function(c){ return c.v; }));
+      close = close.filter(function(c){ return c.v >= top2 * 0.9; });
+    }
+    return dqPick(close);
+  }
+  function dqMakeSide(p, side, stat){
+    var ivs = { H:'31', A:'31', B:'31', C:'31', D:'31', S:'31' };
+    var evs = { H:'0', A:'0', B:'0', C:'0', D:'0', S:'0' };
+    var ranks = { A:'0', B:'0', C:'0', D:'0', S:'0', acc:'0', eva:'0' };
+    var nature = 'まじめ', boosted = false;
+    if(side === 'attacker'){
+      var ai = dqAttackerInvest(p, stat);
+      if(Math.random() < ai.ev) evs[stat] = '32';
+      // 補正は、その能力値に振っているときに付けやすい
+      if(Math.random() < ai.nature * (evs[stat] === '32' ? 1 : 0.3)){ nature = dqNatureFor(stat, p, side); boosted = true; }
+    } else {
+      var di = dqDefenderInvest(p, stat);
+      if(Math.random() < di.h) evs.H = '32';
+      if(Math.random() < di.stat) evs[stat] = '32';
+      // 補正は、その能力値に振っているときに付けやすい
+      if(Math.random() < di.nature * (evs[stat] === '32' ? 1 : 0.3)){ nature = dqNatureFor(stat, p, side); boosted = true; }
+    }
+    return {
+      p: p, stat: stat,
+      ability: dqPick(p.abilities && p.abilities.length ? p.abilities : ['なし']),
+      gender: dqGenderOf(p),
+      item: p.formLinkedItem1 || 'none', itemForced: !!p.formLinkedItem1,
+      stats: { ivs: ivs, evs: evs, ranks: ranks, nature: nature },
+      boosted: boosted
+    };
+  }
+
+  // ---- 計算 ----
+  function dqBuildInput(q){
+    var o = dqClone(DQ_BASE_OPTIONS);
+    var a = q.atk, d = q.def;
+    o.attackerAbilityId = a.ability; o.defenderAbilityId = d.ability;
+    o.attackerItemId = a.item; o.defenderItemId = d.item;
+    o.attackerGender = a.gender; o.defenderGender = d.gender;
+    o.attackerType1 = a.p.types[0] || 'なし'; o.attackerType2 = a.p.types[1] || 'なし';
+    o.defenderType1 = d.p.types[0] || 'なし'; o.defenderType2 = d.p.types[1] || 'なし';
+    o.attackerStats = dqClone(a.stats); o.defenderStats = dqClone(d.stats);
+    o.weather = q.weather; o.field = q.field; o.defenderScreen = q.screen;
+    for(var k in q.extra) o[k] = q.extra[k];
+    if(q.noDefAbility) o.defenderNoAbility = true;
+    return { attacker: a.p, defender: d.p, move: q.move, attackerLevel: '50', defenderLevel: '50', options: o };
+  }
+  function dqCalc(q, ctx){
+    ctx.calls++;
+    try { return window.DAMEKE_CALC.calculateDamageWithEffects(dqBuildInput(q)); } catch(e){ return null; }
+  }
+  // 出題できる結果か。理由(reason)は、どこを引き直すかの判断に使う。
+  function dqCheck(q, r, ctx){
+    if(!r) return 'error';
+    if(r.isInvalid || !(r.maxDamage > 0) || r.typeRate4096 === 0) return 'invalid';
+    if(r.effectiveCategory && r.effectiveCategory !== q.cat) return 'category';
+    if(r.maxRate > 100) return 'high';
+    if(r.minRate < 1) return 'low';
+    // 乱数の幅に整数が1つもない(答えようがない)問題は出さない
+    var rg = dqRange(r);
+    if(rg.lo > rg.hi) return 'nointeger';
+    // ばけのかわ・アイスフェイスが働く場面は出さない(特性なしにすると結果が変わる=働いている)
+    if(q.def.ability === 'ばけのかわ' || q.def.ability === 'アイスフェイス'){
+      q.noDefAbility = true;
+      var r2 = dqCalc(q, ctx);
+      q.noDefAbility = false;
+      if(!r2 || r2.minDamage !== r.minDamage || r2.maxDamage !== r.maxDamage) return 'disguise';
+    }
+    return null;
+  }
+  function dqSame(r1, r2){ return !!r1 && !!r2 && r1.minDamage === r2.minDamage && r1.maxDamage === r2.maxDamage && !!r1.isInvalid === !!r2.isInvalid; }
+
+  // 条件を1つ加えてみて、計算結果が変わり、かつ出題できるままなら採用する。そうでなければ元に戻す。
+  function dqTryAdd(q, ctx, apply, revert){
+    apply();
+    var r = dqCalc(q, ctx);
+    if(r && !dqSame(r, ctx.cur) && !dqCheck(q, r, ctx)){ ctx.cur = r; ctx.added.push({ apply: apply, revert: revert }); return true; }
+    revert();
+    return false;
+  }
+  // 後から加えた条件のせいで、先に加えた条件が意味をなくすことがある(端数の丸めなど)。
+  // 最後に1つずつ外してみて、外しても結果が変わらないものは外したままにする。
+  function dqPrune(q, ctx){
+    for(var i = ctx.added.length - 1; i >= 0; i--){
+      var c = ctx.added[i];
+      c.revert();
+      var r = dqCalc(q, ctx);
+      if(r && dqSame(r, ctx.cur) && !dqCheck(q, r, ctx)){ ctx.cur = r; ctx.added.splice(i, 1); }
+      else c.apply();
+    }
+  }
+
+  function dqTypeIsSuper(q, r){ return !!r && r.typeRate4096 > 4096; }
+
+  // 天候・フィールド・持ち物・ランク・壁・特性の固有条件を、それぞれの確率で加える。
+  function dqAddOptional(q, ctx){
+    var a = q.atk, d = q.def, mv = q.move, cat = q.cat;
+    var abilities = [a.ability, d.ability];
+    // 天候: 天候を起こす特性があればその天候になりやすい。
+    // ノーてんきがいれば付けない。てんきや等の特性によるタイプの変化は、表示は元の姿のまま、計算機と同じく計算の中で変わる。
+    if(abilities.indexOf('ノーてんき') < 0 && abilities.indexOf('エアロック') < 0){
+      var wSet = abilities.map(function(x){ return DQ_WEATHER_ABILITIES[x]; }).filter(Boolean);
+      // 付けると決めたら、意味のある(計算結果が変わる)天候が見つかるまで候補を順に試す
+      if(Math.random() < (wSet.length ? 0.8 : 0.25)){
+        dqShuffle(wSet.length ? wSet : DQ_WEATHERS).some(function(w){
+          return dqTryAdd(q, ctx, function(){ q.weather = w; }, function(){ q.weather = 'なし'; });
+        });
+      }
+    }
+    // フィールド
+    var fSet = abilities.map(function(x){ return DQ_FIELD_ABILITIES[x]; }).filter(Boolean);
+    if(Math.random() < (fSet.length ? 0.8 : 0.2)){
+      dqShuffle(fSet.length ? fSet : DQ_FIELDS).some(function(f){
+        return dqTryAdd(q, ctx, function(){ q.field = f; }, function(){ q.field = 'なし'; });
+      });
+    }
+    // 攻撃側の持ち物
+    if(!a.itemForced && Math.random() < 0.45){
+      var sup = dqTypeIsSuper(q, ctx.cur);
+      var opts = [];
+      dqData().attackerItems.forEach(function(it){
+        if(it.kind === 'LifeOrb') opts.push([it.name, 3]);
+        else if(it.kind === 'ExpertBelt'){ if(sup) opts.push([it.name, 2]); }
+        else if(it.kind === 'PhysicalBoost'){ if(cat === '物理') opts.push([it.name, 1]); }
+        else if(it.kind === 'SpecialBoost'){ if(cat === '特殊') opts.push([it.name, 1]); }
+        else if(it.kind === 'Gem'){ if(it.type === mv.type) opts.push([it.name, 1]); }
+        else if(it.kind === 'LightBall'){ if(/^ピカチュウ/.test(a.p.name)) opts.push([it.name, 6]); }
+        else if(it.type && it.type === mv.type) opts.push([it.name, 3]);
+      });
+      if(opts.length){
+        var ai = dqWeighted(opts);
+        dqTryAdd(q, ctx, function(){ a.item = ai; }, function(){ a.item = 'none'; });
+      }
+    }
+    // 防御側の半減きのみ(効果ばつぐんのときだけ意味がある)
+    if(!d.itemForced && dqTypeIsSuper(q, ctx.cur) && Math.random() < 0.3){
+      var berry = dqData().berries.filter(function(it){ return it.type === mv.type; })[0];
+      if(berry) dqTryAdd(q, ctx, function(){ d.item = berry.name; }, function(){ d.item = 'none'; });
+    }
+    // ランク(攻撃側は使う能力値、防御側は受ける能力値)
+    if(Math.random() < 0.18){
+      var ar = dqWeighted([[1,60],[2,25],[-1,10],[-2,5]]);
+      dqTryAdd(q, ctx, function(){ a.stats.ranks[a.stat] = String(ar); }, function(){ a.stats.ranks[a.stat] = '0'; });
+    }
+    if(Math.random() < 0.12){
+      var dr = dqWeighted([[1,55],[2,20],[-1,18],[-2,7]]);
+      dqTryAdd(q, ctx, function(){ d.stats.ranks[d.stat] = String(dr); }, function(){ d.stats.ranks[d.stat] = '0'; });
+    }
+    // 壁(物理ならリフレクター、特殊ならひかりのかべ。ゆきのときは半分をオーロラベールに)
+    if(Math.random() < 0.07){
+      var sc = (q.weather === 'ゆき' && Math.random() < 0.5) ? 'auroraVeil' : (cat === '物理' ? 'reflect' : 'lightScreen');
+      dqTryAdd(q, ctx, function(){ q.screen = sc; }, function(){ q.screen = 'none'; });
+    }
+    // 攻撃側の特性の固有条件
+    var moveOrder = q.extra.moveOrder;
+    if(a.ability === 'もらいび' && Math.random() < 0.35)
+      dqTryAdd(q, ctx, function(){ q.extra.flashFireActivated = true; }, function(){ delete q.extra.flashFireActivated; });
+    if(a.ability === 'はりこみ' && Math.random() < 0.3)
+      dqTryAdd(q, ctx, function(){ q.extra.stakeoutSwitchIn = true; }, function(){ delete q.extra.stakeoutSwitchIn; });
+    if(a.ability === 'でんきにかえる' && Math.random() < 0.3)
+      dqTryAdd(q, ctx, function(){ q.extra.charge = true; }, function(){ delete q.extra.charge; });
+    if(a.ability === 'アナライズ'){
+      // 行動順が技の条件で決まっているときはそれに合わせる(後に行動=発動)
+      var analyze = moveOrder ? moveOrder === 'second' : Math.random() < 0.4;
+      if(analyze) dqTryAdd(q, ctx, function(){ q.extra.analyzeMovedLast = true; }, function(){ delete q.extra.analyzeMovedLast; });
+    }
+    if(a.ability === 'そうだいしょう'){
+      // おはかまいりの「倒れた味方」と同じ数にそろえる
+      var so = q.extra.faintedAllies != null ? q.extra.faintedAllies : String(dqWeighted([[0,35],[1,35],[2,30]]));
+      if(so !== '0') dqTryAdd(q, ctx, function(){ q.extra.supremeOverlordFaintedAllies = so; }, function(){ delete q.extra.supremeOverlordFaintedAllies; });
+    }
+  }
+
+  // 1問を作る。作れなければ null(呼び出し側で作り直す)。
+  // opts(テスト用): { attacker: ポケモン名, move: 技名 } で攻撃側・技を固定できる。
+  function dqGenerateOnce(ctx, opts){
+    var pool = dqData().pool;
+    opts = opts || {};
+    for(var at = 0; at < 12 && ctx.calls < DQ_CALC_BUDGET; at++){
+      var aEntry = opts.attacker ? pool.filter(function(e){ return e.p.name === opts.attacker; })[0] : dqPick(pool);
+      if(!aEntry) return null;
+      if(/^ギルガルド\(シールド/.test(aEntry.p.name)) continue; // 攻撃するときはブレードフォルム(受けるときはどちらの姿でもよい)
+      var plan = dqAttackerPlan(aEntry);
+      if(!plan) continue;
+      var planMoves = opts.move ? plan.moves.filter(function(m){ return m.name === opts.move; }) : plan.moves;
+      if(!planMoves.length) continue;
+      var cat = plan.stat === 'C' ? '特殊' : '物理';
+      for(var dt = 0; dt < 4 && ctx.calls < DQ_CALC_BUDGET; dt++){
+        var dEntry = dqPick(pool);
+        var q = { atk: dqMakeSide(aEntry.p, 'attacker', plan.stat), def: null, move: null, cat: cat,
+                  weather: 'なし', field: 'なし', screen: 'none', extra: {}, knobs: [] };
+        var moves = dqShuffle(planMoves).slice(0, 8);
+        for(var mi = 0; mi < moves.length && ctx.calls < DQ_CALC_BUDGET; mi++){
+          var mv = moves[mi];
+          var defStat = (cat === '物理' || DQ_DEF_B_SPECIAL[mv.name]) ? 'B' : 'D';
+          if(!q.def || q.def.stat !== defStat) q.def = dqMakeSide(dEntry.p, 'defender', defStat);
+          // 性格: 分類が能力値で決まる技では、AもCも下げない性格にする
+          if(q.atk.boosted) q.atk.stats.nature = dqNatureFor(plan.stat, aEntry.p, 'attacker', !!DQ_SWITCH_CATEGORY[mv.name]);
+          q.move = mv;
+          q.extra = {}; q.knobs = [];
+          var knob = mv.powerKind && DQ_MOVE_KNOBS[mv.powerKind];
+          if(knob){ var kv = knob.pick(); q.extra[knob.key] = kv; q.knobs.push(knob.label(kv)); }
+          // 防御側の特性が原因で出せないときは、ほかの特性も試す
+          var abils = [q.def.ability].concat(dqShuffle((dEntry.p.abilities || []).filter(function(x){ return x !== q.def.ability; })));
+          for(var ab = 0; ab < abils.length; ab++){
+            q.def.ability = abils[ab];
+            var r = dqCalc(q, ctx);
+            var why = dqCheck(q, r, ctx);
+            if(!why){
+              ctx.cur = r;
+              ctx.added = [];
+              dqAddOptional(q, ctx);
+              dqPrune(q, ctx);
+              q.result = dqCalc(q, ctx);
+              return q;
+            }
+            // 威力・相性が原因(高すぎ・低すぎ・タイプ無効)なら特性を変えても同じなので、次の技へ
+            if(why === 'high' || why === 'low' || why === 'nointeger' || why === 'category' || why === 'error') break;
+            if(why === 'invalid' && r && r.typeRate4096 === 0) break;
+          }
+        }
+      }
+    }
+    return null;
+  }
+  function dqGenerate(opts){
+    for(var i = 0; i < 20; i++){
+      var ctx = { calls: 0, cur: null };
+      var q = dqGenerateOnce(ctx, opts);
+      if(q){ q.calls = ctx.calls; return q; }
+    }
+    return null;
+  }
+
+  // 判定: 答え(整数%)が、乱数の幅(最低〜最高の割合。丸めない値)の中にあれば正解(端ちょうども正解)。
+  // 外れたら、近い方の端との差(小数点以下切り上げ)がダメージ。lo〜hi は正解になる整数の範囲。
+  var DQ_EPS = 1e-9;
+  function dqRange(r){
+    return { lo: Math.ceil(r.minRate - DQ_EPS), hi: Math.floor(r.maxRate + DQ_EPS) };
+  }
+  function dqJudge(r, answer){
+    var rg = dqRange(r), diff = 0;
+    if(answer < r.minRate - DQ_EPS) diff = Math.ceil(r.minRate - answer - DQ_EPS);
+    else if(answer > r.maxRate + DQ_EPS) diff = Math.ceil(answer - r.maxRate - DQ_EPS);
+    return { lo: rg.lo, hi: rg.hi, diff: diff, correct: diff === 0 };
+  }
+  // 結果に出す割合(小数第2位)。最低は切り上げ・最高は切り捨てにして、表示と判定が食い違わないようにする。
+  function dqRateText(v, up){
+    var x = up ? Math.ceil(v * 100 - DQ_EPS) / 100 : Math.floor(v * 100 + DQ_EPS) / 100;
+    return x.toFixed(2);
+  }
+  // テスト用(回帰テストから呼ぶ)
+  window.__damekeDmgQuiz = { generate: dqGenerate, judge: dqJudge, buildInput: dqBuildInput, describe: function(q){ return dqDescribe(q); } };
+
+  // ---- 表示用の文字 ----
+  var DQ_STAT_LABEL = { H:'H', A:'A', B:'B', C:'C', D:'D', S:'S' };
+  function dqRankText(v){ v = Number(v) || 0; return v > 0 ? '+' + v : (v < 0 ? '−' + (-v) : ''); }
+  function dqGenderText(g){ return g === 'male' ? '♂' : (g === 'female' ? '♀' : ''); }
+  // 画面に出す能力値: 攻撃側は使う能力値、防御側はHと受ける能力値。分類が能力値で決まる技は、決めるのに使う能力値もすべて出す。
+  function dqStatRows(side, isDef, move){
+    var rows = [];
+    var bs = side.p.baseStats;
+    var sw = DQ_SWITCH_CATEGORY[move.name];
+    var keys = isDef ? ['H'].concat(sw && sw.def.length ? sw.def : [side.stat]) : (sw ? sw.atk : [side.stat]);
+    keys.forEach(function(k){
+      rows.push({ k: k, base: bs[k], ev: side.stats.evs[k], up: side.boosted && k === side.stat, rank: k === 'H' ? '' : dqRankText(side.stats.ranks[k]) });
+    });
+    return rows;
+  }
+  // 画面に出す条件の一覧(テストでも使う)
+  function dqDescribe(q){
+    var r = q.result || {};
+    var hits = r.hitPlan && r.hitPlan.length > 1 ? r.hitPlan.length : 0;
+    var field = [];
+    if(q.weather !== 'なし') field.push('天候：' + (DQ_WEATHER_LABELS[q.weather] || q.weather));
+    if(q.field !== 'なし') field.push(q.field);
+    if(q.screen !== 'none') field.push(DQ_SCREEN_LABELS[q.screen] || q.screen);
+    var notes = q.knobs.slice();
+    if(q.extra.flashFireActivated) notes.push('もらいび発動中');
+    if(q.extra.stakeoutSwitchIn) notes.push('はりこみ発動(相手が交代で登場)');
+    if(q.extra.charge) notes.push('じゅうでん状態');
+    if(q.extra.analyzeMovedLast) notes.push('アナライズ発動(後に行動)');
+    if(q.extra.supremeOverlordFaintedAllies) notes.push('そうだいしょう(倒れた味方' + q.extra.supremeOverlordFaintedAllies + '匹)');
+    return {
+      attacker: q.atk.p.name, defender: q.def.p.name, move: q.move.name, hits: hits,
+      atkAbility: q.atk.ability, defAbility: q.def.ability, atkItem: q.atk.item, defItem: q.def.item,
+      atkGender: q.atk.gender, defGender: q.def.gender, atkNature: q.atk.stats.nature, defNature: q.def.stats.nature,
+      atkStats: dqStatRows(q.atk, false, q.move), defStats: dqStatRows(q.def, true, q.move),
+      field: field, notes: notes
+    };
+  }
+
+  // ---- ゲームの状態 ----
+  var dqState = null;   // { life, score, streak, q, answer, judged, over, next }
+  function dqNewGame(){
+    dqState = { life: DQ_LIFE_MAX, score: 0, streak: 0, qno: 0, calcOpen: false, q: null, answer: 50, judged: null, over: false, next: null, lastHeal: 0, lastDamage: 0 };
+  }
+
+  function renderDmgQuizGame(host){
+    var wrap = document.createElement('div');
+    wrap.className = 'dameke-dmgq-wrap';
+
+    var title = document.createElement('h3');
+    title.className = 'dameke-minigame-title';
+    title.textContent = 'ダメージ予想';
+    wrap.appendChild(title);
+
+    var rules = buildMinigameFold('ルール');
+    rules.body.className = 'dameke-minigame-rules-body';
+    rules.body.innerHTML =
+      '<p>表示された条件で技を使ったとき、相手のHPの何%を削るかを予想してください(ダメージ計算機と同じ計算です)。相手のHPゲージを動かして(押す・なぞる・−1/+1ボタン・矢印キー)、技を受けた後の残りHPを決め、「決定」を押します。答えはダメージの割合(100%−残り)で判定します。</p>' +
+      '<p>答えが乱数の幅(最低〜最高の割合)の中にあれば正解です(端ちょうども正解。例: 40.42%〜51.06%なら41〜51が正解)。外れたときは、近い方の端との差(小数点以下切り上げ)だけライフが減り、0になるとゲーム終了です。</p>' +
+      '<p>連続で正解すると、2問目から正解するたびにライフが' + DQ_STREAK_HEAL + '回復します(最大' + DQ_LIFE_MAX + ')。得点は到達した問題数(ゲーム終了になった問題を含む)です。正解数もあわせて表示します。</p>' +
+      '<p>レベルは50、個体値はすべて31、HPは満タン、急所には当たりません(必ず急所に当たる技は除く)。連続技は最大回数当たります。表示のない条件(状態異常・テラスタルなど)はありません。' +
+      '性格は、表示した能力値を上げるもの(↑)か、補正なしです(計算に使う能力値は下がりません)。</p>';
+    wrap.appendChild(rules.fold);
+
+    var statusBar = document.createElement('div');
+    statusBar.className = 'dameke-dmgq-status';
+    wrap.appendChild(statusBar);
+
+    var board = document.createElement('div');
+    board.className = 'dameke-dmgq-board';
+    wrap.appendChild(board);
+
+    var answerBox = document.createElement('div');
+    answerBox.className = 'dameke-dmgq-answer';
+    wrap.appendChild(answerBox);
+
+    host.appendChild(wrap);
+
+    // ---- ライフ・得点 ----
+    function renderStatus(){
+      var st = dqState;
+      statusBar.innerHTML = '';
+      var life = document.createElement('div');
+      life.className = 'dameke-dmgq-life';
+      var lab = document.createElement('span');
+      lab.className = 'dameke-dmgq-life-label';
+      lab.textContent = 'ライフ';
+      var track = document.createElement('div');
+      track.className = 'dameke-dmgq-life-track';
+      var fill = document.createElement('div');
+      fill.className = 'dameke-dmgq-life-fill' + (st.life <= 25 ? ' dameke-dmgq-life-low' : (st.life <= 50 ? ' dameke-dmgq-life-mid' : ''));
+      var pct = function(v){ return Math.max(0, v) / DQ_LIFE_MAX * 100 + '%'; };
+      var dl = st.judged ? st.lifeDelta : null;
+      track.appendChild(fill);
+      if(dl && dl.to !== dl.from){
+        // 減った分・増えた分をゲージの上に重ねて出す(次の問題へ進むまで残す)
+        var seg = document.createElement('div');
+        var loss = dl.to < dl.from;
+        seg.className = 'dameke-dmgq-life-delta ' + (loss ? 'dameke-dmgq-life-delta-loss' : 'dameke-dmgq-life-delta-gain');
+        seg.style.left = pct(Math.min(dl.from, dl.to));
+        seg.style.width = pct(Math.abs(dl.to - dl.from));
+        track.appendChild(seg);
+        // ゲージは前の値から新しい値へ動かす
+        fill.style.width = pct(dl.anim ? dl.from : dl.to);
+        if(dl.anim){ dl.anim = false; setTimeout(function(){ fill.style.width = pct(dl.to); }, 30); }
+      } else fill.style.width = pct(st.life);
+      var num = document.createElement('span');
+      num.className = 'dameke-dmgq-life-num';
+      num.textContent = Math.max(0, st.life) + ' / ' + DQ_LIFE_MAX;
+      if(dl && dl.to !== dl.from){
+        var dd = document.createElement('span');
+        dd.className = 'dameke-dmgq-life-diff ' + (dl.to < dl.from ? 'dameke-dmgq-life-diff-loss' : 'dameke-dmgq-life-diff-gain');
+        dd.textContent = (dl.to < dl.from ? '−' : '+') + Math.abs(dl.to - dl.from);
+        num.appendChild(dd);
+      }
+      life.appendChild(lab); life.appendChild(track); life.appendChild(num);
+      statusBar.appendChild(life);
+      var score = document.createElement('div');
+      score.className = 'dameke-dmgq-score';
+      score.innerHTML = '<span class="dameke-dmgq-qno">第<b>' + Math.max(1, st.qno) + '</b>問</span><span>正解 ' + st.score + '</span><span>連続 ' + st.streak + '</span>';
+      statusBar.appendChild(score);
+    }
+
+    // ---- 出題の表示 ----
+    function sideCard(side, role, desc, isDef){
+      var card = document.createElement('div');
+      card.className = 'dameke-dmgq-side dameke-dmgq-side-' + (isDef ? 'def' : 'atk');
+      var head = document.createElement('div');
+      head.className = 'dameke-dmgq-side-head';
+      var thumb = document.createElement('div');
+      thumb.className = 'dameke-dmgq-thumb';
+      var img = window.__damekeBuildPokemonImage
+        ? window.__damekeBuildPokemonImage(side.p.name, function(){ thumb.classList.add('dameke-dmgq-thumb-missing'); thumb.innerHTML = ''; })
+        : null;
+      if(img) thumb.appendChild(img); else thumb.classList.add('dameke-dmgq-thumb-missing');
+      head.appendChild(thumb);
+      var names = document.createElement('div');
+      names.className = 'dameke-dmgq-names';
+      var roleEl = document.createElement('div');
+      roleEl.className = 'dameke-dmgq-role';
+      roleEl.textContent = role;
+      var nm = document.createElement('div');
+      nm.className = 'dameke-dmgq-name';
+      nm.textContent = side.p.name;
+      var gtxt = dqGenderText(side.gender);
+      if(gtxt){ var gs = document.createElement('span'); gs.className = 'dameke-dmgq-gender dameke-dmgq-gender-' + side.gender; gs.textContent = gtxt; nm.appendChild(gs); }
+      var types = document.createElement('div');
+      types.className = 'dameke-dmgq-types';
+      types.innerHTML = window.DAMEKE_COMMON ? window.DAMEKE_COMMON.typeBadgesHtml(side.p.types) : side.p.types.join('/');
+      names.appendChild(roleEl); names.appendChild(nm); names.appendChild(types);
+      head.appendChild(names);
+      card.appendChild(head);
+
+      var dl = document.createElement('dl');
+      dl.className = 'dameke-dmgq-props';
+      function prop(k, v, muted){
+        var dt = document.createElement('dt'); dt.textContent = k;
+        var dd = document.createElement('dd'); dd.textContent = v;
+        if(muted) dd.className = 'dameke-dmgq-muted';
+        dl.appendChild(dt); dl.appendChild(dd);
+      }
+      prop('特性', side.ability);
+      prop('持ち物', side.item === 'none' ? 'なし' : side.item, side.item === 'none');
+      card.appendChild(dl);
+
+      var stats = document.createElement('div');
+      stats.className = 'dameke-dmgq-stats';
+      (isDef ? desc.defStats : desc.atkStats).forEach(function(row){
+        var s = document.createElement('div');
+        s.className = 'dameke-dmgq-stat';
+        var k = document.createElement('span'); k.className = 'dameke-dmgq-stat-key'; k.textContent = DQ_STAT_LABEL[row.k];
+        var b = document.createElement('span'); b.className = 'dameke-dmgq-stat-base'; b.textContent = row.base;
+        var e = document.createElement('span'); e.className = 'dameke-dmgq-stat-ev' + (row.ev === '32' ? ' dameke-dmgq-stat-ev-on' : ''); e.textContent = '努力値' + row.ev;
+        s.appendChild(k); s.appendChild(b); s.appendChild(e);
+        if(row.up){ var u = document.createElement('span'); u.className = 'dameke-dmgq-stat-up'; u.textContent = '性格↑'; s.appendChild(u); }
+        if(row.rank){ var rk = document.createElement('span'); rk.className = 'dameke-dmgq-stat-rank' + (row.rank.charAt(0) === '+' ? ' dameke-dmgq-stat-rank-up' : ' dameke-dmgq-stat-rank-down'); rk.textContent = 'ランク' + row.rank; s.appendChild(rk); }
+        stats.appendChild(s);
+      });
+      card.appendChild(stats);
+      return card;
+    }
+
+    function renderBoard(){
+      var st = dqState;
+      board.innerHTML = '';
+      if(!st.q){
+        var wait = document.createElement('div');
+        wait.className = 'dameke-dmgq-wait';
+        wait.textContent = '出題中…';
+        board.appendChild(wait);
+        return;
+      }
+      var q = st.q, desc = dqDescribe(q);
+      var sides = document.createElement('div');
+      sides.className = 'dameke-dmgq-sides';
+      sides.appendChild(sideCard(q.atk, '攻撃側', desc, false));
+      var arrow = document.createElement('div');
+      arrow.className = 'dameke-dmgq-arrow';
+      arrow.setAttribute('aria-hidden', 'true');
+      arrow.textContent = '→';
+      sides.appendChild(arrow);
+      sides.appendChild(sideCard(q.def, '防御側', desc, true));
+      board.appendChild(sides);
+
+      var mv = document.createElement('div');
+      mv.className = 'dameke-dmgq-move';
+      var mvName = document.createElement('span');
+      mvName.className = 'dameke-party-type-badge dameke-dmgq-move-name ' + (window.DAMEKE_COMMON ? window.DAMEKE_COMMON.typeColorClass(q.move.type) : '');
+      mvName.textContent = q.move.name;
+      mv.appendChild(mvName);
+      var meta = document.createElement('span');
+      meta.className = 'dameke-dmgq-move-meta';
+      meta.textContent = q.move.type + '・' + (DQ_SWITCH_CATEGORY[q.move.name] ? '物理か特殊(能力値で決まる)' : q.move.category) + ((q.move.powerKind && ['TripleAxel','TripleKick','WaterShuriken'].indexOf(q.move.powerKind) < 0) ? '・威力は条件で変化' : '・威力' + q.move.power) + (desc.hits ? '・' + desc.hits + '回ヒット' : '');
+      mv.appendChild(meta);
+      board.appendChild(mv);
+
+      var chips = document.createElement('div');
+      chips.className = 'dameke-dmgq-chips';
+      var list = desc.field.map(function(t){ return { t: t, cls: 'field' }; }).concat(desc.notes.map(function(t){ return { t: t, cls: 'note' }; }));
+      if(!desc.field.length) list.unshift({ t: '天候・フィールド・壁なし', cls: 'none' });
+      list.forEach(function(c){
+        var s = document.createElement('span');
+        s.className = 'dameke-dmgq-chip dameke-dmgq-chip-' + c.cls;
+        s.textContent = c.t;
+        chips.appendChild(s);
+      });
+      board.appendChild(chips);
+    }
+
+    // ---- 答えの入力(HPバー+スライダー+±1)と結果 ----
+    function renderAnswer(){
+      var st = dqState;
+      answerBox.innerHTML = '';
+      if(st.over){
+        var over = document.createElement('div');
+        over.className = 'dameke-dmgq-over';
+        over.innerHTML = '<div class="dameke-dmgq-over-title">ゲーム終了</div><div class="dameke-dmgq-over-score">到達 <b>' + st.qno + '</b>問目<span class="dameke-dmgq-over-sub">(正解 ' + st.score + '問)</span></div>';
+        answerBox.appendChild(over);
+      }
+      if(!st.q){ if(st.over) answerBox.appendChild(retryBtn()); return; }
+
+      // HPゲージそのものを動かして、技を受けた後の残りHPを予想する(答えはダメージ割合=100−残り)。
+      var bar = document.createElement('div');
+      bar.className = 'dameke-dmgq-hp';
+      var barHead = document.createElement('div');
+      barHead.className = 'dameke-dmgq-hp-head';
+      var barLabel = document.createElement('span');
+      barLabel.className = 'dameke-dmgq-hp-label';
+      barLabel.textContent = st.q.def.p.name + 'のHP';
+      var barHint = document.createElement('span');
+      barHint.className = 'dameke-dmgq-hp-hint';
+      barHint.textContent = st.judged ? '' : 'ゲージを動かして予想';
+      barHead.appendChild(barLabel); barHead.appendChild(barHint);
+      bar.appendChild(barHead);
+      var track = document.createElement('div');
+      track.className = 'dameke-dmgq-hp-track' + (st.judged ? '' : ' dameke-dmgq-hp-track-input');
+      var remain = document.createElement('div');
+      remain.className = 'dameke-dmgq-hp-remain';
+      var lost = document.createElement('div');
+      lost.className = 'dameke-dmgq-hp-lost';
+      track.appendChild(remain); track.appendChild(lost);
+      var handle = null;
+      if(!st.judged){
+        handle = document.createElement('div');
+        handle.className = 'dameke-dmgq-hp-handle';
+        track.appendChild(handle);
+        track.tabIndex = 0;
+        track.setAttribute('role', 'slider');
+        track.setAttribute('aria-label', '技を受けた後の残りHP(%)');
+        track.setAttribute('aria-valuemin', '0');
+        track.setAttribute('aria-valuemax', '99');
+      } else {
+        // 正解の幅(乱数の幅)と、自分の答えの位置を重ねて出す。バーは左が残りHP、右が削った分。
+        var j = st.judged;
+        var band = document.createElement('div');
+        band.className = 'dameke-dmgq-hp-band';
+        band.style.left = (100 - st.q.result.maxRate) + '%';
+        band.style.width = Math.max(0.6, st.q.result.maxRate - st.q.result.minRate) + '%';
+        track.appendChild(band);
+        var mark = document.createElement('div');
+        mark.className = 'dameke-dmgq-hp-mark ' + (j.correct ? 'dameke-dmgq-hp-mark-ok' : 'dameke-dmgq-hp-mark-ng');
+        mark.style.left = (100 - st.answer) + '%';
+        track.appendChild(mark);
+      }
+      bar.appendChild(track);
+      answerBox.appendChild(bar);
+
+      var ctrl = document.createElement('div');
+      ctrl.className = 'dameke-dmgq-ctrl';
+      function stepBtn(txt, d, label){
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'dameke-search-add-btn dameke-dmgq-step';
+        b.textContent = txt;
+        b.disabled = !!st.judged;
+        b.setAttribute('aria-label', label);
+        b.addEventListener('click', function(){ setAnswer(st.answer + d); });
+        return b;
+      }
+      // 数値: 残りHP(大きく)とダメージ割合(補助)
+      var num = document.createElement('div');
+      num.className = 'dameke-dmgq-num';
+      var numMain = document.createElement('div');
+      numMain.className = 'dameke-dmgq-num-main';
+      var numSub = document.createElement('div');
+      numSub.className = 'dameke-dmgq-num-sub';
+      num.appendChild(numMain); num.appendChild(numSub);
+      // ゲージと同じ向き: 左のボタンで残りHPが減る(ダメージが増える)
+      ctrl.appendChild(stepBtn('−1', 1, '残りHPを1%減らす'));
+      ctrl.appendChild(num);
+      ctrl.appendChild(stepBtn('+1', -1, '残りHPを1%増やす'));
+      var go = document.createElement('button');
+      go.type = 'button';
+      if(!st.judged){
+        go.className = 'dameke-minigame-retry-btn dameke-dmgq-go';
+        go.textContent = '決定';
+        go.addEventListener('click', submit);
+      } else if(!st.over){
+        go.className = 'dameke-minigame-retry-btn dameke-dmgq-go';
+        go.textContent = '次の問題';
+        go.addEventListener('click', nextQuestion);
+      }
+      if(!st.over) ctrl.appendChild(go);
+      answerBox.appendChild(ctrl);
+
+      function paint(){
+        var v = st.answer, left = 100 - v;
+        remain.style.width = left + '%';
+        lost.style.width = v + '%';
+        remain.className = 'dameke-dmgq-hp-remain' + (left <= 20 ? ' dameke-dmgq-hp-red' : (left <= 50 ? ' dameke-dmgq-hp-yellow' : ''));
+        if(handle) handle.style.left = left + '%';
+        numMain.textContent = '残り ' + left + '%';
+        numSub.textContent = 'ダメージ ' + v + '%';
+        if(!st.judged){
+          track.setAttribute('aria-valuenow', String(left));
+          track.setAttribute('aria-valuetext', '残りHP ' + left + '%(ダメージ ' + v + '%)');
+        }
+      }
+      function setAnswer(v){
+        st.answer = Math.max(1, Math.min(100, Math.round(v)));
+        paint();
+      }
+      if(!st.judged){
+        var dragging = false;
+        var fromPointer = function(e){
+          var rc = track.getBoundingClientRect();
+          if(!(rc.width > 0)) return;
+          var left = Math.round((e.clientX - rc.left) / rc.width * 100);
+          setAnswer(100 - Math.max(0, Math.min(99, left)));
+        };
+        track.addEventListener('pointerdown', function(e){
+          dragging = true;
+          try { track.setPointerCapture(e.pointerId); } catch(err){}
+          track.focus({ preventScroll: true });
+          fromPointer(e);
+          e.preventDefault();
+        });
+        track.addEventListener('pointermove', function(e){ if(dragging) fromPointer(e); });
+        var stop = function(){ dragging = false; };
+        track.addEventListener('pointerup', stop);
+        track.addEventListener('pointercancel', stop);
+        track.addEventListener('keydown', function(e){
+          var d = { ArrowLeft: 1, ArrowDown: 1, ArrowRight: -1, ArrowUp: -1, PageDown: 10, PageUp: -10 }[e.key];
+          if(e.key === 'Home') setAnswer(100);
+          else if(e.key === 'End') setAnswer(1);
+          else if(d) setAnswer(st.answer + d);
+          else if(e.key === 'Enter'){ submit(); return; }
+          else return;
+          e.preventDefault();
+        });
+      }
+      paint();
+
+      if(st.judged){
+        var j2 = st.judged, r = st.q.result;
+        var res = document.createElement('div');
+        res.className = 'dameke-dmgq-result ' + (j2.correct ? 'dameke-dmgq-result-ok' : 'dameke-dmgq-result-ng');
+        var head = document.createElement('div');
+        head.className = 'dameke-dmgq-result-head';
+        head.textContent = j2.correct ? '正解！' : ('はずれ　ライフ −' + j2.diff);
+        if(j2.correct && st.lastHeal) head.textContent += '　ライフ +' + st.lastHeal;
+        res.appendChild(head);
+        var body = document.createElement('div');
+        body.className = 'dameke-dmgq-result-body';
+        [['答え ダメージ ' + dqRateText(r.minRate, true) + '%〜' + dqRateText(r.maxRate, false) + '%', '(' + r.minDamage + '〜' + r.maxDamage + ' / HP' + r.defenderMaxHp + ')'],
+         ['正解の範囲 ダメージ ' + (j2.lo === j2.hi ? j2.lo : j2.lo + '〜' + j2.hi) + '%', '(残り ' + (j2.lo === j2.hi ? 100 - j2.lo : (100 - j2.hi) + '〜' + (100 - j2.lo)) + '%)'],
+         ['あなたの予想 ダメージ ' + st.answer + '%', '(残り ' + (100 - st.answer) + '%)']].forEach(function(parts){
+          var line = document.createElement('div');
+          parts.forEach(function(t){ var sp = document.createElement('span'); sp.className = 'dameke-dmgq-nowrap'; sp.textContent = t; line.appendChild(sp); });
+          body.appendChild(line);
+        });
+        res.appendChild(body);
+        answerBox.appendChild(res);
+        // 計算過程(計算機の結果枠の「計算過程」と同じ表。計算機の表とは別に作る)
+        var calcFold = buildMinigameFold('計算過程');
+        calcFold.fold.classList.add('dameke-dmgq-calc-fold');
+        calcFold.fold.open = !!st.calcOpen;
+        calcFold.fold.addEventListener('toggle', function(){ st.calcOpen = calcFold.fold.open; });
+        if(!r.effectSummary && window.DAMEKE_CALC.describeMoveEffects){
+          try { r.effectSummary = window.DAMEKE_CALC.describeMoveEffects(dqBuildInput(st.q), r); } catch(e){ r.effectSummary = null; }
+        }
+        var tbl = window.__damekeRenderCalcTable ? window.__damekeRenderCalcTable(r, 'damekeDmgqCalcTable', { defenderTeraType: 'なし' }) : null;
+        if(tbl){ calcFold.body.appendChild(tbl); answerBox.appendChild(calcFold.fold); }
+        if(st.over) answerBox.appendChild(retryBtn());
+      }
+    }
+
+    function retryBtn(){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'dameke-minigame-retry-btn dameke-dmgq-retry';
+      b.textContent = 'もう一度遊ぶ';
+      b.addEventListener('click', function(){ dqNewGame(); nextQuestion(); });
+      return b;
+    }
+
+    function submit(){
+      var st = dqState;
+      if(!st.q || st.judged) return;
+      var j = dqJudge(st.q.result, st.answer);
+      st.judged = j;
+      st.lastHeal = 0;
+      var lifeBefore = st.life;
+      if(j.correct){
+        st.score++;
+        st.streak++;
+        if(st.streak >= 2){
+          var before = st.life;
+          st.life = Math.min(DQ_LIFE_MAX, st.life + DQ_STREAK_HEAL);
+          st.lastHeal = st.life - before;
+        }
+      } else {
+        st.streak = 0;
+        st.life -= j.diff;
+        if(st.life <= 0){ st.life = 0; st.over = true; }
+      }
+      st.lifeDelta = { from: lifeBefore, to: st.life, anim: true };
+      renderAll();
+      if(!st.over) prefetch();
+    }
+
+    // 次の問題は、結果を見ている間に先に作っておく
+    function prefetch(){
+      var st = dqState;
+      if(st.next) return;
+      setTimeout(function(){ if(dqState === st && !st.next) st.next = dqGenerate(); }, 30);
+    }
+    function nextQuestion(){
+      var st = dqState;
+      st.judged = null;
+      st.lifeDelta = null;
+      st.answer = 50;
+      if(st.next){ st.q = st.next; st.next = null; st.qno++; renderAll(); return; }
+      st.q = null;
+      renderAll();
+      (function tryGen(){
+        setTimeout(function(){
+          if(dqState !== st) return;
+          st.q = dqGenerate();
+          if(!st.q){ tryGen(); return; } // まれに作れなかったときは作り直す
+          st.qno++;
+          renderAll();
+        }, 20);
+      })();
+    }
+
+    function renderAll(){ renderStatus(); renderBoard(); renderAnswer(); }
+
+    if(!dqState){ dqNewGame(); }
+    if(!dqState.q && !dqState.over) nextQuestion(); else renderAll();
   }
 })();
