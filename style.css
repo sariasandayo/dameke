@@ -1651,9 +1651,15 @@ select.dameke-type-select option{background-color:var(--dameke-surface);color:va
 .dameke-tcb-field{display:flex;flex-direction:column;gap:4px;}
 .dameke-tcb-side{display:flex;flex-direction:column;gap:8px;min-width:0;}
 .dameke-tcb-deck{display:flex;flex-direction:column;gap:4px;}
+.dameke-tcb-env{display:flex;flex-direction:column;gap:3px;}
+.dameke-tcb-env-row{display:flex;flex-wrap:wrap;align-items:center;gap:2px 6px;font-size:.74rem;}
+.dameke-tcb-env-key{font-weight:700;color:var(--dameke-text-secondary);white-space:nowrap;}
+.dameke-tcb-env-val{font-weight:800;color:var(--dameke-text-heading);border:1px solid var(--dameke-border-strong);border-radius:999px;padding:1px 10px;white-space:nowrap;}
+.dameke-tcb-env-none .dameke-tcb-env-val{font-weight:400;color:var(--dameke-text-faint);border-style:dashed;}
 .dameke-tcb-lastplay{font-size:.76rem;color:var(--dameke-text-mid);line-height:1.5;}
 .dameke-tcb-lastplay-head{font-weight:700;color:var(--dameke-text-secondary);}
 .dameke-tcb-lastplay-detail{overflow-wrap:anywhere;}
+.dameke-tcb-fx-trace{font-size:.9rem;font-weight:700;color:var(--dameke-accent-soft-text);text-align:center;}
 .dameke-tcb-lastplay-shudder,.dameke-tcb-fx-shudder{font-weight:700;color:var(--dameke-tint-amber-text);}
 .dameke-tcb-message{font-size:.88rem;font-weight:700;color:var(--dameke-text-heading);border-radius:8px;padding:6px 10px;background:var(--dameke-surface);border:1px solid var(--dameke-border);}
 .dameke-tcb-message-win{background:var(--dameke-tint-blue-bg);border-color:var(--dameke-tint-blue-border);}
@@ -1751,6 +1757,7 @@ button.dameke-tcb-card-wait:hover{border-color:var(--dameke-border);}
 .dameke-tcb-new-btn[hidden]{display:none;}
 .dameke-tcb-handitem{display:flex;flex-direction:column;gap:3px;min-width:0;}
 .dameke-tcb-handitem > .dameke-tcb-card{flex:1 1 auto;}
+.dameke-tcb-face-select:disabled{opacity:.55;cursor:not-allowed;}
 .dameke-tcb-face-select{flex:1 1 auto;width:auto;min-width:0;font-size:.72rem;padding:2px 2px;border:1px solid var(--dameke-border-strong);border-radius:6px;background:var(--dameke-surface);color:var(--dameke-text);}
 .dameke-tcb-card-label.dameke-tcb-label-play{position:static;align-self:stretch;background:#2563eb;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;margin:-1px -1px 2px;}
 /* 演出: 出した札・交換・カットイン(押すと早送り) */
@@ -1827,7 +1834,7 @@ button.dameke-tcb-card-wait:hover{border-color:var(--dameke-border);}
 .dameke-tcb-tera-badge{font-size:.56rem;padding:0 4px;}
 .dameke-tcb-card-teraline-on{font-weight:800;color:#0e7490;}
 .dameke-tcb-card-teraline-no{color:var(--dameke-text-faint);}
-.dameke-tcb-hand-gas .dameke-tcb-card-ability{text-decoration:line-through;text-decoration-thickness:2px;color:var(--dameke-text-faint);}
+.dameke-tcb-hand-gas .dameke-tcb-card-ability:not(.dameke-tcb-card-ability-gasproof){text-decoration:line-through;text-decoration-thickness:2px;color:var(--dameke-text-faint);}
 .dameke-tcb-card-tera{border-color:#06b6d4;background:linear-gradient(160deg,rgba(103,232,249,.22),transparent 45%,rgba(167,139,250,.18)),var(--dameke-surface);box-shadow:0 0 0 2px rgba(6,182,212,.3),0 0 12px rgba(34,211,238,.45);}
 .dameke-tcb-card-label.dameke-tcb-label-tera{background:#0891b2;color:#fff;}
 .dameke-tcb-choice-active.dameke-tcb-choice-boost-T{background:#0891b2;border-color:#0891b2;color:#fff;box-shadow:0 0 0 3px rgba(8,145,178,.3);}

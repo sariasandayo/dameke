@@ -2131,7 +2131,7 @@
   // ==================== 相性カードバトル ====================
   // 最終進化のポケモンをカードにして、CPUと1枚ずつ交互に出し合うゲーム。
   // ・出したカードは、場のカードへの「タイプ相性の倍率」を点数として得る。点数は出したカードの2タイプ
-  //   それぞれの倍率の合計(単タイプは同じタイプで2回分)。倍率には場のカードの特性も反映する
+  //   それぞれの倍率の合計(単タイプはそのタイプの倍率×1.5)。倍率には場のカードの特性も反映する
   //   (計算はダメージ計算・補完ポケモン出力と同じ DAMEKE_CALC.computeTypeEffectiveness)。
   //   攻撃側の特性が かたやぶり/テラボルテージ/ターボブレイズ/かがくへんかガス のときは、場のカードの
   //   特性を見ない。
@@ -2143,7 +2143,8 @@
   //   平均の点差が最もよい手を選ぶ。
   var TCB_HAND = 6, TCB_DECK = 5, TCB_POOL = 1 + TCB_HAND * 2 + TCB_DECK; // 18枚
   var TCB_MASKMUL = Math.pow(2, TCB_POOL);
-  var TCB_Z_MULT = 2, TCB_D_MULT = 1.5, TCB_D_TAKEN = 0.5, TCB_T_MULT = 1.25;
+  var TCB_Z_MULT = 1.75, TCB_D_MULT = 1.3, TCB_D_TAKEN = 0.5, TCB_T_MULT = 1.5;
+  var TCB_MONO_MULT = 1.5; // 単タイプは1回分×1.5(タイプ一致補正のイメージ)
   var TCB_BYPASS = { 'かたやぶり': true, 'テラボルテージ': true, 'ターボブレイズ': true, 'かがくへんかガス': true };
   var TCB_LEVELS = [['weak', 'よわい'], ['normal', 'ふつう'], ['strong', 'つよい']];
   var TCB_TYPES = ['ノーマル','ほのお','みず','でんき','くさ','こおり','かくとう','どく','じめん','ひこう','エスパー','むし','いわ','ゴースト','ドラゴン','あく','はがね','フェアリー'];
@@ -2164,29 +2165,82 @@
     return r / 4096;
   }
   // 受けるときの相性に関わる特性か(ダメージ計算側の判定をそのまま使う)。
-  function tcbDefRelevant(ab){ var C = window.DAMEKE_CALC; return !!(ab && C && C.isTypeRelevantAbility && C.isTypeRelevantAbility(ab)); }
+  // (おわりのだいち・はじまりのうみ・デルタストリームは、このゲームでは天候を起こす特性として扱う)
+  function tcbDefRelevant(ab){ var C = window.DAMEKE_CALC; return !!(ab && !TCB_SET_W[ab] && C && C.isTypeRelevantAbility && C.isTypeRelevantAbility(ab)); }
   // このゲーム独自に扱う特性(倍率を点数に掛ける)。
   var TCB_DEF_FILTER = { 'ハードロック': true, 'フィルター': true, 'プリズムアーマー': true }; // ばつぐんの点×0.75
-  var TCB_DEF_EXTRA = { 'ふしぎなまもり': true, 'テラスシェル': true, 'ハードロック': true, 'フィルター': true, 'プリズムアーマー': true };
-  var TCB_ATK_EXTRA = { 'いろめがね': true, 'きもったま': true, 'しんがん': true, 'ブレインフォース': true };
+  var TCB_AURA = { 'フェアリーオーラ': 'フェアリー', 'ダークオーラ': 'あく' };
+  var TCB_DEF_EXTRA = { 'かんそうはだ': true, 'オーラブレイク': true, 'ふしぎなまもり': true, 'テラスシェル': true, 'ハードロック': true, 'フィルター': true, 'プリズムアーマー': true };
+  var TCB_ATK_EXTRA = { 'いろめがね': true, 'きもったま': true, 'しんがん': true, 'ブレインフォース': true,
+    'トランジスタ': true, 'りゅうのあぎと': true, 'はがねつかい': true, 'いわはこび': true,
+    'すいほう': true, 'てきおうりょく': true, 'オーラブレイク': true, 'フェアリーオーラ': true, 'ダークオーラ': true };
   var TCB_SCRAPPY = { 'きもったま': true, 'しんがん': true };
+  // そのタイプの点を上げる特性(本編の倍率)。
+  var TCB_TYPE_BOOST = { 'トランジスタ': ['でんき', 1.3], 'りゅうのあぎと': ['ドラゴン', 1.5] };
+  // 3つ目のタイプとして点を数え、合計を2/3にする特性。
+  var TCB_THIRD_TYPE = { 'はがねつかい': 'はがね', 'いわはこび': 'いわ' };
   // かたやぶり・テラボルテージ・ターボブレイズでは無視できない特性('gas' = かがくへんかガスなら無視できる。
   // 'all' = かがくへんかガスでも無視できない、は今は使っていない)。
-  var TCB_UNBREAKABLE = { 'プリズムアーマー': 'gas', 'おわりのだいち': 'gas', 'はじまりのうみ': 'gas', 'デルタストリーム': 'gas' };
+  var TCB_UNBREAKABLE = { 'プリズムアーマー': 'gas' };
+  // ---- 天候・フィールド ----
+  // 場の状態 env = 天候の番号×5 + フィールドの番号(0 はなし)。出したときに起こす特性で変わり、書き換えられるまで続く。
+  var TCB_W_NAMES = ['', 'はれ', 'おおひでり', 'あめ', 'おおあめ', 'すなあらし', 'ゆき', 'らんきりゅう'];
+  var TCB_F_NAMES = ['', 'エレキフィールド', 'グラスフィールド', 'サイコフィールド', 'ミストフィールド'];
+  var TCB_SAND = 5;
+  var TCB_SET_W = { 'ひでり': 1, 'ひひいろのこどう': 1, 'おわりのだいち': 2, 'あめふらし': 3, 'はじまりのうみ': 4, 'すなおこし': 5, 'ゆきふらし': 6, 'デルタストリーム': 7 };
+  var TCB_SET_F = { 'エレキメイカー': 1, 'ハドロンエンジン': 1, 'グラスメイカー': 2, 'サイコメイカー': 3, 'ミストメイカー': 4 };
+  var TCB_CLEAR_W = { 'ノーてんき': true, 'エアロック': true };
+  var TCB_FORECAST = 'てんきや', TCB_MIMICRY = 'ぎたい', TCB_SAND_SPIT = 'すなはき', TCB_SAND_FORCE = 'すなのちから';
+  var TCB_FORECAST_TYPE = { 1: 'ほのお', 2: 'ほのお', 3: 'みず', 4: 'みず', 6: 'こおり' };          // 天候 → てんきやのタイプ
+  var TCB_FORECAST_NAME = { 'ほのお': 'たいようのすがた', 'みず': 'あまみずのすがた', 'こおり': 'ゆきぐものすがた' };
+  var TCB_MIMICRY_TYPE = { 1: 'でんき', 2: 'くさ', 3: 'エスパー', 4: 'フェアリー' };                // フィールド → ぎたいのタイプ
+  var TCB_AIRBORNE_AB = { 'ふゆう': true, 'うなぎのぼり': true };                                   // フィールドの効果を受けない
+  function tcbEnvW(e){ return Math.floor((e || 0) / 5); }
+  function tcbEnvF(e){ return (e || 0) % 5; }
   var TCB_GAS = 'かがくへんかガス';
   var TCB_ANTICIPATION = 'きけんよち';
   var TCB_LIBERO = { 'リベロ': true, 'へんげんじざい': true };
-  function tcbRelevant(ab){ return !!ab && (!!TCB_LIBERO[ab] || ab === 'ARシステム' || ab === 'マルチタイプ' || tcbDefRelevant(ab) || !!TCB_BYPASS[ab] || !!TCB_DEF_EXTRA[ab] || !!TCB_ATK_EXTRA[ab] || ab === TCB_ANTICIPATION); }
+  var TCB_LIBERO_TYPES = 4; // リベロ・へんげんじざいで選べるタイプの数
+  // かがくへんかガスでもなくならない特性(本編と同じ。このゲームで意味があるのはARシステム・マルチタイプ)。
+  var TCB_GAS_PROOF = { 'ARシステム': true, 'マルチタイプ': true, 'バトルスイッチ': true, 'ぜったいねむり': true, 'ばけのかわ': true,
+    'アイスフェイス': true, 'ぎょぐん': true, 'リミットシールド': true, 'スワームチェンジ': true, 'きずなへんげ': true,
+    'うのミサイル': true, 'ダルマモード': true, 'じんばいったい': true, 'ゼロフォーミング': true, 'テラスチェンジ': true, 'マイティチェンジ': true };
+  // トレース: 出したとき、場のカードの特性になる(場のカードとしての特性が変わる)。コピーできない特性は本編と同じ。
+  var TCB_TRACE = 'トレース';
+  var TCB_NO_TRACE = { 'トレース': true, 'かがくへんかガス': true, 'ARシステム': true, 'マルチタイプ': true, 'テラスシェル': true,
+    'テラスチェンジ': true, 'ゼロフォーミング': true, 'おもかげやどし': true, 'かわりもの': true, 'イリュージョン': true,
+    'バトルスイッチ': true, 'ぜったいねむり': true, 'ばけのかわ': true, 'アイスフェイス': true, 'ぎょぐん': true, 'リミットシールド': true,
+    'スワームチェンジ': true, 'きずなへんげ': true, 'うのミサイル': true, 'ダルマモード': true, 'じんばいったい': true,
+    'はらぺこスイッチ': true, 'てんきや': true, 'ぎたい': true, 'レシーバー': true, 'かがくのちから': true, 'しれいとう': true, 'ポイズンパペット': true, 'マイティチェンジ': true };
+  // 場のカードとして(受けるときに)働く特性か。
+  function tcbFieldRelevant(ab){ return !!ab && (tcbDefRelevant(ab) || !!TCB_DEF_EXTRA[ab] || ab === TCB_GAS || ab === TCB_SAND_SPIT || !!TCB_AURA[ab]); }
+  // 特性 ab の場のカードに、特性 atkAb のカードを出したとき、出す側の特性が働くか。
+  function tcbAtkAbWorks(atkAb, fieldAb){ return !!atkAb && (fieldAb !== TCB_GAS || !!TCB_GAS_PROOF[atkAb]); }
+  function tcbRelevant(ab){ return !!ab && (!!TCB_LIBERO[ab] || ab === 'ARシステム' || ab === 'マルチタイプ' || ab === TCB_TRACE || ab === TCB_IMPOSTER || !!TCB_SET_W[ab] || !!TCB_SET_F[ab] || !!TCB_CLEAR_W[ab] ||
+    ab === TCB_FORECAST || ab === TCB_MIMICRY || ab === TCB_SAND_SPIT || ab === TCB_SAND_FORCE || tcbDefRelevant(ab) || !!TCB_BYPASS[ab] || !!TCB_DEF_EXTRA[ab] || !!TCB_ATK_EXTRA[ab] || ab === TCB_ANTICIPATION); }
   // 攻撃側の姿 att が、場の姿 def に出したときのタイプごとの倍率。
   // eff = タイプ相性(場の特性による無効・半減を含む)、mult = 特性の補正を掛けた点数、notes = 内訳に出す特性の説明。
-  function tcbParts(att, def){
-    var atkAb = def.ab === TCB_GAS ? null : att.ab;          // 場がかがくへんかガスなら、出す側の特性は働かない
+  function tcbParts(att, def, env){
+    var w = tcbEnvW(env), fl = tcbEnvF(env);
+    var atkAb = tcbAtkAbWorks(att.ab, def.ab) ? att.ab : null; // 場がかがくへんかガスなら、出す側の特性は働かない(ARシステム等は除く)
     var bypass = !!(atkAb && TCB_BYPASS[atkAb]);
     var unb = def.ab ? TCB_UNBREAKABLE[def.ab] : null;
     var defAb = def.ab && (!bypass || unb === 'all' || (unb === 'gas' && atkAb !== TCB_GAS)) ? def.ab : null;
     // 場のカードがかがくへんかガスなら、リベロ・へんげんじざいでタイプは変わらない(元のタイプで出す)
     var aTypes = att.libero && def.ab === TCB_GAS ? att.fromTypes : att.types;
-    var ts = aTypes.length === 1 ? [aTypes[0], aTypes[0]] : aTypes.slice(0, 2);
+    var monoOnce = aTypes.length === 1;
+    var ts = monoOnce ? [aTypes[0]] : aTypes.slice(0, 2);
+    // てきおうりょく: 単タイプの補正×1.5を×2に、複合タイプは合計点×4/3
+    var adapt = atkAb === 'てきおうりょく';
+    // フェアリーオーラ・ダークオーラ: 出すカード・場のカードどちらの特性でも働く(同じオーラは重ならない)。
+    // オーラブレイクがあると働かない(場のカードにあれば出すカードのオーラ、出すカードにあれば場のカードのオーラ)。場のカードのオーラは、出すカードのかがくへんかガスでも働かない。
+    var auras = Object.create(null);
+    if(atkAb && TCB_AURA[atkAb] && def.ab !== 'オーラブレイク') auras[TCB_AURA[atkAb]] = atkAb;
+    if(def.ab && TCB_AURA[def.ab] && atkAb !== TCB_GAS && atkAb !== 'オーラブレイク' && !auras[TCB_AURA[def.ab]]) auras[TCB_AURA[def.ab]] = '場の' + def.ab;
+    var third = atkAb ? TCB_THIRD_TYPE[atkAb] : null, tb = atkAb ? TCB_TYPE_BOOST[atkAb] : null;
+    if(third) ts = ts.concat([third]);
+    // フィールドは、ひこうタイプ・ふゆう・うなぎのぼりのカードが出すときは働かない
+    var airborne = aTypes.indexOf('ひこう') >= 0 || !!(atkAb && TCB_AIRBORNE_AB[atkAb]);
     return ts.map(function(t){
       var notes = [];
       var dTypes = def.types;
@@ -2196,7 +2250,17 @@
       }
       var plain = tcbTypeEff(dTypes, t, null);
       var e = tcbTypeEff(dTypes, t, defAb && tcbDefRelevant(defAb) ? defAb : null);
+      if(defAb === 'かんそうはだ' && t === 'みず') e = 0;
       if(e !== plain) notes.push(defAb);
+      // らんきりゅう: ひこうタイプへのばつぐんが、ひこうの分だけ等倍に
+      if(w === 7 && dTypes.indexOf('ひこう') >= 0){
+        var fly = tcbTypeEff(['ひこう'], t, null);
+        if(fly > 1){
+          var rest = dTypes.filter(function(x){ return x !== 'ひこう'; });
+          e = (rest.length ? tcbTypeEff(rest, t, defAb && tcbDefRelevant(defAb) ? defAb : null) : 1);
+          notes.push('らんきりゅう');
+        }
+      }
       if(bypass && def.ab && !defAb && (TCB_DEF_EXTRA[def.ab] || (tcbDefRelevant(def.ab) && tcbTypeEff(dTypes, t, def.ab) !== plain))) notes.push(atkAb + 'で' + def.ab + 'を無視');
       var e0 = e;
       if(defAb === 'テラスシェル' && e > 0){ e = 0.5; notes.push('テラスシェルで今ひとつ'); }
@@ -2205,10 +2269,30 @@
       if(m > 0 && e >= 2 && defAb && TCB_DEF_FILTER[defAb]){ m *= 0.75; notes.push(defAb + '×0.75'); }
       if(m > 0 && e > 0 && e < 1 && atkAb === 'いろめがね'){ m *= 2; notes.push('いろめがね×2'); }
       if(m > 0 && e >= 2 && atkAb === 'ブレインフォース'){ m *= 1.25; notes.push('ブレインフォース×1.25'); }
+      if(m > 0 && tb && t === tb[0]){ m *= tb[1]; notes.push(atkAb + '×' + tb[1]); }
+      if(third && m > 0){ m *= 2 / 3; notes.push(atkAb + '×2/3'); }
+      // 天候
+      if(m > 0 && (w === 1 || w === 2) && t === 'ほのお'){ m *= 1.5; notes.push(TCB_W_NAMES[w] + '×1.5'); }
+      else if(m > 0 && (w === 1 || w === 2) && t === 'みず'){ m *= w === 2 ? 0 : 0.5; notes.push(TCB_W_NAMES[w] + (w === 2 ? '×0' : '×1/2')); }
+      else if(m > 0 && (w === 3 || w === 4) && t === 'みず'){ m *= 1.5; notes.push(TCB_W_NAMES[w] + '×1.5'); }
+      else if(m > 0 && (w === 3 || w === 4) && t === 'ほのお'){ m *= w === 4 ? 0 : 0.5; notes.push(TCB_W_NAMES[w] + (w === 4 ? '×0' : '×1/2')); }
+      if(m > 0 && w === 5 && def.types.indexOf('いわ') >= 0){ m *= 2 / 3; notes.push('すなあらし×2/3'); }
+      if(m > 0 && w === 6 && def.types.indexOf('こおり') >= 0){ m *= 2 / 3; notes.push('ゆき×2/3'); }
+      if(m > 0 && w === TCB_SAND && atkAb === TCB_SAND_FORCE && (t === 'いわ' || t === 'じめん' || t === 'はがね')){ m *= 1.3; notes.push(TCB_SAND_FORCE + '×1.3'); }
+      // フィールド
+      if(m > 0 && fl && !airborne){
+        if((fl === 1 && t === 'でんき') || (fl === 2 && t === 'くさ') || (fl === 3 && t === 'エスパー')){ m *= 1.3; notes.push(TCB_F_NAMES[fl] + '×1.3'); }
+        else if((fl === 2 && t === 'じめん') || (fl === 4 && t === 'ドラゴン')){ m *= 0.5; notes.push(TCB_F_NAMES[fl] + '×1/2'); }
+      }
+      if(m > 0 && atkAb === 'すいほう' && t === 'みず'){ m *= 2; notes.push('すいほう×2'); }
+      if(m > 0 && auras[t]){ m *= 1.33; notes.push(auras[t] + '×1.33'); }
+      if(m > 0 && defAb === 'かんそうはだ' && t === 'ほのお'){ m *= 1.25; notes.push('かんそうはだ×1.25'); }
+      if(monoOnce && m > 0){ m *= adapt ? 2 : TCB_MONO_MULT; notes.push(adapt ? 'てきおうりょく(単タイプ×2)' : '単タイプ×1.5'); }
+      else if(adapt && m > 0){ m *= 4 / 3; notes.push('てきおうりょく×4/3'); }
       return { type: t, eff0: e0, eff: e, mult: m, notes: notes };
     });
   }
-  function tcbBase(att, def){ return tcbParts(att, def).reduce(function(s, p){ return s + p.mult; }, 0); }
+  function tcbBase(att, def, env){ return tcbParts(att, def, env).reduce(function(s, p){ return s + p.mult; }, 0); }
   function tcbBoostMult(b){ return b === 'Z' ? TCB_Z_MULT : (b === 'D' ? TCB_D_MULT : (b === 'T' ? TCB_T_MULT : 1)); }
   var TCB_BOOST_NAME = { Z: 'Zワザ', D: 'ダイマックス', T: 'テラスタル' };
 
@@ -2227,9 +2311,11 @@
     tcbGroupsCache = order.map(function(k){ return map[k]; });
     return tcbGroupsCache;
   }
-  // グループからカードを作る。姿ごとに特性を1つ選び、タイプと「相性に関わる特性」が同じ姿は1つにまとめる。
+  // グループからカードを作る。姿ごとに特性を1つ選び、タイプと「相性に関わる特性等」が同じ姿は1つにまとめる。
   // テラスタイプが決まっているポケモン(オーガポン: お面ごと)。テラスタルした姿はデータの「(〇〇(テラスタル))」を使う。
   var TCB_OGERPON_TERA = { 'みどり': 'くさ', 'いど': 'みず', 'かまど': 'ほのお', 'いしずえ': 'いわ' };
+  var TCB_IMPOSTER = 'かわりもの';
+  var TCB_NO_IMPOSTER = /^(オーガポン|テラパゴス)/;   // かわりものでへんしんできない相手
   var TCB_NO_TERA = /^テラパゴス/;              // テラスタイプはステラのみ(このゲームではステラなし)なのでテラスタル不可
   var TCB_NO_DYN = /^(ザシアン|ザマゼンタ|ムゲンダイナ)/; // ダイマックスできない
   // そのポケモンの覚える技のタイプ(覚える技データがなければ空)。
@@ -2259,7 +2345,8 @@
         return;
       }
       // リベロ・へんげんじざい: 覚える技のタイプごとの単タイプの姿にする(技データがなければふつうの姿のまま)
-      var lt = TCB_LIBERO[ab] ? tcbLearnTypes(m.name) : [];
+      // (覚える技のタイプからランダムに4つ。配ったときに決まり、手札・詳細で見られる)
+      var lt = TCB_LIBERO[ab] ? tcbShuffle(tcbLearnTypes(m.name)).slice(0, TCB_LIBERO_TYPES) : [];
       // 元のタイプと同じタイプを先に並べる(手札で最初に出る姿)
       lt.sort(function(a, b){ return (m.types.indexOf(a) < 0) - (m.types.indexOf(b) < 0); });
       if(lt.length){
@@ -2286,11 +2373,87 @@
       faces.push(face);
     });
     // テラスタイプ: 18タイプからランダムに1つ(ステラは使わない)。カードに表示して両者に公開。
-    return { faces: faces, bases: bases, liberoChoice: faces.some(function(f){ return f.libero; }), typeChoice: faces.length > 0 && !!faces[0].typeChoice, tera: noTera ? null : TCB_TYPES[tcbRand(TCB_TYPES.length)], noTera: noTera, noDyn: noDyn };
+    return { faces: faces, bases: bases, noImp: members.some(function(m){ return TCB_NO_IMPOSTER.test(m.name); }), liberoChoice: faces.some(function(f){ return f.libero; }), typeChoice: faces.length > 0 && !!faces[0].typeChoice, tera: noTera ? null : TCB_TYPES[tcbRand(TCB_TYPES.length)], noTera: noTera, noDyn: noDyn };
   }
 
   // カードのふだんの姿(リベロ等は元の姿)。
   function tcbDefaultFaceOf(card, ids){ return card.baseFaceId != null ? card.baseFaceId : ids[0]; }
+  // 姿 ai を場の姿 d に出したあと、場に残る姿の番号と、トレースでコピーした特性(なければ null)。
+  // 場の姿 d を かわりもので写すときの「タイプ+特性」(テラスタルしているときはテラスタル前のタイプ。特性はいまの特性)。
+  function tcbCopySig(faces, d){
+    var src = d.tera && d.from != null ? faces[d.from] : d;
+    var nm = src.imposter ? src.impName : (src.typeChoice || src.libero ? (src.img || src.name) + '(' + src.types[0] + ')' : (src.img || src.name));
+    return { key: src.types.join('/') + '|' + (d.ab || ''), types: src.types, ab: d.ab, name: nm, img: src.img || src.name };
+  }
+  // 姿 ai を場の姿 d に出したとき、実際に点を取る姿(かわりものなら へんしんした姿)。
+  function tcbAttackFace(ctx, ai, d){
+    var a = ctx.faces[ai];
+    if(a.ab === TCB_IMPOSTER && ctx.impOf[ai] && !d.noImp && tcbAtkAbWorks(a.ab, d.ab)){
+      var t = ctx.impOf[ai][tcbCopySig(ctx.faces, d).key];
+      if(t != null) return t;
+    }
+    return ai;
+  }
+  // 姿 ai を、場の状態 env のときに場の姿 di に出したときのこと(1手ぶん):
+  // act=点を取る姿、next=出したあと場に残る姿、env1=点を数えるときの状態、env2=出したあとの状態、base=点(強化なし)。
+  function tcbPlayInfo(ctx, ai, di, env){
+    var faces = ctx.faces, a = faces[ai], d = faces[di];
+    var w = tcbEnvW(env), fl = tcbEnvF(env);
+    var info = { act: ai, next: ai, traced: null, imposter: false, setW: 0, setF: 0, clearW: null, form: null, sandSpit: false };
+    var im = tcbAttackFace(ctx, ai, d), ab = null, works = tcbAtkAbWorks(a.ab, d.ab);
+    if(im !== ai){ info.act = im; info.next = im; info.imposter = true; ab = faces[im].ab; }
+    else {
+      var nx = tcbNextInfo(ctx, ai, d);
+      // トレース: コピーした特性の姿で点を取る(出すカードの特性としても働く)
+      info.next = nx.face; info.traced = nx.traced;
+      if(nx.traced) info.act = nx.face;
+      ab = works ? (nx.traced || a.ab) : null;
+    }
+    // 出したときに働く特性(トレース・かわりものでコピーした特性も働く)。いまと同じ天候・フィールドなら何も起きない。
+    if(ab && TCB_SET_W[ab] && TCB_SET_W[ab] !== w){ w = TCB_SET_W[ab]; info.setW = w; info.setBy = ab; }
+    if(ab && TCB_SET_F[ab] && TCB_SET_F[ab] !== fl){ fl = TCB_SET_F[ab]; info.setF = fl; info.setBy = ab; }
+    if(ab && TCB_CLEAR_W[ab] && w){ info.clearW = TCB_W_NAMES[w]; info.setBy = ab; w = 0; }
+    if(!info.imposter){
+      // てんきや・ぎたい: いまの天候・フィールドのタイプになる(場に残ったあとは変わらない)
+      if(works && ctx.formOf[ai]){
+        var ft = a.ab === TCB_FORECAST ? TCB_FORECAST_TYPE[w] : TCB_MIMICRY_TYPE[fl];
+        if(ft && ctx.formOf[ai][ft] != null){ info.act = ctx.formOf[ai][ft]; info.next = info.act; info.form = ft; }
+      }
+    }
+    info.env1 = w * 5 + fl;
+    var att = faces[info.act];
+    info.base = tcbBase(att, d, info.env1);
+    // すなはき: 場のカードが点を取られたら(0点でなければ)、次のターンから すなあらし(出す側のかがくへんかガスでは働かない)
+    if(d.ab === TCB_SAND_SPIT && w !== TCB_SAND && info.base > 0 && !(att.ab === TCB_GAS && tcbAtkAbWorks(att.ab, d.ab))){ info.sandSpit = true; w = TCB_SAND; }
+    info.env2 = w * 5 + fl;
+    return info;
+  }
+  // 姿 ai を env のときに出したときの、全部の場の姿への 点(S)・場に残る姿(NT)・出したあとの状態(EN)。必要になったときに作る。
+  function tcbRow(st, env, ai){
+    var byEnv = st.rows[env] || (st.rows[env] = []);
+    var r = byEnv[ai];
+    if(r) return r;
+    var n = st.faces.length;
+    r = { S: new Float64Array(n), NT: new Int32Array(n), EN: new Int8Array(n) };
+    for(var di = 0; di < n; di++){
+      var x = tcbPlayInfo(st, ai, di, env);
+      r.S[di] = x.base; r.NT[di] = x.next; r.EN[di] = x.env2;
+    }
+    byEnv[ai] = r;
+    return r;
+  }
+  function tcbNextInfo(ctx, ai, d){
+    var faces = ctx.faces, traceOf = ctx.traceOf;
+    var im = tcbAttackFace(ctx, ai, d);
+    if(im !== ai) return { face: im, traced: null, imposter: true };
+    var a = faces[ai];
+    if(a.libero && d.ab === TCB_GAS) ai = a.baseRef.id, a = faces[ai];
+    if(a.ab === TCB_TRACE && tcbAtkAbWorks(a.ab, d.ab) && d.ab && !TCB_NO_TRACE[d.ab]){
+      var t = traceOf[ai] && traceOf[ai][d.ab];
+      return { face: t != null ? t : ai, traced: d.ab };
+    }
+    return { face: ai, traced: null };
+  }
   // ---- ゲームの状態 ----
   var tcbLevel = 'normal';
   var tcbState = null;
@@ -2321,14 +2484,16 @@
     // テラスタルした姿(テラスタイプの単タイプ。特性はその姿のまま)。teraOf[姿の番号] = テラスタルした姿の番号。
     // タイプを選ぶカード(アルセウス等)は、どのタイプからでもテラスタルの姿は同じなので1つにまとめる。
     var teraOf = [];
+    // かわりものがいる試合では、テラスタルした姿をまとめない(テラスタル前のタイプを写すため、元の姿ごとに持つ)
+    var hasImp = faces.some(function(f){ return f.ab === TCB_IMPOSTER; });
     cards.forEach(function(c, ci){
       var shared = null, sharedBy = Object.create(null);
       faceIds[ci].forEach(function(fid){
         if(c.noTera) return;
-        if(c.typeChoice && shared != null){ teraOf[fid] = shared; return; }
+        if(c.typeChoice && shared != null && !hasImp){ teraOf[fid] = shared; return; }
         // リベロの姿は、どのタイプからでもテラスタルした姿は同じ
         var share = faces[fid].teraShare;
-        if(share && sharedBy[share] != null){ teraOf[fid] = sharedBy[share]; return; }
+        if(share && sharedBy[share] != null && !hasImp){ teraOf[fid] = sharedBy[share]; return; }
         var f = faces[fid], base = f.img || f.name, tt = f.teraType || c.tera;
         if(f.teraName) faces.push({ name: f.teraName, img: f.teraName, types: [tt], ab: f.teraAb, tera: true, card: ci, from: fid });
         else faces.push({ name: base + '(テラスタル' + tt + ')', img: base, types: [tt], ab: f.ab, tera: true, card: ci, from: fid, fromTypes: f.fromTypes });
@@ -2337,11 +2502,72 @@
         if(share) sharedBy[share] = teraOf[fid];
       });
     });
-    var S = faces.map(function(a){ return faces.map(function(d){ return tcbBase(a, d); }); });
+    // てんきや・ぎたい: 出したときの天候・フィールドで決まるタイプの姿。formOf[姿][タイプ] = 姿の番号(テラスタルした姿は変わらない)。
+    var formOf = [];
+    faces.slice().forEach(function(f, fid){
+      if(f.tera || (f.ab !== TCB_FORECAST && f.ab !== TCB_MIMICRY)) return;
+      var map = f.ab === TCB_FORECAST ? TCB_FORECAST_NAME : { 'でんき': 1, 'くさ': 1, 'エスパー': 1, 'フェアリー': 1 };
+      formOf[fid] = Object.create(null);
+      Object.keys(map).forEach(function(t){
+        var c = {}; Object.keys(f).forEach(function(k){ c[k] = f[k]; });
+        c.types = [t]; c.formFrom = fid; c.img = f.img || f.name;
+        c.name = (f.img || f.name) + '(' + (f.ab === TCB_FORECAST ? map[t] : t) + ')';
+        faces.push(c);
+        formOf[fid][t] = faces.length - 1;
+      });
+    });
+    // トレースした姿: トレースの姿(テラスタルした姿を含む)ごとに、この試合のカードにある「場のカードとして働く、
+    // コピーできる特性」の数だけ作る。traceOf[姿の番号][特性] = トレースした姿の番号。
+    var fieldAbs = Object.create(null);
+    faces.forEach(function(f){ if(f.ab && !TCB_NO_TRACE[f.ab] && !TCB_LIBERO[f.ab] && tcbRelevant(f.ab)) fieldAbs[f.ab] = true; });
+    var traceOf = [];
+    faces.slice().forEach(function(f, fid){
+      if(f.ab !== TCB_TRACE) return;
+      traceOf[fid] = Object.create(null);
+      Object.keys(fieldAbs).forEach(function(ab){
+        var c = {}; Object.keys(f).forEach(function(k){ c[k] = f[k]; });
+        c.ab = ab; c.traced = true; c.traceFrom = fid;
+        faces.push(c);
+        traceOf[fid][ab] = faces.length - 1;
+      });
+    });
+    // かわりもので へんしんした姿: かわりものの姿ごとに、写せる「タイプ+特性」の組の数だけ作る。impOf[姿][組] = 姿の番号。
+    // テラスタルしたかわりもの(テラスタイプ)は、特性だけ写す(from は同じ組のテラスタルしていない姿)。
+    faces.forEach(function(f){ if(cards[f.card].noImp) f.noImp = true; });
+    var impOf = [], sigs = Object.create(null);
+    faces.forEach(function(d){ if(!d.noImp){ var sg = tcbCopySig(faces, d); sigs[sg.key] = sg; } });
+    var impBase = [];
+    faces.slice().forEach(function(f, fid){
+      if(f.ab !== TCB_IMPOSTER || f.tera) return;
+      impOf[fid] = Object.create(null);
+      Object.keys(sigs).forEach(function(k){
+        var sg = sigs[k];
+        faces.push({ name: (f.img || f.name) + '→' + sg.name, img: sg.img, types: sg.types.slice(), ab: sg.ab, imposter: true, impName: sg.name, card: f.card, impFrom: fid });
+        impOf[fid][k] = faces.length - 1;
+      });
+    });
+    faces.slice().forEach(function(f, fid){
+      if(f.ab !== TCB_IMPOSTER || !f.tera || impOf[f.from] == null) return;
+      impOf[fid] = Object.create(null);
+      Object.keys(sigs).forEach(function(k){
+        var sg = sigs[k], nf = impOf[f.from][k];
+        faces.push({ name: f.name + '→' + sg.name, img: sg.img, types: f.types.slice(), ab: sg.ab, imposter: true, impName: sg.name, tera: true, card: f.card, from: nf, impFrom: fid });
+        impOf[fid][k] = faces.length - 1;
+      });
+    });
+    // 点数・出したあとの場の姿・出したあとの天候とフィールドは、天候とフィールドごとに必要になったときに作る(tcbRow)。
+    // CN[姿] = 場の姿として同じふるまいをする姿の代表(タイプ・特性・かわりもので写す中身が同じもの)。読みCPUの状態をまとめるため。
+    var canonBy = Object.create(null);
+    var CN = faces.map(function(d, di){
+      var k = d.types.join('/') + '|' + (d.ab || '') + '|' + (d.noImp ? 1 : 0) + '|' + (hasImp ? tcbCopySig(faces, d).key : '');
+      if(canonBy[k] == null) canonBy[k] = di;
+      return canonBy[k];
+    });
     var order = tcbShuffle(cards.map(function(_, i){ return i; }));
     var first = Math.random() < 0.5 ? 'me' : 'cpu';
     tcbState = {
-      cards: cards, faces: faces, faceIds: faceIds, teraOf: teraOf, S: S,
+      cards: cards, faces: faces, faceIds: faceIds, teraOf: teraOf, traceOf: traceOf, impOf: impOf, formOf: formOf, CN: CN,
+      rows: [], env: 0,
       hands: { me: order.slice(1, 1 + TCB_HAND), cpu: order.slice(1 + TCB_HAND, 1 + TCB_HAND * 2) },
       deck: order.slice(1 + TCB_HAND * 2),
       field: { card: order[0], face: tcbDefaultFaceOf(cards[order[0]], faceIds[order[0]]), by: 'start', dyn: false },
@@ -2365,11 +2591,11 @@
   // 場のカードへ、姿 faceId を強化 boost で出したときの点数と内訳。
   function tcbScore(st, faceId, boost){
     if(boost === 'T' && !st.faces[faceId].tera) faceId = st.teraOf[faceId];
-    var att = st.faces[faceId], def = st.faces[st.field.face];
-    var parts = tcbParts(att, def);
+    var def = st.faces[st.field.face], info = tcbPlayInfo(st, faceId, st.field.face, st.env);
+    var parts = tcbParts(st.faces[info.act], def, info.env1);
     var base = parts.reduce(function(s, p){ return s + p.mult; }, 0);
     var pts = base * tcbBoostMult(boost) * (st.field.dyn ? TCB_D_TAKEN : 1);
-    return { parts: parts, base: base, pts: pts };
+    return { parts: parts, base: base, pts: pts, info: info };
   }
 
   function tcbPlay(who, cardIdx, faceIdx, boost){
@@ -2383,11 +2609,24 @@
     // かがくへんかガスの場には、リベロ・へんげんじざいでもタイプを変えずに出る
     else if(st.faces[faceId].libero && st.faces[st.field.face].ab === TCB_GAS) faceId = st.faces[faceId].baseRef.id;
     var sc = tcbScore(st, faceId, boost);
-    var entry = { who: who, face: faceId, target: st.field.face, targetDyn: st.field.dyn, boost: boost, parts: sc.parts, base: sc.base, pts: sc.pts, shudder: false };
+    var entry = { who: who, face: faceId, target: st.field.face, targetDyn: st.field.dyn, targetTrace: st.field.traceAb || null, boost: boost, parts: sc.parts, base: sc.base, pts: sc.pts, shudder: false };
+    // トレース: 出したあと、場のカードの特性になる(点数はトレースのまま。場に残ってから働く)
+    var nx = sc.info;
+    entry.trace = nx.traced;
+    // かわりもの: 場のカードに へんしんして点を取り、そのまま場に残る(記録・演出は へんしんした姿で出す)
+    if(nx.imposter){ entry.imposter = st.faces[nx.act].impName; entry.from = faceId; entry.face = nx.act; }
+    if(nx.traced) entry.face = nx.act;
+    // てんきや・ぎたい: その天候・フィールドのタイプの姿で点を取る
+    if(nx.form){ entry.form = nx.form; entry.from = faceId; entry.face = nx.act; }
+    entry.envBefore = st.env; entry.env = nx.env1; entry.envAfter = nx.env2;
+    entry.setW = nx.setW; entry.setF = nx.setF; entry.clearW = nx.clearW; entry.setBy = nx.setBy; entry.sandSpit = nx.sandSpit;
+    entry.targetAb = st.faces[st.field.face].ab;
+    st.env = nx.env2;
     // きけんよち: 出したあと、相手の手札に(どの姿でも)ばつぐんになるカードがあれば みぶるいする。
-    if(st.faces[faceId].ab === TCB_ANTICIPATION){
+    // (場のカードがかがくへんかガスなら、きけんよちも働かない)
+    if(st.faces[nx.act].ab === TCB_ANTICIPATION && tcbAtkAbWorks(TCB_ANTICIPATION, st.faces[st.field.face].ab)){
       var opp = st.hands[who === 'me' ? 'cpu' : 'me'];
-      entry.shudder = opp.some(function(ci){ return st.faceIds[ci].some(function(f){ return tcbParts(st.faces[f], st.faces[faceId]).some(function(p){ return p.eff >= 2; }); }); });
+      entry.shudder = opp.some(function(ci){ return st.faceIds[ci].some(function(f){ return tcbParts(st.faces[f], st.faces[nx.next], st.env).some(function(p){ return p.eff >= 2; }); }); });
     }
     st.log.push(entry);
     st.scores[who] += sc.pts;
@@ -2395,7 +2634,7 @@
     hand.splice(pos, 1);
     st.used[cardIdx] = who;
     if(st.field.by === 'start') st.used[st.field.card] = 'start'; // 最初の場札は出し終わり扱い
-    st.field = { card: cardIdx, face: faceId, by: who, dyn: boost === 'D' };
+    st.field = { card: cardIdx, face: nx.next, by: who, dyn: boost === 'D', traceAb: nx.traced };
     st.plies++;
     if(who === 'me'){ st.sel = null; st.selBoost = null; }
     if(!st.hands.me.length && !st.hands.cpu.length) st.finished = true;
@@ -2431,36 +2670,39 @@
   // 手札が両者に見えている前提で最後まで読む(負けの少ない手=点差が最もよい手)。
   // 値は「手番の側の、これから先の得点 - 相手のこれから先の得点」。
   function tcbSolver(st){
-    var S = st.S, faceIds = st.faceIds, teraOf = st.teraOf, memo = new Map(), pruned = new Map();
+    var CN = st.CN, faceIds = st.faceIds, teraOf = st.teraOf, memos = [], pruned = new Map();
+    function R(env, f){ return tcbRow(st, env, f); }
     var noDyn = st.cards.map(function(c){ return !!c.noDyn; });
     // 姿が多いカード(アルセウス等)は、読みの中ではその場の点が高い姿4つだけを考える(速さのため)。
-    function facesFor(ci, top){
+    function facesFor(ci, top, env){
       var fl = faceIds[ci];
       if(fl.length <= 4) return fl;
-      var key = ci * 256 + top, c = pruned.get(key);
+      var key = (env * 1024 + top) * 32 + ci, c = pruned.get(key);
       if(c) return c;
-      c = fl.slice().sort(function(a, b){ return S[b][top] - S[a][top] || a - b; }).slice(0, 4);
+      c = fl.slice().sort(function(a, b){ return R(env, b).S[top] - R(env, a).S[top] || a - b; }).slice(0, 4);
       pruned.set(key, c);
       return c;
     }
-    function val(hM, hO, top, td, bM, bO){
-      if(!hM) return hO ? -val(hO, hM, top, td, bO, bM) : 0;
-      var key = ((((hM * TCB_MASKMUL + hO) * 256 + top) * 2 + td) * 2 + bM) * 2 + bO;
+    // env = 天候とフィールド(読みの状態ごとにメモを分ける)
+    function val(hM, hO, top, td, bM, bO, env){
+      if(!hM) return hO ? -val(hO, hM, top, td, bO, bM, env) : 0;
+      var memo = memos[env] || (memos[env] = new Map());
+      var key = ((((hM * TCB_MASKMUL + hO) * 1024 + top) * 2 + td) * 2 + bM) * 2 + bO;
       var c = memo.get(key);
       if(c !== undefined) return c;
       var best = -1e9, k = td ? TCB_D_TAKEN : 1;
       for(var ci = 0; ci < TCB_POOL; ci++){
         if(!(hM & (1 << ci))) continue;
-        var rest = hM & ~(1 << ci), fl = facesFor(ci, top);
+        var rest = hM & ~(1 << ci), fl = facesFor(ci, top, env);
         for(var fi = 0; fi < fl.length; fi++){
-          var f = fl[fi], g = S[f][top] * k;
-          var v = g - val(hO, rest, f, 0, bO, bM);
+          var f = fl[fi], r = R(env, f), g = r.S[top] * k, nf = CN[r.NT[top]], ne = r.EN[top];
+          var v = g - val(hO, rest, nf, 0, bO, bM, ne);
           if(v > best) best = v;
           if(bM){
-            v = g * TCB_Z_MULT - val(hO, rest, f, 0, bO, 0); if(v > best) best = v;
-            if(!noDyn[ci]){ v = g * TCB_D_MULT - val(hO, rest, f, 1, bO, 0); if(v > best) best = v; }
+            v = g * TCB_Z_MULT - val(hO, rest, nf, 0, bO, 0, ne); if(v > best) best = v;
+            if(!noDyn[ci]){ v = g * TCB_D_MULT - val(hO, rest, nf, 1, bO, 0, ne); if(v > best) best = v; }
             var tf = teraOf[f];
-            if(tf != null){ v = S[tf][top] * k * TCB_T_MULT - val(hO, rest, tf, 0, bO, 0); if(v > best) best = v; }
+            if(tf != null){ var rt = R(env, tf); v = rt.S[top] * k * TCB_T_MULT - val(hO, rest, CN[rt.NT[top]], 0, bO, 0, rt.EN[top]); if(v > best) best = v; }
           }
         }
       }
@@ -2523,14 +2765,14 @@
   // どこにあるか分からないカード全体で考える)。
   function tcbThreat(st, faceId){
     var m = 0;
-    tcbUnknownCards(st).forEach(function(ci){ st.faceIds[ci].forEach(function(f){ if(st.S[f][faceId] > m) m = st.S[f][faceId]; }); });
+    tcbUnknownCards(st).forEach(function(ci){ st.faceIds[ci].forEach(function(f){ var x = tcbRow(st, st.env, f).S[faceId]; if(x > m) m = x; }); });
     return m;
   }
   function tcbGreedyPick(st, useBoost){
     var best = null, bestG = -1;
     st.hands.cpu.forEach(function(ci){
       st.faceIds[ci].forEach(function(f, fi){
-        var g = tcbScore(st, f, null).pts - tcbThreat(st, f) * 0.001;
+        var g = tcbScore(st, f, null).pts - tcbThreat(st, tcbRow(st, st.env, f).NT[st.field.face]) * 0.001;
         if(g > bestG){ bestG = g; best = [ci, fi, null]; }
       });
     });
@@ -2546,7 +2788,7 @@
       });
       var plain = tcbScore(st, f, null).pts;
       if(base >= 4 || lastTurn) best[2] = 'Z';
-      else if(base >= 3 && tcbThreat(st, f) >= 4 && tcbBoostAllowed(st, best[0], 'D')) best[2] = 'D';
+      else if(base >= 3 && tcbThreat(st, tcbRow(st, st.env, f).NT[st.field.face]) >= 4 && tcbBoostAllowed(st, best[0], 'D')) best[2] = 'D';
       if(tBest && ((best[2] === 'Z' && tPts > plain * TCB_Z_MULT) || (!best[2] && tPts >= 5 && tPts >= plain + 2.5))) best = tBest;
     }
     return best;
@@ -2566,8 +2808,8 @@
       opts.forEach(function(o, i){
         var f = st.faceIds[o[0]][o[1]];
         if(o[2] === 'T') f = st.teraOf[f];
-        var g = st.S[f][st.field.face] * k * tcbBoostMult(o[2]);
-        total[i] += g - val(meMask, cpuMask & ~(1 << o[0]), f, o[2] === 'D' ? 1 : 0, bMe, o[2] ? 0 : bCpu);
+        var r = tcbRow(st, st.env, f), g = r.S[st.field.face] * k * tcbBoostMult(o[2]);
+        total[i] += g - val(meMask, cpuMask & ~(1 << o[0]), st.CN[r.NT[st.field.face]], o[2] === 'D' ? 1 : 0, bMe, o[2] ? 0 : bCpu, r.EN[st.field.face]);
       });
       return false;
     });
@@ -2586,7 +2828,8 @@
     var best = 0;
     st.faceIds[ci].forEach(function(f){
       var sum = 0, n = 0;
-      st.faces.forEach(function(g, gi){ if(!g.tera && g.card !== ci){ sum += st.S[f][gi]; n++; } });
+      var r = tcbRow(st, st.env, f);
+      st.faces.forEach(function(g, gi){ if(!g.tera && !g.traced && !g.imposter && g.formFrom == null && g.card !== ci){ sum += r.S[gi]; n++; } });
       if(n && sum / n > best) best = sum / n;
     });
     return best;
@@ -2594,16 +2837,16 @@
   function tcbCpuMulligan(st){
     if(tcbLevel === 'weak') return Math.random() < 0.5 ? st.hands.cpu[tcbRand(st.hands.cpu.length)] : null;
     var ranked = st.hands.cpu.slice().sort(function(a, b){ return tcbCardOffense(st, a) - tcbCardOffense(st, b); });
-    if(tcbLevel === 'normal') return tcbCardOffense(st, ranked[0]) < 2 ? ranked[0] : null;
+    if(tcbLevel === 'normal') return tcbCardOffense(st, ranked[0]) < 1.7 ? ranked[0] : null;
     var unknown = tcbUnknownCards(st);
     var worlds = tcbOppWorlds(st, unknown, TCB_MULL_WORLDS);
-    var val = tcbSolver(st), myMask = tcbMask(st.hands.cpu), f = st.field.face;
-    function startVal(m, o){ return st.first === 'cpu' ? val(m, o, f, 0, 1, 1) : -val(o, m, f, 0, 1, 1); }
+    var val = tcbSolver(st), myMask = tcbMask(st.hands.cpu), f = st.CN[st.field.face];
+    function startVal(m, o){ return st.first === 'cpu' ? val(m, o, f, 0, 1, 1, st.env) : -val(o, m, f, 0, 1, 1, st.env); }
     var opts = [null].concat(ranked.slice(0, TCB_MULL_CANDS)), tot = opts.map(function(){ return 0; });
     var t0 = Date.now();
     worlds.some(function(w, wi){
-      // 時間がかかるとき(姿の多いカードがあるとき等)は、2通り読んだところで打ち切る
-      if(wi >= 2 && Date.now() - t0 > 600) return true;
+      // 時間がかかるとき(姿の多いカードがあるとき等)は、1通り読んだところで打ち切る
+      if(wi >= 1 && Date.now() - t0 > 600) return true;
       var oppMask = tcbMask(w);
       // その世界での山札(人の手札でない、分からない札＋山札にあると分かっている札)から最大4枚
       var deck = unknown.filter(function(c){ return w.indexOf(c) < 0; }).concat(st.cards.map(function(_, i){ return i; }).filter(function(i){ return st.knownDeck[i]; }));
@@ -2636,6 +2879,8 @@
   // テスト用(画面からは使わない): CPUどうしを対戦させる・状態を見る。
   window.__damekeTypeCardDebug = {
     newGame: function(force){ tcbNewGame(force); return tcbState; },
+    groups: tcbGroups, makeCard: tcbMakeCard, base: tcbBase,
+    setBoostMult: function(z, d, t, taken){ TCB_Z_MULT = z; TCB_D_MULT = d; TCB_T_MULT = t; if(taken != null) TCB_D_TAKEN = taken; },
     parts: tcbParts,
     start: function(force){ tcbStartGame(force); },
     state: function(){ return tcbState; },
@@ -2645,11 +2890,43 @@
     play: tcbPlay, mulligan: tcbMulligan, score: tcbScore
   };
 
+  // ---- 天候・フィールドの表示(色はダメージ計算の下部固定枠と同じ) ----
+  var TCB_W_TINT = { light: ['', '#fdf6e3', '#fdf6e3', '#e8f1fe', '#e8f1fe', '#f7ecdb', '#eafbfd', '#eceef2'], dark: ['', '#4a3b12', '#4a3b12', '#1c3a5e', '#1c3a5e', '#3d2f1a', '#113a3d', '#2a2e38'] };
+  var TCB_F_TINT = { light: ['', '#fff6cc', '#e3f7e3', '#f1e6fb', '#fbe6f0'], dark: ['', '#4a3f0a', '#1f3d24', '#34204a', '#4a1f34'] };
+  function tcbIsDark(){
+    if(window.__damekeCurrentTheme) return window.__damekeCurrentTheme() === 'dark';
+    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+  // 場札の背景: 左上(対角線より上)を天候、右下をフィールドの色に塗り分ける。
+  function tcbApplyEnvTint(el, env){
+    var w = tcbEnvW(env), fl = tcbEnvF(env);
+    if(!w && !fl) return;
+    var mode = tcbIsDark() ? 'dark' : 'light';
+    var wc = TCB_W_TINT[mode][w] || 'var(--dameke-surface)', fc = TCB_F_TINT[mode][fl] || 'var(--dameke-surface)';
+    el.style.background = 'linear-gradient(to bottom right, ' + wc + ' 50%, ' + fc + ' 50%)';
+  }
+  function tcbEnvBox(env){
+    var w = tcbEnvW(env), fl = tcbEnvF(env);
+    var box = document.createElement('div');
+    box.className = 'dameke-tcb-env';
+    [['天候', TCB_W_NAMES[w], w ? TCB_W_TINT : null, w], ['フィールド', TCB_F_NAMES[fl], fl ? TCB_F_TINT : null, fl]].forEach(function(x){
+      var row = document.createElement('div');
+      row.className = 'dameke-tcb-env-row' + (x[3] ? '' : ' dameke-tcb-env-none');
+      var k = document.createElement('span'); k.className = 'dameke-tcb-env-key'; k.textContent = x[0];
+      var v = document.createElement('span'); v.className = 'dameke-tcb-env-val'; v.textContent = x[1] || 'なし';
+      if(x[2]) v.style.background = x[2][tcbIsDark() ? 'dark' : 'light'][x[3]];
+      row.appendChild(k); row.appendChild(v);
+      box.appendChild(row);
+    });
+    return box;
+  }
+  document.addEventListener('dameke:themechange', function(){ if(tcbVisible()) tcbRenderNow(); });
+
   // ---- 画面 ----
   function tcbFaceTitle(f){ return f.name + '（' + f.types.join('/') + (f.ab ? '・' + f.ab : '') + '）'; }
   function tcbCardTitle(card){
     if(card.typeChoice){ var f = card.faces[0]; return (f.img || f.name) + '（出すときにタイプを選べる' + (f.ab ? '・' + f.ab : '') + '）'; }
-    if(card.liberoChoice){ var b = card.bases[0]; return b.name + '（' + b.types.join('/') + '・' + b.ab + '：出すときに覚える技のタイプから選べる）'; }
+    if(card.liberoChoice){ var b = card.bases[0]; return b.name + '（' + b.types.join('/') + '・' + b.ab + '：出すときに ' + card.faces.map(function(f){ return f.types[0]; }).join('・') + ' から選べる）'; }
     return card.faces.map(tcbFaceTitle).join(' ／ ');
   }
   // カード1枚。opts: size('s'|'m'|'l'), faceIdx か faceId, label, labelCls, cls, onClick, showAlt(姿を選べる印)
@@ -2680,12 +2957,14 @@
     el.appendChild(imgWrap);
     var name = document.createElement('span');
     name.className = 'dameke-tcb-card-name';
-    name.textContent = face.img || face.name;
+    name.textContent = face.imposter ? face.name : (face.img || face.name);
     el.appendChild(name);
     el.appendChild(tcbTypeRow(face.types));
     var ab = document.createElement('span');
-    ab.className = 'dameke-tcb-card-ability' + (tcbRelevant(face.ab) ? ' dameke-tcb-card-ability-key' : '');
-    ab.textContent = face.ab || '特性なし';
+    // トレースした特性は「トレース→〇〇」(場のカードとして働かない特性をコピーしたときは opts.traceAb)
+    var traceAb = face.traced ? face.ab : (face.ab === TCB_TRACE && opts.traceAb ? opts.traceAb : null);
+    ab.className = 'dameke-tcb-card-ability' + (tcbRelevant(face.ab) || traceAb ? ' dameke-tcb-card-ability-key' : '') + (TCB_GAS_PROOF[face.ab] ? ' dameke-tcb-card-ability-gasproof' : '');
+    ab.textContent = traceAb ? TCB_TRACE + '→' + traceAb : (face.ab || '特性なし');
     el.appendChild(ab);
     // リベロ等で選んだタイプのときは、元のタイプも出す
     if(face.libero){
@@ -2823,33 +3102,56 @@
     defs.push(['すいほう', 'ほのおタイプの点が半分']);
     defs.push(['たいねつ', 'ほのおタイプの点が半分']);
     defs.push(['きよめのしお', 'ゴーストタイプの点が半分']);
-    defs.push(['おわりのだいち', 'みずタイプの点が0(かたやぶり・テラボルテージ・ターボブレイズでは無視されない)']);
-    defs.push(['はじまりのうみ', 'ほのおタイプの点が0(かたやぶり・テラボルテージ・ターボブレイズでは無視されない)']);
-    defs.push(['デルタストリーム', 'ひこうタイプへのばつぐん(こおり・でんき・いわ)が、ひこうの分だけ等倍に(かたやぶり・テラボルテージ・ターボブレイズでは無視されない)']);
+    defs.push(['かんそうはだ', 'みずタイプの点が0、ほのおタイプの点が×1.25']);
+    defs.push(['フェアリーオーラ', '出すカードのフェアリータイプの点が×1.33']);
+    defs.push(['ダークオーラ', '出すカードのあくタイプの点が×1.33']);
+    defs.push(['オーラブレイク', '出すカードのフェアリーオーラ・ダークオーラを働かなくする']);
+    defs.push([TCB_SAND_SPIT, '点を取られたとき、次のターンから天候をすなあらしにする']);
     defs.push(['ふしぎなまもり', 'ばつぐん以外の点が0']);
     defs.push(['ハードロック', 'ばつぐんの点が×0.75']);
     defs.push(['フィルター', 'ばつぐんの点が×0.75']);
     defs.push(['プリズムアーマー', 'ばつぐんの点が×0.75(かたやぶり・テラボルテージ・ターボブレイズでは無視されない)']);
-    defs.push(['テラスシェル', '受ける相性がすべて今ひとつ(×0.5)になる(無効はそのまま)']);
-    defs.push([TCB_GAS, '出すカードの特性をなくす']);
+    defs.push(['テラスシェル', 'すべてのタイプの点が半分']);
+    defs.push([TCB_GAS, '出すカードの特性をなくす(ARシステム・マルチタイプは除く)']);
     defs.push([TCB_ANTICIPATION, '出したとき、相手の手札にばつぐんを取れるカードがあると みぶるいする(点数は変わらない)']);
-    var atk = Object.keys(TCB_BYPASS).map(function(n){ return [n, n === TCB_GAS ? '場のカードの特性を無視' : '場のカードの特性を無視(プリズムアーマー・おわりのだいち・はじまりのうみ・デルタストリームは除く)']; });
+    var atk = Object.keys(TCB_BYPASS).map(function(n){ return [n, n === TCB_GAS ? '場のカードの特性を無視' : '場のカードの特性を無視(プリズムアーマーは除く)']; });
     atk.push(['ARシステム', '出すとき、18タイプから1つ選んで、その単タイプになる(テラスタルするとテラスタイプ)']);
-    atk.push(['へんげんじざい', '出すとき、そのポケモンの覚える技のタイプから1つ選んで、その単タイプになる(テラスタルするとテラスタイプ)']);
+    atk.push(['へんげんじざい', '出すとき、そのポケモンの覚える技のタイプからランダムに決まった4つから1つ選んで、その単タイプになる(テラスタルするとテラスタイプ)']);
     atk.push(['マルチタイプ', '出すとき、18タイプから1つ選んで、その単タイプになる(テラスタルするとテラスタイプ)']);
-    atk.push(['リベロ', '出すとき、そのポケモンの覚える技のタイプから1つ選んで、その単タイプになる(テラスタルするとテラスタイプ)']);
+    atk.push([TCB_IMPOSTER, '出したとき、場のカードと同じタイプ・特性になってから点を取り、そのまま場に残る(テラスタル・テラスタイプはコピーしない。場のカードがオーガポン・テラパゴスなら へんしんしない)']);
+    atk.push([TCB_TRACE, '出したとき、場のカードの特性になる(トレース・かわりもの・' + TCB_GAS + '・ARシステム・マルチタイプ・テラスシェル等はコピーできない)']);
+    atk.push(['リベロ', '出すとき、そのポケモンの覚える技のタイプからランダムに決まった4つから1つ選んで、その単タイプになる(テラスタルするとテラスタイプ)']);
     atk.push(['いろめがね', '今ひとつの点が×2']);
+    Object.keys(TCB_SET_W).forEach(function(n){ atk.push([n, '出したとき、天候を' + TCB_W_NAMES[TCB_SET_W[n]] + 'にする']); });
+    Object.keys(TCB_SET_F).forEach(function(n){ atk.push([n, '出したとき、' + TCB_F_NAMES[TCB_SET_F[n]] + 'にする']); });
+    Object.keys(TCB_CLEAR_W).forEach(function(n){ atk.push([n, '出したとき、天候を消す']); });
+    atk.push([TCB_FORECAST, '出したときの天候で、はれ・おおひでり→ほのお、あめ・おおあめ→みず、ゆき→こおりタイプになる(場に残ったあとは変わらない)']);
+    atk.push([TCB_MIMICRY, '出したときのフィールドで、エレキ→でんき、グラス→くさ、サイコ→エスパー、ミスト→フェアリータイプになる(場に残ったあとは変わらない)']);
+    atk.push([TCB_SAND_FORCE, 'すなあらしのとき、いわ・じめん・はがねタイプの点が×1.3']);
+    atk.push(['トランジスタ', 'でんきタイプの点が×1.3']);
+    atk.push(['すいほう', 'みずタイプの点が×2']);
+    atk.push(['てきおうりょく', '単タイプの補正が×1.5から×2に、複合タイプは合計点が×4/3']);
+    atk.push(['フェアリーオーラ', 'フェアリータイプの点が×1.33(場のカードのフェアリーオーラと重ならない)']);
+    atk.push(['ダークオーラ', 'あくタイプの点が×1.33(場のカードのダークオーラと重ならない)']);
+    atk.push(['オーラブレイク', '場のカードのフェアリーオーラ・ダークオーラを働かなくする']);
+    atk.push(['りゅうのあぎと', 'ドラゴンタイプの点が×1.5']);
+    atk.push(['はがねつかい', 'はがねタイプを3つ目のタイプとして計算し、合計を×2/3']);
+    atk.push(['いわはこび', 'いわタイプを3つ目のタイプとして計算し、合計を×2/3']);
     atk.push(['きもったま', 'ノーマル・かくとうの点がゴーストにも入る']);
     atk.push(['しんがん', 'ノーマル・かくとうの点がゴーストにも入る']);
     atk.push(['ブレインフォース', 'ばつぐんの点が×1.25']);
-    function sortPresent(list){ return list.filter(function(x){ return present[x[0]]; }).concat(list.filter(function(x){ return !present[x[0]]; })); }
-    return { def: sortPresent(defs), atk: sortPresent(atk), present: present };
+    // 五十音順(カタカナはひらがなとして比較)
+    var coll = new Intl.Collator('ja');
+    function readingOf(n){ return n.replace(/[ァ-ヶ]/g, function(c){ return String.fromCharCode(c.charCodeAt(0) - 0x60); }); }
+    // 英字で始まるもの(ARシステム)を先に、そのあと日本語を五十音順
+    function sortKana(list){ return list.slice().sort(function(a, b){ var la = /^[A-Za-z]/.test(a[0]), lb = /^[A-Za-z]/.test(b[0]); return la !== lb ? (la ? -1 : 1) : coll.compare(readingOf(a[0]), readingOf(b[0])); }); }
+    return { def: sortKana(defs), atk: sortKana(atk), present: present };
   }
   function tcbBuildAbilityList(st){
     var data = tcbAbilityRows(st);
     var wrap = document.createElement('div');
     wrap.className = 'dameke-tcb-abil';
-    [['場のカードの特性(受けるとき)', data.def], ['出すカードの特性(場のカードが' + TCB_GAS + 'なら働かない)', data.atk]].forEach(function(sec){
+    [['場のカードの特性', data.def], ['出すカードの特性', data.atk]].forEach(function(sec){
       var h = document.createElement('div');
       h.className = 'dameke-tcb-abil-head';
       h.textContent = sec[0];
@@ -2870,6 +3172,28 @@
     note.className = 'dameke-tcb-note';
     note.textContent = '色付きは、この試合のカードに付いている特性です。';
     wrap.appendChild(note);
+    // 天候・フィールドの効果
+    var eh = document.createElement('div');
+    eh.className = 'dameke-tcb-abil-head';
+    eh.textContent = '天候・フィールドの効果';
+    wrap.appendChild(eh);
+    var el = document.createElement('div');
+    el.className = 'dameke-tcb-abil-list';
+    [['はれ', 'ほのおの点×1.5、みずの点×1/2'], ['おおひでり', 'ほのおの点×1.5、みずの点が0'], ['あめ', 'みずの点×1.5、ほのおの点×1/2'], ['おおあめ', 'みずの点×1.5、ほのおの点が0'],
+     ['すなあらし', '場のカードがいわタイプなら点×2/3'], ['ゆき', '場のカードがこおりタイプなら点×2/3'], ['らんきりゅう', '場のカードがひこうタイプなら、ひこうへのばつぐん(こおり・でんき・いわ)がひこうの分だけ等倍'],
+     ['エレキフィールド', 'でんきの点×1.3'], ['グラスフィールド', 'くさの点×1.3、じめんの点×1/2'], ['サイコフィールド', 'エスパーの点×1.3'], ['ミストフィールド', 'ドラゴンの点×1/2']].forEach(function(x){
+      var row = document.createElement('div');
+      row.className = 'dameke-tcb-abil-row';
+      var n = document.createElement('span'); n.className = 'dameke-tcb-abil-name'; n.textContent = x[0];
+      var d = document.createElement('span'); d.className = 'dameke-tcb-abil-desc'; d.textContent = x[1];
+      row.appendChild(n); row.appendChild(d);
+      el.appendChild(row);
+    });
+    wrap.appendChild(el);
+    var en = document.createElement('p');
+    en.className = 'dameke-tcb-note';
+    en.textContent = '天候・フィールドは、その特性を出したターンを含めて、別の天候・フィールドに書き換えられるまで続きます（場札で出た場合を除く）。フィールドの効果は、ひこうタイプ・ふゆう・うなぎのぼりのカードには働きません。';
+    wrap.appendChild(en);
     return wrap;
   }
 
@@ -2879,19 +3203,34 @@
   }
   function tcbExtraText(e){
     var t = '';
-    if(e.boost === 'Z') t += '、Zワザ×2';
-    if(e.boost === 'D') t += '、ダイマックス×1.5';
-    if(e.boost === 'T') t += '、テラスタル×1.25';
+    if(e.boost === 'Z') t += '、Zワザ×1.75';
+    if(e.boost === 'D') t += '、ダイマックス×1.3';
+    if(e.boost === 'T') t += '、テラスタル×1.5';
     if(e.targetDyn) t += '、相手がダイマックス×0.5';
     return t;
   }
   function tcbShudderText(st, e){ return e.shudder ? st.faces[e.face].name + 'はみぶるいした！' : ''; }
+  function tcbImposterText(st, e){ return e.imposter ? (st.faces[e.from].img || st.faces[e.from].name) + 'は' + e.imposter + 'に へんしんした！' : ''; }
+  function tcbTraceText(st, e){ return e.trace ? st.faces[e.face].name + 'はトレースで' + e.trace + 'になった！' : ''; }
+  // 天候・フィールド・てんきや等の出来事の文(演出・直前の手・記録に出す)
+  function tcbEnvTexts(st, e){
+    var out = [], nm = (function(f){ return f.img || f.name; })(st.faces[e.from != null ? e.from : e.face]);
+    if(e.form) out.push(nm + 'は' + e.form + 'タイプになった！');
+    if(e.clearW) out.push(e.setBy + 'で' + e.clearW + 'が消えた！');
+    if(e.setW) out.push(e.setBy + 'で天候が' + TCB_W_NAMES[e.setW] + 'になった！');
+    if(e.setF) out.push(e.setBy + 'で' + TCB_F_NAMES[e.setF] + 'になった！');
+    if(e.sandSpit) out.push((st.faces[e.target].img || st.faces[e.target].name) + 'のすなはきで、次のターンから天候がすなあらしになる！');
+    return out;
+  }
   function tcbLogText(st, e){
     var att = st.faces[e.face], def = st.faces[e.target];
     var t = att.name + ' → ' + def.name + '：' + e.parts.map(tcbPartText).join(' + ') + ' = ' + tcbPts(e.base);
     var x = tcbExtraText(e);
     if(x) t += x + ' = ' + tcbPts(e.pts);
     t += '点';
+    if(e.imposter) t += '　' + tcbImposterText(st, e);
+    if(e.trace) t += '　' + tcbTraceText(st, e);
+    tcbEnvTexts(st, e).forEach(function(x){ t += '　' + x; });
     if(e.shudder) t += '　' + tcbShudderText(st, e);
     return t;
   }
@@ -2943,14 +3282,14 @@
     h.textContent = text;
     return h;
   }
-  function tcbFxPair(st, fromCard, fromFace, toCard, toFace, toDyn, arrowText){
+  function tcbFxPair(st, fromCard, fromFace, toCard, toFace, toDyn, arrowText, toTrace){
     var row = document.createElement('div');
     row.className = 'dameke-tcb-fx-cards';
     var a = tcbBuildCard(st, fromCard, { size: 'm', faceId: fromFace, cls: 'dameke-tcb-fx-attacker' });
     var arrow = document.createElement('span');
     arrow.className = 'dameke-tcb-fx-arrow';
     arrow.textContent = arrowText || '→';
-    var b = tcbBuildCard(st, toCard, { size: 'm', faceId: toFace, cls: 'dameke-tcb-fx-target' + (toDyn ? ' dameke-tcb-card-dyn' : ''), label: toDyn ? 'ダイマックス' : null, labelCls: 'dameke-tcb-label-dyn' });
+    var b = tcbBuildCard(st, toCard, { size: 'm', faceId: toFace, cls: 'dameke-tcb-fx-target' + (toDyn ? ' dameke-tcb-card-dyn' : ''), traceAb: toTrace || null, label: toDyn ? 'ダイマックス' : null, labelCls: 'dameke-tcb-label-dyn' });
     row.appendChild(a); row.appendChild(arrow); row.appendChild(b);
     return row;
   }
@@ -2962,10 +3301,10 @@
     if(e.boost){
       var bt = document.createElement('div');
       bt.className = 'dameke-tcb-fx-boost dameke-tcb-fx-boost-' + e.boost;
-      bt.textContent = e.boost === 'Z' ? 'Zワザ！ ×2' : e.boost === 'D' ? 'ダイマックス！ ×1.5' : 'テラスタル！ ×1.25';
+      bt.textContent = e.boost === 'Z' ? 'Zワザ！ ×1.75' : e.boost === 'D' ? 'ダイマックス！ ×1.3' : 'テラスタル！ ×1.5';
       panel.appendChild(bt);
     }
-    panel.appendChild(tcbFxPair(st, st.faces[e.face].card, e.face, st.faces[e.target].card, e.target, e.targetDyn));
+    panel.appendChild(tcbFxPair(st, st.faces[e.face].card, e.face, st.faces[e.target].card, e.target, e.targetDyn, null, e.targetTrace));
     var parts = document.createElement('div');
     parts.className = 'dameke-tcb-fx-parts';
     e.parts.forEach(function(p){ var d = document.createElement('div'); d.textContent = tcbPartText(p); parts.appendChild(d); });
@@ -2976,6 +3315,24 @@
     pts.className = 'dameke-tcb-fx-pts';
     pts.textContent = '+' + tcbPts(e.pts) + '点';
     panel.appendChild(pts);
+    tcbEnvTexts(st, e).forEach(function(x){
+      var ev = document.createElement('div');
+      ev.className = 'dameke-tcb-fx-trace';
+      ev.textContent = x;
+      panel.appendChild(ev);
+    });
+    if(e.imposter){
+      var im = document.createElement('div');
+      im.className = 'dameke-tcb-fx-trace';
+      im.textContent = tcbImposterText(st, e);
+      panel.appendChild(im);
+    }
+    if(e.trace){
+      var tr = document.createElement('div');
+      tr.className = 'dameke-tcb-fx-trace';
+      tr.textContent = tcbTraceText(st, e);
+      panel.appendChild(tr);
+    }
     if(e.shudder){
       var sh = document.createElement('div');
       sh.className = 'dameke-tcb-fx-shudder';
@@ -3196,11 +3553,12 @@
       '<p>18枚のポケモンカードを使い、CPUと1枚ずつ交互に出し合います。カードは「今回のカード」で全部見られます。</p>' +
       '<p>はじめに場札が1枚置かれ、6枚ずつ手札が配られます。残りの5枚は山札(裏向き)です。</p>' +
       '<p>始める前に、後攻→先攻の順で1回ずつマリガンができます。手札1枚を山札に戻して、山札から1枚引きます。戻した札も引いた札も相手に公開されます(先に戻された札を引くこともあります)。マリガンしなくても構いません。</p>' +
-      '<p>カードを出すと、そのカードの2つのタイプそれぞれの、場のカードへの相性の倍率を合計した点数が入ります(単タイプは同じタイプで2回分)。出したカードが次の場札になります。</p>' +
-      '<p>カードの特性も点数に影響します(「相性に関わる特性」を参照)。</p>' +
-      '<p>手札のカードを押すと選び、もう一度押すと出します。フォルム違いのあるカード(タイプか相性に関わる特性が違う姿があるとき)と、タイプを選べる特性(「相性に関わる特性」を参照)のカードは、カードの下で姿やタイプを選べます。</p>' +
-      '<p>強化は1試合1回、どれか1つ: Zワザ(その手の点数2倍)／ダイマックス(その手の点数1.5倍、そのカードが次に受ける点数は半分)／テラスタル(そのカードがテラスタイプの単タイプになって、その手の点数1.25倍。場に残ったあとも、テラスタイプとして点を受けます)。</p>' +
+      '<p>カードを出すと、そのカードの2つのタイプそれぞれの、場のカードへの相性の倍率を合計した点数が入ります(単タイプは、そのタイプの倍率×1.5)。出したカードが次の場札になります。</p>' +
+      '<p>カードの特性も点数に影響します(「相性に関わる特性等」を参照)。</p>' +
+      '<p>手札のカードを押すと選び、もう一度押すと出します。フォルム違いのあるカード(タイプか相性に関わる特性が違う姿があるとき)と、タイプを選べる特性(「相性に関わる特性等」を参照)のカードは、カードの下で姿やタイプを選べます。</p>' +
+      '<p>強化は1試合1回、どれか1つ: Zワザ(その手の点数1.75倍)／ダイマックス(その手の点数1.3倍、そのカードが次に受ける点数は半分)／テラスタル(そのカードがテラスタイプの単タイプになって、その手の点数1.5倍。場に残ったあとも、テラスタイプとして点を受けます)。</p>' +
       '<p>※オーガポンはお面ごとのテラスタイプ(テラスタルするとおもかげやどし)、テラパゴスはテラスタルできません。ザシアン・ザマゼンタ・ムゲンダイナはダイマックスできません。</p>' +
+      '<p>天候やフィールドを起こす特性のカードを出すと、その手から試合の終わりまで(書き換えられるまで)点数に効果があります(「相性に関わる特性等」を参照)。</p>' +
       '<p>お互い手札を出し切ったら、合計点の多い方の勝ちです。</p>';
     wrap.appendChild(rulesFold.fold);
 
@@ -3234,7 +3592,7 @@
     var chartFold = buildMinigameFold('相性表');
     chartFold.body.appendChild(tcbBuildChart());
     wrap.appendChild(chartFold.fold);
-    var abilFold = buildMinigameFold('相性に関わる特性');
+    var abilFold = buildMinigameFold('相性に関わる特性等');
     wrap.appendChild(abilFold.fold);
 
     var board = document.createElement('div');
@@ -3332,7 +3690,9 @@
       fLab.className = 'dameke-tcb-row-label';
       fLab.textContent = st.field.by === 'start' ? '場札(最初の1枚)' : '場札(' + (st.field.by === 'me' ? 'あなた' : 'CPU') + 'が出したカード)';
       fieldBox.appendChild(fLab);
-      fieldBox.appendChild(tcbBuildCard(st, st.field.card, { size: 'l', faceId: st.field.face, cls: st.field.dyn ? 'dameke-tcb-card-dyn' : '', label: st.field.dyn ? 'ダイマックス中' : (st.faces[st.field.face].tera ? 'テラスタル中' : null), labelCls: st.field.dyn ? 'dameke-tcb-label-dyn' : 'dameke-tcb-label-tera' }));
+      var fieldCard = tcbBuildCard(st, st.field.card, { size: 'l', faceId: st.field.face, traceAb: st.field.traceAb, cls: st.field.dyn ? 'dameke-tcb-card-dyn' : '', label: st.field.dyn ? 'ダイマックス中' : (st.faces[st.field.face].tera ? 'テラスタル中' : null), labelCls: st.field.dyn ? 'dameke-tcb-label-dyn' : 'dameke-tcb-label-tera' });
+      tcbApplyEnvTint(fieldCard, st.env);
+      fieldBox.appendChild(fieldCard);
       mid.appendChild(fieldBox);
       var side = document.createElement('div');
       side.className = 'dameke-tcb-side';
@@ -3347,6 +3707,7 @@
       st.deck.forEach(function(){ dBacks.appendChild(tcbBack()); });
       deckBox.appendChild(dBacks);
       side.appendChild(deckBox);
+      if(st.env) side.appendChild(tcbEnvBox(st.env));
       var last = st.log[st.log.length - 1];
       if(last){
         var info = document.createElement('div');
@@ -3389,6 +3750,7 @@
         msg.textContent = 'あなたの番です。出すカードを押してください。';
       } else {
         var f = st.cards[st.sel].faces[st.handFace[st.sel] || 0];
+        if(f.libero && st.faces[st.field.face].ab === TCB_GAS) f = f.baseRef;
         msg.textContent = '「' + f.name + '」を' + (st.selBoost === 'Z' ? 'Zワザで' : st.selBoost === 'D' ? 'ダイマックスして' : st.selBoost === 'T' ? 'テラスタルして' : '') + '出します。もう一度押すと出します。';
       }
       if(st.message){ var m2 = document.createElement('div'); m2.className = 'dameke-tcb-message-sub'; m2.textContent = st.message; msg.appendChild(m2); }
@@ -3428,12 +3790,20 @@
       if(myMull) return buildMullHandItem(ci, item);
       var selected = st.sel === ci && myTurn;
       var gasNow = st.phase === 'play' && st.faces[st.field.face].ab === TCB_GAS;
+      // テラスタルを選んでいるときは、選んだカードをテラスタルした姿で見せる
+      // かがくへんかガスの場では、リベロ等も元の姿(タイプは変わらない)で見せる
+      var hf = st.faceIds[ci][st.handFace[ci] || 0];
+      var showId = selected && st.selBoost === 'T' && st.teraOf[hf] != null ? st.teraOf[hf]
+        : (gasNow && st.faces[hf].libero ? st.faces[hf].baseRef.id : null);
+      // トレース・かわりもの: いまの場札に出したらどうなるかを見せる(コピーした特性・へんしんした姿)
+      var traceAb = null, pf = showId != null ? showId : hf;
+      if(st.phase === 'play' && (st.faces[pf].ab === TCB_TRACE || st.faces[pf].ab === TCB_IMPOSTER)){
+        var pv = tcbPlayInfo(st, pf, st.field.face, st.env);
+        if(pv.imposter || pv.traced){ showId = pv.act; traceAb = pv.traced; }
+      }
       var el = tcbBuildCard(st, ci, {
-        size: 'm', faceIdx: st.handFace[ci] || 0, showAlt: true,
-        // テラスタルを選んでいるときは、選んだカードをテラスタルした姿で見せる
-        // かがくへんかガスの場では、リベロ等も元の姿(タイプは変わらない)で見せる
-        faceId: selected && st.selBoost === 'T' ? st.teraOf[st.faceIds[ci][st.handFace[ci] || 0]]
-          : (gasNow && st.faces[st.faceIds[ci][st.handFace[ci] || 0]].libero ? st.faces[st.faceIds[ci][st.handFace[ci] || 0]].baseRef.id : null),
+        size: 'm', faceIdx: st.handFace[ci] || 0, showAlt: true, traceAb: traceAb,
+        faceId: showId,
         label: selected ? (st.selBoost === 'Z' ? 'Zワザで出す' : st.selBoost === 'D' ? 'ダイマで出す' : st.selBoost === 'T' ? 'テラスで出す' : '出す') : null,
         labelCls: 'dameke-tcb-label-play' + (selected && st.selBoost ? ' dameke-tcb-label-boost-' + st.selBoost : ''),
         cls: (selected ? 'dameke-tcb-card-selected' : '') + (selected && st.selBoost ? ' dameke-tcb-card-boost-' + st.selBoost : '') + (myTurn ? '' : ' dameke-tcb-card-wait'),
@@ -3467,6 +3837,14 @@
             sel.appendChild(o);
           });
           sel.value = String(st.handFace[ci] || 0);
+          // かがくへんかガスの場では、リベロ・へんげんじざいのタイプは選べない(元のタイプで出る)
+          if(gasNow && card.liberoChoice){
+            var o0 = document.createElement('option');
+            o0.value = ''; o0.textContent = '元のタイプ';
+            sel.insertBefore(o0, sel.firstChild);
+            sel.value = '';
+            sel.disabled = true; sel.title = TCB_GAS + 'の場では、元のタイプで出ます';
+          }
           sel.addEventListener('change', function(){ tcbState.handFace[ci] = +sel.value; renderBoard(); renderPool(); });
           ctl.appendChild(sel);
         } else {
@@ -3491,7 +3869,7 @@
         info.textContent = '詳細';
         info.setAttribute('aria-label', (card.faces[0].img || card.faces[0].name) + 'の姿の詳細');
         info.addEventListener('click', function(){
-          tcbShowFaces(tcbState, ci, function(fi){
+          tcbShowFaces(tcbState, ci, gasNow && card.liberoChoice ? null : function(fi){
             if(!tcbState || tcbState.hands.me.indexOf(ci) < 0) return;
             tcbState.handFace[ci] = fi; renderBoard(); renderPool();
           });
@@ -3563,7 +3941,7 @@
         used.textContent = TCB_BOOST_NAME[st.boost.me] + 'を使ったので、もう使えません';
         boostRow.appendChild(used);
       } else {
-        [[null, 'なし'], ['Z', 'Zワザ（×2）'], ['D', 'ダイマックス（×1.5・次に受ける点が半分）'], ['T', 'テラスタル（×1.25・テラスタイプになる）']].forEach(function(x){
+        [[null, 'なし'], ['Z', 'Zワザ（×1.75）'], ['D', 'ダイマックス（×1.3・次に受ける点が半分）'], ['T', 'テラスタル（×1.5・テラスタイプになる）']].forEach(function(x){
           var b = document.createElement('button');
           b.type = 'button';
           b.className = 'dameke-tcb-choice' + (st.selBoost === x[0] ? ' dameke-tcb-choice-active' + (x[0] ? ' dameke-tcb-choice-boost-' + x[0] : '') : '');
@@ -3624,6 +4002,7 @@
         var opts = { size: 's', label: label, cls: cls, showAlt: true };
         if(st.cards[ci].faces.length > 1) opts.onClick = function(){ tcbShowFaces(tcbState, ci, null); };
         if(faceOf[ci] != null) opts.faceId = faceOf[ci];
+        if(ci === st.field.card) opts.traceAb = st.field.traceAb;
         else if(mine[ci]) opts.faceIdx = st.handFace[ci] || 0;
         grid.appendChild(tcbBuildCard(st, ci, opts));
       });
