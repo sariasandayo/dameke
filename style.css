@@ -1980,8 +1980,6 @@ button.dameke-tcb-card-wait:hover{border-color:var(--dameke-border);}
   .dameke-stateditor-nav{min-width:1.6rem;min-height:1.7rem;font-size:1rem;}
   .dameke-stateditor-title{font-size:.72rem;}
 }
-  .dameke-stateditor-step{min-width:1.8rem;}
-}
 
 /* ==================== 下部固定枠: 性格・努力値・特性・持ち物の折り畳み(v2.6.2) ==================== */
 .dameke-result-side-toggle{display:none;}
@@ -2131,10 +2129,11 @@ button.dameke-tcb-card-wait:hover{border-color:var(--dameke-border);}
   .dameke-dmgq-props dt{font-size:.62rem;}
   .dameke-dmgq-stat{font-size:.7rem;gap:0 4px;}
 }
+.dameke-dmgq-nowrap{display:inline-block;white-space:nowrap;margin-right:6px;}
+/* 幅が狭いときは、入りきらない場合だけ途中で折り返す(上の nowrap より後ろに置く。前に置くと打ち消される)。 */
 @media (max-width:23.75em){
   .dameke-dmgq-nowrap{white-space:normal;max-width:100%;}
 }
-.dameke-dmgq-nowrap{display:inline-block;white-space:nowrap;margin-right:6px;}
 .dameke-dmgq-calc-fold{margin:2px 0 0;}
 .dameke-dmgq-calc-fold .v082h-calc-table{margin:8px 0 0;}
 .dameke-dmgq-qno{color:var(--dameke-text);}
